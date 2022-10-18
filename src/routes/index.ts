@@ -2,6 +2,7 @@ import express from 'express';
 import { validationError } from './../middleware/validate';
 import PingController from '../controllers/ping.controller';
 import TrelloRouter from './trello.router';
+import MicrosoftRouter from './microsoft.route';
 
 const router = express();
 
@@ -12,6 +13,7 @@ router.get('/ping', async (_req, res) => {
 });
 
 router.use('/trello', TrelloRouter);
+router.use('/microsoft', MicrosoftRouter);
 
 router.use(validationError);
 

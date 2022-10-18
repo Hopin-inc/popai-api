@@ -148,6 +148,23 @@
 					}
 				}
 			}
+		},
+		"/microsoft": {
+			"get": {
+				"operationId": "GetAccessToken",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"security": [],
+				"parameters": []
+			}
 		}
 	},
 	"servers": [

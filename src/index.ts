@@ -4,12 +4,14 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import dotenvExpand from 'dotenv-expand';
 import express, { Application } from 'express';
 import Router from './routes';
 
 import { AppDataSource } from './config/data-source';
 
-dotenv.config({ path: path.join(__dirname, '.env') });
+var myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
+dotenvExpand.expand(myEnv);
 
 const PORT = process.env.PORT || 8000;
 

@@ -1,7 +1,7 @@
 import { Get, Route, Controller, Post, Body } from 'tsoa';
 import { User } from './../entify/user.entity';
 
-import { getUsers, getBoard } from '../ repositories/trello.repository';
+import { getUsers, getBoard } from '../repositories/trello.repository';
 import { CreateUserRequest } from '../dto/trello/create-user-trello.dto';
 
 @Route('trello')
