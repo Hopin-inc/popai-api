@@ -1,0 +1,69 @@
+{
+  "name": "angel-task-mgmt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node build/index.js",
+    "predev": "npm run swagger",
+    "prebuild": "npm run swagger",
+    "build": "tsoa spec-and-routes && tsc --build",
+    "dev": "concurrently \"nodemon\" \"nodemon -x tsoa spec\"",
+    "swagger": "tsoa spec",
+    "clean": "tsc --build --clean",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typeorm": "typeorm-ts-node-commonjs -d ./src/config/data-source.ts",
+    "migrate": "npm run typeorm migration:run",
+    "migrate:generate": "npm run typeorm migration:generate src/database/migrations/$npm_config_name",
+    "migrate:create": "cd src/database/migrations && npx typeorm-ts-node-commonjs migration:create",
+    "migrate:revert": "npm run typeorm migration:revert"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "ts",
+    "exec": "ts-node src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RIZE-Inc/angel-task-mgmt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RIZE-Inc/angel-task-mgmt/issues"
+  },
+  "homepage": "https://github.com/RIZE-Inc/angel-task-mgmt#readme",
+  "devDependencies": {
+    "@types/express": "^4.17.14",
+    "@types/morgan": "^1.9.3",
+    "@types/node": "^18.8.5",
+    "@types/node-fetch": "^2.6.2",
+    "@types/swagger-ui-express": "^4.1.3",
+    "concurrently": "^7.4.0",
+    "nodemon": "^2.0.20",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^7.5.2",
+    "@types/cors": "^2.8.12",
+    "body-parser": "^1.20.1",
+    "class-sanitizer": "^1.0.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.13.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "morgan": "^1.10.0",
+    "mysql": "^2.18.1",
+    "node-fetch": "^2.6.6",
+    "prettierrc": "^0.0.0-5",
+    "reflect-metadata": "^0.1.13",
+    "swagger-ui-express": "^4.5.0",
+    "tsoa": "^4.1.3",
+    "typeorm": "^0.3.10"
+  }
+}
