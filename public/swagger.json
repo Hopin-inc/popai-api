@@ -100,6 +100,23 @@
 				"parameters": []
 			}
 		},
+		"/trello/card-remind": {
+			"get": {
+				"operationId": "GetCardRemind",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"security": [],
+				"parameters": []
+			}
+		},
 		"/trello/user": {
 			"get": {
 				"operationId": "GetUsers",

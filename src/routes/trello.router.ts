@@ -16,6 +16,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/card-remind', async (req, res) => {
+  try {
+    const controller = new TrelloController();
+    const response = await controller.getCardRemind();
+    ResponseApi.successRes(res, response);
+  } catch (err) {
+    ResponseApi.errRes(res, err.message, err.status);
+  }
+});
+
 router.post('/create-user', dtoValidation(CreateUserRequest), async function(req, res) {
   try {
     const controller = new TrelloController();
