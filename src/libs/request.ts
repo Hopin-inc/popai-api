@@ -7,11 +7,12 @@ import fetch from 'node-fetch';
  * @param {string} method
  */
 export async function fetchApi(
-  url: string,
+  baseUrl: string,
   method: string,
   params = {},
   accessToken: string = null
 ) {
+  let url = baseUrl;
   const options = {
     method: method,
     headers: {},
@@ -30,23 +31,11 @@ export async function fetchApi(
   }
 
   try {
-    let response = await fetch(url, options).then((res) => res);
+    const response = await fetch(url, options).then((res) => res);
     return response.json();
   } catch (error) {
     throw new Error(error.message);
   }
-}
-
-export async function fetchTrelloApi(uri: string, method: string, params = {}) {
-  let url = process.env.TRELLO_API_URL + '/1/' + uri;
-
-  const authParam = {
-    key: process.env.TRELLO_API_KEY,
-    token: process.env.TRELLO_API_TOKEN,
-  };
-
-  url += '?' + new URLSearchParams(authParam).toString();
-  return fetchApi(url, method, params);
 }
 
 /**
@@ -56,6 +45,6 @@ export async function fetchTrelloApi(uri: string, method: string, params = {}) {
  * @param {string} method
  */
 export async function fetchGraphApi(uri: string, method: string, params = {}, accessToken: string) {
-  let url = process.env.MICROSOFT_GRAPH_API_URL + '/' + uri;
-  return fetchApi(url, method, params, accessToken);
+  const baseUrl = process.env.MICROSOFT_GRAPH_API_URL + '/' + uri;
+  return fetchApi(baseUrl, method, params, accessToken);
 }

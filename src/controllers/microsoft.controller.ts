@@ -1,10 +1,15 @@
-import { getAccessToken } from '../repositories/microsoft.repository';
+import MicrosoftRepository from '../repositories/microsoft.repository';
 import { Get, Route, Controller } from 'tsoa';
 
 @Route('microsoft')
 export default class MicrosoftController extends Controller {
+  private microsoftRepo: MicrosoftRepository;
+  constructor() {
+    super();
+    this.microsoftRepo = new MicrosoftRepository();
+  }
   @Get('/')
   public async getAccessToken(): Promise<any> {
-    return getAccessToken();
+    return this.microsoftRepo.getAccessToken();
   }
 }
