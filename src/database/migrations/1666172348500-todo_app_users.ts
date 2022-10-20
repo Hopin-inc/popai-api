@@ -8,8 +8,8 @@ export class todoAppUsers1666172348500 implements MigrationInterface {
           employee_id INT NULL,
           todoapp_id INT NULL,
           api_key VARCHAR(255) NULL,
-          api_token VARCHAR(255) NULL,
-          refresh_token VARCHAR(255) NULL,
+          api_token TEXT NULL,
+          refresh_token TEXT NULL,
           expires_in INT NULL,
           PRIMARY KEY(id),
        

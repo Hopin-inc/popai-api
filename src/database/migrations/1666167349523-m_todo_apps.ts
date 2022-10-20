@@ -6,13 +6,10 @@ export class mTodoApps1666167349523 implements MigrationInterface {
     CREATE TABLE m_todo_apps (
       id INT NOT NULL AUTO_INCREMENT,
       name VARCHAR(255) NOT NULL,
-      company_id INT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       update_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
       deleted_at DATETIME,
-      PRIMARY KEY(id),
-
-      FOREIGN KEY (company_id) REFERENCES companies (id)  ON DELETE SET NULL
+      PRIMARY KEY(id)
     );`);
   }
 
