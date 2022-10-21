@@ -10,7 +10,7 @@ import Router from './routes';
 
 import { AppDataSource } from './config/data-source';
 
-var myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
+const myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
 dotenvExpand.expand(myEnv);
 
 const PORT = process.env.PORT || 8000;

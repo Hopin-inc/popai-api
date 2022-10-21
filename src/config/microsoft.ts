@@ -1,4 +1,4 @@
-import msal, { ConfidentialClientApplication } from '@azure/msal-node';
+import { ConfidentialClientApplication } from '@azure/msal-node';
 import path from 'path';
 import dotenv from 'dotenv';
 
