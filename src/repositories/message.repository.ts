@@ -1,5 +1,4 @@
 import { AppDataSource } from '../config/data-source';
-import { fetchTrelloApi } from '../libs/request';
 import { InternalServerErrorException } from '../exceptions';
 import {
   EventMessage,

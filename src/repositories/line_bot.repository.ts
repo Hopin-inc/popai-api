@@ -1,5 +1,4 @@
 import { AppDataSource } from '../config/data-source';
-import { fetchTrelloApi } from '../libs/request';
 import { InternalServerErrorException } from '../exceptions';
 import { Profile } from '@line/bot-sdk';
 import { LineProfile } from '../entify/line_profile.entity';
