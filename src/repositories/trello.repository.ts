@@ -48,8 +48,8 @@ export default class TrelloRepository {
   getCardRemindByUser = async (userId: number, todoAppUser: ITodoAppUser): Promise<Array<any>> => {
     try {
       this.trelloRequest.setAuth(todoAppUser.api_key, todoAppUser.api_token);
-      const data = await this.trelloRequest.fetchApi('members/me/cards', 'GET');
-      const remindUsers = this.findCardRemind(data);
+      const cardTodos = await this.trelloRequest.fetchApi('members/me/cards', 'GET');
+      const remindUsers = this.findCardRemind(cardTodos);
 
       return remindUsers;
     } catch (error) {
@@ -57,10 +57,8 @@ export default class TrelloRepository {
     }
   };
 
-  findCardRemind = (cards) => {
-    if (!cards.length) return [];
-
-    const card = cards.map(function(item) {
+  findCardRemind = (cards: any): Promise<Array<any>> => {
+    const cardReminds = cards.map(function(item: any) {
       if (item.due && !item.dueComplete) {
         const dateExpired = moment(item.due);
         const dateNow = moment().add(Common.day_remind, 'days');
@@ -70,6 +68,6 @@ export default class TrelloRepository {
         }
       }
     });
-    return card;
+    return cardReminds.filter((item: any) => item);
   };
 }
