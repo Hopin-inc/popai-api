@@ -7,6 +7,7 @@ export class users1666171875369 implements MigrationInterface {
           id INT NOT NULL AUTO_INCREMENT,
           name VARCHAR(255) NOT NULL,
           company_id INT NULL,
+          line_id VARCHAR(255) NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           update_at DATETIME ON UPDATE CURRENT_TIMESTAMP,
           deleted_at DATETIME,
