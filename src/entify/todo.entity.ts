@@ -2,39 +2,51 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 't
 import { TodoApp } from './todoapp.entity';
 import { User } from './user.entity';
 
-@Entity('todo_app_users')
-export class TodoAppUser {
+@Entity('todos')
+export class Todo {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  employee_id: number;
+  name: string;
 
   @Column()
   todoapp_id: number;
 
   @Column()
-  api_key: string;
+  assigned_user_id: number;
 
   @Column()
-  api_token: string;
+  todoapp_reg_id: string;
 
   @Column()
-  refresh_token: string;
+  todoapp_reg_created_by: number;
 
   @Column()
-  expires_in: number;
+  todoapp_reg_created_at: Date;
+
+  @Column()
+  deadline: Date;
+
+  @Column()
+  is_done: boolean;
+
+  @Column()
+  is_reminded: boolean;
+
+  @Column()
+  is_rescheduled: boolean;
 
   @ManyToOne(
     () => User,
-    (user) => user.todoAppUsers
+    (user) => user.todos
   )
-  @JoinColumn({ name: 'employee_id' })
+  @JoinColumn({ name: 'assigned_user_id' })
   user: User;
 
   @ManyToOne(
     () => TodoApp,
-    (todoapp) => todoapp.todoappuser
+    (todoapp) => todoapp.todos
   )
   @JoinColumn({ name: 'todoapp_id' })
   todoapp: TodoApp;

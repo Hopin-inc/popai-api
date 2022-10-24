@@ -15,7 +15,7 @@ export async function fetchApi(
   let url = baseUrl;
   const options = {
     method: method,
-    headers: {},
+    headers: { 'Content-Type': 'application/json' },
     body: null,
   };
 
@@ -36,15 +36,4 @@ export async function fetchApi(
   } catch (error) {
     throw new Error(error.message);
   }
-}
-
-/**
- * Calls the endpoint with authorization bearer token.
- * @param {string} uri
- * @param {string} accessToken
- * @param {string} method
- */
-export async function fetchGraphApi(uri: string, method: string, params = {}, accessToken: string) {
-  const baseUrl = process.env.MICROSOFT_GRAPH_API_URL + '/' + uri;
-  return fetchApi(baseUrl, method, params, accessToken);
 }
