@@ -21,7 +21,8 @@ import {
 
 import { createLineProfile, getSuperiorUsers } from '../repositories/line_bot.repository';
 import { createMessage } from '../repositories/message.repository';
-import { User } from 'src/entify/user.entity';
+import { User } from '../entify/user.entity';
+import { LineMessageBuilder } from '../common/line_message';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -33,71 +34,7 @@ export default class LineController extends Controller {
     taskName: string,
     taskUrl: string
   ): Promise<any> {
-    const quickReplyItems: QuickReply = {
-      /**
-       * This is a container that contains
-       * [quick reply buttons](https://developers.line.biz/en/reference/messaging-api/#quick-reply-button-object).
-       *
-       * Array of objects (Max: 13)
-       */
-      items: [
-        {
-          type: 'action',
-          action: {
-            type: 'message',
-            label: '完了しております',
-            text: '完了しております',
-          },
-        },
-
-        {
-          type: 'action',
-          action: {
-            type: 'message',
-            label: 'すみません、遅れております',
-            text: 'すみません、遅れております',
-          },
-        },
-      ],
-    };
-
-    const message: FlexMessage = {
-      type: 'flex',
-      altText: '昨日までの' + taskName + 'の進捗はいかがですか？\n',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: userName + 'さん\n\n',
-            },
-            {
-              type: 'text',
-              text: '\nお疲れさまです\n\n',
-            },
-            {
-              type: 'text',
-              text: '昨日までの' + taskName + 'の進捗はいかがですか？\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '該当リンクはこちらです\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: taskUrl,
-              wrap: true,
-            },
-          ],
-        },
-      },
-      quickReply: quickReplyItems,
-    };
+    const message = LineMessageBuilder.createRemindMessage(userName, taskName, taskUrl);
     const result = await client.pushMessage(lineId, message);
 
     return {
@@ -136,6 +73,7 @@ export default class LineController extends Controller {
         break;
 
       case 'message':
+        // eslint-disable-next-line no-case-declarations
         const message: any = event.message;
 
         await createMessage(message);
@@ -145,7 +83,7 @@ export default class LineController extends Controller {
         }
 
         // quick reply
-        if (message.text === '完了しております') {
+        if (message.text.startsWith('完了しております')) {
           const superiorUsers = await getSuperiorUsers(lineId);
           superiorUsers.map((superiorUser) => {
             this.replyDoneAction(client, event.replyToken, superiorUser.name);
@@ -153,7 +91,7 @@ export default class LineController extends Controller {
           });
         }
 
-        if (message.text === 'すみません、遅れております') {
+        if (message.text.startsWith('すみません、遅れております')) {
           this.replyDeplayAction(client, event.replyToken);
 
           const superiorUsers = await getSuperiorUsers(lineId);
@@ -173,92 +111,21 @@ export default class LineController extends Controller {
   }
 
   private async replyDoneAction(client: Client, replyToken: string, superior: string) {
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '当いただき担、ありがとうございます\n',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '完了しているんですね😌\n\n',
-            },
-            {
-              type: 'text',
-              text: 'お疲れさまでした！\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '当いただき担、ありがとうございます😭\n\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '{{上長(' + superior + ')}}さんに報告しておきますね💪\n',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
+    const replyMessage: FlexMessage = LineMessageBuilder.createReplyDoneMessage(superior);
     return client.replyMessage(replyToken, replyMessage);
   }
 
   private async replyDeplayAction(client: Client, replyToken: string) {
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '当いただき担、ありがとうございます\n',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '承知しました😖\n',
-            },
-            {
-              type: 'text',
-              text: '引き続きよろしくお願いします💪\n',
-            },
-          ],
-        },
-      },
-    };
+    const replyMessage: FlexMessage = LineMessageBuilder.createDeplayReplyMessage();
 
     return client.replyMessage(replyToken, replyMessage);
   }
 
   private async sendSuperiorMessage(client: Client, superiorUser: User, reportContent: string) {
-    const reportMessage: FlexMessage = {
-      type: 'flex',
-      altText: superiorUser.name + 'からのレポート\n',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '報告者：' + superiorUser.name + '\n',
-            },
-            {
-              type: 'text',
-              text: 'レポート内容：' + reportContent + '\n',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
+    const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
+      superiorUser.name,
+      reportContent
+    );
     return client.pushMessage(superiorUser.line_id, reportMessage);
   }
 }
