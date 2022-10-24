@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany } from 'typeorm';
 import { Company } from './company.entity';
+import { Todo } from './todo.entity';
 import { TodoAppUser } from './todoappuser.entity';
 
 @Entity('m_todo_apps')
@@ -21,4 +22,10 @@ export class TodoApp {
     (todoappuser) => todoappuser.todoapp
   )
   todoappuser: TodoAppUser[];
+
+  @OneToMany(
+    () => Todo,
+    (todo) => todo.todoapp
+  )
+  todos: Todo[];
 }

@@ -2,7 +2,7 @@ import { fetchApi } from './request';
 import { Service } from 'typedi';
 
 @Service()
-export default class trelloRequest {
+export default class TrelloRequest {
   private apiKey: string;
   private apiToken: string;
 
