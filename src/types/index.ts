@@ -18,6 +18,7 @@ export type IImplementedTodoApp = {
 export type IUser = {
   id: number;
   name: string;
+  line_id: string;
   todoAppUsers?: ITodoAppUser[];
 };
 

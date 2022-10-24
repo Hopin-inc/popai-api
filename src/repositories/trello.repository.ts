@@ -8,17 +8,20 @@ import { ITodoAppUser, ITrelloTask, IUser } from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
+import LineAppRepository from './lineapp.repository';
 
 @Service()
 export default class TrelloRepository {
   private userRepository: Repository<User>;
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
+  private lineBotRepository: LineAppRepository;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.lineBotRepository = Container.get(LineAppRepository);
   }
 
   getUserTodoApps = async (companyId: number, todoappId: number): Promise<IUser[]> => {
@@ -40,25 +43,26 @@ export default class TrelloRepository {
 
     for (const user of users) {
       if (user.todoAppUsers.length) {
-        this.remindUserByTodoApp(user.id, user.todoAppUsers);
+        this.remindUserByTodoApp(user, user.todoAppUsers);
       }
     }
   };
 
-  remindUserByTodoApp = async (userId: number, todoAppUsers: ITodoAppUser[]): Promise<void> => {
+  remindUserByTodoApp = async (user: IUser, todoAppUsers: ITodoAppUser[]): Promise<void> => {
+    console.log(JSON.stringify(user));
     for (const todoAppUser of todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token) {
-        this.getCardRemindByUser(userId, todoAppUser);
+        this.getCardRemindByUser(user, todoAppUser);
       }
     }
   };
 
-  getCardRemindByUser = async (userId: number, todoAppUser: ITodoAppUser): Promise<void> => {
+  getCardRemindByUser = async (user: IUser, todoAppUser: ITodoAppUser): Promise<void> => {
     try {
       this.trelloRequest.setAuth(todoAppUser.api_key, todoAppUser.api_token);
       const cardTodos = await this.trelloRequest.fetchApi('members/me/cards', 'GET');
       const taskReminds = await this.findCardRemind(cardTodos);
-      this.createTodo(todoAppUser, taskReminds);
+      this.createTodo(user, todoAppUser, taskReminds);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
@@ -81,7 +85,7 @@ export default class TrelloRepository {
     return cardReminds;
   };
 
-  createTodo = async (todoAppUser: ITodoAppUser, taskReminds: any): Promise<void> => {
+  createTodo = async (user: IUser, todoAppUser: ITodoAppUser, taskReminds: any): Promise<void> => {
     if (!taskReminds.length) return;
     const dataTodos = [];
 
@@ -98,6 +102,9 @@ export default class TrelloRepository {
       todoData.is_reminded = todoTask.dueReminder ? true : false;
       todoData.is_rescheduled = null;
       dataTodos.push(todoData);
+
+      // send Line message
+      this.lineBotRepository.pushMessageRemind(user, todoData);
     }
 
     const response = await this.todoRepository.upsert(dataTodos, []);
