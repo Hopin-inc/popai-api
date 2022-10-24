@@ -15,7 +15,7 @@ export async function fetchApi(
   let url = baseUrl;
   const options = {
     method: method,
-    headers: {},
+    headers: { 'Content-Type': 'application/json' },
     body: null,
   };
 
