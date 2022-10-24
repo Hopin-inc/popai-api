@@ -19,7 +19,7 @@ import {
   QuickReply,
 } from '@line/bot-sdk';
 
-import { createLineProfile } from '../repositories/line_bot.repository';
+import { createLineProfile, getSuperiorUsers } from '../repositories/line_bot.repository';
 import { createMessage } from '../repositories/message.repository';
 
 @Route('line')
@@ -32,7 +32,6 @@ export default class LineController extends Controller {
     taskName: string,
     taskUrl: string
   ): Promise<any> {
-  
     const quickReplyItems: QuickReply = {
       /**
        * This is a container that contains
@@ -45,8 +44,8 @@ export default class LineController extends Controller {
           type: 'action',
           action: {
             type: 'message',
-            label: '完了しております👍',
-            text: '完了しております👍',
+            label: '完了しております',
+            text: '完了しております',
           },
         },
 
@@ -54,8 +53,8 @@ export default class LineController extends Controller {
           type: 'action',
           action: {
             type: 'message',
-            label: 'すみません、遅れております🙇‍♂️',
-            text: 'すみません、遅れております🙇‍♂️',
+            label: 'すみません、遅れております',
+            text: 'すみません、遅れております',
           },
         },
       ],
@@ -121,13 +120,13 @@ export default class LineController extends Controller {
   private async handleEvent(client: Client, event: WebhookEvent) {
     console.log(JSON.stringify(event));
 
-    const userId = event.source.userId;
+    const lineId = event.source.userId;
 
-    console.log('userId:' + userId);
+    console.log('userId:' + lineId);
 
     switch (event.type) {
       case 'follow': // LINE Official Account is added as a friend
-        const lineProfile = await client.getProfile(userId);
+        const lineProfile = await client.getProfile(lineId);
 
         console.log(JSON.stringify(lineProfile));
         await createLineProfile(lineProfile);
@@ -140,8 +139,39 @@ export default class LineController extends Controller {
         await createMessage(message);
 
         if (message.text == 'lineid') {
-          const textMessage: TextMessage = { type: 'text', text: userId };
+          const textMessage: TextMessage = { type: 'text', text: lineId };
           return client.replyMessage(event.replyToken, textMessage);
+        }
+
+        // quick reply
+        if (message.text === '完了しております' || message.text === 'すみません、遅れております') {
+          const superiorUsers = await getSuperiorUsers(lineId);
+          superiorUsers.map((superiorUser) => {
+            const reportMessage: FlexMessage = {
+              type: 'flex',
+              altText: superiorUser.name + 'からのレポート\n',
+              contents: {
+                type: 'bubble',
+                body: {
+                  type: 'box',
+                  layout: 'vertical',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '報告者：' + superiorUser.name + '\n',
+                    },
+                    {
+                      type: 'text',
+                      text: 'レポート内容：' + message.text + '\n',
+                      wrap: true,
+                    },
+                  ],
+                },
+              },
+            };
+
+            return client.pushMessage(superiorUser.line_id, reportMessage);
+          });
         }
         break;
     }

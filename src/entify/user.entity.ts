@@ -9,6 +9,9 @@ export class User {
   @Column()
   name: string;
 
+  @Column()
+  line_id: string;
+
   @OneToMany(
     () => TodoAppUser,
     (todoappuser) => todoappuser.user
