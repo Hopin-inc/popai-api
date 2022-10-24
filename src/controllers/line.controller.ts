@@ -15,6 +15,8 @@ import {
   EventMessage,
   TextMessage,
   Message,
+  QuickReplyItem,
+  QuickReply,
 } from '@line/bot-sdk';
 
 import { createLineProfile } from '../repositories/line_bot.repository';
@@ -30,9 +32,38 @@ export default class LineController extends Controller {
     taskName: string,
     taskUrl: string
   ): Promise<any> {
+  
+    const quickReplyItems: QuickReply = {
+      /**
+       * This is a container that contains
+       * [quick reply buttons](https://developers.line.biz/en/reference/messaging-api/#quick-reply-button-object).
+       *
+       * Array of objects (Max: 13)
+       */
+      items: [
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: '完了しております👍',
+            text: '完了しております👍',
+          },
+        },
+
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: 'すみません、遅れております🙇‍♂️',
+            text: 'すみません、遅れております🙇‍♂️',
+          },
+        },
+      ],
+    };
+
     const message: FlexMessage = {
       type: 'flex',
-      altText: 'This is a Flex Message',
+      altText: '昨日までの' + taskName + 'の進捗はいかがですか？\n',
       contents: {
         type: 'bubble',
         body: {
@@ -65,6 +96,7 @@ export default class LineController extends Controller {
           ],
         },
       },
+      quickReply: quickReplyItems,
     };
     const result = await client.pushMessage(lineId, message);
 
