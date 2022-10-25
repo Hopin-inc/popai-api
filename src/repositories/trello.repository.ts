@@ -8,20 +8,20 @@ import { ITodoAppUser, ITrelloTask, IUser } from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
-import LineAppRepository from './lineapp.repository';
+import LineRepository from './line.repository';
 
 @Service()
 export default class TrelloRepository {
   private userRepository: Repository<User>;
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
-  private lineBotRepository: LineAppRepository;
+  private lineBotRepository: LineRepository;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.lineBotRepository = Container.get(LineAppRepository);
+    this.lineBotRepository = Container.get(LineRepository);
   }
 
   getUserTodoApps = async (companyId: number, todoappId: number): Promise<IUser[]> => {
@@ -89,6 +89,9 @@ export default class TrelloRepository {
     if (!taskReminds.length) return;
     const dataTodos = [];
 
+    // send to admin of user
+    await this.lineBotRepository.pushStartReportToAdmin(user);
+
     for (const todoTask of taskReminds) {
       const todoData = new Todo();
       todoData.name = todoTask.name;
@@ -107,10 +110,7 @@ export default class TrelloRepository {
       this.lineBotRepository.pushMessageRemind(user, todoData);
     }
 
-    const response = await this.todoRepository.upsert(dataTodos, []);
-    if (response) {
-      //push Line
-    }
+    await this.todoRepository.upsert(dataTodos, []);
   };
 
   updateTodo = async (todoTask: ITrelloTask): Promise<void> => {

@@ -1,46 +1,21 @@
 import { Get, Route, Controller, Post } from 'tsoa';
-import {
-  // main APIs
-  Client,
-  middleware,
+import { WebhookEvent, FlexMessage, TextMessage } from '@line/bot-sdk';
 
-  // exceptions
-  JSONParseError,
-  SignatureValidationFailed,
-
-  // types
-  TemplateMessage,
-  WebhookEvent,
-  FlexMessage,
-  EventMessage,
-  TextMessage,
-  Message,
-  QuickReplyItem,
-  QuickReply,
-} from '@line/bot-sdk';
-
-import { createLineProfile, getSuperiorUsers } from '../repositories/line_bot.repository';
-import { createMessage } from '../repositories/message.repository';
 import { User } from '../entify/user.entity';
 import { LineMessageBuilder } from '../common/line_message';
 import { LineBot } from '../config/linebot';
+import LineRepository from '../repositories/line.repository';
+import Container from 'typedi';
+import { TaskStatus } from '../const/common';
+import { ChatMessage } from '../entify/message.entity';
+import moment from 'moment';
 
 @Route('line')
 export default class LineController extends Controller {
-  @Post('/send_message')
-  public async sendMessage(
-    lineId: string,
-    userName: string,
-    taskName: string,
-    taskUrl: string
-  ): Promise<any> {
-    const message = LineMessageBuilder.createRemindMessage(userName, taskName, taskUrl);
-    const result = await LineBot.pushMessage(lineId, message);
-
-    return {
-      message: 'ok',
-      result: result,
-    };
+  private lineRepository: LineRepository;
+  constructor() {
+    super();
+    this.lineRepository = Container.get(LineRepository);
   }
 
   @Post('/webhook')
@@ -54,53 +29,78 @@ export default class LineController extends Controller {
 
   // event handler
   private async handleEvent(event: WebhookEvent) {
-    console.log(JSON.stringify(event));
+    try {
+      console.log(JSON.stringify(event));
 
-    const lineId = event.source.userId;
+      const lineId = event.source.userId;
 
-    console.log('userId:' + lineId);
+      console.log('userId:' + lineId);
 
-    switch (event.type) {
-      case 'follow': // LINE Official Account is added as a friend
-        // eslint-disable-next-line no-case-declarations
-        const lineProfile = await LineBot.getProfile(lineId);
+      switch (event.type) {
+        case 'follow': // LINE Official Account is added as a friend
+          // eslint-disable-next-line no-case-declarations
+          const lineProfile = await LineBot.getProfile(lineId);
 
-        console.log(JSON.stringify(lineProfile));
-        await createLineProfile(lineProfile);
+          console.log(JSON.stringify(lineProfile));
+          await this.lineRepository.createLineProfile(lineProfile);
 
-        break;
+          break;
 
-      case 'message':
-        // eslint-disable-next-line no-case-declarations
-        const message: any = event.message;
+        case 'postback':
+          console.log('postback');
+          console.log(JSON.stringify(event));
+          // eslint-disable-next-line no-case-declarations
+          const postData = JSON.parse(event.postback.data);
+          if (postData.todo && postData.status) {
+            const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
-        await createMessage(message);
+            superiorUsers.map((superiorUser) => {
+              if (postData.status == TaskStatus.DONE) {
+                this.replyDoneAction(event.replyToken, superiorUser.name);
+              } else {
+                this.replyDeplayAction(event.replyToken);
+              }
 
-        if (message.text == 'lineid') {
-          return this.replyClientId(event.replyToken, lineId);
-        }
+              const chatMessage = new ChatMessage();
+              chatMessage.is_from_user = 1;
+              chatMessage.chattool_id = 1;
+              chatMessage.is_openned = 1;
+              chatMessage.is_replied = 1;
+              chatMessage.message_trigger_id = 2; // reply
 
-        // quick reply
-        if (message.text.startsWith('完了しております')) {
-          const superiorUsers = await getSuperiorUsers(lineId);
-          superiorUsers.map((superiorUser) => {
-            this.replyDoneAction(event.replyToken, superiorUser.name);
-            this.sendSuperiorMessage(superiorUser, message.text);
-          });
-        }
+              chatMessage.body = postData.message; // re
+              chatMessage.todo_id = postData.todo.id;
+              chatMessage.send_at = moment().toDate();
+              chatMessage.message_token = event.replyToken;
+              chatMessage.user_id = postData.todo.assigned_user_id;
 
-        if (message.text.startsWith('すみません、遅れております')) {
-          this.replyDeplayAction(event.replyToken);
+              this.lineRepository.createMessage(chatMessage);
 
-          const superiorUsers = await getSuperiorUsers(lineId);
-          superiorUsers.map((superiorUser) => {
-            this.sendSuperiorMessage(superiorUser, message.text);
-          });
-        }
-        break;
+              this.sendSuperiorMessage(
+                superiorUser,
+                postData.user_name,
+                postData.todo.name,
+                postData.message
+              );
+            });
+          }
+
+          break;
+
+        case 'message':
+          // eslint-disable-next-line no-case-declarations
+          const message: any = event.message;
+          if (message.text == 'lineid') {
+            return this.replyClientId(event.replyToken, lineId);
+          }
+
+          break;
+      }
+
+      return;
+    } catch (error) {
+      console.error(error);
     }
-
-    return;
   }
 
   private async replyClientId(replyToken: string, lineId: string) {
@@ -119,9 +119,16 @@ export default class LineController extends Controller {
     return LineBot.replyMessage(replyToken, replyMessage);
   }
 
-  private async sendSuperiorMessage(superiorUser: User, reportContent: string) {
+  private async sendSuperiorMessage(
+    superiorUser: User,
+    userName: string,
+    taskName: string,
+    reportContent: string
+  ) {
     const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
       superiorUser.name,
+      userName,
+      taskName,
       reportContent
     );
     return LineBot.pushMessage(superiorUser.line_id, reportMessage);
