@@ -25,7 +25,7 @@ export default class LineController extends Controller {
     this.lineRepository = Container.get(LineRepository);
   }
 
-  public async handlerEvents(events: WebhookEvent[]): Promise<any> {
+  public async handlerEvents(events: Array<WebhookEvent>): Promise<any> {
     events.map(async (event) => await this.handleEvent(event));
 
     return {
