@@ -1,43 +1,18 @@
-import { FlexMessage, QuickReply } from '@line/bot-sdk';
+import { FlexMessage } from '@line/bot-sdk';
+import { TaskStatus } from '../const/common';
+import { Todo } from '../entify/todo.entity';
 
 export class LineMessageBuilder {
-  static createRemindMessage(userName: string, taskName: string, taskUrl: string) {
-    const quickReplyItems: QuickReply = {
-      /**
-       * This is a container that contains
-       * [quick reply buttons](https://developers.line.biz/en/reference/messaging-api/#quick-reply-button-object).
-       *
-       * Array of objects (Max: 13)
-       */
-      items: [
-        {
-          type: 'action',
-          action: {
-            type: 'message',
-            label: '完了しております',
-            text: '完了しております (taskId: 1234)',
-          },
-        },
-
-        {
-          type: 'action',
-          action: {
-            type: 'message',
-            label: 'すみません、遅れております',
-            text: 'すみません、遅れております (taskId: 1234)',
-          },
-        },
-      ],
-    };
-
+  static createRemindMessage(userName: string, todo: Todo) {
     const message: FlexMessage = {
       type: 'flex',
-      altText: '昨日までの' + taskName + 'の進捗はいかがですか？\n',
+      altText: '昨日までの' + todo.name + 'の進捗はいかがですか？\n',
       contents: {
         type: 'bubble',
         body: {
           type: 'box',
           layout: 'vertical',
+          spacing: 'md',
           contents: [
             {
               type: 'text',
@@ -49,7 +24,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: '昨日までの' + taskName + 'の進捗はいかがですか？\n',
+              text: '昨日までの' + todo.name + 'の進捗はいかがですか？\n',
               wrap: true,
             },
             {
@@ -58,14 +33,53 @@ export class LineMessageBuilder {
               wrap: true,
             },
             {
-              type: 'text',
-              text: taskUrl,
-              wrap: true,
+              type: 'button',
+              style: 'link',
+              action: {
+                type: 'uri',
+                label: 'https://example.com',
+                uri: 'https://example.com',
+              },
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              action: {
+                type: 'postback',
+                label: '完了しております',
+                data: JSON.stringify({
+                  todo: {
+                    id: todo.id,
+                    name: todo.name,
+                    assigned_user_id: todo.assigned_user_id,
+                  },
+                  status: TaskStatus.DONE,
+                  user_name: userName,
+                  message: '完了しております',
+                }),
+              },
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: 'すみません、遅れております',
+                data: JSON.stringify({
+                  todo: {
+                    id: todo.id,
+                    name: todo.name,
+                    assigned_user_id: todo.assigned_user_id,
+                  },
+                  status: TaskStatus.DELALYED,
+                  user_name: userName,
+                  message: 'すみません、遅れております',
+                }),
+              },
             },
           ],
         },
       },
-      quickReply: quickReplyItems,
     };
 
     return message;
@@ -134,10 +148,10 @@ export class LineMessageBuilder {
     return replyMessage;
   }
 
-  static createReportToSuperiorMessage(superiorUserName: string, reportContent: string) {
+  static createStartReportToSuperiorMessage(superiorUserName: string) {
     const reportMessage: FlexMessage = {
       type: 'flex',
-      altText: superiorUserName + 'からのレポート\n',
+      altText: '進捗報告開始\n',
       contents: {
         type: 'bubble',
         body: {
@@ -146,11 +160,61 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: '報告者：' + superiorUserName + '\n',
+              text: superiorUserName + 'さん\n\n',
             },
             {
               type: 'text',
-              text: 'レポート内容：' + reportContent + '\n',
+              text: 'お疲れさまです🙌\n\n',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: '皆さんに進捗を聞いてきたので、ご報告させていただきます。\n',
+              wrap: true,
+            },
+          ],
+        },
+      },
+    };
+
+    return reportMessage;
+  }
+
+  static createReportToSuperiorMessage(
+    superiorUserName: string,
+    userName: string,
+    taskName: string,
+    reportContent: string
+  ) {
+    const reportMessage: FlexMessage = {
+      type: 'flex',
+      altText: userName + 'からのレポート\n',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: taskName + '\n\n',
+            },
+            {
+              type: 'text',
+              text: '●担当者\n',
+            },
+            {
+              type: 'text',
+              text: userName + 'さん\n\n',
+            },
+            {
+              type: 'text',
+              text: '●現在の進捗\n',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: reportContent + '\n',
               wrap: true,
             },
           ],

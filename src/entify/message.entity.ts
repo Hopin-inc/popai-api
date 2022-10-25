@@ -27,7 +27,7 @@ export class ChatMessage {
   message_token: string;
 
   @Column()
-  send_at: string;
+  send_at: Date;
 
   @Column()
   todo_id: number;
