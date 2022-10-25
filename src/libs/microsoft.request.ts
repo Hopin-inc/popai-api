@@ -1,41 +1,28 @@
 import { fetchApi } from './request';
 import { Service } from 'typedi';
-import { IImplementedTodoApp, ITodoAppUser } from 'src/types';
+import { IMicrosoftRefresh } from './../types';
 import MicrosoftRepository from './../repositories/microsoft.repository';
 
 @Service()
 export default class MicrosoftRequest {
-  private accessToken: string;
-  private todoAppUser: ITodoAppUser;
-  private implementedTodoApp: IImplementedTodoApp;
-
-  setTernant(implementedTodoApp: IImplementedTodoApp) {
-    this.implementedTodoApp = implementedTodoApp;
-  }
-
-  setAuth(accessToken: string) {
-    this.accessToken = accessToken;
-  }
-
-  setTodoAppUser(todoAppUser: ITodoAppUser) {
-    this.todoAppUser = todoAppUser;
-  }
-
-  getTodoAppUser() {
-    return this.todoAppUser;
-  }
-
-  fetchApi = async (uri: string, method: string, params = {}, isRefresh = false) => {
+  fetchApi = async (
+    uri: string,
+    method: string,
+    params = {},
+    dataRefresh: IMicrosoftRefresh,
+    isRefresh = false
+  ) => {
+    const { todoAppUser } = dataRefresh;
     const baseUrl = process.env.MICROSOFT_GRAPH_API_URL + '/' + uri;
-    const response = await fetchApi(baseUrl, method, params, this.accessToken);
+    const response = await fetchApi(baseUrl, method, params, false, todoAppUser.api_token);
 
     if (response.error && response.error.code === 'InvalidAuthenticationToken' && !isRefresh) {
-      console.log(response);
       const microsoftRepository = new MicrosoftRepository();
-      const todoAppUser = await microsoftRepository.refreshToken(this.implementedTodoApp);
+
+      const todoAppUser = await microsoftRepository.refreshToken(dataRefresh);
       if (todoAppUser) {
-        this.setAuth(todoAppUser.api_token);
-        return await this.fetchApi(baseUrl, method, params, true);
+        dataRefresh.todoAppUser = todoAppUser;
+        return await this.fetchApi(uri, method, params, dataRefresh, true);
       }
     }
     return response;

@@ -33,9 +33,10 @@ export type ITodoAppUser = {
 };
 
 export type ITodo = {
+  id: number;
   name: string;
   todoapp_id: number;
-  todoapp_reg_id: number | null;
+  todoapp_reg_id: string | null;
   todoapp_reg_created_by: number | null;
   todoapp_reg_created_at: Date | null;
   assigned_user_id: number | null;
@@ -70,5 +71,11 @@ export type IMicrosoftTask = {
   isReminderOn: boolean;
   createdDateTime: Date;
   status: string;
+  lastModifiedDateTime?: Date;
   dueDateTime?: IMicrosoftDueDate;
+};
+
+export type IMicrosoftRefresh = {
+  ternant: IImplementedTodoApp;
+  todoAppUser: ITodoAppUser;
 };
