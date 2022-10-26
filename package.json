@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node build/index.js",
+    "start": "node dist/index.js",
     "predev": "npm run swagger",
     "prebuild": "npm run swagger",
-    "build": "tsoa spec-and-routes && tsc --build",
+    "build": "tsc --build",
     "dev": "concurrently \"nodemon\" \"nodemon -x tsoa spec\"",
     "swagger": "tsoa spec",
     "clean": "tsc --build --clean",
