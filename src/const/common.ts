@@ -1,8 +1,9 @@
 export const Common = {
-  day_remind: 2,
+  day_remind: 1,
   trello: 'trello',
   microsoft: 'microsoft',
   completed: 'completed',
+  microsoftBaseUrl: 'https://to-do.live.com/tasks/id',
 };
 
 export const TaskStatus = {

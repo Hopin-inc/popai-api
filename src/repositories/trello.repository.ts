@@ -30,7 +30,8 @@ export default class TrelloRepository {
   getUserTodoApps = async (companyId: number, todoappId: number): Promise<IUser[]> => {
     const users: IUser[] = await this.userRepository
       .createQueryBuilder('users')
-      .leftJoinAndSelect('users.todoAppUsers', 'todo_app_users')
+      .innerJoinAndSelect('users.todoAppUsers', 'todo_app_users')
+      .leftJoinAndSelect('users.companyCondition', 'm_company_conditions')
       .where('users.company_id = :companyId', { companyId })
       .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId })
       .getMany();
@@ -52,7 +53,6 @@ export default class TrelloRepository {
   };
 
   remindUserByTodoApp = async (user: IUser, todoAppUsers: ITodoAppUser[]): Promise<void> => {
-    console.log(JSON.stringify(user));
     for (const todoAppUser of todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token) {
         this.getCardRemindByUser(user, todoAppUser);
@@ -64,31 +64,37 @@ export default class TrelloRepository {
     try {
       this.trelloRequest.setAuth(todoAppUser.api_key, todoAppUser.api_token);
       const cardTodos = await this.trelloRequest.fetchApi('members/me/cards', 'GET');
-      const taskReminds = await this.findCardRemind(cardTodos);
+      const taskReminds = await this.findCardRemind(user, cardTodos);
       this.createTodo(user, todoAppUser, taskReminds);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
   };
 
-  findCardRemind = async (cardTodos: ITrelloTask[]): Promise<ITrelloTask[]> => {
+  findCardRemind = async (user: IUser, cardTodos: ITrelloTask[]): Promise<ITrelloTask[]> => {
     const cardReminds: ITrelloTask[] = [];
+    const dayRemind: number = user.companyCondition?.remind_before_days || Common.day_remind;
 
     for (const todoTask of cardTodos) {
-      this.updateTodo(todoTask);
       if (todoTask.due && !todoTask.dueComplete) {
         const dateExpired = moment(todoTask.due);
-        const dateNow = moment().add(Common.day_remind, 'days');
+        const dateNow = moment().add(dayRemind, 'days');
         if (dateNow.isSameOrAfter(dateExpired)) {
           cardReminds.push(todoTask);
         }
+      } else {
+        this.updateTodo(todoTask);
       }
     }
 
     return cardReminds;
   };
 
-  createTodo = async (user: IUser, todoAppUser: ITodoAppUser, taskReminds: any): Promise<void> => {
+  createTodo = async (
+    user: IUser,
+    todoAppUser: ITodoAppUser,
+    taskReminds: ITrelloTask[]
+  ): Promise<void> => {
     if (!taskReminds.length) return;
     const dataTodos = [];
     const dataTodoIDUpdates = [];
@@ -101,6 +107,7 @@ export default class TrelloRepository {
       todoData.name = todoTask.name;
       todoData.todoapp_id = todoAppUser.todoapp_id;
       todoData.todoapp_reg_id = todoTask.id;
+      todoData.todoapp_reg_url = todoTask.url;
       todoData.todoapp_reg_created_by = null;
       todoData.todoapp_reg_created_at = moment(todoTask.dateLastActivity).toDate();
       todoData.assigned_user_id = todoAppUser.employee_id;
@@ -140,11 +147,14 @@ export default class TrelloRepository {
     const todoData = await this.todoRepository.findOneBy({
       todoapp_reg_id: todoTask.id,
     });
+
     if (todoData) {
       todoData.name = todoTask.name;
+      todoData.todoapp_reg_url = todoTask.url;
       todoData.deadline = moment(todoTask.due).toDate();
       todoData.is_done = todoTask.dueComplete;
       todoData.is_reminded = todoTask.dueReminder ? true : false;
+
       const todo = await this.todoRepository.save(todoData);
       if (todo && todoTask.dateLastActivity) {
         this.saveTodoHistory(todo, moment(todoTask.dateLastActivity).toDate());
@@ -153,21 +163,22 @@ export default class TrelloRepository {
   };
 
   saveTodoHistory = async (todo: ITodo, updateTime: Date) => {
-    let todoUpdate = await this.todoUpdateRepository.findOneBy({
-      todo_id: todo.id,
+    const todoUpdateData = await this.todoUpdateRepository.findOne({
+      where: { todo_id: todo.id },
+      order: { id: 'DESC' },
     });
-    if (todoUpdate) {
-      const oldDate = moment(todoUpdate.todoapp_reg_updated_at).toDate();
 
-      if (updateTime === oldDate) {
+    const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
+    if (todoUpdateData) {
+      const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
+      if (moment(oldDate).isSame(taskUpdate)) {
         return;
       }
-    } else {
-      todoUpdate = new TodoUpdateHistory();
     }
 
+    const todoUpdate = new TodoUpdateHistory();
     todoUpdate.todo_id = todo.id;
-    todoUpdate.todoapp_reg_updated_at = updateTime;
+    todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
     this.todoUpdateRepository.save(todoUpdate);
   };
 }

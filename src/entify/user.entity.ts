@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, OneToOne, JoinColumn } from 'typeorm';
+import { CompanyCondion } from './company.conditon.entity';
 import { Todo } from './todo.entity';
 import { TodoAppUser } from './todoappuser.entity';
 
@@ -11,7 +12,14 @@ export class User {
   name: string;
 
   @Column()
+  company_id: number;
+
+  @Column()
   line_id: string;
+
+  @OneToOne(() => CompanyCondion)
+  @JoinColumn({ name: 'company_id', referencedColumnName: 'company_id' })
+  companyCondition: CompanyCondion;
 
   @OneToMany(
     () => TodoAppUser,
