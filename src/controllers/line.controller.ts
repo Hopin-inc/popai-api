@@ -1,4 +1,4 @@
-import { Route, Controller, Post } from 'tsoa';
+import { Route, Controller } from 'tsoa';
 import { WebhookEvent, FlexMessage, TextMessage, PostbackEvent } from '@line/bot-sdk';
 
 import { User } from '../entify/user.entity';
