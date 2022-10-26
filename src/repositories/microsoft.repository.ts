@@ -198,7 +198,11 @@ export default class MicrosoftRepository {
     }
   };
 
-  createTodo = async (user: IUser, todoAppUser: ITodoAppUser, taskReminds: any): Promise<void> => {
+  createTodo = async (
+    user: IUser,
+    todoAppUser: ITodoAppUser,
+    taskReminds: IMicrosoftTask[]
+  ): Promise<void> => {
     if (!taskReminds.length) return;
 
     const dataTodos = [];
@@ -209,6 +213,7 @@ export default class MicrosoftRepository {
       todoData.name = todoTask.title;
       todoData.todoapp_id = todoAppUser.todoapp_id;
       todoData.todoapp_reg_id = todoTask.id;
+      todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
       todoData.todoapp_reg_created_by = null;
       todoData.todoapp_reg_created_at = moment(todoTask.createdDateTime).toDate();
       todoData.assigned_user_id = todoAppUser.employee_id;
@@ -250,6 +255,7 @@ export default class MicrosoftRepository {
     });
     if (todoData) {
       todoData.name = todoTask.title;
+      todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
       todoData.deadline = moment.utc(todoTask.dueDateTime.dateTime).toDate();
       todoData.is_done = todoTask.status === Common.completed;
       const todo = await this.todoRepository.save(todoData);

@@ -90,7 +90,11 @@ export default class TrelloRepository {
     return cardReminds;
   };
 
-  createTodo = async (user: IUser, todoAppUser: ITodoAppUser, taskReminds: any): Promise<void> => {
+  createTodo = async (
+    user: IUser,
+    todoAppUser: ITodoAppUser,
+    taskReminds: ITrelloTask[]
+  ): Promise<void> => {
     if (!taskReminds.length) return;
     const dataTodos = [];
     const dataTodoIDUpdates = [];
@@ -103,6 +107,7 @@ export default class TrelloRepository {
       todoData.name = todoTask.name;
       todoData.todoapp_id = todoAppUser.todoapp_id;
       todoData.todoapp_reg_id = todoTask.id;
+      todoData.todoapp_reg_url = todoTask.url;
       todoData.todoapp_reg_created_by = null;
       todoData.todoapp_reg_created_at = moment(todoTask.dateLastActivity).toDate();
       todoData.assigned_user_id = todoAppUser.employee_id;
@@ -145,6 +150,7 @@ export default class TrelloRepository {
 
     if (todoData) {
       todoData.name = todoTask.name;
+      todoData.todoapp_reg_url = todoTask.url;
       todoData.deadline = moment(todoTask.due).toDate();
       todoData.is_done = todoTask.dueComplete;
       todoData.is_reminded = todoTask.dueReminder ? true : false;

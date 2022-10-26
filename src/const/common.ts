@@ -3,6 +3,7 @@ export const Common = {
   trello: 'trello',
   microsoft: 'microsoft',
   completed: 'completed',
+  microsoftBaseUrl: 'https://to-do.live.com/tasks/id',
 };
 
 export const TaskStatus = {

@@ -21,6 +21,9 @@ export class Todo {
   todoapp_reg_id: string;
 
   @Column()
+  todoapp_reg_url: string;
+
+  @Column()
   todoapp_reg_created_by: number;
 
   @Column()

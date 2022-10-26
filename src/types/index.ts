@@ -59,6 +59,7 @@ export type ITrelloTask = {
   due: Date;
   dueReminder: number;
   shortUrl: string;
+  url: string;
 };
 
 export type IMicrosoftStatus = {
