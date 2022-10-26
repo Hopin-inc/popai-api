@@ -103,7 +103,7 @@ export default class MicrosoftRepository {
       };
 
       const userTaskLists = await this.microsoftRequest.fetchApi(
-        'me/todo/lists?user=' + todoAppUser.id,
+        'me/todo/lists',
         'GET',
         {},
         dataRefresh
