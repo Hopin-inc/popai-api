@@ -58,6 +58,7 @@ export default class MicrosoftRepository {
     const users: IUser[] = await this.userRepository
       .createQueryBuilder('users')
       .innerJoinAndSelect('users.todoAppUsers', 'todo_app_users')
+      .leftJoinAndSelect('users.companyCondition', 'm_company_conditions')
       .where('users.company_id = :companyId', { companyId })
       .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId })
       .getMany();
@@ -67,6 +68,7 @@ export default class MicrosoftRepository {
   remindUsers = async (companyId: number, todoappId: number): Promise<void> => {
     const implementedTodoApp = await this.getImplementedTodoApp(companyId, todoappId);
     const users = await this.getUserTodoApps(companyId, todoappId);
+
     if (!users.length) {
       return;
     }
@@ -131,26 +133,31 @@ export default class MicrosoftRepository {
         {},
         dataRefresh
       );
-      const taskReminds = await this.findTaskRemind(todoTaskLists['value'] || []);
+      const taskReminds = await this.findTaskRemind(user, todoTaskLists['value'] || []);
       this.createTodo(user, todoAppUser, taskReminds);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
   };
 
-  findTaskRemind = async (todoTaskLists: IMicrosoftTask[]): Promise<IMicrosoftTask[]> => {
+  findTaskRemind = async (
+    user: IUser,
+    todoTaskLists: IMicrosoftTask[]
+  ): Promise<IMicrosoftTask[]> => {
     const taskReminds: IMicrosoftTask[] = [];
-    for (const todoTask of todoTaskLists) {
-      this.updateTodo(todoTask);
+    const dayRemind: number = user.companyCondition?.remind_before_days || Common.day_remind;
 
+    for (const todoTask of todoTaskLists) {
       if (todoTask.dueDateTime && todoTask.status !== Common.completed) {
         const dueDate = todoTask.dueDateTime.dateTime;
         const dateExpired = moment(dueDate);
-        const dateNow = moment().add(Common.day_remind, 'days');
+        const dateNow = moment().add(dayRemind, 'days');
 
         if (dateNow.isSameOrAfter(dateExpired)) {
           taskReminds.push(todoTask);
         }
+      } else {
+        this.updateTodo(todoTask);
       }
     }
 
@@ -164,6 +171,7 @@ export default class MicrosoftRepository {
 
     if (ternantId && todoAppUserData.refresh_token) {
       const url = 'https://login.microsoftonline.com/' + ternantId + '/oauth2/v2.0/token';
+
       const formData = new FormData();
       formData.append('client_id', ternant.application_id);
       formData.append('scope', 'https://graph.microsoft.com/.default');
@@ -252,20 +260,22 @@ export default class MicrosoftRepository {
   };
 
   saveTodoHistory = async (todo: ITodo, updateTime: Date) => {
-    let todoUpdate = await this.todoUpdateRepository.findOneBy({
-      todo_id: todo.id,
+    const todoUpdateData = await this.todoUpdateRepository.findOne({
+      where: { todo_id: todo.id },
+      order: { id: 'DESC' },
     });
-    if (todoUpdate) {
-      const oldDate = moment(todoUpdate.todoapp_reg_updated_at).toDate();
-      if (updateTime === oldDate) {
+
+    const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
+    if (todoUpdateData) {
+      const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
+      if (moment(oldDate).isSame(taskUpdate)) {
         return;
       }
-    } else {
-      todoUpdate = new TodoUpdateHistory();
     }
 
+    const todoUpdate = new TodoUpdateHistory();
     todoUpdate.todo_id = todo.id;
-    todoUpdate.todoapp_reg_updated_at = updateTime;
+    todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
     this.todoUpdateRepository.save(todoUpdate);
   };
 

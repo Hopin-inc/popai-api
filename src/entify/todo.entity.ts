@@ -1,8 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Unique, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { TodoApp } from './todoapp.entity';
 import { User } from './user.entity';
 
 @Entity('todos')
+@Unique(['todoapp_id', 'todoapp_reg_id', 'assigned_user_id'])
 export class Todo {
   @PrimaryGeneratedColumn()
   id: number;

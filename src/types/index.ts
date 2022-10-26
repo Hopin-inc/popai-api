@@ -15,10 +15,15 @@ export type IImplementedTodoApp = {
   client_secret: string;
 };
 
+export type ICompanyCondition = {
+  remind_before_days: number;
+};
+
 export type IUser = {
   id: number;
   name: string;
   line_id: string;
+  companyCondition?: ICompanyCondition;
   todoAppUsers?: ITodoAppUser[];
 };
 

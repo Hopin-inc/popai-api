@@ -1,5 +1,5 @@
 export const Common = {
-  day_remind: 2,
+  day_remind: 1,
   trello: 'trello',
   microsoft: 'microsoft',
   completed: 'completed',
