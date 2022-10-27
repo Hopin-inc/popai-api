@@ -4,7 +4,14 @@ import { InternalServerErrorException } from '../exceptions';
 import { Repository } from 'typeorm';
 import moment from 'moment';
 import { Common } from './../const/common';
-import { ITodo, ITodoAppUser, ITrelloTask, IUser } from './../types';
+import {
+  ICompanyCondition,
+  ITodo,
+  ITodoAppUser,
+  ITrelloAuth,
+  ITrelloTask,
+  IUser,
+} from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
@@ -62,8 +69,17 @@ export default class TrelloRepository {
 
   getCardRemindByUser = async (user: IUser, todoAppUser: ITodoAppUser): Promise<void> => {
     try {
-      this.trelloRequest.setAuth(todoAppUser.api_key, todoAppUser.api_token);
-      const cardTodos = await this.trelloRequest.fetchApi('members/me/cards', 'GET');
+      const trelloAuth: ITrelloAuth = {
+        api_key: todoAppUser.api_key,
+        api_token: todoAppUser.api_token,
+      };
+
+      const cardTodos = await this.trelloRequest.fetchApi(
+        'members/me/cards',
+        'GET',
+        {},
+        trelloAuth
+      );
       const taskReminds = await this.findCardRemind(user, cardTodos);
       this.createTodo(user, todoAppUser, taskReminds);
     } catch (error) {
@@ -71,18 +87,37 @@ export default class TrelloRepository {
     }
   };
 
+  getDayReminds = async (companyCondition: ICompanyCondition[]): Promise<number[]> => {
+    let dayReminds: number[] = await companyCondition
+      .map((s) => s.remind_before_days)
+      .filter(Number.isFinite);
+
+    if (!dayReminds.length) dayReminds = [Common.day_remind];
+
+    return dayReminds;
+  };
+
   findCardRemind = async (user: IUser, cardTodos: ITrelloTask[]): Promise<ITrelloTask[]> => {
     const cardReminds: ITrelloTask[] = [];
-    const dayRemind: number = user.companyCondition?.remind_before_days || Common.day_remind;
+    const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
 
     for (const todoTask of cardTodos) {
+      let hasRemind = false;
+
       if (todoTask.due && !todoTask.dueComplete) {
-        const dateExpired = moment(todoTask.due);
-        const dateNow = moment().add(dayRemind, 'days');
-        if (dateNow.isSameOrAfter(dateExpired)) {
+        const dateExpired = moment(todoTask.due).startOf('day');
+        const dateNow = moment().startOf('day');
+
+        const duration = moment.duration(dateExpired.diff(dateNow));
+        const day = duration.asDays();
+
+        if (dayReminds.includes(day)) {
+          hasRemind = true;
           cardReminds.push(todoTask);
         }
-      } else {
+      }
+
+      if (!hasRemind) {
         this.updateTodo(todoTask);
       }
     }

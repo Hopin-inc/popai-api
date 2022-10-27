@@ -23,7 +23,7 @@ export type IUser = {
   id: number;
   name: string;
   line_id: string;
-  companyCondition?: ICompanyCondition;
+  companyCondition?: ICompanyCondition[];
   todoAppUsers?: ITodoAppUser[];
 };
 
@@ -60,6 +60,11 @@ export type ITrelloTask = {
   dueReminder: number;
   shortUrl: string;
   url: string;
+};
+
+export type ITrelloAuth = {
+  api_key: string;
+  api_token: string;
 };
 
 export type IMicrosoftStatus = {
