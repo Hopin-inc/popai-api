@@ -1,22 +1,16 @@
 import { fetchApi } from './request';
 import { Service } from 'typedi';
+import { ITrelloAuth } from './../types';
 
 @Service()
 export default class TrelloRequest {
-  private apiKey: string;
-  private apiToken: string;
-
-  setAuth(apiKey: string, apiToken: string) {
-    this.apiKey = apiKey;
-    this.apiToken = apiToken;
-  }
-
-  fetchApi = async (uri: string, method: string, params = {}) => {
+  fetchApi = async (uri: string, method: string, params = {}, trelloAuth: ITrelloAuth) => {
     let url = process.env.TRELLO_API_URL + '/1/' + uri;
+    const { api_key, api_token } = trelloAuth;
 
     const authParam = {
-      key: this.apiKey,
-      token: this.apiToken,
+      key: api_key,
+      token: api_token,
     };
 
     url += '?' + new URLSearchParams(authParam).toString();

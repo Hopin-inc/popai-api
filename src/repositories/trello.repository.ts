@@ -4,7 +4,7 @@ import { InternalServerErrorException } from '../exceptions';
 import { Repository } from 'typeorm';
 import moment from 'moment';
 import { Common } from './../const/common';
-import { ITodo, ITodoAppUser, ITrelloTask, IUser } from './../types';
+import { ITodo, ITodoAppUser, ITrelloAuth, ITrelloTask, IUser } from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
@@ -62,8 +62,17 @@ export default class TrelloRepository {
 
   getCardRemindByUser = async (user: IUser, todoAppUser: ITodoAppUser): Promise<void> => {
     try {
-      this.trelloRequest.setAuth(todoAppUser.api_key, todoAppUser.api_token);
-      const cardTodos = await this.trelloRequest.fetchApi('members/me/cards', 'GET');
+      const trelloAuth: ITrelloAuth = {
+        api_key: todoAppUser.api_key,
+        api_token: todoAppUser.api_token,
+      };
+
+      const cardTodos = await this.trelloRequest.fetchApi(
+        'members/me/cards',
+        'GET',
+        {},
+        trelloAuth
+      );
       const taskReminds = await this.findCardRemind(user, cardTodos);
       this.createTodo(user, todoAppUser, taskReminds);
     } catch (error) {
