@@ -37,8 +37,8 @@ export class LineMessageBuilder {
               style: 'link',
               action: {
                 type: 'uri',
-                label: 'https://example.com',
-                uri: 'https://example.com',
+                label: todo.todoapp_reg_url,
+                uri: todo.todoapp_reg_url,
               },
             },
             {
