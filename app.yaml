@@ -3,20 +3,15 @@ runtime: nodejs16 # or another supported version
 instance_class: F1
 
 env_variables:
-  PORT: "3000"
-  DB_HOST: 34.97.201.219
+  PORT: 3000
+  DB_HOST: 10.124.160.3
   DB_PORT: 3306
   DB_DATABASE: angle-dev-db
   DB_USERNAME: root
   DB_PASSWORD: ''
 
-  TRELLO_API_KEY: "06de8713107924291aa711ea720dff4b"
-  TRELLO_API_TOKEN: "0b7efb9d7bb4f2ce4e9ce7423503a4838ffad220be910c9d850bee3b5a78a15c"
   TRELLO_API_URL: https://api.trello.com
 
-  MICROSOFT_TENANT_ID: ce51c8aa-160b-4450-91a8-33f5153f287c
-  MICROSOFT_CLIENT_ID: 41341bee-e897-4366-8346-9085baa92ca5
-  MICROSOFT_CLIENT_SECRET: 6524b96e-9307-4a22-a550-3bdc4f3e720e
   MICROSOFT_AAD_ENDPOINT: https://login.microsoftonline.com
   MICROSOFT_GRAPH_API_VERSION: v1.0
   MICROSOFT_GRAPH_API_ENDPOINT: https://graph.microsoft.com
@@ -25,11 +20,7 @@ env_variables:
   LINE_CHANNEL_ACCESS_TOKEN: 'r7mqQw5Ob4sVo2g2Ud5xPnORryQV140P5X6gMlLeMpU3OboLX5IMM//8WKYgKM8vVXqw3Gocr6CGOMVUputAX6BxWXlN17ySjHOrnsYAGHSHuUXeZOeLKEOsTwADMtnU2U/4+dYnfJBvZEl0Jjf4twdB04t89/1O/w1cDnyilFU='
   LINE_CHANNEL_SECRET: 'f7b05245bea6a4d07aa55483f4c6f533'
 
-handlers:
-- url: /angle-dev
-  static_dir: angle-dev
+vpc_access_connector:
+ name: projects/rize-angel-dev/locations/asia-northeast2/connectors/connect-to-mysql
+ egress_setting: all-traffic
 
-- url: /.*
-  secure: always
-  redirect_http_response_code: 301
-  script: auto
