@@ -62,6 +62,11 @@ export type ITrelloTask = {
   url: string;
 };
 
+export type ITrelloAuth = {
+  api_key: string;
+  api_token: string;
+};
+
 export type IMicrosoftStatus = {
   NOT_START: 'notStarted';
   COMPLETED: 'completed';
