@@ -303,12 +303,4 @@ export default class MicrosoftRepository {
     todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
     this.todoUpdateRepository.save(todoUpdate);
   };
-
-  getAccessToken = async (): Promise<any> => {
-    try {
-      //get access token
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
-  };
 }
