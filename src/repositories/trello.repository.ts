@@ -4,7 +4,14 @@ import { InternalServerErrorException } from '../exceptions';
 import { Repository } from 'typeorm';
 import moment from 'moment';
 import { Common } from './../const/common';
-import { ICompanyCondition, ITodo, ITodoAppUser, ITrelloTask, IUser } from './../types';
+import {
+  ICompanyCondition,
+  ITodo,
+  ITodoAppUser,
+  ITrelloAuth,
+  ITrelloTask,
+  IUser,
+} from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
