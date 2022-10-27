@@ -23,7 +23,7 @@ export type IUser = {
   id: number;
   name: string;
   line_id: string;
-  companyCondition?: ICompanyCondition;
+  companyCondition?: ICompanyCondition[];
   todoAppUsers?: ITodoAppUser[];
 };
 

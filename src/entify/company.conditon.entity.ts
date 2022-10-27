@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './user.entity';
 
 @Entity('m_company_conditions')
 export class CompanyCondion {
@@ -10,4 +11,11 @@ export class CompanyCondion {
 
   @Column()
   remind_before_days: number;
+
+  @ManyToOne(
+    () => User,
+    (user) => user.companyCondition
+  )
+  @JoinColumn({ name: 'company_id' })
+  user: User;
 }

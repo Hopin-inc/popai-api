@@ -1,6 +1,7 @@
 import { InternalServerErrorException } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
+  ICompanyCondition,
   IImplementedTodoApp,
   IMicrosoftRefresh,
   IMicrosoftTask,
@@ -140,23 +141,41 @@ export default class MicrosoftRepository {
     }
   };
 
+  getDayReminds = async (companyCondition: ICompanyCondition[]): Promise<number[]> => {
+    let dayReminds: number[] = await companyCondition
+      .map((s) => s.remind_before_days)
+      .filter(Number.isFinite);
+
+    if (!dayReminds.length) dayReminds = [Common.day_remind];
+
+    return dayReminds;
+  };
+
   findTaskRemind = async (
     user: IUser,
     todoTaskLists: IMicrosoftTask[]
   ): Promise<IMicrosoftTask[]> => {
     const taskReminds: IMicrosoftTask[] = [];
-    const dayRemind: number = user.companyCondition?.remind_before_days || Common.day_remind;
+    const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
 
     for (const todoTask of todoTaskLists) {
-      if (todoTask.dueDateTime && todoTask.status !== Common.completed) {
-        const dueDate = todoTask.dueDateTime.dateTime;
-        const dateExpired = moment(dueDate);
-        const dateNow = moment().add(dayRemind, 'days');
+      let hasRemind = false;
 
-        if (dateNow.isSameOrAfter(dateExpired)) {
+      if (todoTask.dueDateTime && todoTask.status !== Common.completed) {
+        const dueDate = moment.utc(todoTask.dueDateTime.dateTime).toDate();
+        const dateExpired = moment(dueDate).startOf('day');
+        const dateNow = moment().startOf('day');
+
+        const duration = moment.duration(dateExpired.diff(dateNow));
+        const day = duration.asDays();
+
+        if (dayReminds.includes(day)) {
+          hasRemind = true;
           taskReminds.push(todoTask);
         }
-      } else {
+      }
+
+      if (!hasRemind) {
         this.updateTodo(todoTask);
       }
     }
