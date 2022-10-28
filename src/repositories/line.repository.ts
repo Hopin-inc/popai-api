@@ -34,7 +34,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo);
 
-      return await LineBot.pushMessage(user.line_id, message);
+      return await LineBot.pushMessage(user.line_id, message, false);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -51,7 +51,7 @@ export default class LineRepository {
       superiorUsers.map(async (superiorUser) => {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
 
-        await LineBot.pushMessage(superiorUser.line_id, message);
+        await LineBot.pushMessage(superiorUser.line_id, message, false);
       });
 
       return;

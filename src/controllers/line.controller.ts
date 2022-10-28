@@ -1,5 +1,11 @@
 import { Route, Controller } from 'tsoa';
-import { WebhookEvent, FlexMessage, TextMessage, PostbackEvent } from '@line/bot-sdk';
+import {
+  WebhookEvent,
+  FlexMessage,
+  TextMessage,
+  PostbackEvent,
+  MessageAPIResponseBase,
+} from '@line/bot-sdk';
 
 import { User } from '../entify/user.entity';
 import { LineMessageBuilder } from '../common/line_message';
@@ -38,7 +44,7 @@ export default class LineController extends Controller {
    * @param event WebhookEvent
    * @returns
    */
-  private async handleEvent(event: WebhookEvent) {
+  private async handleEvent(event: WebhookEvent): Promise<any> {
     try {
       console.log(JSON.stringify(event));
       const lineId = event.source.userId;
@@ -49,6 +55,8 @@ export default class LineController extends Controller {
           // eslint-disable-next-line no-case-declarations
           const lineProfile = await LineBot.getProfile(lineId);
           await this.lineRepository.createLineProfile(lineProfile);
+
+          await this.replyClientId(event.replyToken, lineId);
 
           break;
 
@@ -100,7 +108,7 @@ export default class LineController extends Controller {
    * @param event
    * @returns
    */
-  private async saveChatMessage(postData: any, event: PostbackEvent) {
+  private async saveChatMessage(postData: any, event: PostbackEvent): Promise<ChatMessage> {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_USER;
     chatMessage.chattool_id = 1;
@@ -124,9 +132,14 @@ export default class LineController extends Controller {
    * @param lineId
    * @returns
    */
-  private async replyClientId(replyToken: string, lineId: string) {
+  private async replyClientId(replyToken: string, lineId: string): Promise<MessageAPIResponseBase> {
+    await LineBot.replyMessage(replyToken, {
+      type: 'text',
+      text: 'あなたのLineIDをお知らせます。',
+    });
+
     const textMessage: TextMessage = { type: 'text', text: lineId };
-    return LineBot.replyMessage(replyToken, textMessage);
+    return await LineBot.replyMessage(replyToken, textMessage);
   }
 
   /**
@@ -135,9 +148,12 @@ export default class LineController extends Controller {
    * @param superior
    * @returns
    */
-  private async replyDoneAction(replyToken: string, superior: string) {
+  private async replyDoneAction(
+    replyToken: string,
+    superior: string
+  ): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createReplyDoneMessage(superior);
-    return LineBot.replyMessage(replyToken, replyMessage);
+    return await LineBot.replyMessage(replyToken, replyMessage);
   }
 
   /**
@@ -145,10 +161,10 @@ export default class LineController extends Controller {
    * @param replyToken
    * @returns
    */
-  private async replyDeplayAction(replyToken: string) {
+  private async replyDeplayAction(replyToken: string): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createDeplayReplyMessage();
 
-    return LineBot.replyMessage(replyToken, replyMessage);
+    return await LineBot.replyMessage(replyToken, replyMessage);
   }
 
   /**
@@ -164,13 +180,13 @@ export default class LineController extends Controller {
     userName: string,
     taskName: string,
     reportContent: string
-  ) {
+  ): Promise<MessageAPIResponseBase> {
     const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
       superiorUser.name,
       userName,
       taskName,
       reportContent
     );
-    return LineBot.pushMessage(superiorUser.line_id, reportMessage);
+    return await LineBot.pushMessage(superiorUser.line_id, reportMessage);
   }
 }
