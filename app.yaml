@@ -22,5 +22,5 @@ env_variables:
 
 vpc_access_connector:
  name: projects/rize-angel-dev/locations/asia-northeast2/connectors/connect-to-mysql
- egress_setting: all-traffic
+ egress_setting: private-ranges-only
 
