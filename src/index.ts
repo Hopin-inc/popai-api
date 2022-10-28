@@ -13,7 +13,7 @@ import { AppDataSource } from './config/data-source';
 const myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
 dotenvExpand.expand(myEnv);
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8080;
 
 const app: Application = express();
 
