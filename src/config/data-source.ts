@@ -25,4 +25,6 @@ const databaseConfig: DataSourceOptions = {
   logging: true,
 };
 
+console.log('DB-HOST:' + envString(process.env.DB_HOST, ''));
+
 export const AppDataSource = new DataSource(databaseConfig);

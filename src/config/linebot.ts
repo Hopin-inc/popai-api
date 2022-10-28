@@ -10,4 +10,6 @@ const linebotConfig: ClientConfig = {
   channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
 
+console.log('channelSecret' + (linebotConfig.channelSecret || '').substring(5) + '...');
+
 export const LineBot = new Client(linebotConfig);
