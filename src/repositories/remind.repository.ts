@@ -1,5 +1,5 @@
 import { AppDataSource } from '../config/data-source';
-import { InternalServerErrorException } from '../exceptions';
+import { InternalServerErrorException, LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 
 import { Company } from './../entify/company.entity';
@@ -8,6 +8,7 @@ import TrelloRepository from './trello.repository';
 import { ITodoApp } from './../types';
 import { Common } from './../const/common';
 import { Service, Container } from 'typedi';
+import logger from './../logger/winston';
 
 @Service()
 export default class Remindrepository {
@@ -34,6 +35,7 @@ export default class Remindrepository {
         }
       }
     } catch (error) {
+      logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }
   };

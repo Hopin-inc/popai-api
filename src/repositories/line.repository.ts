@@ -1,4 +1,4 @@
-import { InternalServerErrorException } from '../exceptions';
+import { LoggerError } from '../exceptions';
 import { Service } from 'typedi';
 import { LineMessageBuilder } from '../common/line_message';
 import { Todo } from '../entify/todo.entity';
@@ -12,6 +12,7 @@ import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
 import { Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
+import logger from './../logger/winston';
 
 @Service()
 export default class LineRepository {
@@ -35,7 +36,7 @@ export default class LineRepository {
 
       return await LineBot.pushMessage(user.line_id, message);
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      logger.error(new LoggerError(error.message));
     }
   };
 
@@ -55,7 +56,7 @@ export default class LineRepository {
 
       return;
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      logger.error(new LoggerError(error.message));
     }
   };
 
@@ -77,7 +78,7 @@ export default class LineRepository {
 
       return findResult;
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      logger.error(new LoggerError(error.message));
     }
   };
 
@@ -114,7 +115,7 @@ export default class LineRepository {
     try {
       return await this.messageRepository.save(chatMessage);
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      logger.error(new LoggerError(error.message));
     }
   };
 }

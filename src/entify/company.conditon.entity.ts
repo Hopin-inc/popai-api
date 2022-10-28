@@ -16,6 +16,6 @@ export class CompanyCondion {
     () => User,
     (user) => user.companyCondition
   )
-  @JoinColumn({ name: 'company_id' })
+  @JoinColumn({ name: 'company_id', referencedColumnName: 'company_id' })
   user: User;
 }

@@ -1,9 +1,9 @@
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entify/user.entity';
-import { InternalServerErrorException } from '../exceptions';
+import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import moment from 'moment';
-import { Common } from './../const/common';
+import logger from './../logger/winston';
 import {
   ICompanyCondition,
   ITodo,
@@ -83,16 +83,14 @@ export default class TrelloRepository {
       const taskReminds = await this.findCardRemind(user, cardTodos);
       this.createTodo(user, todoAppUser, taskReminds);
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      logger.error(new LoggerError(error.message));
     }
   };
 
   getDayReminds = async (companyCondition: ICompanyCondition[]): Promise<number[]> => {
-    let dayReminds: number[] = await companyCondition
+    const dayReminds: number[] = companyCondition
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
-
-    if (!dayReminds.length) dayReminds = [Common.day_remind];
 
     return dayReminds;
   };
@@ -130,90 +128,102 @@ export default class TrelloRepository {
     todoAppUser: ITodoAppUser,
     taskReminds: ITrelloTask[]
   ): Promise<void> => {
-    if (!taskReminds.length) return;
-    const dataTodos = [];
-    const dataTodoIDUpdates = [];
+    try {
+      if (!taskReminds.length) return;
+      const dataTodos = [];
+      const dataTodoIDUpdates = [];
 
-    // send to admin of user
-    await this.lineBotRepository.pushStartReportToAdmin(user);
+      // send to admin of user
+      await this.lineBotRepository.pushStartReportToAdmin(user);
 
-    for (const todoTask of taskReminds) {
-      const todoData = new Todo();
-      todoData.name = todoTask.name;
-      todoData.todoapp_id = todoAppUser.todoapp_id;
-      todoData.todoapp_reg_id = todoTask.id;
-      todoData.todoapp_reg_url = todoTask.url;
-      todoData.todoapp_reg_created_by = null;
-      todoData.todoapp_reg_created_at = moment(todoTask.dateLastActivity).toDate();
-      todoData.assigned_user_id = todoAppUser.employee_id;
-      todoData.deadline = moment(todoTask.due).toDate();
-      todoData.is_done = todoTask.dueComplete;
-      todoData.is_reminded = todoTask.dueReminder ? true : false;
-      todoData.is_rescheduled = null;
-      dataTodos.push(todoData);
+      for (const todoTask of taskReminds) {
+        const todoData = new Todo();
+        todoData.name = todoTask.name;
+        todoData.todoapp_id = todoAppUser.todoapp_id;
+        todoData.todoapp_reg_id = todoTask.id;
+        todoData.todoapp_reg_url = todoTask.url;
+        todoData.todoapp_reg_created_by = null;
+        todoData.todoapp_reg_created_at = moment(todoTask.dateLastActivity).toDate();
+        todoData.assigned_user_id = todoAppUser.employee_id;
+        todoData.deadline = moment(todoTask.due).toDate();
+        todoData.is_done = todoTask.dueComplete;
+        todoData.is_reminded = todoTask.dueReminder ? true : false;
+        todoData.is_rescheduled = null;
+        dataTodos.push(todoData);
 
-      // send Line message
-      this.lineBotRepository.pushMessageRemind(user, todoData);
+        // send Line message
+        this.lineBotRepository.pushMessageRemind(user, todoData);
 
-      if (todoTask.dateLastActivity) {
-        dataTodoIDUpdates.push({
-          todoId: todoTask.id,
-          updateTime: moment(todoTask.dateLastActivity).toDate(),
-        });
-      }
-    }
-
-    const response = await this.todoRepository.upsert(dataTodos, []);
-
-    if (response && dataTodoIDUpdates.length) {
-      for (const dataUpdate of dataTodoIDUpdates) {
-        const todo: ITodo = await this.todoRepository.findOneBy({
-          todoapp_reg_id: dataUpdate.todoId,
-        });
-
-        if (todo) {
-          this.saveTodoHistory(todo, dataUpdate.updateTime);
+        if (todoTask.dateLastActivity) {
+          dataTodoIDUpdates.push({
+            todoId: todoTask.id,
+            updateTime: moment(todoTask.dateLastActivity).toDate(),
+          });
         }
       }
+
+      const response = await this.todoRepository.upsert(dataTodos, []);
+
+      if (response && dataTodoIDUpdates.length) {
+        for (const dataUpdate of dataTodoIDUpdates) {
+          const todo: ITodo = await this.todoRepository.findOneBy({
+            todoapp_reg_id: dataUpdate.todoId,
+          });
+
+          if (todo) {
+            this.saveTodoHistory(todo, dataUpdate.updateTime);
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
     }
   };
 
   updateTodo = async (todoTask: ITrelloTask): Promise<void> => {
-    const todoData = await this.todoRepository.findOneBy({
-      todoapp_reg_id: todoTask.id,
-    });
+    try {
+      const todoData = await this.todoRepository.findOneBy({
+        todoapp_reg_id: todoTask.id,
+      });
 
-    if (todoData) {
-      todoData.name = todoTask.name;
-      todoData.todoapp_reg_url = todoTask.url;
-      todoData.deadline = moment(todoTask.due).toDate();
-      todoData.is_done = todoTask.dueComplete;
-      todoData.is_reminded = todoTask.dueReminder ? true : false;
+      if (todoData) {
+        todoData.name = todoTask.name;
+        todoData.todoapp_reg_url = todoTask.url;
+        todoData.deadline = moment(todoTask.due).toDate();
+        todoData.is_done = todoTask.dueComplete;
+        todoData.is_reminded = todoTask.dueReminder ? true : false;
 
-      const todo = await this.todoRepository.save(todoData);
-      if (todo && todoTask.dateLastActivity) {
-        this.saveTodoHistory(todo, moment(todoTask.dateLastActivity).toDate());
+        const todo = await this.todoRepository.save(todoData);
+        if (todo && todoTask.dateLastActivity) {
+          this.saveTodoHistory(todo, moment(todoTask.dateLastActivity).toDate());
+        }
       }
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
     }
   };
 
   saveTodoHistory = async (todo: ITodo, updateTime: Date) => {
-    const todoUpdateData = await this.todoUpdateRepository.findOne({
-      where: { todo_id: todo.id },
-      order: { id: 'DESC' },
-    });
+    try {
+      const todoUpdateData = await this.todoUpdateRepository.findOne({
+        where: { todo_id: todo.id },
+        order: { id: 'DESC' },
+      });
 
-    const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
-    if (todoUpdateData) {
-      const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
-      if (moment(oldDate).isSame(taskUpdate)) {
-        return;
+      const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
+      if (todoUpdateData) {
+        const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
+        if (moment(oldDate).isSame(taskUpdate)) {
+          return;
+        }
       }
-    }
 
-    const todoUpdate = new TodoUpdateHistory();
-    todoUpdate.todo_id = todo.id;
-    todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
-    this.todoUpdateRepository.save(todoUpdate);
+      const todoUpdate = new TodoUpdateHistory();
+      todoUpdate.todo_id = todo.id;
+      todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
+      this.todoUpdateRepository.save(todoUpdate);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
   };
 }

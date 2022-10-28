@@ -17,3 +17,9 @@ export class InternalServerErrorException extends HttpException {
     super(message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 }
+
+export class LoggerError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
