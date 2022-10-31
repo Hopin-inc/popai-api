@@ -39,7 +39,7 @@ export class LineMessageBuilder {
               style: 'link',
               action: {
                 type: 'uri',
-                label: truncate(todo.todoapp_reg_url, LINE_MAX_LABEL_LENGTH, '...'),
+                label: truncate(todo.todoapp_reg_url, LINE_MAX_LABEL_LENGTH),
                 uri: todo.todoapp_reg_url,
               },
             },
