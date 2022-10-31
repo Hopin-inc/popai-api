@@ -133,12 +133,10 @@ export default class LineController extends Controller {
    * @returns
    */
   private async replyClientId(replyToken: string, lineId: string): Promise<MessageAPIResponseBase> {
-    await LineBot.replyMessage(replyToken, {
+    const textMessage: TextMessage = {
       type: 'text',
-      text: 'あなたのLineIDをお知らせます。',
-    });
-
-    const textMessage: TextMessage = { type: 'text', text: lineId };
+      text: 'あなたのLineIDをお知らせます。\n' + lineId,
+    };
     return await LineBot.replyMessage(replyToken, textMessage);
   }
 
