@@ -213,6 +213,7 @@ export class LineMessageBuilder {
             {
               type: 'text',
               text: userName + 'さん\n',
+              wrap: true,
             },
             {
               type: 'text',
