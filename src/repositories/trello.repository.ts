@@ -141,7 +141,7 @@ export default class TrelloRepository {
         todoData.name = todoTask.name;
         todoData.todoapp_id = todoAppUser.todoapp_id;
         todoData.todoapp_reg_id = todoTask.id;
-        todoData.todoapp_reg_url = todoTask.url;
+        todoData.todoapp_reg_url = todoTask.shortUrl;
         todoData.todoapp_reg_created_by = null;
         todoData.todoapp_reg_created_at = moment(todoTask.dateLastActivity).toDate();
         todoData.assigned_user_id = todoAppUser.employee_id;

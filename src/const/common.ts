@@ -32,3 +32,5 @@ export const IS_OPENED = 1;
 export const IS_REPLIED = 1;
 
 export const LINEID_MESSAGE = 'lineid';
+
+export const LINE_MAX_LABEL_LENGTH = 40;
