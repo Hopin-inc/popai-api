@@ -1,5 +1,6 @@
 import { FlexMessage } from '@line/bot-sdk';
-import { TaskStatus } from '../const/common';
+import { truncate } from './../utils/common';
+import { LINE_MAX_LABEL_LENGTH, TaskStatus } from '../const/common';
 import { Todo } from '../entify/todo.entity';
 
 export class LineMessageBuilder {
@@ -16,11 +17,12 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: userName + 'さん\n\n',
+              text: userName + 'さん',
             },
             {
               type: 'text',
-              text: '\nお疲れさまです\n\n',
+              text: 'お疲れさまです🙌\n',
+              wrap: true,
             },
             {
               type: 'text',
@@ -29,7 +31,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: '該当リンクはこちらです\n',
+              text: '該当リンクはこちらです👀',
               wrap: true,
             },
             {
@@ -37,7 +39,7 @@ export class LineMessageBuilder {
               style: 'link',
               action: {
                 type: 'uri',
-                label: todo.todoapp_reg_url,
+                label: truncate(todo.todoapp_reg_url, LINE_MAX_LABEL_LENGTH, '...'),
                 uri: todo.todoapp_reg_url,
               },
             },
@@ -97,21 +99,22 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: '完了しているんですね😌\n\n',
-            },
-            {
-              type: 'text',
-              text: 'お疲れさまでした！\n',
+              text: '完了しているんですね😌\n',
               wrap: true,
             },
             {
               type: 'text',
-              text: '当いただき担、ありがとうございます😭\n\n',
+              text: 'お疲れさまでした！',
               wrap: true,
             },
             {
               type: 'text',
-              text: '{{上長(' + superior + ')}}さんに報告しておきますね💪\n',
+              text: '当いただき担、ありがとうございます😭\n',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: '{{上長(' + superior + ')}}さんに報告しておきますね💪',
               wrap: true,
             },
           ],
@@ -134,11 +137,13 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: '承知しました😖\n',
+              text: '承知しました😖',
+              wrap: true,
             },
             {
               type: 'text',
-              text: '引き続きよろしくお願いします💪\n',
+              text: '引き続きよろしくお願いします💪',
+              wrap: true,
             },
           ],
         },
@@ -160,16 +165,16 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: superiorUserName + 'さん\n\n',
+              text: superiorUserName + 'さん',
             },
             {
               type: 'text',
-              text: 'お疲れさまです🙌\n\n',
+              text: 'お疲れさまです🙌\n',
               wrap: true,
             },
             {
               type: 'text',
-              text: '皆さんに進捗を聞いてきたので、ご報告させていただきます。\n',
+              text: '皆さんに進捗を聞いてきたので、ご報告させていただきます。',
               wrap: true,
             },
           ],
@@ -197,24 +202,26 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: taskName + '\n\n',
-            },
-            {
-              type: 'text',
-              text: '●担当者\n',
-            },
-            {
-              type: 'text',
-              text: userName + 'さん\n\n',
-            },
-            {
-              type: 'text',
-              text: '●現在の進捗\n',
+              text: taskName + '\n',
               wrap: true,
             },
             {
               type: 'text',
-              text: reportContent + '\n',
+              text: '●担当者',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: userName + 'さん\n',
+            },
+            {
+              type: 'text',
+              text: '●現在の進捗',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: reportContent + '😅',
               wrap: true,
             },
           ],
