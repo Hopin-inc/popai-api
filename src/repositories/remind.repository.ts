@@ -42,7 +42,7 @@ export default class Remindrepository {
 
   remindCompanyApp = async (companyId: number, todoapps: ITodoApp[]): Promise<void> => {
     for (const todoapp of todoapps) {
-      switch (todoapp.app_code) {
+      switch (todoapp.todo_app_code) {
         case Common.trello:
           this.trelloRepo.remindUsers(companyId, todoapp.id);
           break;

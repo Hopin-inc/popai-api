@@ -7,7 +7,7 @@ export type ICompany = {
 export type ITodoApp = {
   id: number;
   name: string;
-  app_code: string;
+  todo_app_code: string;
 };
 
 export type IImplementedTodoApp = {

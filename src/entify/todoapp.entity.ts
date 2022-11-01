@@ -12,7 +12,7 @@ export class TodoApp {
   name: string;
 
   @Column()
-  app_code: string;
+  todo_app_code: string;
 
   @ManyToMany(
     () => Company,
