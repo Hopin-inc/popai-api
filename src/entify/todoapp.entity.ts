@@ -11,6 +11,9 @@ export class TodoApp {
   @Column()
   name: string;
 
+  @Column()
+  app_code: string;
+
   @ManyToMany(
     () => Company,
     (company) => company.todoapps
