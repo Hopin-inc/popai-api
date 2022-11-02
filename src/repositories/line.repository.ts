@@ -6,7 +6,7 @@ import { IUser } from '../types';
 import { LineBot } from '../config/linebot';
 
 import { AppDataSource } from '../config/data-source';
-import { FlexMessage, Profile } from '@line/bot-sdk';
+import { FlexBubble, FlexComponent, FlexMessage, FlexText, Profile } from '@line/bot-sdk';
 import { LineProfile } from '../entify/line_profile.entity';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
@@ -31,6 +31,8 @@ export default class LineRepository {
   pushMessageRemind = async (user: IUser, todo: Todo): Promise<any> => {
     try {
       if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+
         return;
       }
 
@@ -46,6 +48,7 @@ export default class LineRepository {
   pushStartReportToAdmin = async (user: IUser): Promise<any> => {
     try {
       if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
         return;
       }
 
@@ -58,6 +61,72 @@ export default class LineRepository {
       });
 
       return;
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
+  /**
+   * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+   * @param user
+   * @param todos
+   * @returns
+   */
+  pushListTaskMessageToAdmin = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+    try {
+      if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+
+        return;
+      }
+
+      const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
+      // await this.saveChatMessage(user, todo, message);
+      return await LineBot.pushMessage(user.line_id, message, false);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
+  /**
+   * 期日未設定のタスク一覧が1つのメッセージで担当者に送られること
+   * @param user
+   * @param todos
+   * @returns
+   */
+  pushListTaskMessageToUser = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+    try {
+      if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+
+        return;
+      }
+
+      const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
+      // await this.saveChatMessage(user, todo, message);
+      return await LineBot.pushMessage(user.line_id, message, false);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
+  /**
+   * 期日未設定のタスクがない旨のメッセージが管理者に送られること
+   * @param user
+   * @param todos
+   * @returns
+   */
+  pushNoListTaskMessageToAdmin = async (user: IUser): Promise<any> => {
+    try {
+      if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+
+        return;
+      }
+
+      const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
+      // await this.saveChatMessage(user, todo, message);
+      return await LineBot.pushMessage(user.line_id, message, false);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -135,7 +204,7 @@ export default class LineRepository {
     chatMessage.message_trigger_id = 1; // batch
     chatMessage.message_type_id = MessageType.FLEX;
 
-    chatMessage.body = message.altText;
+    chatMessage.body = LineMessageBuilder.getTextContentFromMessage(message);
     chatMessage.todo_id = todo.id;
     chatMessage.send_at = moment().toDate();
     chatMessage.user_id = todo.assigned_user_id;
