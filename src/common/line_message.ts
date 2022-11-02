@@ -114,7 +114,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: '{{上長(' + superior + ')}}さんに報告しておきますね💪',
+              text: superior + 'さんに報告しておきますね💪',
               wrap: true,
             },
           ],
