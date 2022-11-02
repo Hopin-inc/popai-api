@@ -6,13 +6,15 @@ import { IUser } from '../types';
 import { LineBot } from '../config/linebot';
 
 import { AppDataSource } from '../config/data-source';
-import { Profile } from '@line/bot-sdk';
+import { FlexMessage, Profile } from '@line/bot-sdk';
 import { LineProfile } from '../entify/line_profile.entity';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
 import { Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
+import { IS_OPENED, MessageType, SenderType } from '../const/common';
+import moment from 'moment';
 
 @Service()
 export default class LineRepository {
@@ -34,6 +36,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo);
 
+      await this.saveChatMessage(user, todo, message);
       return await LineBot.pushMessage(user.line_id, message, false);
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -118,4 +121,25 @@ export default class LineRepository {
       logger.error(new LoggerError(error.message));
     }
   };
+
+  private async saveChatMessage(
+    user: IUser,
+    todo: Todo,
+    message: FlexMessage
+  ): Promise<ChatMessage> {
+    const chatMessage = new ChatMessage();
+    chatMessage.is_from_user = SenderType.FROM_BOT;
+    chatMessage.chattool_id = 1;
+    chatMessage.is_openned = IS_OPENED;
+    chatMessage.is_replied = 0;
+    chatMessage.message_trigger_id = 1; // batch
+    chatMessage.message_type_id = MessageType.FLEX;
+
+    chatMessage.body = message.altText;
+    chatMessage.todo_id = todo.id;
+    chatMessage.send_at = moment().toDate();
+    chatMessage.user_id = todo.assigned_user_id;
+
+    return await this.messageRepository.save(chatMessage);
+  }
 }
