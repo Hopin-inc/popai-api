@@ -249,7 +249,9 @@ export default class MicrosoftRepository {
         todoData.todoapp_reg_created_by = null;
         todoData.todoapp_reg_created_at = moment(todoTask.createdDateTime).toDate();
         todoData.assigned_user_id = todoAppUser.employee_id;
-        todoData.deadline = moment.utc(todoTask.dueDateTime.dateTime).toDate();
+        todoData.deadline = todoTask?.dueDateTime
+          ? moment.utc(todoTask.dueDateTime.dateTime).toDate()
+          : null;
         todoData.is_done = todoTask.status === Common.completed;
         todoData.is_reminded = todoTask.isReminderOn;
         todoData.is_rescheduled = null;
