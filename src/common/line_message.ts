@@ -90,7 +90,7 @@ export class LineMessageBuilder {
   static createReplyDoneMessage(superior: string) {
     const replyMessage: FlexMessage = {
       type: 'flex',
-      altText: '当いただき担、ありがとうございます\n',
+      altText: '担当いただき、ありがとうございます\n',
       contents: {
         type: 'bubble',
         body: {
@@ -109,7 +109,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: '当いただき担、ありがとうございます😭\n',
+              text: '担当いただき、ありがとうございます😭\n',
               wrap: true,
             },
             {
@@ -128,7 +128,7 @@ export class LineMessageBuilder {
   static createDeplayReplyMessage() {
     const replyMessage: FlexMessage = {
       type: 'flex',
-      altText: '当いただき担、ありがとうございます\n',
+      altText: '担当いただき、ありがとうございます\n',
       contents: {
         type: 'bubble',
         body: {
