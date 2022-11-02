@@ -2,6 +2,7 @@ import { FlexComponent, FlexMessage, Message } from '@line/bot-sdk';
 import { truncate } from './../utils/common';
 import { LINE_MAX_LABEL_LENGTH, TaskStatus } from '../const/common';
 import { Todo } from '../entify/todo.entity';
+import { IUser } from '../types';
 
 export class LineMessageBuilder {
   static createRemindMessage(userName: string, todo: Todo) {
@@ -195,7 +196,7 @@ export class LineMessageBuilder {
   static createUnKnownMessage() {
     const reportMessage: FlexMessage = {
       type: 'flex',
-      altText: '回答できない\n',
+      altText: '申し訳ありませんが、こちらのアカウントから個別に返信することができません…\n',
       contents: {
         type: 'bubble',
         body: {
@@ -204,7 +205,17 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: '回答できない。',
+              text: 'メッセージありがとうございます😊\n',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: '申し訳ありませんが、こちらのアカウントから個別に返信することができません…\n',
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: 'また何かありましたらご連絡しますね🙌',
               wrap: true,
             },
           ],
@@ -215,11 +226,21 @@ export class LineMessageBuilder {
     return reportMessage;
   }
 
-  static createListTaskMessage(todos: Array<Todo>) {
+  static createListTaskMessageToAdmin(adminUser: IUser, todos: Array<Todo>) {
     const contents: Array<FlexComponent> = [
       {
         type: 'text',
-        text: '期日未設定のタスク一覧\n',
+        text: adminUser.name + 'さん\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: 'お疲れ様です🙌\n\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: '現在、次のタスクの担当者と期日が設定されていません😭\n',
         wrap: true,
       },
     ];
@@ -227,14 +248,20 @@ export class LineMessageBuilder {
     todos.forEach((todo) =>
       contents.push({
         type: 'text',
-        text: '.' + todo.name,
+        text: '・' + todo.name + '\n',
         wrap: true,
       })
     );
 
+    contents.push({
+      type: 'text',
+      text: '\nご確認をお願いします🙏\n',
+      wrap: true,
+    });
+
     const message: FlexMessage = {
       type: 'flex',
-      altText: '期日未設定のタスク一覧が1つのメッセージ\n',
+      altText: '現在、次のタスクの担当者と期日が設定されていません\n',
       contents: {
         type: 'bubble',
         body: {
@@ -248,18 +275,82 @@ export class LineMessageBuilder {
     return message;
   }
 
-  static createNoListTaskMessage() {
+  static createListTaskMessageToUser(user: IUser, todos: Array<Todo>) {
     const contents: Array<FlexComponent> = [
       {
         type: 'text',
-        text: '期日未設定のタスクがない旨のメッセージ\n',
+        text: user.name + 'さん\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: 'お疲れ様です🙌\n\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: '現在、次のタスクの期日が設定されていません😭\n',
+        wrap: true,
+      },
+    ];
+
+    todos.forEach((todo) =>
+      contents.push({
+        type: 'text',
+        text: '・' + todo.name + '\n',
+        wrap: true,
+      })
+    );
+
+    contents.push({
+      type: 'text',
+      text: '\nご確認をお願いします🙏\n',
+      wrap: true,
+    });
+
+    const message: FlexMessage = {
+      type: 'flex',
+      altText: '現在、次のタスクの期日が設定されていません\n',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: contents,
+        },
+      },
+    };
+
+    return message;
+  }
+
+  static createNoListTaskMessageToAdmin(adminUser: IUser) {
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: adminUser.name + 'さん\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: 'お疲れ様です🙌\n\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした。\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: '引き続きよろしくお願いします！\n',
         wrap: true,
       },
     ];
 
     const message: FlexMessage = {
       type: 'flex',
-      altText: '期日未設定のタスクがない旨のメッセージ\n',
+      altText: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした。\n',
       contents: {
         type: 'bubble',
         body: {

@@ -72,7 +72,7 @@ export default class LineRepository {
    * @param todos
    * @returns
    */
-  pushListTaskMessage = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+  pushListTaskMessageToAdmin = async (user: IUser, todos: Array<Todo>): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -80,7 +80,29 @@ export default class LineRepository {
         return;
       }
 
-      const message = LineMessageBuilder.createListTaskMessage(todos);
+      const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
+      // await this.saveChatMessage(user, todo, message);
+      return await LineBot.pushMessage(user.line_id, message, false);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
+  /**
+   * 期日未設定のタスク一覧が1つのメッセージで担当者に送られること
+   * @param user
+   * @param todos
+   * @returns
+   */
+  pushListTaskMessageToUser = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+    try {
+      if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+
+        return;
+      }
+
+      const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
       // await this.saveChatMessage(user, todo, message);
       return await LineBot.pushMessage(user.line_id, message, false);
     } catch (error) {
@@ -94,7 +116,7 @@ export default class LineRepository {
    * @param todos
    * @returns
    */
-  pushNoListTaskMessage = async (user: IUser): Promise<any> => {
+  pushNoListTaskMessageToAdmin = async (user: IUser): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -102,7 +124,7 @@ export default class LineRepository {
         return;
       }
 
-      const message = LineMessageBuilder.createNoListTaskMessage();
+      const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
       // await this.saveChatMessage(user, todo, message);
       return await LineBot.pushMessage(user.line_id, message, false);
     } catch (error) {
