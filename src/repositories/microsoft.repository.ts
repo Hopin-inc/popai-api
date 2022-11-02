@@ -2,7 +2,6 @@ import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
   ICompanyCondition,
-  IImplementedTodoApp,
   IMicrosoftRefresh,
   IMicrosoftTask,
   ITodo,
@@ -44,18 +43,6 @@ export default class MicrosoftRepository {
     this.lineBotRepository = Container.get(LineRepository);
   }
 
-  getImplementedTodoApp = async (
-    companyId: number,
-    todoappId: number
-  ): Promise<IImplementedTodoApp> => {
-    const implementedTodoApp = await this.implementTodoAppRepository
-      .createQueryBuilder('implemented_todo_apps')
-      .where('implemented_todo_apps.company_id = :companyId', { companyId })
-      .andWhere('implemented_todo_apps.todoapp_id = :todoappId', { todoappId })
-      .getOne();
-    return implementedTodoApp;
-  };
-
   getUserTodoApps = async (companyId: number, todoappId: number): Promise<IUser[]> => {
     const users: IUser[] = await this.userRepository
       .createQueryBuilder('users')
@@ -68,7 +55,6 @@ export default class MicrosoftRepository {
   };
 
   remindUsers = async (companyId: number, todoappId: number): Promise<void> => {
-    const implementedTodoApp = await this.getImplementedTodoApp(companyId, todoappId);
     const users = await this.getUserTodoApps(companyId, todoappId);
 
     if (!users.length) {
@@ -77,30 +63,22 @@ export default class MicrosoftRepository {
 
     for (const user of users) {
       if (user.todoAppUsers.length) {
-        this.remindUserByTodoApp(user, implementedTodoApp);
+        this.remindUserByTodoApp(user);
       }
     }
   };
 
-  remindUserByTodoApp = async (
-    user: IUser,
-    implementedTodoApp: IImplementedTodoApp
-  ): Promise<void> => {
+  remindUserByTodoApp = async (user: IUser): Promise<void> => {
     for (const todoAppUser of user.todoAppUsers) {
       if (todoAppUser.api_token) {
-        await this.getTodoListsByUser(user, todoAppUser, implementedTodoApp);
+        await this.getTodoListsByUser(user, todoAppUser);
       }
     }
   };
 
-  getTodoListsByUser = async (
-    user: IUser,
-    todoAppUser: ITodoAppUser,
-    implementedTodoApp: IImplementedTodoApp
-  ): Promise<void> => {
+  getTodoListsByUser = async (user: IUser, todoAppUser: ITodoAppUser): Promise<void> => {
     try {
       const dataRefresh: IMicrosoftRefresh = {
-        ternant: implementedTodoApp,
         todoAppUser: todoAppUser,
       };
 
@@ -187,19 +165,20 @@ export default class MicrosoftRepository {
 
   refreshToken = async (dataRefresh: IMicrosoftRefresh): Promise<ITodoAppUser | null> => {
     try {
-      const { ternant, todoAppUser } = dataRefresh;
-      const ternantId = ternant.tenant_id;
+      const { todoAppUser } = dataRefresh;
       const todoAppUserData = todoAppUser;
+      const clientId = process.env.MICROSOFT_CLIENT_ID;
+      const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
 
-      if (ternantId && todoAppUserData.refresh_token) {
-        const url = 'https://login.microsoftonline.com/' + ternantId + '/oauth2/v2.0/token';
+      if (clientId && clientSecret && todoAppUserData.refresh_token) {
+        const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
 
         const formData = new FormData();
-        formData.append('client_id', ternant.application_id);
+        formData.append('client_id', clientId);
         formData.append('scope', 'https://graph.microsoft.com/.default');
         formData.append('refresh_token', todoAppUserData.refresh_token);
         formData.append('grant_type', 'refresh_token');
-        formData.append('client_secret', ternant.client_secret);
+        formData.append('client_secret', clientSecret);
 
         const response = await fetchApi(url, 'POST', formData, true);
 

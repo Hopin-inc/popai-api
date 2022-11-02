@@ -10,12 +10,6 @@ export type ITodoApp = {
   todo_app_code: string;
 };
 
-export type IImplementedTodoApp = {
-  application_id: string;
-  tenant_id: string;
-  client_secret: string;
-};
-
 export type ICompanyCondition = {
   remind_before_days: number;
 };
@@ -88,6 +82,5 @@ export type IMicrosoftTask = {
 };
 
 export type IMicrosoftRefresh = {
-  ternant: IImplementedTodoApp;
   todoAppUser: ITodoAppUser;
 };

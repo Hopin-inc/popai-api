@@ -1,4 +1,6 @@
 import fetch from 'node-fetch';
+import { LoggerError } from '../exceptions';
+import logger from './../logger/winston';
 
 /**
  *  Calls the endpoint with authorization bearer token.
@@ -45,6 +47,7 @@ export async function fetchApi(
     const response = await fetch(url, options).then((res) => res);
     return response.json();
   } catch (error) {
+    logger.error(new LoggerError(error.message));
     throw new Error(error.message);
   }
 }

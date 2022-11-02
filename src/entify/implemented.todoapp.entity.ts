@@ -7,13 +7,4 @@ export class ImplementedTodoApp {
 
   @Column()
   auth_key: string;
-
-  @Column()
-  application_id: string;
-
-  @Column()
-  tenant_id: string;
-
-  @Column()
-  client_secret: string;
 }
