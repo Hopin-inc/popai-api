@@ -66,22 +66,29 @@ export default class LineController extends Controller {
           if (postData.todo && postData.status) {
             const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
-            superiorUsers.map((superiorUser) => {
+            if (superiorUsers.length == 0) {
               if (postData.status == TaskStatus.DONE) {
-                this.replyDoneAction(event.replyToken, superiorUser.name);
+                this.replyDoneAction(event.replyToken, '');
               } else {
                 this.replyDeplayAction(event.replyToken);
               }
+            } else {
+              superiorUsers.map((superiorUser) => {
+                if (postData.status == TaskStatus.DONE) {
+                  this.replyDoneAction(event.replyToken, superiorUser.name);
+                } else {
+                  this.replyDeplayAction(event.replyToken);
+                }
+                this.saveChatMessage(postData, event);
 
-              this.saveChatMessage(postData, event);
-
-              this.sendSuperiorMessage(
-                superiorUser,
-                postData.user_name,
-                postData.todo.name,
-                postData.message
-              );
-            });
+                this.sendSuperiorMessage(
+                  superiorUser,
+                  postData.user_name,
+                  postData.todo.name,
+                  postData.message
+                );
+              });
+            }
           }
 
           break;
@@ -90,7 +97,10 @@ export default class LineController extends Controller {
           // eslint-disable-next-line no-case-declarations
           const message: any = event.message;
           if (message.text.toLowerCase() == LINEID_MESSAGE) {
-            return this.replyClientId(event.replyToken, lineId);
+            await this.replyClientId(event.replyToken, lineId);
+          } else {
+            const unknownMessage = LineMessageBuilder.createUnKnownMessage();
+            await LineBot.replyMessage(event.replyToken, unknownMessage);
           }
 
           break;
@@ -148,7 +158,7 @@ export default class LineController extends Controller {
    */
   private async replyDoneAction(
     replyToken: string,
-    superior: string
+    superior?: string
   ): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createReplyDoneMessage(superior);
     return await LineBot.replyMessage(replyToken, replyMessage);

@@ -1,4 +1,4 @@
-import { FlexMessage } from '@line/bot-sdk';
+import { FlexComponent, FlexMessage, Message } from '@line/bot-sdk';
 import { truncate } from './../utils/common';
 import { LINE_MAX_LABEL_LENGTH, TaskStatus } from '../const/common';
 import { Todo } from '../entify/todo.entity';
@@ -48,6 +48,7 @@ export class LineMessageBuilder {
               style: 'primary',
               action: {
                 type: 'postback',
+                displayText: '完了しております👍',
                 label: '完了しております',
                 data: JSON.stringify({
                   todo: {
@@ -57,7 +58,7 @@ export class LineMessageBuilder {
                   },
                   status: TaskStatus.DONE,
                   user_name: userName,
-                  message: '完了しております',
+                  message: '完了しております👍',
                 }),
               },
             },
@@ -67,6 +68,7 @@ export class LineMessageBuilder {
               action: {
                 type: 'postback',
                 label: 'すみません、遅れております',
+                displayText: 'すみません、遅れております🙇‍♂️',
                 data: JSON.stringify({
                   todo: {
                     id: todo.id,
@@ -75,7 +77,7 @@ export class LineMessageBuilder {
                   },
                   status: TaskStatus.DELALYED,
                   user_name: userName,
-                  message: 'すみません、遅れております',
+                  message: 'すみません、遅れております🙇‍♂️',
                 }),
               },
             },
@@ -87,7 +89,33 @@ export class LineMessageBuilder {
     return message;
   }
 
-  static createReplyDoneMessage(superior: string) {
+  static createReplyDoneMessage(superior?: string) {
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: '完了しているんですね😌\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: 'お疲れさまでした！',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: '担当いただき、ありがとうございます😭\n',
+        wrap: true,
+      },
+    ];
+
+    if (superior) {
+      contents.push({
+        type: 'text',
+        text: superior + 'さんに報告しておきますね💪',
+        wrap: true,
+      });
+    }
+
     const replyMessage: FlexMessage = {
       type: 'flex',
       altText: '担当いただき、ありがとうございます\n',
@@ -96,28 +124,7 @@ export class LineMessageBuilder {
         body: {
           type: 'box',
           layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '完了しているんですね😌\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: 'お疲れさまでした！',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '担当いただき、ありがとうございます😭\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: superior + 'さんに報告しておきますね💪',
-              wrap: true,
-            },
-          ],
+          contents: contents,
         },
       },
     };
@@ -185,6 +192,87 @@ export class LineMessageBuilder {
     return reportMessage;
   }
 
+  static createUnKnownMessage() {
+    const reportMessage: FlexMessage = {
+      type: 'flex',
+      altText: '回答できない\n',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '回答できない。',
+              wrap: true,
+            },
+          ],
+        },
+      },
+    };
+
+    return reportMessage;
+  }
+
+  static createListTaskMessage(todos: Array<Todo>) {
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: '期日未設定のタスク一覧\n',
+        wrap: true,
+      },
+    ];
+
+    todos.forEach((todo) =>
+      contents.push({
+        type: 'text',
+        text: '.' + todo.name,
+        wrap: true,
+      })
+    );
+
+    const message: FlexMessage = {
+      type: 'flex',
+      altText: '期日未設定のタスク一覧が1つのメッセージ\n',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: contents,
+        },
+      },
+    };
+
+    return message;
+  }
+
+  static createNoListTaskMessage() {
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: '期日未設定のタスクがない旨のメッセージ\n',
+        wrap: true,
+      },
+    ];
+
+    const message: FlexMessage = {
+      type: 'flex',
+      altText: '期日未設定のタスクがない旨のメッセージ\n',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: contents,
+        },
+      },
+    };
+
+    return message;
+  }
+
   static createReportToSuperiorMessage(
     superiorUserName: string,
     userName: string,
@@ -231,5 +319,50 @@ export class LineMessageBuilder {
     };
 
     return reportMessage;
+  }
+
+  static getTextContentFromMessage(message: Message) {
+    switch (message.type) {
+      case 'text':
+        return message.text;
+
+      case 'flex':
+        const texts = [];
+        const messageContents = message.contents;
+
+        if (messageContents.type == 'bubble') {
+          const flexComponents = messageContents.body.contents ?? [];
+          flexComponents.forEach((element) => {
+            if (element.type == 'text') {
+              texts.push(element.text);
+            }
+          });
+        }
+
+        return texts.join('\n');
+
+      case 'audio':
+        return message.originalContentUrl;
+
+      case 'image':
+        return message.originalContentUrl;
+
+      case 'imagemap':
+        return message.baseUrl;
+
+      case 'location':
+        return message.address;
+
+      case 'sticker':
+        return message.packageId;
+
+      case 'template':
+        return message.altText;
+
+      case 'video':
+        return message.originalContentUrl;
+
+        return '';
+    }
   }
 }
