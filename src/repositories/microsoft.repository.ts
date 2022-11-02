@@ -135,8 +135,7 @@ export default class MicrosoftRepository {
         {},
         dataRefresh
       );
-      const taskReminds = await this.findTaskRemind(user, todoTaskLists['value'] || []);
-      this.createTodo(user, todoAppUser, taskReminds);
+      await this.filterUpdateTask(user, todoAppUser, todoTaskLists['value'] || []);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -150,11 +149,14 @@ export default class MicrosoftRepository {
     return dayReminds;
   };
 
-  findTaskRemind = async (
+  filterUpdateTask = async (
     user: IUser,
+    todoAppUser: ITodoAppUser,
     todoTaskLists: IMicrosoftTask[]
-  ): Promise<IMicrosoftTask[]> => {
+  ): Promise<void> => {
     const taskReminds: IMicrosoftTask[] = [];
+    const taskNomals: IMicrosoftTask[] = [];
+
     const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
 
     for (const todoTask of todoTaskLists) {
@@ -175,11 +177,12 @@ export default class MicrosoftRepository {
       }
 
       if (!hasRemind) {
-        this.updateTodo(todoTask);
+        taskNomals.push(todoTask);
       }
     }
 
-    return taskReminds;
+    this.createTodo(user, todoAppUser, taskReminds, true);
+    this.createTodo(user, todoAppUser, taskNomals);
   };
 
   refreshToken = async (dataRefresh: IMicrosoftRefresh): Promise<ITodoAppUser | null> => {
@@ -223,7 +226,8 @@ export default class MicrosoftRepository {
   createTodo = async (
     user: IUser,
     todoAppUser: ITodoAppUser,
-    taskReminds: IMicrosoftTask[]
+    taskReminds: IMicrosoftTask[],
+    isRemind: boolean = false
   ): Promise<void> => {
     try {
       if (!taskReminds.length) return;
@@ -231,8 +235,10 @@ export default class MicrosoftRepository {
       const dataTodos = [];
       const dataTodoIDUpdates = [];
 
-      // send to admin of user
-      await this.lineBotRepository.pushStartReportToAdmin(user);
+      if (isRemind) {
+        // send to admin of user
+        await this.lineBotRepository.pushStartReportToAdmin(user);
+      }
 
       for (const todoTask of taskReminds) {
         const todoData = new Todo();
@@ -249,8 +255,10 @@ export default class MicrosoftRepository {
         todoData.is_rescheduled = null;
         dataTodos.push(todoData);
 
-        // send Line message
-        this.lineBotRepository.pushMessageRemind(user, todoData);
+        if (isRemind) {
+          // send Line message
+          this.lineBotRepository.pushMessageRemind(user, todoData);
+        }
 
         if (todoTask.lastModifiedDateTime) {
           dataTodoIDUpdates.push({
@@ -271,26 +279,6 @@ export default class MicrosoftRepository {
           if (todo) {
             this.saveTodoHistory(todo, dataUpdate.updateTime);
           }
-        }
-      }
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  };
-
-  updateTodo = async (todoTask: IMicrosoftTask): Promise<void> => {
-    try {
-      const todoData = await this.todoRepository.findOneBy({
-        todoapp_reg_id: todoTask.id,
-      });
-      if (todoData) {
-        todoData.name = todoTask.title;
-        todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
-        todoData.deadline = moment.utc(todoTask.dueDateTime.dateTime).toDate();
-        todoData.is_done = todoTask.status === Common.completed;
-        const todo = await this.todoRepository.save(todoData);
-        if (todo && todoTask.lastModifiedDateTime) {
-          this.saveTodoHistory(todo, moment(todoTask.lastModifiedDateTime).toDate());
         }
       }
     } catch (error) {

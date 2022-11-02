@@ -80,8 +80,7 @@ export default class TrelloRepository {
         {},
         trelloAuth
       );
-      const taskReminds = await this.findCardRemind(user, cardTodos);
-      this.createTodo(user, todoAppUser, taskReminds);
+      await this.filterUpdateCards(user, todoAppUser, cardTodos);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -95,8 +94,14 @@ export default class TrelloRepository {
     return dayReminds;
   };
 
-  findCardRemind = async (user: IUser, cardTodos: ITrelloTask[]): Promise<ITrelloTask[]> => {
+  filterUpdateCards = async (
+    user: IUser,
+    todoAppUser: ITodoAppUser,
+    cardTodos: ITrelloTask[]
+  ): Promise<void> => {
     const cardReminds: ITrelloTask[] = [];
+    const cardNomals: ITrelloTask[] = [];
+
     const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
 
     for (const todoTask of cardTodos) {
@@ -116,25 +121,30 @@ export default class TrelloRepository {
       }
 
       if (!hasRemind) {
-        this.updateTodo(todoTask);
+        cardNomals.push(todoTask);
       }
     }
 
-    return cardReminds;
+    this.createTodo(user, todoAppUser, cardReminds, true);
+
+    this.createTodo(user, todoAppUser, cardNomals);
   };
 
   createTodo = async (
     user: IUser,
     todoAppUser: ITodoAppUser,
-    taskReminds: ITrelloTask[]
+    taskReminds: ITrelloTask[],
+    isRemind: boolean = false
   ): Promise<void> => {
     try {
       if (!taskReminds.length) return;
       const dataTodos = [];
       const dataTodoIDUpdates = [];
 
-      // send to admin of user
-      await this.lineBotRepository.pushStartReportToAdmin(user);
+      if (isRemind) {
+        // send to admin of user
+        await this.lineBotRepository.pushStartReportToAdmin(user);
+      }
 
       for (const todoTask of taskReminds) {
         const todoData = new Todo();
@@ -151,8 +161,10 @@ export default class TrelloRepository {
         todoData.is_rescheduled = null;
         dataTodos.push(todoData);
 
-        // send Line message
-        this.lineBotRepository.pushMessageRemind(user, todoData);
+        if (isRemind) {
+          // send Line message
+          this.lineBotRepository.pushMessageRemind(user, todoData);
+        }
 
         if (todoTask.dateLastActivity) {
           dataTodoIDUpdates.push({
@@ -173,29 +185,6 @@ export default class TrelloRepository {
           if (todo) {
             this.saveTodoHistory(todo, dataUpdate.updateTime);
           }
-        }
-      }
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  };
-
-  updateTodo = async (todoTask: ITrelloTask): Promise<void> => {
-    try {
-      const todoData = await this.todoRepository.findOneBy({
-        todoapp_reg_id: todoTask.id,
-      });
-
-      if (todoData) {
-        todoData.name = todoTask.name;
-        todoData.todoapp_reg_url = todoTask.url;
-        todoData.deadline = moment(todoTask.due).toDate();
-        todoData.is_done = todoTask.dueComplete;
-        todoData.is_reminded = todoTask.dueReminder ? true : false;
-
-        const todo = await this.todoRepository.save(todoData);
-        if (todo && todoTask.dateLastActivity) {
-          this.saveTodoHistory(todo, moment(todoTask.dateLastActivity).toDate());
         }
       }
     } catch (error) {
