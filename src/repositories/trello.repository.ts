@@ -245,6 +245,7 @@ export default class TrelloRepository {
         dataTodos.push(todoData);
 
         if (isRemind && user) {
+          todoData.reminded_count = 1;
           // send Line message
           this.lineBotRepository.pushMessageRemind(user, todoData);
         }

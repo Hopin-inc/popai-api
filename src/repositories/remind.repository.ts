@@ -35,12 +35,12 @@ export default class Remindrepository {
   remindCompany = async (): Promise<void> => {
     try {
       const companies = await this.companyRepository.find({
-        relations: ['todoapps'],
+        relations: ['todoapps', 'admin_user'],
       });
 
       for (const company of companies) {
         if (company.todoapps.length) {
-          this.remindCompanyApp(company.id, company.todoapps);
+          this.remindCompanyApp(company, company.todoapps);
         }
       }
     } catch (error) {
@@ -49,43 +49,50 @@ export default class Remindrepository {
     }
   };
 
-  remindCompanyApp = async (companyId: number, todoapps: ITodoApp[]): Promise<void> => {
+  remindCompanyApp = async (company: Company, todoapps: ITodoApp[]): Promise<void> => {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
-          await this.trelloRepo.remindUsers(companyId, todoapp.id);
+          await this.trelloRepo.remindUsers(company.id, todoapp.id);
           break;
         case Common.microsoft:
-          await this.microsofRepo.remindUsers(companyId, todoapp.id);
+          await this.microsofRepo.remindUsers(company.id, todoapp.id);
           break;
         default:
           break;
       }
     }
 
-    const notDateTasks = await this.getNotsetDueDateTasks(companyId);
+    const needRemindTasks = await this.getNotsetDueDateOrNotAssignTasks(company.id);
+    const notSetDueDateTasks = needRemindTasks.filter(
+      (task) => !task.deadline && task.assigned_user_id
+    );
 
-    const admin = await this.getAdminOfCompany(companyId);
-
-    if (notDateTasks.length) {
+    if (needRemindTasks.length) {
       // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
       // Send to admin list task which not set duedate
-      await this.lineRepo.pushListTaskMessageToAdmin(admin, notDateTasks);
+      if (company.admin_user) {
+        await this.lineRepo.pushListTaskMessageToAdmin(company.admin_user, needRemindTasks);
+      }
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
       // Send list task to each user
-      const userTodoMap = this.mapUserTaskList(notDateTasks);
+      if (notSetDueDateTasks.length) {
+        const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-      userTodoMap.forEach(async (todos: Array<Todo>, user: User) => {
-        await this.lineRepo.pushListTaskMessageToUser(user, todos);
-      });
+        userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
+          await this.lineRepo.pushListTaskMessageToUser(todos[0].user, todos);
+        });
+      }
     } else {
       // 期日未設定のタスクがない旨のメッセージが管理者に送られること
-      await this.lineRepo.pushNoListTaskMessageToAdmin(admin);
+      if (company.admin_user) {
+        await this.lineRepo.pushNoListTaskMessageToAdmin(company.admin_user);
+      }
     }
   };
 
-  getNotsetDueDateTasks = async (companyId: number): Promise<Array<Todo>> => {
+  getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
     const todos: Todo[] = await this.todoRepository
       .createQueryBuilder('todos')
       .leftJoinAndSelect('todos.user', 'users')
@@ -95,32 +102,26 @@ export default class Remindrepository {
           qb.where('todos.deadline IS NULL').orWhere('todos.assigned_user_id IS NULL');
         })
       )
-      .andWhere(
-        new Brackets((qb) => {
-          qb.where('todos.reminded_count IS NULL').orWhere('todos.reminded_count < :count', {
-            count: 2,
-          });
-        })
-      )
+      // .andWhere(
+      //   new Brackets((qb) => {
+      //     qb.where('todos.reminded_count < :count', {
+      //       count: 2,
+      //     });
+      //   })
+      // )
       .getMany();
 
     return todos;
   };
 
-  getAdminOfCompany = async (companyId: number): Promise<IUser> => {
-    // const admin = await this.
-    // TODO get admin of companay
-    return this.userRepository.findOneBy({ id: companyId });
-  };
-
-  mapUserTaskList = (todos: Array<Todo>): Map<User, Array<Todo>> => {
-    const map = new Map<User, Array<Todo>>();
+  mapUserTaskList = (todos: Array<Todo>): Map<string, Array<Todo>> => {
+    const map = new Map<string, Array<Todo>>();
 
     todos.forEach((todo) => {
-      if (map.has(todo.user)) {
-        map.get(todo.user).push(todo);
+      if (map.has(todo.user.line_id)) {
+        map.get(todo.user.line_id).push(todo);
       } else {
-        map.set(todo.user, [todo]);
+        map.set(todo.user.line_id, [todo]);
       }
     });
 
