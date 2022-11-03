@@ -6,7 +6,7 @@ import { IUser } from '../types';
 import { LineBot } from '../config/linebot';
 
 import { AppDataSource } from '../config/data-source';
-import { FlexBubble, FlexComponent, FlexMessage, FlexText, Profile } from '@line/bot-sdk';
+import { Message, Profile } from '@line/bot-sdk';
 import { LineProfile } from '../entify/line_profile.entity';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
@@ -38,8 +38,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo);
 
-      await this.saveChatMessage(user, todo, message);
-      return await LineBot.pushMessage(user.line_id, message, false);
+      return await this.pushLineMessage(user.line_id, message, todo);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -57,7 +56,7 @@ export default class LineRepository {
       superiorUsers.map(async (superiorUser) => {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
 
-        await LineBot.pushMessage(superiorUser.line_id, message, false);
+        await this.pushLineMessage(superiorUser.line_id, message);
       });
 
       return;
@@ -82,7 +81,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await LineBot.pushMessage(user.line_id, message, false);
+      return await this.pushLineMessage(user.line_id, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -104,7 +103,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await LineBot.pushMessage(user.line_id, message, false);
+      return await this.pushLineMessage(user.line_id, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -126,7 +125,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
       // await this.saveChatMessage(user, todo, message);
-      return await LineBot.pushMessage(user.line_id, message, false);
+      return await this.pushLineMessage(user.line_id, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -191,11 +190,13 @@ export default class LineRepository {
     }
   };
 
-  private async saveChatMessage(
-    user: IUser,
-    todo: Todo,
-    message: FlexMessage
-  ): Promise<ChatMessage> {
+  pushLineMessage = async (lineId: string, message: Message, todo?: Todo): Promise<any> => {
+    await LineBot.pushMessage(lineId, message, false);
+    // console.log(LineMessageBuilder.getTextContentFromMessage(message));
+    return await this.saveChatMessage(message, todo);
+  };
+
+  saveChatMessage = async (message: Message, todo?: Todo): Promise<ChatMessage> => {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
     chatMessage.chattool_id = 1;
@@ -205,10 +206,10 @@ export default class LineRepository {
     chatMessage.message_type_id = MessageType.FLEX;
 
     chatMessage.body = LineMessageBuilder.getTextContentFromMessage(message);
-    chatMessage.todo_id = todo.id;
+    chatMessage.todo_id = todo?.id;
     chatMessage.send_at = moment().toDate();
-    chatMessage.user_id = todo.assigned_user_id;
+    chatMessage.user_id = todo?.assigned_user_id;
 
     return await this.messageRepository.save(chatMessage);
-  }
+  };
 }
