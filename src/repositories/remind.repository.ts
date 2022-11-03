@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/data-source';
 import { InternalServerErrorException, LoggerError } from '../exceptions';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
@@ -53,10 +53,10 @@ export default class Remindrepository {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
-          this.trelloRepo.remindUsers(companyId, todoapp.id);
+          await this.trelloRepo.remindUsers(companyId, todoapp.id);
           break;
         case Common.microsoft:
-          this.microsofRepo.remindUsers(companyId, todoapp.id);
+          await this.microsofRepo.remindUsers(companyId, todoapp.id);
           break;
         default:
           break;
@@ -64,6 +64,7 @@ export default class Remindrepository {
     }
 
     const notDateTasks = await this.getNotsetDueDateTasks(companyId);
+
     const admin = await this.getAdminOfCompany(companyId);
 
     if (notDateTasks.length) {
@@ -87,9 +88,20 @@ export default class Remindrepository {
   getNotsetDueDateTasks = async (companyId: number): Promise<Array<Todo>> => {
     const todos: Todo[] = await this.todoRepository
       .createQueryBuilder('todos')
-      .innerJoinAndSelect('todos.user', 'users')
-      .where('users.company_id = :companyId', { companyId })
-      .andWhere('todos.deadline IS NULL')
+      .leftJoinAndSelect('todos.user', 'users')
+      .where('todos.company_id = :companyId', { companyId })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('todos.deadline IS NULL').orWhere('todos.assigned_user_id IS NULL');
+        })
+      )
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('todos.reminded_count IS NULL').orWhere('todos.reminded_count < :count', {
+            count: 2,
+          });
+        })
+      )
       .getMany();
 
     return todos;
@@ -98,7 +110,7 @@ export default class Remindrepository {
   getAdminOfCompany = async (companyId: number): Promise<IUser> => {
     // const admin = await this.
     // TODO get admin of companay
-    return this.userRepository.findOneBy({ id: 1 });
+    return this.userRepository.findOneBy({ id: companyId });
   };
 
   mapUserTaskList = (todos: Array<Todo>): Map<User, Array<Todo>> => {
