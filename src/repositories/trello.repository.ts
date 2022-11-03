@@ -53,7 +53,7 @@ export default class TrelloRepository {
   getUserTodoApps = async (
     companyId: number,
     todoappId: number,
-    hasLineId: boolean = true
+    hasTrelloId: boolean = true
   ): Promise<IUser[]> => {
     const query = this.userRepository
       .createQueryBuilder('users')
@@ -61,7 +61,7 @@ export default class TrelloRepository {
       .leftJoinAndSelect('users.companyCondition', 'm_company_conditions')
       .where('users.company_id = :companyId', { companyId })
       .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId });
-    if (hasLineId) {
+    if (hasTrelloId) {
       query.andWhere('todo_app_users.user_app_id IS NOT NULL');
     } else {
       query.andWhere('todo_app_users.user_app_id IS NULL');
@@ -72,7 +72,7 @@ export default class TrelloRepository {
   };
 
   remindUsers = async (companyId: number, todoappId: number): Promise<void> => {
-    await this.updateUsersLine(companyId, todoappId);
+    await this.updateUsersTrello(companyId, todoappId);
     const companyBoards = await this.getCompanyBoard(companyId, todoappId);
 
     const users = await this.getUserTodoApps(companyId, todoappId);
@@ -140,26 +140,30 @@ export default class TrelloRepository {
     }
   };
 
-  updateUsersLine = async (companyId: number, todoappId: number): Promise<void> => {
+  updateUsersTrello = async (companyId: number, todoappId: number): Promise<void> => {
     const users = await this.getUserTodoApps(companyId, todoappId, false);
     for await (const user of users) {
       if (user.todoAppUsers.length) {
-        await this.updateLineUser(user.todoAppUsers);
+        await this.updateTrelloUser(user.todoAppUsers);
       }
     }
   };
 
-  updateLineUser = async (todoAppUsers: ITodoAppUser[]): Promise<any> => {
+  updateTrelloUser = async (todoAppUsers: ITodoAppUser[]): Promise<any> => {
     for (const todoAppUser of todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token) {
-        const trelloAuth: ITrelloAuth = {
-          api_key: todoAppUser.api_key,
-          api_token: todoAppUser.api_token,
-        };
+        try {
+          const trelloAuth: ITrelloAuth = {
+            api_key: todoAppUser.api_key,
+            api_token: todoAppUser.api_token,
+          };
 
-        const me = await this.trelloRequest.fetchApi('members/me', 'GET', {}, trelloAuth);
-        todoAppUser.user_app_id = me?.id;
-        this.todoAppUserRepository.save(todoAppUser);
+          const me = await this.trelloRequest.fetchApi('members/me', 'GET', {}, trelloAuth);
+          todoAppUser.user_app_id = me?.id;
+          this.todoAppUserRepository.save(todoAppUser);
+        } catch (err) {
+          logger.error(new LoggerError(err.message));
+        }
       }
     }
   };
