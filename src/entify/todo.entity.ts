@@ -18,6 +18,9 @@ export class Todo {
   company_id: number;
 
   @Column()
+  section_id: number;
+
+  @Column()
   assigned_user_id: number;
 
   @Column()
