@@ -234,7 +234,7 @@ export default class TrelloRepository {
         if (isRemind && user && !pushUserIds.includes(user.id)) {
           // send to admin of user
           pushUserIds.push(user.id);
-          await this.lineBotRepository.pushStartReportToAdmin(user);
+          // await this.lineBotRepository.pushStartReportToAdmin(user);
         }
 
         const todoData = new Todo();

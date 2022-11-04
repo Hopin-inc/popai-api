@@ -216,7 +216,7 @@ export default class MicrosoftRepository {
 
       if (isRemind) {
         // send to admin of user
-        await this.lineBotRepository.pushStartReportToAdmin(user);
+        // await this.lineBotRepository.pushStartReportToAdmin(user);
       }
 
       for (const todoTask of taskReminds) {
