@@ -170,7 +170,7 @@ export default class TrelloRepository {
 
           const me = await this.trelloRequest.fetchApi('members/me', 'GET', {}, trelloAuth);
           todoAppUser.user_app_id = me?.id;
-          this.todoAppUserRepository.save(todoAppUser);
+          await this.todoAppUserRepository.save(todoAppUser);
         } catch (err) {
           logger.error(new LoggerError(err.message));
         }
