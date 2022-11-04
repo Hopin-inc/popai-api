@@ -116,7 +116,7 @@ export default class TrelloRepository {
             api_token: todoAppUser.api_token,
           };
           const cardTodos = await this.trelloRequest.fetchApi(
-            'boards/' + board.board_id + '/cards/all',
+            'boards/' + section.board_id + '/cards/all',
             'GET',
             {},
             trelloAuth
