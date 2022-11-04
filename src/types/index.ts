@@ -52,12 +52,14 @@ export type ITodo = {
   is_done: boolean | null;
   is_reminded: boolean | null;
   is_rescheduled: boolean | null;
+  is_closed: boolean;
   reminded_count: number | null;
 };
 
 export type ITrelloTask = {
   id: string;
   name: string;
+  closed: boolean;
   dueComplete: boolean;
   dateLastActivity: Date;
   due: Date;
