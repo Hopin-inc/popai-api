@@ -2,8 +2,6 @@ import { AppDataSource } from '../config/data-source';
 import { User } from '../entify/user.entity';
 import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
-import moment from 'moment';
-import logger from './../logger/winston';
 import {
   ISection,
   ICompanyCondition,
@@ -16,17 +14,19 @@ import {
   ICompany,
   ITodoApp,
   ITodoUserUpdate,
-  ITodoUser,
 } from './../types';
-import TrelloRequest from './../libs/trello.request';
+
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
-import LineRepository from './line.repository';
-import { TodoUpdateHistory } from './../entify/todoupdatehistory.entity';
 import { Section } from '../entify/section.entity';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { toJapanDateTime } from '../utils/common';
-import { TodoUser } from './../entify/todouser.entity';
+import moment from 'moment';
+import logger from './../logger/winston';
+import TrelloRequest from './../libs/trello.request';
+import LineRepository from './line.repository';
+import TodoUserRepository from './modules/todoUser.repository';
+import TodoUpdateRepository from './modules/todoUpdate.repository';
 
 @Service()
 export default class TrelloRepository {
@@ -34,20 +34,20 @@ export default class TrelloRepository {
   private sectionRepository: Repository<Section>;
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
-  private todoUpdateRepository: Repository<TodoUpdateHistory>;
+  private todoUpdateRepository: TodoUpdateRepository;
   private lineBotRepository: LineRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
-  private todoUserRepository: Repository<TodoUser>;
+  private todoUserRepository: TodoUserRepository;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.todoUpdateRepository = AppDataSource.getRepository(TodoUpdateHistory);
+    this.todoUpdateRepository = Container.get(TodoUpdateRepository);
     this.lineBotRepository = Container.get(LineRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
-    this.todoUserRepository = AppDataSource.getRepository(TodoUser);
+    this.todoUserRepository = Container.get(TodoUserRepository);
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
@@ -270,9 +270,6 @@ export default class TrelloRepository {
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
         todoData.company_id = companyId;
         todoData.section_id = sectionId;
-        // if (user) {
-        //   todoData.assigned_user_id = user.id;
-        // }
         todoData.deadline = toJapanDateTime(todoTask.due);
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
@@ -309,7 +306,7 @@ export default class TrelloRepository {
 
         //Update USER
         if (todo) {
-          this.updateTodoUser(todo, users);
+          this.todoUserRepository.updateTodoUser(todo, users);
         }
       }
 
@@ -324,92 +321,13 @@ export default class TrelloRepository {
           });
 
           if (todo) {
-            this.saveTodoHistory(todo, dataUpdate.updateTime);
+            this.todoUpdateRepository.saveTodoHistory(todo, dataUpdate.updateTime);
           }
         }
       }
 
       //save todo users
-      await this.saveTodoUsers(dataTodoUsers);
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  };
-
-  updateTodoUser = async (todo: ITodo, users: IUser[]): Promise<void> => {
-    const todoUsers: ITodoUser[] = await this.todoUserRepository.findBy({
-      todo_id: todo.id,
-    });
-
-    const todoUserIds: number[] = todoUsers.map((s) => s.user_id).filter(Number);
-    const userIds: number[] = users.map((s) => s.id).filter(Number);
-
-    const differenceUserIds = todoUserIds
-      .filter((x) => !userIds.includes(x))
-      .concat(userIds.filter((x) => !todoUserIds.includes(x)));
-
-    if (differenceUserIds.length) {
-      const idTodoUsers: number[] = todoUsers
-        .filter(function(obj) {
-          return differenceUserIds.includes(obj.user_id);
-        })
-        .map((s) => s.id)
-        .filter(Number);
-
-      if (idTodoUsers.length) {
-        await this.todoUserRepository.delete(idTodoUsers);
-      }
-    }
-  };
-
-  saveTodoUsers = async (dataTodoUsers: ITodoUserUpdate[]): Promise<void> => {
-    //todo
-    const todoUserDatas = [];
-
-    for await (const dataTodoUser of dataTodoUsers) {
-      const todo: ITodo = await this.todoRepository.findOneBy({
-        todoapp_reg_id: dataTodoUser.todoId,
-      });
-
-      if (todo) {
-        for (const user of dataTodoUser.users) {
-          const todoUser: ITodoUser = await this.todoUserRepository.findOneBy({
-            todo_id: todo.id,
-            user_id: user.id,
-          });
-
-          const todoUserData = new TodoUser();
-          todoUserData.id = todoUser?.id || null;
-          todoUserData.todo_id = todo.id;
-          todoUserData.user_id = user.id;
-          todoUserDatas.push(todoUserData);
-        }
-      }
-    }
-
-    await this.todoUserRepository.upsert(todoUserDatas, []);
-  };
-
-  saveTodoHistory = async (todo: ITodo, updateTime: Date) => {
-    try {
-      const todoUpdateData = await this.todoUpdateRepository.findOne({
-        where: { todo_id: todo.id },
-        order: { id: 'DESC' },
-      });
-
-      const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
-
-      if (todoUpdateData) {
-        const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
-        if (moment(oldDate).isSame(taskUpdate)) {
-          return;
-        }
-      }
-
-      const todoUpdate = new TodoUpdateHistory();
-      todoUpdate.todo_id = todo.id;
-      todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
-      this.todoUpdateRepository.save(todoUpdate);
+      await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

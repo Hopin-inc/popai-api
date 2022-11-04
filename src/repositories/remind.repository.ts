@@ -54,7 +54,7 @@ export default class Remindrepository {
           await this.trelloRepo.remindUsers(company, todoapp);
           break;
         case Common.microsoft:
-          await this.microsofRepo.remindUsers(company.id, todoapp.id);
+          await this.microsofRepo.remindUsers(company, todoapp);
           break;
         default:
           break;

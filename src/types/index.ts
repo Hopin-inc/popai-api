@@ -83,7 +83,7 @@ export type ITrelloTask = {
 };
 
 export type ITodoTask = {
-  todoTask: ITrelloTask;
+  todoTask: ITrelloTask & IMicrosoftTask;
   todoapp: ITodoApp;
   company: ICompany;
   sectionId: number;
@@ -104,14 +104,29 @@ export type IMicrosoftDueDate = {
   dateTime: Date;
   timeZone: string;
 };
+
+export type IMicrosoftCreateBy = {
+  user: {
+    id: string;
+  };
+};
+
+export type IMicrosoftAssignedBy = IMicrosoftCreateBy;
+
+export type IMicrosoftAssign = {
+  assignedBy: IMicrosoftAssignedBy;
+};
+
 export type IMicrosoftTask = {
   id: string;
   title: string;
-  isReminderOn: boolean;
+  planId: string;
+  percentComplete: number;
   createdDateTime: Date;
-  status: string;
-  lastModifiedDateTime?: Date;
   dueDateTime?: IMicrosoftDueDate;
+  completedDateTime?: Date;
+  createdBy: IMicrosoftCreateBy;
+  assignments: [IMicrosoftAssign];
 };
 
 export type IMicrosoftRefresh = {

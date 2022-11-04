@@ -2,8 +2,8 @@ export const Common = {
   day_remind: 1,
   trello: 'trello',
   microsoft: 'microsoft',
-  completed: 'completed',
-  microsoftBaseUrl: 'https://to-do.live.com/tasks/id',
+  completed: 100,
+  microsoftBaseUrl: 'https://tasks.office.com/newit.co.jp/Home/Task',
   remindMaxCount: 2,
 };
 
