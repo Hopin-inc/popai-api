@@ -110,31 +110,35 @@ export default class TrelloRepository {
 
     for (const todoAppUser of user.todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token) {
-        const trelloAuth: ITrelloAuth = {
-          api_key: todoAppUser.api_key,
-          api_token: todoAppUser.api_token,
-        };
-        const cardTodos = await this.trelloRequest.fetchApi(
-          'boards/' + board.board_id + '/cards',
-          'GET',
-          {},
-          trelloAuth
-        );
+        try {
+          const trelloAuth: ITrelloAuth = {
+            api_key: todoAppUser.api_key,
+            api_token: todoAppUser.api_token,
+          };
+          const cardTodos = await this.trelloRequest.fetchApi(
+            'boards/' + board.board_id + '/cards',
+            'GET',
+            {},
+            trelloAuth
+          );
 
-        for (const todoTask of cardTodos) {
-          const found = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
-          if (!found) {
-            const card: ITodoTask = {
-              todoTask: todoTask,
-              companyId: companyId,
-              todoappId: todoappId,
-            };
-            if (todoTask.idMembers.includes(todoAppUser.user_app_id)) {
-              card.user = user;
+          for (const todoTask of cardTodos) {
+            const found = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
+            if (!found) {
+              const card: ITodoTask = {
+                todoTask: todoTask,
+                companyId: companyId,
+                todoappId: todoappId,
+              };
+              if (todoTask.idMembers.includes(todoAppUser.user_app_id)) {
+                card.user = user;
+              }
+
+              todoTasks.push(card);
             }
-
-            todoTasks.push(card);
           }
+        } catch (err) {
+          logger.error(new LoggerError(err.message));
         }
       }
     }
