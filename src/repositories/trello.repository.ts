@@ -123,8 +123,14 @@ export default class TrelloRepository {
           );
 
           for (const todoTask of cardTodos) {
-            const found = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
-            if (!found) {
+            const taskFound = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
+            if (taskFound) {
+              if (taskFound.todoTask.idMembers.includes(todoAppUser.user_app_id)) {
+                taskFound.user = user;
+                taskFound.companyId = companyId;
+                taskFound.todoTask = todoTask;
+              }
+            } else {
               const card: ITodoTask = {
                 todoTask: todoTask,
                 companyId: companyId,
