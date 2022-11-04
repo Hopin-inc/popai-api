@@ -37,27 +37,27 @@ export default class LineRepository {
       }
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo);
-
       return await this.pushLineMessage(user.line_id, message, todo);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
   };
 
-  pushStartReportToAdmin = async (user: IUser): Promise<any> => {
+  pushStartReportToSuperior = async (superiorUser: IUser): Promise<any> => {
     try {
-      if (!user.line_id) {
-        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
-        return;
-      }
+      // if (!user.line_id) {
+      //   logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+      //   return;
+      // }
 
-      const superiorUsers = await this.getSuperiorUsers(user.line_id);
+      // const superiorUsers = await this.getSuperiorUsers(user.line_id);
 
-      superiorUsers.map(async (superiorUser) => {
+      if (!superiorUser.line_id) {
+        logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
+      } else {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
-
         await this.pushLineMessage(superiorUser.line_id, message);
-      });
+      }
 
       return;
     } catch (error) {
@@ -176,6 +176,33 @@ export default class LineRepository {
       .createQueryBuilder('users')
       .where('id IN (:...ids)', {
         ids: superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id),
+      })
+      .getMany();
+
+    return superiorUsers;
+  };
+
+  getSuperiorOfUsers = async (userIds: number[]): Promise<Array<User>> => {
+    if (!userIds.length) return [];
+
+    const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
+    const superiorUserIds = await reportingLineRepository
+      .createQueryBuilder('reporting_lines')
+      .where('subordinate_user_id IN (:...ids)', {
+        ids: userIds,
+      })
+      .getMany();
+
+    if (superiorUserIds.length == 0) {
+      return Promise.resolve([]);
+    }
+
+    const userIdList = superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id);
+
+    const superiorUsers = await this.userRepositoty
+      .createQueryBuilder('users')
+      .where('id IN (:...ids)', {
+        ids: userIdList,
       })
       .getMany();
 

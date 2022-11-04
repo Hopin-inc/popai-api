@@ -191,19 +191,20 @@ export default class LineController extends Controller {
     taskName: string,
     reportContent: string
   ): Promise<MessageAPIResponseBase> {
-    const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
-      superiorUser.name,
-      userName,
-      taskName,
-      reportContent
-    );
-
     if (!superiorUser.line_id) {
       logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
 
       return;
     }
 
+    await this.lineRepository.pushStartReportToSuperior(superiorUser);
+
+    const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
+      superiorUser.name,
+      userName,
+      taskName,
+      reportContent
+    );
     return await LineBot.pushMessage(superiorUser.line_id, reportMessage);
   }
 }

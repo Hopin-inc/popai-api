@@ -401,7 +401,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: reportContent + '😅',
+              text: reportContent,
               wrap: true,
             },
           ],
