@@ -91,14 +91,23 @@ export default class Remindrepository {
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
 
       const notSetDueDateTasks = needRemindTasks.filter(
-        (task) => !task.deadline && task.assigned_user_id
+        (task) =>
+          !task.deadline && task.assigned_user_id && task.reminded_count < Common.remindMaxCount
       );
+
       // Send list task to each user
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
         userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
           await this.lineRepo.pushListTaskMessageToUser(todos[0].user, todos);
+          const todoDatas = todos.map((todo) => {
+            return {
+              ...todo,
+              reminded_count: todo.reminded_count + 1,
+            };
+          });
+          await this.todoRepository.upsert(todoDatas, []);
         });
       }
     }

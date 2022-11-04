@@ -4,6 +4,7 @@ export const Common = {
   microsoft: 'microsoft',
   completed: 'completed',
   microsoftBaseUrl: 'https://to-do.live.com/tasks/id',
+  remindMaxCount: 2,
 };
 
 export const TaskStatus = {
