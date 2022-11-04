@@ -22,6 +22,8 @@ import {
 } from '../const/common';
 import { ChatMessage } from '../entify/message.entity';
 import moment from 'moment';
+import logger from './../logger/winston';
+import { LoggerError } from '../exceptions';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -195,6 +197,13 @@ export default class LineController extends Controller {
       taskName,
       reportContent
     );
+
+    if (!superiorUser.line_id) {
+      logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
+
+      return;
+    }
+
     return await LineBot.pushMessage(superiorUser.line_id, reportMessage);
   }
 }

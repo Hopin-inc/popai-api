@@ -10,7 +10,6 @@ export class companyBoards1667468936385 implements MigrationInterface {
           board_id VARCHAR(255) NULL,
           PRIMARY KEY(id),
           
-          CONSTRAINT company_id UNIQUE (company_id),
           FOREIGN KEY (company_id) REFERENCES companies (id)  ON DELETE SET NULL,
           FOREIGN KEY (todoapp_id) REFERENCES m_todo_apps (id)  ON DELETE SET NULL
         );
