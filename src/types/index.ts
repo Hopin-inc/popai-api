@@ -22,7 +22,7 @@ export type IUser = {
   todoAppUsers?: ITodoAppUser[];
 };
 
-export type ICompanyBoard = {
+export type ISection = {
   id: number;
   company_id: number | null;
   todoapp_id: number | null;
@@ -73,6 +73,7 @@ export type ITodoTask = {
   todoTask: ITrelloTask;
   todoappId: number;
   companyId: number;
+  sectionId: number;
   user?: IUser;
 };
 
