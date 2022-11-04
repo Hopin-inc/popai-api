@@ -64,15 +64,32 @@ export default class Remindrepository {
     }
 
     const needRemindTasks = await this.getNotsetDueDateOrNotAssignTasks(company.id);
-    const notSetDueDateTasks = needRemindTasks.filter(
-      (task) => !task.deadline && task.assigned_user_id
-    );
 
-    if (needRemindTasks.length) {
-      // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
-      // Send to admin list task which not set duedate
+    // 期日未設定のタスクがない旨のメッセージが管理者に送られること
+    if (needRemindTasks.length == 0) {
       if (company.admin_user) {
-        await this.lineRepo.pushListTaskMessageToAdmin(company.admin_user, needRemindTasks);
+        await this.lineRepo.pushNoListTaskMessageToAdmin(company.admin_user);
+      } else {
+        logger.error(new LoggerError(company.name + 'の管理者が設定していません。'));
+      }
+    } else {
+      // 期日未設定のタスクがある場合
+      const notSetDueDateTasks = needRemindTasks.filter(
+        (task) => !task.deadline && task.assigned_user_id
+      );
+      const notSetDueDateAndNotAssign = needRemindTasks.filter(
+        (task) => !task.deadline && !task.assigned_user_id
+      );
+
+      if (notSetDueDateAndNotAssign.length) {
+        // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+        // Send to admin list task which not set duedate
+        if (company.admin_user) {
+          await this.lineRepo.pushListTaskMessageToAdmin(
+            company.admin_user,
+            notSetDueDateAndNotAssign
+          );
+        }
       }
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
@@ -83,11 +100,6 @@ export default class Remindrepository {
         userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
           await this.lineRepo.pushListTaskMessageToUser(todos[0].user, todos);
         });
-      }
-    } else {
-      // 期日未設定のタスクがない旨のメッセージが管理者に送られること
-      if (company.admin_user) {
-        await this.lineRepo.pushNoListTaskMessageToAdmin(company.admin_user);
       }
     }
   };
