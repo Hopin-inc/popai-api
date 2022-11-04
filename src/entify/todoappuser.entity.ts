@@ -14,6 +14,9 @@ export class TodoAppUser {
   todoapp_id: number;
 
   @Column()
+  user_app_id: string;
+
+  @Column()
   api_key: string;
 
   @Column()

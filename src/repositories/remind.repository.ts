@@ -1,37 +1,46 @@
 import { AppDataSource } from '../config/data-source';
 import { InternalServerErrorException, LoggerError } from '../exceptions';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
 import TrelloRepository from './trello.repository';
-import { ITodoApp } from './../types';
+import { ITodoApp, IUser } from './../types';
 import { Common } from './../const/common';
 import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
+import { Todo } from '../entify/todo.entity';
+import { User } from '../entify/user.entity';
+import LineRepository from './line.repository';
 
 @Service()
 export default class Remindrepository {
   private trelloRepo: TrelloRepository;
   private microsofRepo: MicrosoftRepository;
+  private lineRepo: LineRepository;
 
   private companyRepository: Repository<Company>;
+  private todoRepository: Repository<Todo>;
+  private userRepository: Repository<User>;
 
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
     this.microsofRepo = Container.get(MicrosoftRepository);
+    this.lineRepo = Container.get(LineRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
+    this.todoRepository = AppDataSource.getRepository(Todo);
+    this.userRepository = AppDataSource.getRepository(User);
   }
 
   remindCompany = async (): Promise<void> => {
     try {
       const companies = await this.companyRepository.find({
-        relations: ['todoapps'],
+        relations: ['todoapps', 'admin_user'],
       });
 
       for (const company of companies) {
         if (company.todoapps.length) {
-          this.remindCompanyApp(company.id, company.todoapps);
+          this.remindCompanyApp(company, company.todoapps);
         }
       }
     } catch (error) {
@@ -40,18 +49,82 @@ export default class Remindrepository {
     }
   };
 
-  remindCompanyApp = async (companyId: number, todoapps: ITodoApp[]): Promise<void> => {
+  remindCompanyApp = async (company: Company, todoapps: ITodoApp[]): Promise<void> => {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
-          this.trelloRepo.remindUsers(companyId, todoapp.id);
+          await this.trelloRepo.remindUsers(company.id, todoapp.id);
           break;
         case Common.microsoft:
-          this.microsofRepo.remindUsers(companyId, todoapp.id);
+          await this.microsofRepo.remindUsers(company.id, todoapp.id);
           break;
         default:
           break;
       }
     }
+
+    const needRemindTasks = await this.getNotsetDueDateOrNotAssignTasks(company.id);
+    const notSetDueDateTasks = needRemindTasks.filter(
+      (task) => !task.deadline && task.assigned_user_id
+    );
+
+    if (needRemindTasks.length) {
+      // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+      // Send to admin list task which not set duedate
+      if (company.admin_user) {
+        await this.lineRepo.pushListTaskMessageToAdmin(company.admin_user, needRemindTasks);
+      }
+
+      // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
+      // Send list task to each user
+      if (notSetDueDateTasks.length) {
+        const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
+
+        userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
+          await this.lineRepo.pushListTaskMessageToUser(todos[0].user, todos);
+        });
+      }
+    } else {
+      // 期日未設定のタスクがない旨のメッセージが管理者に送られること
+      if (company.admin_user) {
+        await this.lineRepo.pushNoListTaskMessageToAdmin(company.admin_user);
+      }
+    }
+  };
+
+  getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
+    const todos: Todo[] = await this.todoRepository
+      .createQueryBuilder('todos')
+      .leftJoinAndSelect('todos.user', 'users')
+      .where('todos.company_id = :companyId', { companyId })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('todos.deadline IS NULL').orWhere('todos.assigned_user_id IS NULL');
+        })
+      )
+      // .andWhere(
+      //   new Brackets((qb) => {
+      //     qb.where('todos.reminded_count < :count', {
+      //       count: 2,
+      //     });
+      //   })
+      // )
+      .getMany();
+
+    return todos;
+  };
+
+  mapUserTaskList = (todos: Array<Todo>): Map<string, Array<Todo>> => {
+    const map = new Map<string, Array<Todo>>();
+
+    todos.forEach((todo) => {
+      if (map.has(todo.user.line_id)) {
+        map.get(todo.user.line_id).push(todo);
+      } else {
+        map.set(todo.user.line_id, [todo]);
+      }
+    });
+
+    return map;
   };
 }

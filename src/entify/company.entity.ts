@@ -1,5 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+  JoinColumn,
+  OneToOne,
+} from 'typeorm';
 import { TodoApp } from './todoapp.entity';
+import { User } from './user.entity';
 
 @Entity('companies')
 export class Company {
@@ -8,6 +17,9 @@ export class Company {
 
   @Column()
   name: string;
+
+  @Column()
+  admin_user_id: number;
 
   @ManyToMany(
     () => TodoApp,
@@ -25,4 +37,11 @@ export class Company {
     },
   })
   todoapps: TodoApp[];
+
+  @OneToOne(
+    () => User,
+    (user) => user.id
+  )
+  @JoinColumn({ name: 'admin_user_id' })
+  admin_user: User;
 }

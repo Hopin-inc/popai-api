@@ -22,10 +22,18 @@ export type IUser = {
   todoAppUsers?: ITodoAppUser[];
 };
 
+export type ICompanyBoard = {
+  id: number;
+  company_id: number | null;
+  todoapp_id: number | null;
+  board_id: string;
+};
+
 export type ITodoAppUser = {
   id: number;
   employee_id: number | null;
   todoapp_id: number | null;
+  user_app_id: string;
   api_key: string;
   api_token: string;
   refresh_token: string;
@@ -44,6 +52,7 @@ export type ITodo = {
   is_done: boolean | null;
   is_reminded: boolean | null;
   is_rescheduled: boolean | null;
+  reminded_count: number | null;
 };
 
 export type ITrelloTask = {
@@ -55,6 +64,14 @@ export type ITrelloTask = {
   dueReminder: number;
   shortUrl: string;
   url: string;
+  idMembers: string[];
+};
+
+export type ITodoTask = {
+  todoTask: ITrelloTask;
+  todoappId: number;
+  companyId: number;
+  user?: IUser;
 };
 
 export type ITrelloAuth = {

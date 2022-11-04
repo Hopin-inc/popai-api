@@ -15,6 +15,9 @@ export class Todo {
   todoapp_id: number;
 
   @Column()
+  company_id: number;
+
+  @Column()
   assigned_user_id: number;
 
   @Column()
@@ -40,6 +43,9 @@ export class Todo {
 
   @Column()
   is_rescheduled: boolean;
+
+  @Column()
+  reminded_count: number;
 
   @ManyToOne(
     () => User,
