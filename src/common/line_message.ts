@@ -248,7 +248,7 @@ export class LineMessageBuilder {
     todos.forEach((todo) =>
       contents.push({
         type: 'text',
-        text: '・' + todo.name + '\n',
+        text: '・' + todo.name,
         wrap: true,
       })
     );
@@ -297,7 +297,7 @@ export class LineMessageBuilder {
     todos.forEach((todo) =>
       contents.push({
         type: 'text',
-        text: '・' + todo.name + '\n',
+        text: '・' + todo.name,
         wrap: true,
       })
     );
