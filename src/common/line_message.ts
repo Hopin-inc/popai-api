@@ -5,10 +5,26 @@ import { Todo } from '../entify/todo.entity';
 import { IUser } from '../types';
 
 export class LineMessageBuilder {
-  static createRemindMessage(userName: string, todo: Todo) {
+  static createRemindMessage(userName: string, todo: Todo, remindDays: number) {
+    let messagePrefix = '';
+
+    if (remindDays > 1) {
+      messagePrefix = remindDays + '日前が期日の';
+    } else if (remindDays == 1) {
+      messagePrefix = '昨日が期日の';
+    } else if (remindDays == 0) {
+      messagePrefix = '今日が期日の';
+    } else if (remindDays == -1) {
+      messagePrefix = '明日が期日の';
+    } else if (remindDays == -2) {
+      messagePrefix = '明後日が期日の';
+    } else {
+      messagePrefix = -messagePrefix + '日後が期日';
+    }
+
     const message: FlexMessage = {
       type: 'flex',
-      altText: '昨日までの' + todo.name + 'の進捗はいかがですか？\n',
+      altText: messagePrefix + todo.name + 'の進捗はいかがですか？\n',
       contents: {
         type: 'bubble',
         body: {

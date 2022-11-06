@@ -28,7 +28,7 @@ export default class LineRepository {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
   }
 
-  pushMessageRemind = async (user: IUser, todo: Todo): Promise<any> => {
+  pushMessageRemind = async (user: IUser, todo: Todo, remindDays: number): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -36,7 +36,7 @@ export default class LineRepository {
         return;
       }
 
-      const message = LineMessageBuilder.createRemindMessage(user.name, todo);
+      const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
       return await this.pushLineMessage(user.line_id, message, todo);
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -218,9 +218,23 @@ export default class LineRepository {
   };
 
   pushLineMessage = async (lineId: string, message: Message, todo?: Todo): Promise<any> => {
-    await LineBot.pushMessage(lineId, message, false);
-    // console.log(LineMessageBuilder.getTextContentFromMessage(message));
+    if (process.env.ENV == 'LOCAL') {
+      console.log(LineMessageBuilder.getTextContentFromMessage(message));
+    } else {
+      await LineBot.pushMessage(lineId, message, false);
+    }
+
     return await this.saveChatMessage(message, todo);
+  };
+
+  replyMessage = async (replyToken: string, message: Message): Promise<any> => {
+    if (process.env.ENV == 'LOCAL') {
+      console.log(LineMessageBuilder.getTextContentFromMessage(message));
+    } else {
+      await LineBot.replyMessage(replyToken, message);
+    }
+
+    return;
   };
 
   saveChatMessage = async (message: Message, todo?: Todo): Promise<ChatMessage> => {

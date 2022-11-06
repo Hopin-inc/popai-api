@@ -12,6 +12,7 @@ import {
   ITodoTask,
   ITrelloAuth,
   IUser,
+  IRemindTask,
 } from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
@@ -188,8 +189,8 @@ export default class TrelloRepository {
   };
 
   filterUpdateCards = async (cardTodos: ITodoTask[]): Promise<void> => {
-    const cardReminds: ITodoTask[] = [];
-    const cardNomals: ITodoTask[] = [];
+    const cardReminds: IRemindTask[] = [];
+    const cardNomals: IRemindTask[] = [];
 
     for (const cardTodo of cardTodos) {
       let hasRemind = false;
@@ -206,12 +207,18 @@ export default class TrelloRepository {
 
         if (dayReminds.includes(day)) {
           hasRemind = true;
-          cardReminds.push(cardTodo);
+          cardReminds.push({
+            remindDays: day,
+            cardTodo: cardTodo,
+          });
         }
       }
 
       if (!hasRemind) {
-        cardNomals.push(cardTodo);
+        cardNomals.push({
+          remindDays: 0,
+          cardTodo: cardTodo,
+        });
       }
     }
 
@@ -219,7 +226,7 @@ export default class TrelloRepository {
     this.createTodo(cardNomals);
   };
 
-  createTodo = async (taskReminds: ITodoTask[], isRemind: boolean = false): Promise<void> => {
+  createTodo = async (taskReminds: IRemindTask[], isRemind: boolean = false): Promise<void> => {
     try {
       if (!taskReminds.length) return;
       const dataTodos = [];
@@ -227,11 +234,13 @@ export default class TrelloRepository {
       const pushUserIds = [];
 
       for (const taskRemind of taskReminds) {
-        const user = taskRemind.user;
-        const todoTask = taskRemind.todoTask;
-        const todoappId = taskRemind.todoappId;
-        const companyId = taskRemind.companyId;
-        const sectionId = taskRemind.sectionId;
+        const cardTodo = taskRemind.cardTodo;
+        const user = cardTodo.user;
+        const todoTask = cardTodo.todoTask;
+
+        const todoappId = cardTodo.todoappId;
+        const companyId = cardTodo.companyId;
+        const sectionId = cardTodo.sectionId;
 
         if (isRemind && user && !pushUserIds.includes(user.id)) {
           // send to admin of user
@@ -260,7 +269,7 @@ export default class TrelloRepository {
         if (isRemind && user) {
           todoData.reminded_count = 1;
           // send Line message
-          this.lineBotRepository.pushMessageRemind(user, todoData);
+          this.lineBotRepository.pushMessageRemind(user, todoData, taskRemind.remindDays);
         }
 
         if (todoTask.dateLastActivity) {
