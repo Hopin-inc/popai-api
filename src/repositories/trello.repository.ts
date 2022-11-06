@@ -21,6 +21,7 @@ import LineRepository from './line.repository';
 import { TodoUpdateHistory } from './../entify/todoupdatehistory.entity';
 import { Section } from '../entify/section.entity';
 import { TodoAppUser } from './../entify/todoappuser.entity';
+import { toJapanDateTime } from '../utils/common';
 
 @Service()
 export default class TrelloRepository {
@@ -44,9 +45,9 @@ export default class TrelloRepository {
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
     const sections: ISection[] = await this.sectionRepository
-      .createQueryBuilder('company_boards')
-      .where('company_boards.company_id = :companyId', { companyId })
-      .andWhere('company_boards.todoapp_id = :todoappId', { todoappId })
+      .createQueryBuilder('sections')
+      .where('sections.company_id = :companyId', { companyId })
+      .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .getMany();
     return sections;
   };
@@ -199,8 +200,8 @@ export default class TrelloRepository {
 
       if (user?.companyCondition && todoTask.due && !todoTask.dueComplete) {
         const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
-        const dateExpired = moment.utc(todoTask.due).startOf('day');
-        const dateNow = moment.utc().startOf('day');
+        const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
+        const dateNow = moment(toJapanDateTime(moment().toDate())).startOf('day');
 
         const duration = moment.duration(dateExpired.diff(dateNow));
         const day = duration.asDays();
@@ -254,13 +255,13 @@ export default class TrelloRepository {
         todoData.todoapp_reg_id = todoTask.id;
         todoData.todoapp_reg_url = todoTask.shortUrl;
         todoData.todoapp_reg_created_by = null;
-        todoData.todoapp_reg_created_at = moment.utc(todoTask.dateLastActivity).toDate();
+        todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
         todoData.company_id = companyId;
         todoData.section_id = sectionId;
         if (user) {
           todoData.assigned_user_id = user.id;
         }
-        todoData.deadline = moment.utc(todoTask.due).toDate();
+        todoData.deadline = toJapanDateTime(todoTask.due);
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
         todoData.is_rescheduled = null;
@@ -277,7 +278,7 @@ export default class TrelloRepository {
         if (todoTask.dateLastActivity) {
           dataTodoIDUpdates.push({
             todoId: todoTask.id,
-            updateTime: moment.utc(todoTask.dateLastActivity).toDate(),
+            updateTime: toJapanDateTime(todoTask.dateLastActivity),
           });
         }
       }
@@ -307,7 +308,7 @@ export default class TrelloRepository {
         order: { id: 'DESC' },
       });
 
-      const taskUpdate = moment.utc(updateTime).format('YYYY-MM-DD HH:mm:ss');
+      const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
 
       if (todoUpdateData) {
         const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
