@@ -118,6 +118,7 @@ export default class Remindrepository {
       .createQueryBuilder('todos')
       .leftJoinAndSelect('todos.user', 'users')
       .where('todos.company_id = :companyId', { companyId })
+      .andWhere('todos.is_closed =:closed', { closed: false })
       .andWhere(
         new Brackets((qb) => {
           qb.where('todos.deadline IS NULL').orWhere('todos.assigned_user_id IS NULL');

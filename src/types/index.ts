@@ -22,7 +22,7 @@ export type IUser = {
   todoAppUsers?: ITodoAppUser[];
 };
 
-export type ICompanyBoard = {
+export type ISection = {
   id: number;
   company_id: number | null;
   todoapp_id: number | null;
@@ -52,12 +52,14 @@ export type ITodo = {
   is_done: boolean | null;
   is_reminded: boolean | null;
   is_rescheduled: boolean | null;
+  is_closed: boolean;
   reminded_count: number | null;
 };
 
 export type ITrelloTask = {
   id: string;
   name: string;
+  closed: boolean;
   dueComplete: boolean;
   dateLastActivity: Date;
   due: Date;
@@ -71,6 +73,7 @@ export type ITodoTask = {
   todoTask: ITrelloTask;
   todoappId: number;
   companyId: number;
+  sectionId: number;
   user?: IUser;
 };
 
@@ -100,4 +103,9 @@ export type IMicrosoftTask = {
 
 export type IMicrosoftRefresh = {
   todoAppUser: ITodoAppUser;
+};
+
+export type IRemindTask = {
+  remindDays: number;
+  cardTodo: ITodoTask;
 };

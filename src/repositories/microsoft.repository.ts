@@ -237,7 +237,7 @@ export default class MicrosoftRepository {
 
         if (isRemind) {
           // send Line message
-          this.lineBotRepository.pushMessageRemind(user, todoData);
+          this.lineBotRepository.pushMessageRemind(user, todoData, 0); // TODO
         }
 
         if (todoTask.lastModifiedDateTime) {

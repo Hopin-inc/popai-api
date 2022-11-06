@@ -18,6 +18,9 @@ export class Todo {
   company_id: number;
 
   @Column()
+  section_id: number;
+
+  @Column()
   assigned_user_id: number;
 
   @Column()
@@ -43,6 +46,9 @@ export class Todo {
 
   @Column()
   is_rescheduled: boolean;
+
+  @Column({ default: false })
+  is_closed: boolean;
 
   @Column()
   reminded_count: number;
