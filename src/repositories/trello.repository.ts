@@ -117,7 +117,7 @@ export default class TrelloRepository {
             api_token: todoAppUser.api_token,
           };
           const cardTodos = await this.trelloRequest.fetchApi(
-            'boards/' + section.board_id + '/cards',
+            'boards/' + section.board_id + '/cards/all',
             'GET',
             {},
             trelloAuth
@@ -264,13 +264,15 @@ export default class TrelloRepository {
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
         todoData.is_rescheduled = null;
-        dataTodos.push(todoData);
+        todoData.is_closed = todoTask.closed;
 
-        if (isRemind && user) {
+        if (isRemind && user && !todoTask.closed) {
           todoData.reminded_count = 1;
           // send Line message
           this.lineBotRepository.pushMessageRemind(user, todoData, taskRemind.remindDays);
         }
+
+        dataTodos.push(todoData);
 
         if (todoTask.dateLastActivity) {
           dataTodoIDUpdates.push({
