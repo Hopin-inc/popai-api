@@ -102,3 +102,8 @@ export type IMicrosoftTask = {
 export type IMicrosoftRefresh = {
   todoAppUser: ITodoAppUser;
 };
+
+export type IRemindTask = {
+  remindDays: number;
+  cardTodo: ITodoTask;
+};

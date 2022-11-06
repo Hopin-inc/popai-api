@@ -35,6 +35,7 @@ app.use(
 
 app.listen(PORT, () => {
   console.log('Server is running on port', PORT);
+  console.log('Enviroment', process.env.ENV);
 });
 
 // establish database connection

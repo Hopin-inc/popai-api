@@ -102,7 +102,7 @@ export default class LineController extends Controller {
             await this.replyClientId(event.replyToken, lineId);
           } else {
             const unknownMessage = LineMessageBuilder.createUnKnownMessage();
-            await LineBot.replyMessage(event.replyToken, unknownMessage);
+            await this.lineRepository.replyMessage(event.replyToken, unknownMessage);
           }
 
           break;
@@ -149,7 +149,7 @@ export default class LineController extends Controller {
       type: 'text',
       text: 'あなたのLineIDをお知らせます。\n' + lineId,
     };
-    return await LineBot.replyMessage(replyToken, textMessage);
+    return await this.lineRepository.replyMessage(replyToken, textMessage);
   }
 
   /**
@@ -163,7 +163,7 @@ export default class LineController extends Controller {
     superior?: string
   ): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createReplyDoneMessage(superior);
-    return await LineBot.replyMessage(replyToken, replyMessage);
+    return await this.lineRepository.replyMessage(replyToken, replyMessage);
   }
 
   /**
@@ -174,7 +174,7 @@ export default class LineController extends Controller {
   private async replyDeplayAction(replyToken: string): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createDeplayReplyMessage();
 
-    return await LineBot.replyMessage(replyToken, replyMessage);
+    return await this.lineRepository.replyMessage(replyToken, replyMessage);
   }
 
   /**
@@ -205,6 +205,6 @@ export default class LineController extends Controller {
       taskName,
       reportContent
     );
-    return await LineBot.pushMessage(superiorUser.line_id, reportMessage);
+    return await this.lineRepository.pushLineMessage(superiorUser.line_id, reportMessage);
   }
 }
