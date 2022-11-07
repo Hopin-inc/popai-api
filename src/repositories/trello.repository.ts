@@ -249,7 +249,12 @@ export default class TrelloRepository {
           // await this.lineBotRepository.pushStartReportToAdmin(user);
         }
 
+        const todo: ITodo = await this.todoRepository.findOneBy({
+          todoapp_reg_id: todoTask.id,
+        });
+
         const todoData = new Todo();
+        todoData.id = todo?.id || null;
         todoData.name = todoTask.name;
         todoData.todoapp_id = todoappId;
         todoData.todoapp_reg_id = todoTask.id;
