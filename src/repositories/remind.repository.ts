@@ -5,12 +5,11 @@ import { Brackets, Repository } from 'typeorm';
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
 import TrelloRepository from './trello.repository';
-import { ITodoApp, IUser } from './../types';
+import { ICompany, ITodoApp, IUser } from './../types';
 import { Common } from './../const/common';
 import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
 import { Todo } from '../entify/todo.entity';
-import { User } from '../entify/user.entity';
 import LineRepository from './line.repository';
 
 @Service()
@@ -21,7 +20,6 @@ export default class Remindrepository {
 
   private companyRepository: Repository<Company>;
   private todoRepository: Repository<Todo>;
-  private userRepository: Repository<User>;
 
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
@@ -29,10 +27,9 @@ export default class Remindrepository {
     this.lineRepo = Container.get(LineRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.userRepository = AppDataSource.getRepository(User);
   }
 
-  remindCompany = async (): Promise<void> => {
+  remindCompany = async (): Promise<any> => {
     try {
       const companies = await this.companyRepository.find({
         relations: ['todoapps', 'admin_user', 'companyConditions'],
@@ -49,11 +46,11 @@ export default class Remindrepository {
     }
   };
 
-  remindCompanyApp = async (company: Company, todoapps: ITodoApp[]): Promise<void> => {
+  remindCompanyApp = async (company: ICompany, todoapps: ITodoApp[]): Promise<void> => {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
-          await this.trelloRepo.remindUsers(company, todoapp.id);
+          await this.trelloRepo.remindUsers(company, todoapp);
           break;
         case Common.microsoft:
           await this.microsofRepo.remindUsers(company.id, todoapp.id);
@@ -74,7 +71,7 @@ export default class Remindrepository {
       // 期日未設定のタスクがある場合
 
       const notSetDueDateAndNotAssign = needRemindTasks.filter(
-        (task) => !task.deadline && !task.assigned_user_id
+        (task) => !task.deadline && !task.todoUsers.length
       );
 
       if (notSetDueDateAndNotAssign.length) {
@@ -92,7 +89,7 @@ export default class Remindrepository {
 
       const notSetDueDateTasks = needRemindTasks.filter(
         (task) =>
-          !task.deadline && task.assigned_user_id && task.reminded_count < Common.remindMaxCount
+          !task.deadline && task.todoUsers.length && task.reminded_count < Common.remindMaxCount
       );
 
       // Send list task to each user
@@ -116,7 +113,8 @@ export default class Remindrepository {
   getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
     const todos: Todo[] = await this.todoRepository
       .createQueryBuilder('todos')
-      .leftJoinAndSelect('todos.user', 'users')
+      .leftJoinAndSelect('todos.todoUsers', 'todo_users')
+      .leftJoinAndSelect('todo_users.user', 'users')
       .where('todos.company_id = :companyId', { companyId })
       .andWhere('todos.is_closed =:closed', { closed: false })
       .andWhere(
@@ -140,10 +138,12 @@ export default class Remindrepository {
     const map = new Map<string, Array<Todo>>();
 
     todos.forEach((todo) => {
-      if (map.has(todo.user.line_id)) {
-        map.get(todo.user.line_id).push(todo);
-      } else {
-        map.set(todo.user.line_id, [todo]);
+      for (const todoUser of todo.todoUsers) {
+        if (map.has(todoUser.user.line_id)) {
+          map.get(todoUser.user.line_id).push({ ...todo, user: todoUser.user });
+        } else {
+          map.set(todoUser.user.line_id, [{ ...todo, user: todoUser.user }]);
+        }
       }
     });
 

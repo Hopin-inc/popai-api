@@ -13,6 +13,10 @@ import {
   ITrelloAuth,
   IUser,
   IRemindTask,
+  ICompany,
+  ITodoApp,
+  ITodoUserUpdate,
+  ITodoUser,
 } from './../types';
 import TrelloRequest from './../libs/trello.request';
 import { Service, Container } from 'typedi';
@@ -22,7 +26,7 @@ import { TodoUpdateHistory } from './../entify/todoupdatehistory.entity';
 import { Section } from '../entify/section.entity';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { toJapanDateTime } from '../utils/common';
-import { Company } from '../entify/company.entity';
+import { TodoUser } from './../entify/todouser.entity';
 
 @Service()
 export default class TrelloRepository {
@@ -33,6 +37,7 @@ export default class TrelloRepository {
   private todoUpdateRepository: Repository<TodoUpdateHistory>;
   private lineBotRepository: LineRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
+  private todoUserRepository: Repository<TodoUser>;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
@@ -42,6 +47,7 @@ export default class TrelloRepository {
     this.todoUpdateRepository = AppDataSource.getRepository(TodoUpdateHistory);
     this.lineBotRepository = Container.get(LineRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
+    this.todoUserRepository = AppDataSource.getRepository(TodoUser);
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
@@ -74,26 +80,26 @@ export default class TrelloRepository {
     return users;
   };
 
-  remindUsers = async (company: Company, todoappId: number): Promise<void> => {
+  remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
+    const todoappId = todoapp.id;
     await this.updateUsersTrello(companyId, todoappId);
     const sections = await this.getSections(companyId, todoappId);
-
     const users = await this.getUserTodoApps(companyId, todoappId);
-    await this.getUserCardBoards(users, sections, company, todoappId);
+    await this.getUserCardBoards(users, sections, company, todoapp);
   };
 
   getUserCardBoards = async (
     users: IUser[],
     sections: ISection[],
-    company: Company,
-    todoappId: number
+    company: ICompany,
+    todoapp: ITodoApp
   ): Promise<void> => {
     try {
       const todoTasks: ITodoTask[] = [];
       for await (const user of users) {
         for (const section of sections) {
-          await this.getCardBoards(user, section, todoTasks, company.id, todoappId);
+          await this.getCardBoards(user, section, todoTasks, company, todoapp);
         }
       }
 
@@ -108,8 +114,8 @@ export default class TrelloRepository {
     user: IUser,
     section: ISection,
     todoTasks: ITodoTask[],
-    companyId: number,
-    todoappId: number
+    company: ICompany,
+    todoapp: ITodoApp
   ): Promise<void> => {
     if (!user.todoAppUsers.length) return;
 
@@ -128,24 +134,23 @@ export default class TrelloRepository {
           );
 
           for (const todoTask of cardTodos) {
+            const card: ITodoTask = {
+              todoTask: todoTask,
+              company: company,
+              todoapp: todoapp,
+              sectionId: section.id,
+              users: [],
+            };
+
             const taskFound = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
             if (taskFound) {
               if (taskFound.todoTask.idMembers.includes(todoAppUser.user_app_id)) {
-                taskFound.user = user;
-                taskFound.companyId = companyId;
-                taskFound.todoTask = todoTask;
+                taskFound.users.push(user);
               }
             } else {
-              const card: ITodoTask = {
-                todoTask: todoTask,
-                companyId: companyId,
-                todoappId: todoappId,
-                sectionId: section.id,
-              };
               if (todoTask.idMembers.includes(todoAppUser.user_app_id)) {
-                card.user = user;
+                card.users = [user];
               }
-
               todoTasks.push(card);
             }
           }
@@ -184,8 +189,8 @@ export default class TrelloRepository {
     }
   };
 
-  getDayReminds = async (companyCondition: ICompanyCondition[]): Promise<number[]> => {
-    const dayReminds: number[] = companyCondition
+  getDayReminds = async (companyConditions: ICompanyCondition[]): Promise<number[]> => {
+    const dayReminds: number[] = companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
 
@@ -198,10 +203,12 @@ export default class TrelloRepository {
 
     for (const cardTodo of cardTodos) {
       let hasRemind = false;
-      const user = cardTodo.user;
+
+      const companyConditions = cardTodo.company.companyConditions;
       const todoTask = cardTodo.todoTask;
 
-      if (user?.companyCondition && todoTask.due && !todoTask.dueComplete) {
+      if (companyConditions && todoTask.due && !todoTask.dueComplete) {
+        const dayReminds: number[] = await this.getDayReminds(companyConditions);
         const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
         const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
@@ -234,22 +241,23 @@ export default class TrelloRepository {
       if (!taskReminds.length) return;
       const dataTodos = [];
       const dataTodoIDUpdates = [];
-      const pushUserIds = [];
+      const dataTodoUsers: ITodoUserUpdate[] = [];
+      // const pushUserIds = [];
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
-        const user = cardTodo.user;
+        const users = cardTodo.users;
         const todoTask = cardTodo.todoTask;
 
-        const todoappId = cardTodo.todoappId;
-        const companyId = cardTodo.companyId;
+        const todoappId = cardTodo.todoapp.id;
+        const companyId = cardTodo.company.id;
         const sectionId = cardTodo.sectionId;
 
-        if (isRemind && user && !pushUserIds.includes(user.id)) {
-          // send to admin of user
-          pushUserIds.push(user.id);
-          // await this.lineBotRepository.pushStartReportToAdmin(user);
-        }
+        // if (isRemind && user && !pushUserIds.includes(user.id)) {
+        //   // send to admin of user
+        //   pushUserIds.push(user.id);
+        //   await this.lineBotRepository.pushStartReportToAdmin(user);
+        // }
 
         const todo: ITodo = await this.todoRepository.findOneBy({
           todoapp_reg_id: todoTask.id,
@@ -265,19 +273,28 @@ export default class TrelloRepository {
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
         todoData.company_id = companyId;
         todoData.section_id = sectionId;
-        if (user) {
-          todoData.assigned_user_id = user.id;
-        }
+        // if (user) {
+        //   todoData.assigned_user_id = user.id;
+        // }
         todoData.deadline = toJapanDateTime(todoTask.due);
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
         todoData.is_rescheduled = null;
         todoData.is_closed = todoTask.closed;
 
-        if (isRemind && user && !todoTask.closed) {
-          todoData.reminded_count = 1;
-          // send Line message
-          this.lineBotRepository.pushMessageRemind(user, todoData, taskRemind.remindDays);
+        if (users.length) {
+          dataTodoUsers.push({
+            todoId: todoTask.id,
+            users: users,
+          });
+
+          if (isRemind && !todoTask.closed) {
+            todoData.reminded_count = 1;
+            // send Line message
+            for (const user of users) {
+              this.lineBotRepository.pushMessageRemind(user, todoData, taskRemind.remindDays);
+            }
+          }
         }
 
         dataTodos.push(todoData);
@@ -288,10 +305,17 @@ export default class TrelloRepository {
             updateTime: toJapanDateTime(todoTask.dateLastActivity),
           });
         }
+
+        //Update USER
+        if (todo) {
+          this.updateTodoUser(todo, users);
+        }
       }
 
+      //save todos
       const response = await this.todoRepository.upsert(dataTodos, []);
 
+      //save todohistories
       if (response && dataTodoIDUpdates.length) {
         for (const dataUpdate of dataTodoIDUpdates) {
           const todo: ITodo = await this.todoRepository.findOneBy({
@@ -303,9 +327,63 @@ export default class TrelloRepository {
           }
         }
       }
+
+      //save todo users
+      await this.saveTodoUsers(dataTodoUsers);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
+  };
+
+  updateTodoUser = async (todo: ITodo, users: IUser[]): Promise<void> => {
+    const todoUsers: ITodoUser[] = await this.todoUserRepository.findBy({
+      todo_id: todo.id,
+    });
+
+    const todoUserIds: number[] = todoUsers.map((s) => s.user_id).filter(Number);
+    const userIds: number[] = users.map((s) => s.id).filter(Number);
+
+    const differenceUserIds = todoUserIds
+      .filter((x) => !userIds.includes(x))
+      .concat(userIds.filter((x) => !todoUserIds.includes(x)));
+
+    if (differenceUserIds.length) {
+      const Ids: number[] = todoUsers
+        .filter(function(obj) {
+          return differenceUserIds.includes(obj.user_id);
+        })
+        .map((s) => s.id)
+        .filter(Number);
+      await this.todoUserRepository.delete(Ids);
+    }
+  };
+
+  saveTodoUsers = async (dataTodoUsers: ITodoUserUpdate[]): Promise<void> => {
+    //todo
+    const todoUserDatas = [];
+
+    for await (const dataTodoUser of dataTodoUsers) {
+      const todo: ITodo = await this.todoRepository.findOneBy({
+        todoapp_reg_id: dataTodoUser.todoId,
+      });
+
+      if (todo) {
+        for (const user of dataTodoUser.users) {
+          const todoUser: ITodoUser = await this.todoUserRepository.findOneBy({
+            todo_id: todo.id,
+            user_id: user.id,
+          });
+
+          const todoUserData = new TodoUser();
+          todoUserData.id = todoUser?.id || null;
+          todoUserData.todo_id = todo.id;
+          todoUserData.user_id = user.id;
+          todoUserDatas.push(todoUserData);
+        }
+      }
+    }
+
+    await this.todoUserRepository.upsert(todoUserDatas, []);
   };
 
   saveTodoHistory = async (todo: ITodo, updateTime: Date) => {

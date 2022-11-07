@@ -2,6 +2,8 @@ export type ICompany = {
   id: number;
   name: string;
   todoapps?: ITodoApp[];
+  admin_user?: IUser;
+  companyConditions?: ICompanyCondition[];
 };
 
 export type ITodoApp = {
@@ -56,6 +58,17 @@ export type ITodo = {
   reminded_count: number | null;
 };
 
+export type ITodoUser = {
+  id: number;
+  todo_id: number;
+  user_id: number;
+};
+
+export type ITodoUserUpdate = {
+  todoId: string;
+  users: IUser[];
+};
+
 export type ITrelloTask = {
   id: string;
   name: string;
@@ -71,10 +84,10 @@ export type ITrelloTask = {
 
 export type ITodoTask = {
   todoTask: ITrelloTask;
-  todoappId: number;
-  companyId: number;
+  todoapp: ITodoApp;
+  company: ICompany;
   sectionId: number;
-  user?: IUser;
+  users?: IUser[];
 };
 
 export type ITrelloAuth = {
