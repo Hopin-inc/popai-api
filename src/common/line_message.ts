@@ -43,7 +43,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: '昨日までの' + todo.name + 'の進捗はいかがですか？\n',
+              text: messagePrefix + todo.name + 'の進捗はいかがですか？\n',
               wrap: true,
             },
             {

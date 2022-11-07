@@ -22,6 +22,7 @@ import { TodoUpdateHistory } from './../entify/todoupdatehistory.entity';
 import { Section } from '../entify/section.entity';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { toJapanDateTime } from '../utils/common';
+import { Company } from '../entify/company.entity';
 
 @Service()
 export default class TrelloRepository {
@@ -73,29 +74,31 @@ export default class TrelloRepository {
     return users;
   };
 
-  remindUsers = async (companyId: number, todoappId: number): Promise<void> => {
+  remindUsers = async (company: Company, todoappId: number): Promise<void> => {
+    const companyId = company.id;
     await this.updateUsersTrello(companyId, todoappId);
     const sections = await this.getSections(companyId, todoappId);
 
     const users = await this.getUserTodoApps(companyId, todoappId);
-    await this.getUserCardBoards(users, sections, companyId, todoappId);
+    await this.getUserCardBoards(users, sections, company, todoappId);
   };
 
   getUserCardBoards = async (
     users: IUser[],
     sections: ISection[],
-    companyId: number,
+    company: Company,
     todoappId: number
   ): Promise<void> => {
     try {
       const todoTasks: ITodoTask[] = [];
       for await (const user of users) {
         for (const section of sections) {
-          await this.getCardBoards(user, section, todoTasks, companyId, todoappId);
+          await this.getCardBoards(user, section, todoTasks, company.id, todoappId);
         }
       }
 
-      await this.filterUpdateCards(todoTasks);
+      const dayReminds: number[] = await this.getDayReminds(company.companyConditions);
+      await this.filterUpdateCards(dayReminds, todoTasks);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -189,7 +192,7 @@ export default class TrelloRepository {
     return dayReminds;
   };
 
-  filterUpdateCards = async (cardTodos: ITodoTask[]): Promise<void> => {
+  filterUpdateCards = async (dayReminds: number[], cardTodos: ITodoTask[]): Promise<void> => {
     const cardReminds: IRemindTask[] = [];
     const cardNomals: IRemindTask[] = [];
 
@@ -199,12 +202,11 @@ export default class TrelloRepository {
       const todoTask = cardTodo.todoTask;
 
       if (user?.companyCondition && todoTask.due && !todoTask.dueComplete) {
-        const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
         const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
-        const dateNow = moment(toJapanDateTime(moment().toDate())).startOf('day');
+        const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
-        const duration = moment.duration(dateExpired.diff(dateNow));
-        const day = duration.asDays();
+        const diffDays = dateExpired.diff(dateNow, 'days');
+        const day = dateExpired.isAfter(dateNow) ? 0 - diffDays : diffDays;
 
         if (dayReminds.includes(day)) {
           hasRemind = true;

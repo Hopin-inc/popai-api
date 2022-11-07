@@ -35,7 +35,7 @@ export default class Remindrepository {
   remindCompany = async (): Promise<void> => {
     try {
       const companies = await this.companyRepository.find({
-        relations: ['todoapps', 'admin_user'],
+        relations: ['todoapps', 'admin_user', 'companyConditions'],
       });
 
       for (const company of companies) {
@@ -53,7 +53,7 @@ export default class Remindrepository {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
-          await this.trelloRepo.remindUsers(company.id, todoapp.id);
+          await this.trelloRepo.remindUsers(company, todoapp.id);
           break;
         case Common.microsoft:
           await this.microsofRepo.remindUsers(company.id, todoapp.id);
