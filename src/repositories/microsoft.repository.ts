@@ -141,9 +141,8 @@ export default class MicrosoftRepository {
       let hasRemind = false;
 
       if (todoTask.dueDateTime && todoTask.status !== Common.completed) {
-        const dueDate = moment.utc(todoTask.dueDateTime.dateTime).toDate();
-        const dateExpired = moment(dueDate).startOf('day');
-        const dateNow = moment().startOf('day');
+        const dateExpired = moment.utc(todoTask.dueDateTime.dateTime).startOf('day');
+        const dateNow = moment.utc().startOf('day');
 
         const duration = moment.duration(dateExpired.diff(dateNow));
         const day = duration.asDays();
@@ -226,7 +225,7 @@ export default class MicrosoftRepository {
         todoData.todoapp_reg_id = todoTask.id;
         todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
         todoData.todoapp_reg_created_by = null;
-        todoData.todoapp_reg_created_at = moment(todoTask.createdDateTime).toDate();
+        todoData.todoapp_reg_created_at = moment.utc(todoTask.createdDateTime).toDate();
         todoData.assigned_user_id = todoAppUser.employee_id;
         todoData.deadline = todoTask?.dueDateTime
           ? moment.utc(todoTask.dueDateTime.dateTime).toDate()
@@ -244,7 +243,7 @@ export default class MicrosoftRepository {
         if (todoTask.lastModifiedDateTime) {
           dataTodoIDUpdates.push({
             todoId: todoTask.id,
-            updateTime: moment(todoTask.lastModifiedDateTime).toDate(),
+            updateTime: moment.utc(todoTask.lastModifiedDateTime).toDate(),
           });
         }
       }
@@ -274,7 +273,7 @@ export default class MicrosoftRepository {
         order: { id: 'DESC' },
       });
 
-      const taskUpdate = moment(updateTime).format('YYYY-MM-DD HH:mm:ss');
+      const taskUpdate = moment.utc(updateTime).format('YYYY-MM-DD HH:mm:ss');
       if (todoUpdateData) {
         const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
         if (moment(oldDate).isSame(taskUpdate)) {

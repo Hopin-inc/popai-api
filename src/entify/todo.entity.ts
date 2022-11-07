@@ -3,7 +3,7 @@ import { TodoApp } from './todoapp.entity';
 import { User } from './user.entity';
 
 @Entity('todos')
-@Unique(['todoapp_id', 'todoapp_reg_id', 'assigned_user_id'])
+@Unique(['todoapp_id', 'todoapp_reg_id'])
 export class Todo {
   @PrimaryGeneratedColumn()
   id: number;

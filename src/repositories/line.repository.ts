@@ -15,6 +15,7 @@ import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
 import { IS_OPENED, MessageType, SenderType } from '../const/common';
 import moment from 'moment';
+import { toJapanDateTime } from '../utils/common';
 
 @Service()
 export default class LineRepository {
@@ -248,7 +249,11 @@ export default class LineRepository {
 
     chatMessage.body = LineMessageBuilder.getTextContentFromMessage(message);
     chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = moment().toDate();
+    chatMessage.send_at = toJapanDateTime(
+      moment()
+        .utc()
+        .toDate()
+    );
     chatMessage.user_id = todo?.assigned_user_id;
 
     return await this.messageRepository.save(chatMessage);
