@@ -6,7 +6,9 @@ import {
   JoinTable,
   JoinColumn,
   OneToOne,
+  OneToMany,
 } from 'typeorm';
+import { CompanyCondion } from './company.conditon.entity';
 import { TodoApp } from './todoapp.entity';
 import { User } from './user.entity';
 
@@ -44,4 +46,11 @@ export class Company {
   )
   @JoinColumn({ name: 'admin_user_id' })
   admin_user: User;
+
+  @OneToMany(
+    () => CompanyCondion,
+    (conditon) => conditon.company
+  )
+  @JoinColumn({ name: 'id', referencedColumnName: 'company_id' })
+  companyConditions: CompanyCondion[];
 }

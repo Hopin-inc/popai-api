@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Company } from './company.entity';
 import { User } from './user.entity';
 
 @Entity('m_company_conditions')
@@ -18,4 +19,11 @@ export class CompanyCondion {
   )
   @JoinColumn({ name: 'company_id', referencedColumnName: 'company_id' })
   user: User;
+
+  @ManyToOne(
+    () => Company,
+    (company) => company.companyConditions
+  )
+  @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
+  company: Company;
 }

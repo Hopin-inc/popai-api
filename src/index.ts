@@ -9,6 +9,8 @@ import express, { Application } from 'express';
 import Router from './routes';
 
 import { AppDataSource } from './config/data-source';
+import moment from 'moment';
+import { toJapanDateTime } from './utils/common';
 
 const myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
 dotenvExpand.expand(myEnv);
@@ -36,6 +38,15 @@ app.use(
 app.listen(PORT, () => {
   console.log('Server is running on port', PORT);
   console.log('Enviroment', process.env.ENV);
+
+  const currentDate = new Date();
+  console.log('current datetime (local) : ' + moment(currentDate).format('YYYY/MM/DD HH:mm:ss'));
+
+  const timezone = 'Asia/Tokyo';
+  const currentDateJst = moment(currentDate)
+    .tz(timezone)
+    .format('YYYY/MM/DD HH:mm:ss');
+  console.log('current datetime (Asia/Tokyo) : ' + currentDateJst);
 });
 
 // establish database connection

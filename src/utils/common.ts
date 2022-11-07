@@ -10,8 +10,10 @@ export function truncate(str: string, max: number = 40): string {
 }
 
 export function toJapanDateTime(utcDateString: Date): Date {
-  return moment
-    .utc(utcDateString)
-    .tz('Asia/Tokyo')
-    .toDate();
+  return new Date(
+    moment
+      .utc(utcDateString)
+      .tz('Asia/Tokyo')
+      .format('YYYY/MM/DD HH:mm:ss')
+  );
 }
