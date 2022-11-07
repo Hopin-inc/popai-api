@@ -24,6 +24,7 @@ import { ChatMessage } from '../entify/message.entity';
 import moment from 'moment';
 import logger from './../logger/winston';
 import { LoggerError } from '../exceptions';
+import { toJapanDateTime } from '../utils/common';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -131,7 +132,11 @@ export default class LineController extends Controller {
 
     chatMessage.body = postData.message;
     chatMessage.todo_id = postData.todo.id;
-    chatMessage.send_at = moment().toDate();
+    chatMessage.send_at = toJapanDateTime(
+      moment()
+        .utc()
+        .toDate()
+    );
     chatMessage.message_token = event.replyToken;
     chatMessage.user_id = postData.todo.assigned_user_id;
 
