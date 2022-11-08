@@ -292,7 +292,11 @@ export default class TrelloRepository {
             todoData.reminded_count = 1;
             // send Line message
             for (const user of users) {
-              this.lineBotRepository.pushMessageRemind(user, todoData, taskRemind.remindDays);
+              this.lineBotRepository.pushMessageRemind(
+                user,
+                { ...todoData, assigned_user_id: user.id },
+                taskRemind.remindDays
+              );
             }
           }
         }
