@@ -7,7 +7,7 @@ env_variables:
   PORT: 8080
   DB_HOST: 10.124.160.3
   DB_PORT: 3306
-  DB_DATABASE: angle-dev-db
+  DB_DATABASE: angel-dev-db
   DB_USERNAME: root
   DB_PASSWORD: ''
 
