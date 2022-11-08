@@ -1,5 +1,14 @@
-import { Entity, Unique, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Unique,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { TodoApp } from './todoapp.entity';
+import { TodoUser } from './todouser.entity';
 import { User } from './user.entity';
 
 @Entity('todos')
@@ -66,4 +75,10 @@ export class Todo {
   )
   @JoinColumn({ name: 'todoapp_id' })
   todoapp: TodoApp;
+
+  @OneToMany(
+    () => TodoUser,
+    (todoUser) => todoUser.todo
+  )
+  todoUsers: TodoUser[];
 }
