@@ -203,12 +203,9 @@ export default class TrelloRepository {
 
     for (const cardTodo of cardTodos) {
       let hasRemind = false;
-
-      const companyConditions = cardTodo.company.companyConditions;
       const todoTask = cardTodo.todoTask;
 
-      if (companyConditions && todoTask.due && !todoTask.dueComplete) {
-        const dayReminds: number[] = await this.getDayReminds(companyConditions);
+      if (todoTask.due && !todoTask.dueComplete) {
         const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
         const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 

@@ -127,6 +127,7 @@ export default class Remindrepository {
               AppDataSource.getRepository(TodoUser)
                 .createQueryBuilder('todo_users')
                 .where('todo_users.todo_id = todos.id')
+                .andWhere('todo_users.user_id IS NOT NULL')
             )
           );
         })
