@@ -209,13 +209,12 @@ export default class TrelloRepository {
         const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
         const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
-        const diffDays = dateExpired.diff(dateNow, 'days');
-        const day = dateExpired.isAfter(dateNow) ? 0 - diffDays : diffDays;
+        const diffDays = dateNow.diff(dateExpired, 'days');
 
-        if (dayReminds.includes(day)) {
+        if (dayReminds.includes(diffDays)) {
           hasRemind = true;
           cardReminds.push({
-            remindDays: day,
+            remindDays: diffDays,
             cardTodo: cardTodo,
           });
         }

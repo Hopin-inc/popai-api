@@ -22,7 +22,7 @@ const databaseConfig: DataSourceOptions = {
     charset: 'utf8mb4_unicode_ci',
   },
   synchronize: false,
-  logging: true,
+  logging: false,
 };
 
 console.log('DB-HOST:' + envString(process.env.DB_HOST, ''));
