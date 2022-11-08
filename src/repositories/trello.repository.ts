@@ -352,13 +352,16 @@ export default class TrelloRepository {
       .concat(userIds.filter((x) => !todoUserIds.includes(x)));
 
     if (differenceUserIds.length) {
-      const Ids: number[] = todoUsers
+      const idTodoUsers: number[] = todoUsers
         .filter(function(obj) {
           return differenceUserIds.includes(obj.user_id);
         })
         .map((s) => s.id)
         .filter(Number);
-      await this.todoUserRepository.delete(Ids);
+
+      if (idTodoUsers.length) {
+        await this.todoUserRepository.delete(idTodoUsers);
+      }
     }
   };
 
