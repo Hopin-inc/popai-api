@@ -232,8 +232,8 @@ export default class TrelloRepository {
       }
     }
 
-    this.createTodo(cardReminds, true);
-    this.createTodo(cardNomals);
+    await this.createTodo(cardReminds, true);
+    await this.createTodo(cardNomals);
   };
 
   createTodo = async (taskReminds: IRemindTask[], isRemind: boolean = false): Promise<void> => {

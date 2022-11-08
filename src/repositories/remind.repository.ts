@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/data-source';
 import { InternalServerErrorException, LoggerError } from '../exceptions';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
@@ -11,6 +11,7 @@ import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
 import { Todo } from '../entify/todo.entity';
 import LineRepository from './line.repository';
+import { TodoUser } from './../entify/todouser.entity';
 
 @Service()
 export default class Remindrepository {
@@ -111,6 +112,8 @@ export default class Remindrepository {
   };
 
   getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
+    const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
+      `not exists (${builder.getQuery()})`;
     const todos: Todo[] = await this.todoRepository
       .createQueryBuilder('todos')
       .leftJoinAndSelect('todos.todoUsers', 'todo_users')
@@ -119,7 +122,13 @@ export default class Remindrepository {
       .andWhere('todos.is_closed =:closed', { closed: false })
       .andWhere(
         new Brackets((qb) => {
-          qb.where('todos.deadline IS NULL').orWhere('todos.assigned_user_id IS NULL');
+          qb.where('todos.deadline IS NULL').orWhere(
+            notExistsQuery(
+              AppDataSource.getRepository(TodoUser)
+                .createQueryBuilder('todo_users')
+                .where('todo_users.todo_id = todos.id')
+            )
+          );
         })
       )
       // .andWhere(
