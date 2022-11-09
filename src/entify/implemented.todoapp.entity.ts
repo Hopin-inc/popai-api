@@ -7,4 +7,13 @@ export class ImplementedTodoApp {
 
   @Column()
   auth_key: string;
+
+  @Column()
+  primary_domain: string;
+
+  @Column()
+  company_id: number;
+
+  @Column()
+  todoapp_id: number;
 }

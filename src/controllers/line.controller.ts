@@ -210,6 +210,6 @@ export default class LineController extends Controller {
       taskName,
       reportContent
     );
-    return await this.lineRepository.pushLineMessage(superiorUser.line_id, reportMessage);
+    return await this.lineRepository.pushLineMessage(superiorUser, reportMessage);
   }
 }
