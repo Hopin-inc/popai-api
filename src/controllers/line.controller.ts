@@ -138,6 +138,7 @@ export default class LineController extends Controller {
     );
     chatMessage.message_token = event.replyToken;
     chatMessage.user_id = postData.todo.assigned_user_id;
+    chatMessage.parent_message_id = postData.parent_message_id;
 
     return await this.lineRepository.createMessage(chatMessage);
   }
