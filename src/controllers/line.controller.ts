@@ -49,7 +49,6 @@ export default class LineController extends Controller {
    */
   private async handleEvent(event: WebhookEvent): Promise<any> {
     try {
-      console.log(JSON.stringify(event));
       const lineId = event.source.userId;
 
       switch (event.type) {

@@ -1,7 +1,6 @@
 import path from 'path';
 import morgan from 'morgan';
 import cors from 'cors';
-import swaggerUi from 'swagger-ui-express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import dotenvExpand from 'dotenv-expand';
@@ -10,7 +9,6 @@ import Router from './routes';
 
 import { AppDataSource } from './config/data-source';
 import moment from 'moment';
-import { toJapanDateTime } from './utils/common';
 
 const myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
 dotenvExpand.expand(myEnv);
@@ -25,28 +23,14 @@ app.use(express.static('public'));
 app.use(bodyParser.json());
 app.use(cors());
 
-app.use(
-  '/docs',
-  swaggerUi.serve,
-  swaggerUi.setup(undefined, {
-    swaggerOptions: {
-      url: '/swagger.json',
-    },
-  })
-);
+app.get('/_ah/warmup', (req, res) => {
+  const currentDate = new Date();
+  console.log('current datetime (local) : ' + moment(currentDate).format('YYYY/MM/DD HH:mm:ss'));
+});
 
 app.listen(PORT, () => {
   console.log('Server is running on port', PORT);
   console.log('Enviroment', process.env.ENV);
-
-  const currentDate = new Date();
-  console.log('current datetime (local) : ' + moment(currentDate).format('YYYY/MM/DD HH:mm:ss'));
-
-  const timezone = 'Asia/Tokyo';
-  const currentDateJst = moment(currentDate)
-    .tz(timezone)
-    .format('YYYY/MM/DD HH:mm:ss');
-  console.log('current datetime (Asia/Tokyo) : ' + currentDateJst);
 });
 
 // establish database connection
