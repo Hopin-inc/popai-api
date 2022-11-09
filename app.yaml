@@ -7,7 +7,7 @@ env_variables:
   PORT: 8080
   DB_HOST: 10.124.160.3
   DB_PORT: 3306
-  DB_DATABASE: angle-dev-db
+  DB_DATABASE: angel-dev-db
   DB_USERNAME: root
   DB_PASSWORD: ''
 
@@ -27,3 +27,8 @@ vpc_access_connector:
  name: projects/rize-angel-dev/locations/asia-northeast2/connectors/connect-to-mysql
  egress_setting: private-ranges-only
 
+automatic_scaling:
+ min_idle_instances: 1
+
+inbound_services:
+- warmup
