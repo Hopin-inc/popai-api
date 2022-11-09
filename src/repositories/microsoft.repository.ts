@@ -10,6 +10,7 @@ import {
   ITodoApp,
   ITodoAppUser,
   ITodoTask,
+  ITodoUpdate,
   ITodoUserUpdate,
   IUser,
 } from './../types';
@@ -139,8 +140,15 @@ export default class MicrosoftRepository {
 
           if (taskTodos['value'] && taskTodos['value'].length) {
             for (const todoTask of taskTodos['value']) {
+              let userCreateBy = null;
+              if (todoTask.createdBy) {
+                if (todoTask.createdBy?.user?.id === todoAppUser.user_app_id) {
+                  userCreateBy = user.id;
+                }
+              }
+
               const card: ITodoTask = {
-                todoTask: todoTask,
+                todoTask: { ...todoTask, userCreateBy: userCreateBy },
                 company: company,
                 todoapp: todoapp,
                 sectionId: section.id,
@@ -153,6 +161,9 @@ export default class MicrosoftRepository {
               if (taskFound) {
                 if (userAssigns.includes(todoAppUser.user_app_id)) {
                   taskFound.users.push(user);
+                }
+                if (userCreateBy) {
+                  taskFound.todoTask.userCreateBy = userCreateBy;
                 }
               } else {
                 if (userAssigns.includes(todoAppUser.user_app_id)) {
@@ -283,7 +294,8 @@ export default class MicrosoftRepository {
     try {
       if (!taskReminds.length) return;
 
-      const dataTodos = [];
+      const dataTodos: Todo[] = [];
+      const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       //const pushUserIds = [];
 
@@ -312,7 +324,7 @@ export default class MicrosoftRepository {
         todoData.todoapp_id = todoappId;
         todoData.todoapp_reg_id = todoTask.id;
         todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
-        todoData.todoapp_reg_created_by = null;
+        todoData.todoapp_reg_created_by = todoTask.userCreateBy;
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);
         todoData.company_id = companyId;
         todoData.section_id = sectionId;
@@ -320,8 +332,10 @@ export default class MicrosoftRepository {
           ? toJapanDateTime(todoTask.dueDateTime.dateTime)
           : null;
         todoData.is_done = todoTask.percentComplete === Common.completed;
-        todoData.is_reminded = null;
-        todoData.is_rescheduled = null;
+        todoData.is_reminded = false;
+        todoData.is_rescheduled = false;
+        todoData.is_closed = false;
+        todoData.reminded_count = todo?.reminded_count || 0;
 
         if (users.length) {
           dataTodoUsers.push({
@@ -344,17 +358,28 @@ export default class MicrosoftRepository {
 
         dataTodos.push(todoData);
 
-        //Update USER
+        //update task
+        dataTodoUpdates.push({
+          todoId: todoTask.id,
+          updateTime: toJapanDateTime(new Date()),
+        });
+
+        //Update user
         if (todo) {
           this.todoUserRepository.updateTodoUser(todo, users);
         }
       }
 
       //save todos
-      await this.todoRepository.upsert(dataTodos, []);
+      const response = await this.todoRepository.upsert(dataTodos, []);
 
-      //save todo users
-      await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
+      if (response) {
+        //save todo histories
+        await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
+
+        //save todo users
+        await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
+      }
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

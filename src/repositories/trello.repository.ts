@@ -14,6 +14,7 @@ import {
   ICompany,
   ITodoApp,
   ITodoUserUpdate,
+  ITodoUpdate,
 } from './../types';
 
 import { Service, Container } from 'typedi';
@@ -236,8 +237,8 @@ export default class TrelloRepository {
   createTodo = async (taskReminds: IRemindTask[], isRemind: boolean = false): Promise<void> => {
     try {
       if (!taskReminds.length) return;
-      const dataTodos = [];
-      const dataTodoIDUpdates = [];
+      const dataTodos: Todo[] = [];
+      const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       // const pushUserIds = [];
 
@@ -273,8 +274,9 @@ export default class TrelloRepository {
         todoData.deadline = toJapanDateTime(todoTask.due);
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
-        todoData.is_rescheduled = null;
+        todoData.is_rescheduled = false;
         todoData.is_closed = todoTask.closed;
+        todoData.reminded_count = todo?.reminded_count || 0;
 
         if (users.length) {
           dataTodoUsers.push({
@@ -297,14 +299,15 @@ export default class TrelloRepository {
 
         dataTodos.push(todoData);
 
+        //update task
         if (todoTask.dateLastActivity) {
-          dataTodoIDUpdates.push({
+          dataTodoUpdates.push({
             todoId: todoTask.id,
             updateTime: toJapanDateTime(todoTask.dateLastActivity),
           });
         }
 
-        //Update USER
+        //update user
         if (todo) {
           this.todoUserRepository.updateTodoUser(todo, users);
         }
@@ -313,21 +316,13 @@ export default class TrelloRepository {
       //save todos
       const response = await this.todoRepository.upsert(dataTodos, []);
 
-      //save todohistories
-      if (response && dataTodoIDUpdates.length) {
-        for (const dataUpdate of dataTodoIDUpdates) {
-          const todo: ITodo = await this.todoRepository.findOneBy({
-            todoapp_reg_id: dataUpdate.todoId,
-          });
+      if (response) {
+        //save todo histories
+        await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
 
-          if (todo) {
-            this.todoUpdateRepository.saveTodoHistory(todo, dataUpdate.updateTime);
-          }
-        }
+        //save todo users
+        await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
       }
-
-      //save todo users
-      await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

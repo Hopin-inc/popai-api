@@ -64,6 +64,11 @@ export type ITodoUser = {
   user_id: number;
 };
 
+export type ITodoUpdate = {
+  todoId: string;
+  updateTime: Date;
+};
+
 export type ITodoUserUpdate = {
   todoId: string;
   users: IUser[];
@@ -125,8 +130,9 @@ export type IMicrosoftTask = {
   createdDateTime: Date;
   dueDateTime?: IMicrosoftDueDate;
   completedDateTime?: Date;
-  createdBy: IMicrosoftCreateBy;
+  createdBy?: IMicrosoftCreateBy;
   assignments: [IMicrosoftAssign];
+  userCreateBy?: number | null;
 };
 
 export type IMicrosoftRefresh = {
