@@ -225,7 +225,7 @@ export default class MicrosoftRepository {
       const todoTask = cardTodo.todoTask;
 
       if (todoTask.dueDateTime && todoTask.percentComplete !== Common.completed) {
-        const dateExpired = moment(toJapanDateTime(todoTask.dueDateTime.dateTime)).startOf('day');
+        const dateExpired = moment(toJapanDateTime(todoTask.dueDateTime)).startOf('day');
         const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
         const diffDays = dateExpired.diff(dateNow, 'days');
@@ -328,9 +328,7 @@ export default class MicrosoftRepository {
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);
         todoData.company_id = company.id;
         todoData.section_id = section.id;
-        todoData.deadline = todoTask?.dueDateTime
-          ? toJapanDateTime(todoTask.dueDateTime.dateTime)
-          : null;
+        todoData.deadline = todoTask?.dueDateTime ? toJapanDateTime(todoTask.dueDateTime) : null;
         todoData.is_done = todoTask.percentComplete === Common.completed;
         todoData.is_reminded = false;
         todoData.is_rescheduled = false;

@@ -107,11 +107,6 @@ export type IMicrosoftStatus = {
   COMPLETED: 'completed';
 };
 
-export type IMicrosoftDueDate = {
-  dateTime: Date;
-  timeZone: string;
-};
-
 export type IMicrosoftCreateBy = {
   user: {
     id: string;
@@ -130,7 +125,7 @@ export type IMicrosoftTask = {
   planId: string;
   percentComplete: number;
   createdDateTime: Date;
-  dueDateTime?: IMicrosoftDueDate;
+  dueDateTime?: Date;
   completedDateTime?: Date;
   createdBy?: IMicrosoftCreateBy;
   assignments: [IMicrosoftAssign];
