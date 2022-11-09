@@ -26,6 +26,8 @@ app.use(cors());
 app.get('/_ah/warmup', (req, res) => {
   const currentDate = new Date();
   console.log('current datetime (local) : ' + moment(currentDate).format('YYYY/MM/DD HH:mm:ss'));
+
+  res.send('warmup');
 });
 
 app.listen(PORT, () => {
