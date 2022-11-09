@@ -1,121 +1,210 @@
 import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
+  ICompany,
   ICompanyCondition,
   IMicrosoftRefresh,
-  IMicrosoftTask,
+  IRemindTask,
+  ISection,
   ITodo,
+  ITodoApp,
   ITodoAppUser,
+  ITodoTask,
+  ITodoUpdate,
+  ITodoUserUpdate,
   IUser,
 } from './../types';
-import logger from './../logger/winston';
+
 import { AppDataSource } from './../config/data-source';
 import { User } from './../entify/user.entity';
-import MicrosoftRequest from './../libs/microsoft.request';
 import { Service, Container } from 'typedi';
-import moment from 'moment';
 import { Common } from './../const/common';
-import { ImplementedTodoApp } from './../entify/implemented.todoapp.entity';
 import { fetchApi } from './../libs/request';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { Todo } from './../entify/todo.entity';
+import { Section } from './../entify/section.entity';
+import { replaceString, toJapanDateTime } from './../utils/common';
+import moment from 'moment';
 import FormData from 'form-data';
-import { TodoUpdateHistory } from './../entify/todoupdatehistory.entity';
+import MicrosoftRequest from './../libs/microsoft.request';
 import LineRepository from './line.repository';
+import TodoUserRepository from './modules/todoUser.repository';
+import TodoUpdateRepository from './modules/todoUpdate.repository';
+import logger from './../logger/winston';
 
 @Service()
 export default class MicrosoftRepository {
   private userRepository: Repository<User>;
+  private sectionRepository: Repository<Section>;
   private todoAppUserRepository: Repository<TodoAppUser>;
-  private implementTodoAppRepository: Repository<ImplementedTodoApp>;
   private microsoftRequest: MicrosoftRequest;
   private todoRepository: Repository<Todo>;
-  private todoUpdateRepository: Repository<TodoUpdateHistory>;
+  private todoUpdateRepository: TodoUpdateRepository;
   private lineBotRepository: LineRepository;
+  private todoUserRepository: TodoUserRepository;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
+    this.sectionRepository = AppDataSource.getRepository(Section);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
-    this.implementTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.todoUpdateRepository = AppDataSource.getRepository(TodoUpdateHistory);
+    this.todoUpdateRepository = Container.get(TodoUpdateRepository);
     this.lineBotRepository = Container.get(LineRepository);
+    this.todoUserRepository = Container.get(TodoUserRepository);
   }
 
-  getUserTodoApps = async (companyId: number, todoappId: number): Promise<IUser[]> => {
-    const users: IUser[] = await this.userRepository
+  getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
+    const sections: ISection[] = await this.sectionRepository
+      .createQueryBuilder('sections')
+      .where('sections.company_id = :companyId', { companyId })
+      .andWhere('sections.todoapp_id = :todoappId', { todoappId })
+      .getMany();
+    return sections;
+  };
+
+  getUserTodoApps = async (
+    companyId: number,
+    todoappId: number,
+    hasMicrosoftId: boolean = true
+  ): Promise<IUser[]> => {
+    const query = this.userRepository
       .createQueryBuilder('users')
       .innerJoinAndSelect('users.todoAppUsers', 'todo_app_users')
       .leftJoinAndSelect('users.companyCondition', 'm_company_conditions')
       .where('users.company_id = :companyId', { companyId })
-      .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId })
-      .getMany();
+      .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId });
+    if (hasMicrosoftId) {
+      query.andWhere('todo_app_users.user_app_id IS NOT NULL');
+    } else {
+      query.andWhere('todo_app_users.user_app_id IS NULL');
+    }
+
+    const users: IUser[] = await query.getMany();
     return users;
   };
 
-  remindUsers = async (companyId: number, todoappId: number): Promise<void> => {
+  remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
+    const companyId = company.id;
+    const todoappId = todoapp.id;
+
+    await this.updateUsersMicrosoft(companyId, todoappId);
+    const sections = await this.getSections(companyId, todoappId);
     const users = await this.getUserTodoApps(companyId, todoappId);
-
-    if (!users.length) {
-      return;
-    }
-
-    for (const user of users) {
-      if (user.todoAppUsers.length) {
-        this.remindUserByTodoApp(user);
-      }
-    }
+    await this.getUserTaskBoards(users, sections, company, todoapp);
   };
 
-  remindUserByTodoApp = async (user: IUser): Promise<void> => {
-    for (const todoAppUser of user.todoAppUsers) {
-      if (todoAppUser.api_token) {
-        await this.getTodoListsByUser(user, todoAppUser);
-      }
-    }
-  };
-
-  getTodoListsByUser = async (user: IUser, todoAppUser: ITodoAppUser): Promise<void> => {
-    try {
-      const dataRefresh: IMicrosoftRefresh = {
-        todoAppUser: todoAppUser,
-      };
-
-      const userTaskLists = await this.microsoftRequest.fetchApi(
-        'me/todo/lists',
-        'GET',
-        {},
-        dataRefresh
-      );
-
-      if (userTaskLists['value'] && userTaskLists['value'].length) {
-        for (const taskList of userTaskLists['value']) {
-          await this.getTodoTaskReminds(user, todoAppUser, taskList, dataRefresh);
-        }
-      }
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  };
-
-  getTodoTaskReminds = async (
-    user: IUser,
-    todoAppUser: ITodoAppUser,
-    taskList: any,
-    dataRefresh: IMicrosoftRefresh
+  getUserTaskBoards = async (
+    users: IUser[],
+    sections: ISection[],
+    company: ICompany,
+    todoapp: ITodoApp
   ): Promise<void> => {
     try {
-      //todo
-      const todoTaskLists = await this.microsoftRequest.fetchApi(
-        '/me/todo/lists/' + taskList.id + '/tasks',
-        'GET',
-        {},
-        dataRefresh
-      );
-      await this.filterUpdateTask(user, todoAppUser, todoTaskLists['value'] || []);
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
+      const todoTasks: ITodoTask[] = [];
+      for await (const user of users) {
+        for (const section of sections) {
+          await this.getTaskBoards(user, section, todoTasks, company, todoapp);
+        }
+      }
+
+      const dayReminds: number[] = await this.getDayReminds(company.companyConditions);
+      await this.filterUpdateTask(dayReminds, todoTasks);
+    } catch (err) {
+      logger.error(new LoggerError(err.message));
+    }
+  };
+
+  getTaskBoards = async (
+    user: IUser,
+    section: ISection,
+    todoTasks: ITodoTask[],
+    company: ICompany,
+    todoapp: ITodoApp
+  ): Promise<void> => {
+    if (!user.todoAppUsers.length) return;
+
+    for (const todoAppUser of user.todoAppUsers) {
+      if (todoAppUser.api_token && section.board_id) {
+        try {
+          const dataRefresh: IMicrosoftRefresh = {
+            todoAppUser: todoAppUser,
+          };
+
+          const taskTodos = await this.microsoftRequest.fetchApi(
+            'planner/plans/' + section.board_id + '/tasks',
+            'GET',
+            {},
+            dataRefresh
+          );
+
+          if (taskTodos['value'] && taskTodos['value'].length) {
+            for (const todoTask of taskTodos['value']) {
+              let userCreateBy = null;
+              if (todoTask.createdBy) {
+                if (todoTask.createdBy?.user?.id === todoAppUser.user_app_id) {
+                  userCreateBy = user.id;
+                }
+              }
+
+              const card: ITodoTask = {
+                todoTask: { ...todoTask, userCreateBy: userCreateBy },
+                company: company,
+                todoapp: todoapp,
+                todoAppUser: todoAppUser,
+                section: section,
+                users: [],
+              };
+
+              const userAssigns = Object.keys(todoTask.assignments);
+              const taskFound = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
+
+              if (taskFound) {
+                if (userAssigns.includes(todoAppUser.user_app_id)) {
+                  taskFound.users.push(user);
+                }
+                if (userCreateBy) {
+                  taskFound.todoTask.userCreateBy = userCreateBy;
+                }
+              } else {
+                if (userAssigns.includes(todoAppUser.user_app_id)) {
+                  card.users = [user];
+                }
+                todoTasks.push(card);
+              }
+            }
+          }
+        } catch (err) {
+          logger.error(new LoggerError(err.message));
+        }
+      }
+    }
+  };
+
+  updateUsersMicrosoft = async (companyId: number, todoappId: number): Promise<void> => {
+    const users = await this.getUserTodoApps(companyId, todoappId, false);
+    for (const user of users) {
+      if (user.todoAppUsers.length) {
+        await this.updateMicosoftUser(user.todoAppUsers);
+      }
+    }
+  };
+
+  updateMicosoftUser = async (todoAppUsers: ITodoAppUser[]): Promise<any> => {
+    for (const todoAppUser of todoAppUsers) {
+      if (todoAppUser.api_token) {
+        try {
+          const dataRefresh: IMicrosoftRefresh = {
+            todoAppUser: todoAppUser,
+          };
+
+          const me = await this.microsoftRequest.fetchApi('me', 'GET', {}, dataRefresh);
+          todoAppUser.user_app_id = me?.id;
+          await this.todoAppUserRepository.save(todoAppUser);
+        } catch (err) {
+          logger.error(new LoggerError(err.message));
+        }
+      }
     }
   };
 
@@ -127,39 +216,40 @@ export default class MicrosoftRepository {
     return dayReminds;
   };
 
-  filterUpdateTask = async (
-    user: IUser,
-    todoAppUser: ITodoAppUser,
-    todoTaskLists: IMicrosoftTask[]
-  ): Promise<void> => {
-    const taskReminds: IMicrosoftTask[] = [];
-    const taskNomals: IMicrosoftTask[] = [];
+  filterUpdateTask = async (dayReminds: number[], todoTaskLists: ITodoTask[]): Promise<void> => {
+    const taskReminds: IRemindTask[] = [];
+    const taskNomals: IRemindTask[] = [];
 
-    const dayReminds: number[] = await this.getDayReminds(user.companyCondition);
-
-    for (const todoTask of todoTaskLists) {
+    for (const cardTodo of todoTaskLists) {
       let hasRemind = false;
+      const todoTask = cardTodo.todoTask;
 
-      if (todoTask.dueDateTime && todoTask.status !== Common.completed) {
-        const dateExpired = moment.utc(todoTask.dueDateTime.dateTime).startOf('day');
-        const dateNow = moment.utc().startOf('day');
+      if (todoTask.dueDateTime && todoTask.percentComplete !== Common.completed) {
+        const dateExpired = moment(toJapanDateTime(todoTask.dueDateTime)).startOf('day');
+        const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
-        const duration = moment.duration(dateExpired.diff(dateNow));
-        const day = duration.asDays();
+        const diffDays = dateExpired.diff(dateNow, 'days');
+        const day = dateExpired.isAfter(dateNow) ? 0 - diffDays : diffDays;
 
         if (dayReminds.includes(day)) {
           hasRemind = true;
-          taskReminds.push(todoTask);
+          taskReminds.push({
+            remindDays: day,
+            cardTodo: cardTodo,
+          });
         }
       }
 
       if (!hasRemind) {
-        taskNomals.push(todoTask);
+        taskNomals.push({
+          remindDays: 0,
+          cardTodo: cardTodo,
+        });
       }
     }
 
-    this.createTodo(user, todoAppUser, taskReminds, true);
-    this.createTodo(user, todoAppUser, taskNomals);
+    await this.createTodo(taskReminds, true);
+    await this.createTodo(taskNomals);
   };
 
   refreshToken = async (dataRefresh: IMicrosoftRefresh): Promise<ITodoAppUser | null> => {
@@ -201,90 +291,89 @@ export default class MicrosoftRepository {
     return null;
   };
 
-  createTodo = async (
-    user: IUser,
-    todoAppUser: ITodoAppUser,
-    taskReminds: IMicrosoftTask[],
-    isRemind: boolean = false
-  ): Promise<void> => {
+  createTodo = async (taskReminds: IRemindTask[], isRemind: boolean = false): Promise<void> => {
     try {
       if (!taskReminds.length) return;
 
-      const dataTodos = [];
-      const dataTodoIDUpdates = [];
+      const dataTodos: Todo[] = [];
+      const dataTodoUpdates: ITodoUpdate[] = [];
+      const dataTodoUsers: ITodoUserUpdate[] = [];
+      //const pushUserIds = [];
 
-      if (isRemind) {
-        // send to admin of user
-        // await this.lineBotRepository.pushStartReportToAdmin(user);
-      }
+      for (const taskRemind of taskReminds) {
+        const cardTodo = taskRemind.cardTodo;
+        const { users, todoTask, todoapp, company, section, todoAppUser } = cardTodo;
 
-      for (const todoTask of taskReminds) {
+        // if (isRemind && user && !pushUserIds.includes(user.id)) {
+        //   // send to admin of user
+        //   pushUserIds.push(user.id);
+        //   await this.lineBotRepository.pushStartReportToAdmin(user);
+        // }
+
+        const todo: ITodo = await this.todoRepository.findOneBy({
+          todoapp_reg_id: todoTask.id,
+        });
+
         const todoData = new Todo();
+        todoData.id = todo?.id || null;
         todoData.name = todoTask.title;
-        todoData.todoapp_id = todoAppUser.todoapp_id;
+        todoData.todoapp_id = todoapp.id;
         todoData.todoapp_reg_id = todoTask.id;
-        todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
-        todoData.todoapp_reg_created_by = null;
-        todoData.todoapp_reg_created_at = moment.utc(todoTask.createdDateTime).toDate();
-        todoData.assigned_user_id = todoAppUser.employee_id;
-        todoData.deadline = todoTask?.dueDateTime
-          ? moment.utc(todoTask.dueDateTime.dateTime).toDate()
-          : null;
-        todoData.is_done = todoTask.status === Common.completed;
-        todoData.is_reminded = todoTask.isReminderOn;
-        todoData.is_rescheduled = null;
-        dataTodos.push(todoData);
+        todoData.todoapp_reg_url = replaceString(
+          Common.microsoftBaseUrl.concat('/', todoTask.id),
+          '{tenant}',
+          todoAppUser.primary_domain
+        );
+        todoData.todoapp_reg_created_by = todoTask.userCreateBy;
+        todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);
+        todoData.company_id = company.id;
+        todoData.section_id = section.id;
+        todoData.deadline = todoTask?.dueDateTime ? toJapanDateTime(todoTask.dueDateTime) : null;
+        todoData.is_done = todoTask.percentComplete === Common.completed;
+        todoData.is_reminded = false;
+        todoData.is_rescheduled = false;
+        todoData.is_closed = false;
+        todoData.reminded_count = todo?.reminded_count || 0;
 
-        if (isRemind) {
-          // send Line message
-          this.lineBotRepository.pushMessageRemind(user, todoData, 0); // TODO
+        if (users.length) {
+          dataTodoUsers.push({
+            todoId: todoTask.id,
+            users: users,
+          });
+
+          if (isRemind) {
+            todoData.reminded_count = 1;
+            // send Line message
+            for (const user of users) {
+              this.lineBotRepository.pushMessageRemind(
+                user,
+                { ...todoData, assigned_user_id: user.id },
+                taskRemind.remindDays
+              );
+            }
+          }
         }
 
-        if (todoTask.lastModifiedDateTime) {
-          dataTodoIDUpdates.push({
-            todoId: todoTask.id,
-            updateTime: moment.utc(todoTask.lastModifiedDateTime).toDate(),
-          });
+        dataTodos.push(todoData);
+
+        //update task
+        dataTodoUpdates.push({
+          todoId: todoTask.id,
+          updateTime: toJapanDateTime(new Date()),
+        });
+
+        //Update user
+        if (todo) {
+          this.todoUserRepository.updateTodoUser(todo, users);
         }
       }
 
       const response = await this.todoRepository.upsert(dataTodos, []);
 
-      if (response && dataTodoIDUpdates.length) {
-        for (const dataUpdate of dataTodoIDUpdates) {
-          const todo: ITodo = await this.todoRepository.findOneBy({
-            todoapp_reg_id: dataUpdate.todoId,
-          });
-
-          if (todo) {
-            this.saveTodoHistory(todo, dataUpdate.updateTime);
-          }
-        }
+      if (response) {
+        await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
+        await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
       }
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  };
-
-  saveTodoHistory = async (todo: ITodo, updateTime: Date) => {
-    try {
-      const todoUpdateData = await this.todoUpdateRepository.findOne({
-        where: { todo_id: todo.id },
-        order: { id: 'DESC' },
-      });
-
-      const taskUpdate = moment.utc(updateTime).format('YYYY-MM-DD HH:mm:ss');
-      if (todoUpdateData) {
-        const oldDate = moment(todoUpdateData.todoapp_reg_updated_at).format('YYYY-MM-DD HH:mm:ss');
-        if (moment(oldDate).isSame(taskUpdate)) {
-          return;
-        }
-      }
-
-      const todoUpdate = new TodoUpdateHistory();
-      todoUpdate.todo_id = todo.id;
-      todoUpdate.todoapp_reg_updated_at = moment(taskUpdate).toDate();
-      this.todoUpdateRepository.save(todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

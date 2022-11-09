@@ -17,3 +17,7 @@ export function toJapanDateTime(utcDateString: Date): Date {
       .format('YYYY/MM/DD HH:mm:ss')
   );
 }
+
+export function replaceString(str: string, search: string, replace: string): string {
+  return str.replace(new RegExp(search, 'g'), replace);
+}

@@ -36,6 +36,7 @@ export type ITodoAppUser = {
   employee_id: number | null;
   todoapp_id: number | null;
   user_app_id: string;
+  primary_domain: string;
   api_key: string;
   api_token: string;
   refresh_token: string;
@@ -64,6 +65,11 @@ export type ITodoUser = {
   user_id: number;
 };
 
+export type ITodoUpdate = {
+  todoId: string;
+  updateTime: Date;
+};
+
 export type ITodoUserUpdate = {
   todoId: string;
   users: IUser[];
@@ -83,10 +89,11 @@ export type ITrelloTask = {
 };
 
 export type ITodoTask = {
-  todoTask: ITrelloTask;
+  todoTask: ITrelloTask & IMicrosoftTask;
   todoapp: ITodoApp;
+  todoAppUser: ITodoAppUser;
   company: ICompany;
-  sectionId: number;
+  section: ISection;
   users?: IUser[];
 };
 
@@ -100,18 +107,29 @@ export type IMicrosoftStatus = {
   COMPLETED: 'completed';
 };
 
-export type IMicrosoftDueDate = {
-  dateTime: Date;
-  timeZone: string;
+export type IMicrosoftCreateBy = {
+  user: {
+    id: string;
+  };
 };
+
+export type IMicrosoftAssignedBy = IMicrosoftCreateBy;
+
+export type IMicrosoftAssign = {
+  assignedBy: IMicrosoftAssignedBy;
+};
+
 export type IMicrosoftTask = {
   id: string;
   title: string;
-  isReminderOn: boolean;
+  planId: string;
+  percentComplete: number;
   createdDateTime: Date;
-  status: string;
-  lastModifiedDateTime?: Date;
-  dueDateTime?: IMicrosoftDueDate;
+  dueDateTime?: Date;
+  completedDateTime?: Date;
+  createdBy?: IMicrosoftCreateBy;
+  assignments: [IMicrosoftAssign];
+  userCreateBy?: number | null;
 };
 
 export type IMicrosoftRefresh = {

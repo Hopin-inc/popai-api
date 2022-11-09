@@ -17,6 +17,9 @@ export class TodoAppUser {
   user_app_id: string;
 
   @Column()
+  primary_domain: string;
+
+  @Column()
   api_key: string;
 
   @Column()
