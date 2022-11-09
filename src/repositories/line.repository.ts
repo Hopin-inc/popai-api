@@ -38,7 +38,20 @@ export default class LineRepository {
       }
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
-      return await this.pushLineMessage(user.line_id, message, todo);
+      const chatMessage = await this.saveChatMessage(user.line_id, message, todo);
+
+      const messageForSend = LineMessageBuilder.createRemindMessage(
+        user.name,
+        todo,
+        remindDays,
+        chatMessage.id
+      );
+
+      if (process.env.ENV == 'LOCAL') {
+        console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
+      } else {
+        await LineBot.pushMessage(user.line_id, messageForSend, false);
+      }
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -225,7 +238,7 @@ export default class LineRepository {
       await LineBot.pushMessage(lineId, message, false);
     }
 
-    return await this.saveChatMessage(message, todo);
+    return await this.saveChatMessage(lineId, message, todo);
   };
 
   replyMessage = async (replyToken: string, message: Message): Promise<any> => {
@@ -238,7 +251,7 @@ export default class LineRepository {
     return;
   };
 
-  saveChatMessage = async (message: Message, todo?: Todo): Promise<ChatMessage> => {
+  saveChatMessage = async (lineId: string, message: Message, todo?: Todo): Promise<ChatMessage> => {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
     chatMessage.chattool_id = 1;
@@ -255,6 +268,9 @@ export default class LineRepository {
         .toDate()
     );
     chatMessage.user_id = todo?.assigned_user_id;
+
+    const linkToken = await LineBot.getLinkToken(lineId);
+    chatMessage.message_token = linkToken;
 
     return await this.messageRepository.save(chatMessage);
   };

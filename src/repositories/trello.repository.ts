@@ -275,7 +275,7 @@ export default class TrelloRepository {
         todoData.deadline = toJapanDateTime(todoTask.due);
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
-        todoData.is_rescheduled = null;
+        todoData.is_rescheduled = false;
         todoData.is_closed = todoTask.closed;
 
         if (users.length) {
@@ -286,6 +286,7 @@ export default class TrelloRepository {
 
           if (isRemind && !todoTask.closed) {
             todoData.reminded_count = 1;
+
             // send Line message
             for (const user of users) {
               this.lineBotRepository.pushMessageRemind(

@@ -5,7 +5,7 @@ import { Todo } from '../entify/todo.entity';
 import { IUser } from '../types';
 
 export class LineMessageBuilder {
-  static createRemindMessage(userName: string, todo: Todo, remindDays: number) {
+  static createRemindMessage(userName: string, todo: Todo, remindDays: number, parentMessageId? : number) {
     let messagePrefix = '';
 
     if (remindDays > 1) {
@@ -72,6 +72,7 @@ export class LineMessageBuilder {
                     id: todo.id,
                     name: todo.name,
                     assigned_user_id: todo.assigned_user_id,
+                    parent_message_id: parentMessageId,
                   },
                   status: TaskStatus.DONE,
                   user_name: userName,
@@ -91,6 +92,7 @@ export class LineMessageBuilder {
                     id: todo.id,
                     name: todo.name,
                     assigned_user_id: todo.assigned_user_id,
+                    parent_message_id: parentMessageId,
                   },
                   status: TaskStatus.DELALYED,
                   user_name: userName,
