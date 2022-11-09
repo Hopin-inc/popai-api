@@ -23,7 +23,7 @@ import { fetchApi } from './../libs/request';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { Todo } from './../entify/todo.entity';
 import { Section } from './../entify/section.entity';
-import { toJapanDateTime } from './../utils/common';
+import { replaceString, toJapanDateTime } from './../utils/common';
 import moment from 'moment';
 import FormData from 'form-data';
 import MicrosoftRequest from './../libs/microsoft.request';
@@ -151,7 +151,8 @@ export default class MicrosoftRepository {
                 todoTask: { ...todoTask, userCreateBy: userCreateBy },
                 company: company,
                 todoapp: todoapp,
-                sectionId: section.id,
+                todoAppUser: todoAppUser,
+                section: section,
                 users: [],
               };
 
@@ -301,12 +302,7 @@ export default class MicrosoftRepository {
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
-
-        const users = cardTodo.users;
-        const todoTask = cardTodo.todoTask;
-        const todoappId = cardTodo.todoapp.id;
-        const companyId = cardTodo.company.id;
-        const sectionId = cardTodo.sectionId;
+        const { users, todoTask, todoapp, company, section, todoAppUser } = cardTodo;
 
         // if (isRemind && user && !pushUserIds.includes(user.id)) {
         //   // send to admin of user
@@ -321,13 +317,17 @@ export default class MicrosoftRepository {
         const todoData = new Todo();
         todoData.id = todo?.id || null;
         todoData.name = todoTask.title;
-        todoData.todoapp_id = todoappId;
+        todoData.todoapp_id = todoapp.id;
         todoData.todoapp_reg_id = todoTask.id;
-        todoData.todoapp_reg_url = Common.microsoftBaseUrl.concat('/', todoTask.id);
+        todoData.todoapp_reg_url = replaceString(
+          Common.microsoftBaseUrl.concat('/', todoTask.id),
+          '{tenant}',
+          todoAppUser.primary_domain
+        );
         todoData.todoapp_reg_created_by = todoTask.userCreateBy;
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);
-        todoData.company_id = companyId;
-        todoData.section_id = sectionId;
+        todoData.company_id = company.id;
+        todoData.section_id = section.id;
         todoData.deadline = todoTask?.dueDateTime
           ? toJapanDateTime(todoTask.dueDateTime.dateTime)
           : null;
@@ -370,14 +370,10 @@ export default class MicrosoftRepository {
         }
       }
 
-      //save todos
       const response = await this.todoRepository.upsert(dataTodos, []);
 
       if (response) {
-        //save todo histories
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
-
-        //save todo users
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
       }
     } catch (error) {

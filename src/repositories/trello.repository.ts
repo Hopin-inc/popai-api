@@ -139,7 +139,8 @@ export default class TrelloRepository {
               todoTask: todoTask,
               company: company,
               todoapp: todoapp,
-              sectionId: section.id,
+              todoAppUser: todoAppUser,
+              section: section,
               users: [],
             };
 
@@ -243,12 +244,7 @@ export default class TrelloRepository {
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
-        const users = cardTodo.users;
-        const todoTask = cardTodo.todoTask;
-
-        const todoappId = cardTodo.todoapp.id;
-        const companyId = cardTodo.company.id;
-        const sectionId = cardTodo.sectionId;
+        const { users, todoTask, todoapp, company, section } = cardTodo;
 
         // if (isRemind && user && !pushUserIds.includes(user.id)) {
         //   // send to admin of user
@@ -263,13 +259,13 @@ export default class TrelloRepository {
         const todoData = new Todo();
         todoData.id = todo?.id || null;
         todoData.name = todoTask.name;
-        todoData.todoapp_id = todoappId;
+        todoData.todoapp_id = todoapp.id;
         todoData.todoapp_reg_id = todoTask.id;
         todoData.todoapp_reg_url = todoTask.shortUrl;
         todoData.todoapp_reg_created_by = null;
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
-        todoData.company_id = companyId;
-        todoData.section_id = sectionId;
+        todoData.company_id = company.id;
+        todoData.section_id = section.id;
         todoData.deadline = toJapanDateTime(todoTask.due);
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
@@ -313,14 +309,10 @@ export default class TrelloRepository {
         }
       }
 
-      //save todos
       const response = await this.todoRepository.upsert(dataTodos, []);
 
       if (response) {
-        //save todo histories
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
-
-        //save todo users
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
       }
     } catch (error) {

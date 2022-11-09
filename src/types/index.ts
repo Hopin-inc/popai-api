@@ -36,6 +36,7 @@ export type ITodoAppUser = {
   employee_id: number | null;
   todoapp_id: number | null;
   user_app_id: string;
+  primary_domain: string;
   api_key: string;
   api_token: string;
   refresh_token: string;
@@ -90,8 +91,9 @@ export type ITrelloTask = {
 export type ITodoTask = {
   todoTask: ITrelloTask & IMicrosoftTask;
   todoapp: ITodoApp;
+  todoAppUser: ITodoAppUser;
   company: ICompany;
-  sectionId: number;
+  section: ISection;
   users?: IUser[];
 };
 

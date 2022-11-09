@@ -3,7 +3,7 @@ export const Common = {
   trello: 'trello',
   microsoft: 'microsoft',
   completed: 100,
-  microsoftBaseUrl: 'https://tasks.office.com/newit.co.jp/Home/Task',
+  microsoftBaseUrl: 'https://tasks.office.com/{tenant}/Home/Task',
   remindMaxCount: 2,
 };
 
