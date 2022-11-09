@@ -5,7 +5,12 @@ import { Todo } from '../entify/todo.entity';
 import { IUser } from '../types';
 
 export class LineMessageBuilder {
-  static createRemindMessage(userName: string, todo: Todo, remindDays: number, parentMessageId? : number) {
+  static createRemindMessage(
+    userName: string,
+    todo: Todo,
+    remindDays: number,
+    parentMessageId?: number
+  ) {
     let messagePrefix = '';
 
     if (remindDays > 1) {
@@ -43,7 +48,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: messagePrefix + todo.name + 'の進捗はいかがですか？\n',
+              text: messagePrefix + '「' + todo.name + '」の進捗はいかがですか？\n',
               wrap: true,
             },
             {
@@ -280,6 +285,55 @@ export class LineMessageBuilder {
     const message: FlexMessage = {
       type: 'flex',
       altText: '現在、次のタスクの担当者と期日が設定されていません\n',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: contents,
+        },
+      },
+    };
+
+    return message;
+  }
+
+  static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: Array<Todo>) {
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: adminUser.name + 'さん\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: 'お疲れ様です🙌\n\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: '現在、次のタスクの担当者が設定されていません😭\n',
+        wrap: true,
+      },
+    ];
+
+    todos.forEach((todo) =>
+      contents.push({
+        type: 'text',
+        text: '・' + todo.name,
+        wrap: true,
+      })
+    );
+
+    contents.push({
+      type: 'text',
+      text: '\nご確認をお願いします🙏\n',
+      wrap: true,
+    });
+
+    const message: FlexMessage = {
+      type: 'flex',
+      altText: '現在、次のタスクの担当者が設定されていません\n',
       contents: {
         type: 'bubble',
         body: {

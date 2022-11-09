@@ -38,7 +38,7 @@ export default class LineRepository {
       }
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
-      const chatMessage = await this.saveChatMessage(user.line_id, message, todo);
+      const chatMessage = await this.saveChatMessage(user, message, todo);
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         user.name,
@@ -70,7 +70,7 @@ export default class LineRepository {
         logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
       } else {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
-        await this.pushLineMessage(superiorUser.line_id, message);
+        await this.pushLineMessage(superiorUser, message);
       }
 
       return;
@@ -95,7 +95,29 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user.line_id, message);
+      return await this.pushLineMessage(user, message);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
+  /**
+   * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+   * @param user
+   * @param todos
+   * @returns
+   */
+  pushNotAssignListTaskMessageToAdmin = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+    try {
+      if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+
+        return;
+      }
+
+      const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(user, todos);
+      // await this.saveChatMessage(user, todo, message);
+      return await this.pushLineMessage(user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -117,7 +139,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user.line_id, message);
+      return await this.pushLineMessage(user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -139,7 +161,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user.line_id, message);
+      return await this.pushLineMessage(user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -231,14 +253,14 @@ export default class LineRepository {
     }
   };
 
-  pushLineMessage = async (lineId: string, message: Message, todo?: Todo): Promise<any> => {
+  pushLineMessage = async (user: IUser, message: Message, todo?: Todo): Promise<any> => {
     if (process.env.ENV == 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
-      await LineBot.pushMessage(lineId, message, false);
+      await LineBot.pushMessage(user.line_id, message, false);
     }
 
-    return await this.saveChatMessage(lineId, message, todo);
+    return await this.saveChatMessage(user, message, todo);
   };
 
   replyMessage = async (replyToken: string, message: Message): Promise<any> => {
@@ -251,7 +273,7 @@ export default class LineRepository {
     return;
   };
 
-  saveChatMessage = async (lineId: string, message: Message, todo?: Todo): Promise<ChatMessage> => {
+  saveChatMessage = async (user: IUser, message: Message, todo?: Todo): Promise<ChatMessage> => {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
     chatMessage.chattool_id = 1;
@@ -267,9 +289,9 @@ export default class LineRepository {
         .utc()
         .toDate()
     );
-    chatMessage.user_id = todo?.assigned_user_id;
+    chatMessage.user_id = user.id;
 
-    const linkToken = await LineBot.getLinkToken(lineId);
+    const linkToken = await LineBot.getLinkToken(user.line_id);
     chatMessage.message_token = linkToken;
 
     return await this.messageRepository.save(chatMessage);

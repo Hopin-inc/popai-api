@@ -31,6 +31,7 @@ import LineRepository from './line.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import logger from './../logger/winston';
+import { ImplementedTodoApp } from '../entify/implemented.todoapp.entity';
 
 @Service()
 export default class MicrosoftRepository {
@@ -42,6 +43,7 @@ export default class MicrosoftRepository {
   private todoUpdateRepository: TodoUpdateRepository;
   private lineBotRepository: LineRepository;
   private todoUserRepository: TodoUserRepository;
+  private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
@@ -52,6 +54,7 @@ export default class MicrosoftRepository {
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
     this.lineBotRepository = Container.get(LineRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
+    this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
@@ -84,6 +87,27 @@ export default class MicrosoftRepository {
     return users;
   };
 
+  getImplementTodoApp = async (companyId: number, todoappId: number) => {
+    const implementTodoApp = await this.implementedTodoAppRepository.findOneBy({
+      company_id: companyId,
+      todoapp_id: todoappId,
+    });
+
+    if (!implementTodoApp) {
+      logger.error(
+        new LoggerError(
+          'implemented_todo_appsのデータ(company_id=' +
+            companyId +
+            ' todoapp_id=' +
+            todoappId +
+            ')がありません。'
+        )
+      );
+    }
+
+    return implementTodoApp;
+  };
+
   remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
@@ -109,7 +133,11 @@ export default class MicrosoftRepository {
       }
 
       const dayReminds: number[] = await this.getDayReminds(company.companyConditions);
-      await this.filterUpdateTask(dayReminds, todoTasks);
+
+      const implementTodoApp = await this.getImplementTodoApp(company.id, todoapp.id);
+      if (implementTodoApp) {
+        await this.filterUpdateTask(dayReminds, todoTasks, implementTodoApp);
+      }
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -216,7 +244,11 @@ export default class MicrosoftRepository {
     return dayReminds;
   };
 
-  filterUpdateTask = async (dayReminds: number[], todoTaskLists: ITodoTask[]): Promise<void> => {
+  filterUpdateTask = async (
+    dayReminds: number[],
+    todoTaskLists: ITodoTask[],
+    implementTodoApp: ImplementedTodoApp
+  ): Promise<void> => {
     const taskReminds: IRemindTask[] = [];
     const taskNomals: IRemindTask[] = [];
 
@@ -248,8 +280,8 @@ export default class MicrosoftRepository {
       }
     }
 
-    await this.createTodo(taskReminds, true);
-    await this.createTodo(taskNomals);
+    await this.createTodo(taskReminds, implementTodoApp, true);
+    await this.createTodo(taskNomals, implementTodoApp);
   };
 
   refreshToken = async (dataRefresh: IMicrosoftRefresh): Promise<ITodoAppUser | null> => {
@@ -291,7 +323,11 @@ export default class MicrosoftRepository {
     return null;
   };
 
-  createTodo = async (taskReminds: IRemindTask[], isRemind: boolean = false): Promise<void> => {
+  createTodo = async (
+    taskReminds: IRemindTask[],
+    implementTodoApp: ImplementedTodoApp,
+    isRemind: boolean = false
+  ): Promise<void> => {
     try {
       if (!taskReminds.length) return;
 
@@ -322,7 +358,7 @@ export default class MicrosoftRepository {
         todoData.todoapp_reg_url = replaceString(
           Common.microsoftBaseUrl.concat('/', todoTask.id),
           '{tenant}',
-          todoAppUser.primary_domain
+          implementTodoApp.primary_domain
         );
         todoData.todoapp_reg_created_by = todoTask.userCreateBy;
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);

@@ -36,7 +36,6 @@ export type ITodoAppUser = {
   employee_id: number | null;
   todoapp_id: number | null;
   user_app_id: string;
-  primary_domain: string;
   api_key: string;
   api_token: string;
   refresh_token: string;

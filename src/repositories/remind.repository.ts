@@ -82,6 +82,8 @@ export default class Remindrepository {
           company.admin_user,
           notSetDueDateAndNotAssign
         );
+
+        await this.updateRemindedCount(notSetDueDateAndNotAssign);
       } else {
         await this.lineRepo.pushNoListTaskMessageToAdmin(company.admin_user);
       }
@@ -99,14 +101,23 @@ export default class Remindrepository {
 
         userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
           await this.lineRepo.pushListTaskMessageToUser(todos[0].user, todos);
-          const todoDatas = todos.map((todo) => {
-            return {
-              ...todo,
-              reminded_count: todo.reminded_count + 1,
-            };
-          });
-          await this.todoRepository.upsert(todoDatas, []);
+
+          await this.updateRemindedCount(todos);
         });
+      }
+
+      // 担当者未設定・期日設定済みの場合
+      const notSetAssignTasks = needRemindTasks.filter(
+        (task) =>
+          task.deadline && !task.todoUsers.length && task.reminded_count < Common.remindMaxCount
+      );
+      if (notSetAssignTasks.length) {
+        await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
+          company.admin_user,
+          notSetAssignTasks
+        );
+
+        await this.updateRemindedCount(notSetAssignTasks);
       }
     }
   };
@@ -158,5 +169,15 @@ export default class Remindrepository {
     });
 
     return map;
+  };
+
+  updateRemindedCount = async (todos: Array<Todo>): Promise<any> => {
+    const todoDatas = todos.map((todo) => {
+      return {
+        ...todo,
+        reminded_count: todo.reminded_count + 1,
+      };
+    });
+    return await this.todoRepository.upsert(todoDatas, []);
   };
 }
