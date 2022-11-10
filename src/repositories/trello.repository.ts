@@ -28,6 +28,7 @@ import TrelloRequest from './../libs/trello.request';
 import LineRepository from './line.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
+import { ChatToolCode } from '../const/common';
 
 @Service()
 export default class TrelloRepository {
@@ -284,11 +285,16 @@ export default class TrelloRepository {
 
             // send Line message
             for (const user of users) {
-              this.lineBotRepository.pushMessageRemind(
-                user,
-                { ...todoData, assigned_user_id: user.id },
-                taskRemind.remindDays
-              );
+              company.chattools.forEach(async (chattool) => {
+                if (chattool.tool_code == ChatToolCode.LINE) {
+                  this.lineBotRepository.pushMessageRemind(
+                    chattool,
+                    user,
+                    { ...todoData, assigned_user_id: user.id },
+                    taskRemind.remindDays
+                  );
+                }
+              });
             }
           }
         }

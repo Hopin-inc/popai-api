@@ -18,7 +18,7 @@ import {
 import { AppDataSource } from './../config/data-source';
 import { User } from './../entify/user.entity';
 import { Service, Container } from 'typedi';
-import { Common } from './../const/common';
+import { ChatToolCode, Common } from './../const/common';
 import { fetchApi } from './../libs/request';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { Todo } from './../entify/todo.entity';
@@ -381,11 +381,16 @@ export default class MicrosoftRepository {
             todoData.reminded_count = 1;
             // send Line message
             for (const user of users) {
-              this.lineBotRepository.pushMessageRemind(
-                user,
-                { ...todoData, assigned_user_id: user.id },
-                taskRemind.remindDays
-              );
+              company.chattools.forEach(async (chattool) => {
+                if (chattool.tool_code == ChatToolCode.LINE) {
+                  this.lineBotRepository.pushMessageRemind(
+                    chattool,
+                    user,
+                    { ...todoData, assigned_user_id: user.id },
+                    taskRemind.remindDays
+                  );
+                }
+              });
             }
           }
         }

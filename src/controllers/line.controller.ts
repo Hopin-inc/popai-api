@@ -13,10 +13,11 @@ import { LineBot } from '../config/linebot';
 import LineRepository from '../repositories/line.repository';
 import Container from 'typedi';
 import {
-  IS_OPENED,
-  IS_REPLIED,
+  ChatToolCode,
   LINEID_MESSAGE,
   MessageType,
+  OpenStatus,
+  ReplyStatus,
   SenderType,
   TaskStatus,
 } from '../const/common';
@@ -25,13 +26,19 @@ import moment from 'moment';
 import logger from './../logger/winston';
 import { LoggerError } from '../exceptions';
 import { toJapanDateTime } from '../utils/common';
+import { ChatTool } from '../entify/chat_tool.entity';
+import { Repository } from 'typeorm';
+import { AppDataSource } from '../config/data-source';
 
 @Route('line')
 export default class LineController extends Controller {
   private lineRepository: LineRepository;
+  private chattoolRepository: Repository<ChatTool>;
+
   constructor() {
     super();
     this.lineRepository = Container.get(LineRepository);
+    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
   public async handlerEvents(events: Array<WebhookEvent>): Promise<any> {
@@ -49,6 +56,15 @@ export default class LineController extends Controller {
    */
   private async handleEvent(event: WebhookEvent): Promise<any> {
     try {
+      const chattool = await this.chattoolRepository.findOneBy({
+        tool_code: ChatToolCode.LINE,
+      });
+
+      if (!chattool) {
+        logger.error(new LoggerError('LINE is not implemented yet!'));
+        return;
+      }
+
       const lineId = event.source.userId;
 
       switch (event.type) {
@@ -81,9 +97,10 @@ export default class LineController extends Controller {
                 } else {
                   this.replyDeplayAction(event.replyToken);
                 }
-                this.saveChatMessage(postData, event);
+                this.saveChatMessage(chattool, postData, event);
 
                 this.sendSuperiorMessage(
+                  chattool,
                   superiorUser,
                   postData.user_name,
                   postData.todo.name,
@@ -120,12 +137,16 @@ export default class LineController extends Controller {
    * @param event
    * @returns
    */
-  private async saveChatMessage(postData: any, event: PostbackEvent): Promise<ChatMessage> {
+  private async saveChatMessage(
+    chattool: ChatTool,
+    postData: any,
+    event: PostbackEvent
+  ): Promise<ChatMessage> {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_USER;
-    chatMessage.chattool_id = 1;
-    chatMessage.is_openned = IS_OPENED;
-    chatMessage.is_replied = IS_REPLIED;
+    chatMessage.chattool_id = chattool.id;
+    chatMessage.is_openned = OpenStatus.OPENNED;
+    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
     chatMessage.message_trigger_id = 2; // reply
     chatMessage.message_type_id = MessageType.TEXT;
 
@@ -191,6 +212,7 @@ export default class LineController extends Controller {
    * @returns
    */
   private async sendSuperiorMessage(
+    chattool: ChatTool,
     superiorUser: User,
     userName: string,
     taskName: string,
@@ -202,7 +224,7 @@ export default class LineController extends Controller {
       return;
     }
 
-    await this.lineRepository.pushStartReportToSuperior(superiorUser);
+    await this.lineRepository.pushStartReportToSuperior(chattool, superiorUser);
 
     const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
       superiorUser.name,
@@ -210,6 +232,6 @@ export default class LineController extends Controller {
       taskName,
       reportContent
     );
-    return await this.lineRepository.pushLineMessage(superiorUser, reportMessage);
+    return await this.lineRepository.pushLineMessage(chattool, superiorUser, reportMessage);
   }
 }

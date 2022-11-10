@@ -13,9 +13,10 @@ import { User } from '../entify/user.entity';
 import { Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
-import { IS_OPENED, MessageType, SenderType } from '../const/common';
+import { MessageType, OpenStatus, ReplyStatus, SenderType } from '../const/common';
 import moment from 'moment';
 import { toJapanDateTime } from '../utils/common';
+import { ChatTool } from '../entify/chat_tool.entity';
 
 @Service()
 export default class LineRepository {
@@ -29,7 +30,12 @@ export default class LineRepository {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
   }
 
-  pushMessageRemind = async (user: IUser, todo: Todo, remindDays: number): Promise<any> => {
+  pushMessageRemind = async (
+    chattool: ChatTool,
+    user: IUser,
+    todo: Todo,
+    remindDays: number
+  ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -38,7 +44,7 @@ export default class LineRepository {
       }
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
-      const chatMessage = await this.saveChatMessage(user, message, todo);
+      const chatMessage = await this.saveChatMessage(chattool, user, message, todo);
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         user.name,
@@ -57,7 +63,7 @@ export default class LineRepository {
     }
   };
 
-  pushStartReportToSuperior = async (superiorUser: IUser): Promise<any> => {
+  pushStartReportToSuperior = async (chattool: ChatTool, superiorUser: IUser): Promise<any> => {
     try {
       // if (!user.line_id) {
       //   logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -70,7 +76,7 @@ export default class LineRepository {
         logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
       } else {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
-        await this.pushLineMessage(superiorUser, message);
+        await this.pushLineMessage(chattool, superiorUser, message);
       }
 
       return;
@@ -85,7 +91,11 @@ export default class LineRepository {
    * @param todos
    * @returns
    */
-  pushListTaskMessageToAdmin = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+  pushListTaskMessageToAdmin = async (
+    chattool: ChatTool,
+    user: IUser,
+    todos: Array<Todo>
+  ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -95,7 +105,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user, message);
+      return await this.pushLineMessage(chattool, user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -107,7 +117,11 @@ export default class LineRepository {
    * @param todos
    * @returns
    */
-  pushNotAssignListTaskMessageToAdmin = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+  pushNotAssignListTaskMessageToAdmin = async (
+    chattool: ChatTool,
+    user: IUser,
+    todos: Array<Todo>
+  ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -117,7 +131,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user, message);
+      return await this.pushLineMessage(chattool, user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -129,7 +143,11 @@ export default class LineRepository {
    * @param todos
    * @returns
    */
-  pushListTaskMessageToUser = async (user: IUser, todos: Array<Todo>): Promise<any> => {
+  pushListTaskMessageToUser = async (
+    chattool: ChatTool,
+    user: IUser,
+    todos: Array<Todo>
+  ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -139,7 +157,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user, message);
+      return await this.pushLineMessage(chattool, user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -151,7 +169,7 @@ export default class LineRepository {
    * @param todos
    * @returns
    */
-  pushNoListTaskMessageToAdmin = async (user: IUser): Promise<any> => {
+  pushNoListTaskMessageToAdmin = async (chattool: ChatTool, user: IUser): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -161,7 +179,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(user, message);
+      return await this.pushLineMessage(chattool, user, message);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -253,14 +271,19 @@ export default class LineRepository {
     }
   };
 
-  pushLineMessage = async (user: IUser, message: Message, todo?: Todo): Promise<any> => {
+  pushLineMessage = async (
+    chattool: ChatTool,
+    user: IUser,
+    message: Message,
+    todo?: Todo
+  ): Promise<any> => {
     if (process.env.ENV == 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.pushMessage(user.line_id, message, false);
     }
 
-    return await this.saveChatMessage(user, message, todo);
+    return await this.saveChatMessage(chattool, user, message, todo);
   };
 
   replyMessage = async (replyToken: string, message: Message): Promise<any> => {
@@ -273,12 +296,17 @@ export default class LineRepository {
     return;
   };
 
-  saveChatMessage = async (user: IUser, message: Message, todo?: Todo): Promise<ChatMessage> => {
+  saveChatMessage = async (
+    chattool: ChatTool,
+    user: IUser,
+    message: Message,
+    todo?: Todo
+  ): Promise<ChatMessage> => {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chattool_id = 1;
-    chatMessage.is_openned = IS_OPENED;
-    chatMessage.is_replied = 0;
+    chatMessage.chattool_id = chattool.id;
+    chatMessage.is_openned = OpenStatus.OPENNED;
+    chatMessage.is_replied = ReplyStatus.REPLIED;
     chatMessage.message_trigger_id = 1; // batch
     chatMessage.message_type_id = MessageType.FLEX;
 
