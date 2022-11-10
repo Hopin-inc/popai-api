@@ -254,20 +254,22 @@ export default class MicrosoftRepository {
 
     for (const cardTodo of todoTaskLists) {
       let hasRemind = false;
+      let delayedCount = 0;
       const todoTask = cardTodo.todoTask;
 
-      if (todoTask.dueDateTime && todoTask.percentComplete !== Common.completed) {
+      if (todoTask.dueDateTime) {
         const dateExpired = moment(toJapanDateTime(todoTask.dueDateTime)).startOf('day');
         const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
-        const diffDays = dateExpired.diff(dateNow, 'days');
-        const day = dateExpired.isAfter(dateNow) ? 0 - diffDays : diffDays;
+        const diffDays = dateNow.diff(dateExpired, 'days');
+        delayedCount = diffDays;
 
-        if (dayReminds.includes(day)) {
+        if (dayReminds.includes(diffDays) && todoTask.percentComplete !== Common.completed) {
           hasRemind = true;
           taskReminds.push({
-            remindDays: day,
+            remindDays: diffDays,
             cardTodo: cardTodo,
+            delayedCount: delayedCount,
           });
         }
       }
@@ -276,6 +278,7 @@ export default class MicrosoftRepository {
         taskNomals.push({
           remindDays: 0,
           cardTodo: cardTodo,
+          delayedCount: delayedCount,
         });
       }
     }
@@ -350,6 +353,8 @@ export default class MicrosoftRepository {
           todoapp_reg_id: todoTask.id,
         });
 
+        const taskDeadLine = todoTask?.dueDateTime ? toJapanDateTime(todoTask.dueDateTime) : null;
+
         const todoData = new Todo();
         todoData.id = todo?.id || null;
         todoData.name = todoTask.title;
@@ -364,11 +369,11 @@ export default class MicrosoftRepository {
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);
         todoData.company_id = company.id;
         todoData.section_id = section.id;
-        todoData.deadline = todoTask?.dueDateTime ? toJapanDateTime(todoTask.dueDateTime) : null;
+        todoData.deadline = taskDeadLine;
         todoData.is_done = todoTask.percentComplete === Common.completed;
         todoData.is_reminded = false;
-        todoData.is_rescheduled = false;
         todoData.is_closed = false;
+        todoData.delayed_count = todo?.delayed_count || 0;
         todoData.reminded_count = todo?.reminded_count || 0;
 
         if (users.length) {
@@ -390,13 +395,23 @@ export default class MicrosoftRepository {
           }
         }
 
-        dataTodos.push(todoData);
-
         //update task
-        dataTodoUpdates.push({
-          todoId: todoTask.id,
-          updateTime: toJapanDateTime(new Date()),
-        });
+        if ((taskDeadLine && taskRemind.delayedCount > 0) || todoData.is_done) {
+          if (!moment(taskDeadLine).isSame(todo?.deadline) || todo?.is_done !== todoData.is_done) {
+            if (!todoData.is_done) {
+              todoData.delayed_count = todoData.delayed_count + 1;
+            }
+
+            dataTodoUpdates.push({
+              todoId: todoTask.id,
+              dueTime: todo?.deadline,
+              newDueTime: taskDeadLine,
+              updateTime: toJapanDateTime(new Date()),
+            });
+          }
+        }
+
+        dataTodos.push(todoData);
 
         //Update user
         if (todo) {

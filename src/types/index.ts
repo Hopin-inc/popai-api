@@ -53,7 +53,7 @@ export type ITodo = {
   deadline: Date | null;
   is_done: boolean | null;
   is_reminded: boolean | null;
-  is_rescheduled: boolean | null;
+  delayed_count: number;
   is_closed: boolean;
   reminded_count: number | null;
 };
@@ -66,6 +66,8 @@ export type ITodoUser = {
 
 export type ITodoUpdate = {
   todoId: string;
+  dueTime?: Date;
+  newDueTime: Date;
   updateTime: Date;
 };
 
@@ -138,4 +140,5 @@ export type IMicrosoftRefresh = {
 export type IRemindTask = {
   remindDays: number;
   cardTodo: ITodoTask;
+  delayedCount: number;
 };

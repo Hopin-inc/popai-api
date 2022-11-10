@@ -205,19 +205,22 @@ export default class TrelloRepository {
 
     for (const cardTodo of cardTodos) {
       let hasRemind = false;
+      let delayedCount = 0;
       const todoTask = cardTodo.todoTask;
 
-      if (todoTask.due && !todoTask.dueComplete) {
+      if (todoTask.due) {
         const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
         const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
 
         const diffDays = dateNow.diff(dateExpired, 'days');
+        delayedCount = diffDays;
 
-        if (dayReminds.includes(diffDays)) {
+        if (dayReminds.includes(diffDays) && !todoTask.dueComplete) {
           hasRemind = true;
           cardReminds.push({
             remindDays: diffDays,
             cardTodo: cardTodo,
+            delayedCount: delayedCount,
           });
         }
       }
@@ -226,6 +229,7 @@ export default class TrelloRepository {
         cardNomals.push({
           remindDays: 0,
           cardTodo: cardTodo,
+          delayedCount: delayedCount,
         });
       }
     }
@@ -256,6 +260,8 @@ export default class TrelloRepository {
           todoapp_reg_id: todoTask.id,
         });
 
+        const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
+
         const todoData = new Todo();
         todoData.id = todo?.id || null;
         todoData.name = todoTask.name;
@@ -266,11 +272,11 @@ export default class TrelloRepository {
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
         todoData.company_id = company.id;
         todoData.section_id = section.id;
-        todoData.deadline = toJapanDateTime(todoTask.due);
+        todoData.deadline = taskDeadLine;
         todoData.is_done = todoTask.dueComplete;
         todoData.is_reminded = todoTask.dueReminder ? true : false;
-        todoData.is_rescheduled = false;
         todoData.is_closed = todoTask.closed;
+        todoData.delayed_count = todo?.delayed_count || 0;
         todoData.reminded_count = todo?.reminded_count || 0;
 
         if (users.length) {
@@ -293,15 +299,22 @@ export default class TrelloRepository {
           }
         }
 
-        dataTodos.push(todoData);
-
-        //update task
-        if (todoTask.dateLastActivity) {
-          dataTodoUpdates.push({
-            todoId: todoTask.id,
-            updateTime: toJapanDateTime(todoTask.dateLastActivity),
-          });
+        //update deadline task
+        if ((taskDeadLine && taskRemind.delayedCount > 0) || todoData.is_done) {
+          if (!moment(taskDeadLine).isSame(todo?.deadline) || todo?.is_done !== todoData.is_done) {
+            if (!todoData.is_done) {
+              todoData.delayed_count = todoData.delayed_count + 1;
+            }
+            dataTodoUpdates.push({
+              todoId: todoTask.id,
+              dueTime: todo?.deadline,
+              newDueTime: taskDeadLine,
+              updateTime: toJapanDateTime(todoTask.dateLastActivity),
+            });
+          }
         }
+
+        dataTodos.push(todoData);
 
         //update user
         if (todo) {
