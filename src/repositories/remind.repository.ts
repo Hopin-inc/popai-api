@@ -6,7 +6,7 @@ import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
 import TrelloRepository from './trello.repository';
 import { ICompany, ITodoApp, IUser } from './../types';
-import { Common } from './../const/common';
+import { ChatToolCode, Common } from './../const/common';
 import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
 import { Todo } from '../entify/todo.entity';
@@ -33,7 +33,7 @@ export default class Remindrepository {
   remindCompany = async (): Promise<any> => {
     try {
       const companies = await this.companyRepository.find({
-        relations: ['todoapps', 'admin_user', 'companyConditions'],
+        relations: ['todoapps', 'chattools', 'admin_user', 'companyConditions'],
       });
 
       for (const company of companies) {
@@ -47,7 +47,7 @@ export default class Remindrepository {
     }
   };
 
-  remindCompanyApp = async (company: ICompany, todoapps: ITodoApp[]): Promise<void> => {
+  remindCompanyApp = async (company: Company, todoapps: ITodoApp[]): Promise<void> => {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
@@ -78,14 +78,24 @@ export default class Remindrepository {
       if (notSetDueDateAndNotAssign.length) {
         // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
         // Send to admin list task which not set duedate
-        await this.lineRepo.pushListTaskMessageToAdmin(
-          company.admin_user,
-          notSetDueDateAndNotAssign
-        );
+
+        company.chattools.forEach(async (chattool) => {
+          if (chattool.tool_code == ChatToolCode.LINE) {
+            await this.lineRepo.pushListTaskMessageToAdmin(
+              chattool,
+              company.admin_user,
+              notSetDueDateAndNotAssign
+            );
+          }
+        });
 
         await this.updateRemindedCount(notSetDueDateAndNotAssign);
       } else {
-        await this.lineRepo.pushNoListTaskMessageToAdmin(company.admin_user);
+        company.chattools.forEach(async (chattool) => {
+          if (chattool.tool_code == ChatToolCode.LINE) {
+            await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, company.admin_user);
+          }
+        });
       }
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
@@ -100,7 +110,11 @@ export default class Remindrepository {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
         userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
-          await this.lineRepo.pushListTaskMessageToUser(todos[0].user, todos);
+          company.chattools.forEach(async (chattool) => {
+            if (chattool.tool_code == ChatToolCode.LINE) {
+              await this.lineRepo.pushListTaskMessageToUser(chattool, todos[0].user, todos);
+            }
+          });
 
           await this.updateRemindedCount(todos);
         });
@@ -112,10 +126,15 @@ export default class Remindrepository {
           task.deadline && !task.todoUsers.length && task.reminded_count < Common.remindMaxCount
       );
       if (notSetAssignTasks.length) {
-        await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
-          company.admin_user,
-          notSetAssignTasks
-        );
+        company.chattools.forEach(async (chattool) => {
+          if (chattool.tool_code == ChatToolCode.LINE) {
+            await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
+              chattool,
+              company.admin_user,
+              notSetAssignTasks
+            );
+          }
+        });
 
         await this.updateRemindedCount(notSetAssignTasks);
       }

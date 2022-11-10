@@ -8,6 +8,7 @@ import {
   OneToOne,
   OneToMany,
 } from 'typeorm';
+import { ChatTool } from './chat_tool.entity';
 import { CompanyCondion } from './company.conditon.entity';
 import { TodoApp } from './todoapp.entity';
 import { User } from './user.entity';
@@ -39,6 +40,23 @@ export class Company {
     },
   })
   todoapps: TodoApp[];
+
+  @ManyToMany(
+    () => ChatTool,
+    (chattool) => chattool.companies
+  )
+  @JoinTable({
+    name: 'implemented_chat_tools',
+    joinColumn: {
+      name: 'company_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'chattool_id',
+      referencedColumnName: 'id',
+    },
+  })
+  chattools: ChatTool[];
 
   @OneToOne(
     () => User,

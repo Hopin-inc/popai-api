@@ -1,9 +1,12 @@
+import { ChatTool } from '../entify/chat_tool.entity';
+
 export type ICompany = {
   id: number;
   name: string;
   todoapps?: ITodoApp[];
   admin_user?: IUser;
   companyConditions?: ICompanyCondition[];
+  chattools: ChatTool[];
 };
 
 export type ITodoApp = {

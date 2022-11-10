@@ -29,8 +29,20 @@ export const SenderType = {
   FROM_BOT: 0,
 };
 
-export const IS_OPENED = 1;
-export const IS_REPLIED = 1;
+export const ReplyStatus = {
+  REPLIED: 1,
+  NOT_REPLIED: 0,
+};
+
+export const OpenStatus = {
+  OPENNED: 1,
+  CLOSED: 0,
+};
+
+export const ChatToolCode = {
+  LINE: 'line',
+  SLACK: 'slack'
+}
 
 export const LINEID_MESSAGE = 'lineid';
 
