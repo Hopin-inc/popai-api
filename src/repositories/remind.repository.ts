@@ -5,19 +5,21 @@ import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
 import TrelloRepository from './trello.repository';
-import { ICompany, ITodoApp, IUser } from './../types';
+import { ITodoApp } from './../types';
 import { ChatToolCode, Common } from './../const/common';
 import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
 import { Todo } from '../entify/todo.entity';
 import LineRepository from './line.repository';
 import { TodoUser } from './../entify/todouser.entity';
+import CommonRepository from './modules/common.repository';
 
 @Service()
 export default class Remindrepository {
   private trelloRepo: TrelloRepository;
   private microsofRepo: MicrosoftRepository;
   private lineRepo: LineRepository;
+  private commonRepository: CommonRepository;
 
   private companyRepository: Repository<Company>;
   private todoRepository: Repository<Todo>;
@@ -26,6 +28,7 @@ export default class Remindrepository {
     this.trelloRepo = Container.get(TrelloRepository);
     this.microsofRepo = Container.get(MicrosoftRepository);
     this.lineRepo = Container.get(LineRepository);
+    this.commonRepository = Container.get(CommonRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
@@ -71,6 +74,10 @@ export default class Remindrepository {
     if (needRemindTasks.length) {
       // 期日未設定のタスクがある場合
 
+      const dayReminds: number[] = await this.commonRepository.getDayReminds(
+        company.companyConditions
+      );
+
       const notSetDueDateAndNotAssign = needRemindTasks.filter(
         (task) => !task.deadline && !task.todoUsers.length
       );
@@ -84,7 +91,8 @@ export default class Remindrepository {
             await this.lineRepo.pushListTaskMessageToAdmin(
               chattool,
               company.admin_user,
-              notSetDueDateAndNotAssign
+              notSetDueDateAndNotAssign,
+              dayReminds
             );
           }
         });
@@ -112,7 +120,12 @@ export default class Remindrepository {
         userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
           company.chattools.forEach(async (chattool) => {
             if (chattool.tool_code == ChatToolCode.LINE) {
-              await this.lineRepo.pushListTaskMessageToUser(chattool, todos[0].user, todos);
+              await this.lineRepo.pushListTaskMessageToUser(
+                chattool,
+                todos[0].user,
+                todos,
+                dayReminds
+              );
             }
           });
 
@@ -125,13 +138,15 @@ export default class Remindrepository {
         (task) =>
           task.deadline && !task.todoUsers.length && task.reminded_count < Common.remindMaxCount
       );
+
       if (notSetAssignTasks.length) {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
             await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
               chattool,
               company.admin_user,
-              notSetAssignTasks
+              notSetAssignTasks,
+              dayReminds
             );
           }
         });
