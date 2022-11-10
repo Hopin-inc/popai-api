@@ -15,6 +15,7 @@ import Container from 'typedi';
 import {
   ChatToolCode,
   LINEID_MESSAGE,
+  MessageTriggerType,
   MessageType,
   OpenStatus,
   ReplyStatus,
@@ -82,6 +83,8 @@ export default class LineController extends Controller {
           // eslint-disable-next-line no-case-declarations
           const postData = JSON.parse(event.postback.data);
           if (postData.todo && postData.status) {
+            this.updateIsReplyFlag(postData);
+
             const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
             if (superiorUsers.length == 0) {
@@ -97,7 +100,7 @@ export default class LineController extends Controller {
                 } else {
                   this.replyDeplayAction(event.replyToken);
                 }
-                this.saveChatMessage(chattool, postData, event);
+                this.saveChatMessage(chattool, postData, event, MessageTriggerType.ACTION);
 
                 this.sendSuperiorMessage(
                   chattool,
@@ -140,14 +143,15 @@ export default class LineController extends Controller {
   private async saveChatMessage(
     chattool: ChatTool,
     postData: any,
-    event: PostbackEvent
+    event: PostbackEvent,
+    messageTriggerId: number
   ): Promise<ChatMessage> {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_USER;
     chatMessage.chattool_id = chattool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = 2; // reply
+    chatMessage.message_trigger_id = messageTriggerId; // reply
     chatMessage.message_type_id = MessageType.TEXT;
 
     chatMessage.body = postData.message;
@@ -201,6 +205,18 @@ export default class LineController extends Controller {
     const replyMessage: FlexMessage = LineMessageBuilder.createDeplayReplyMessage();
 
     return await this.lineRepository.replyMessage(replyToken, replyMessage);
+  }
+
+  private async updateIsReplyFlag(postData: any) {
+    if (postData.parent_message_id) {
+      const message = await this.lineRepository.findMessageById(postData.parent_message_id);
+
+      if (message) {
+        message.is_replied = ReplyStatus.REPLIED;
+
+        await this.lineRepository.createMessage(message);
+      }
+    }
   }
 
   /**

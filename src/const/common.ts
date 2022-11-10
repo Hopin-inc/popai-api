@@ -24,6 +24,13 @@ export const MessageType = {
   FLEX: 9,
 };
 
+export const MessageTriggerType = {
+  BATCH: 1,
+  REPLY: 2,
+  MANUAL: 3,
+  ACTION: 4,
+};
+
 export const SenderType = {
   FROM_USER: 1,
   FROM_BOT: 0,
@@ -41,8 +48,8 @@ export const OpenStatus = {
 
 export const ChatToolCode = {
   LINE: 'line',
-  SLACK: 'slack'
-}
+  SLACK: 'slack',
+};
 
 export const LINEID_MESSAGE = 'lineid';
 
