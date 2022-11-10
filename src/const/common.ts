@@ -31,6 +31,14 @@ export const MessageTriggerType = {
   ACTION: 4,
 };
 
+export const RemindType = {
+  NOT_REMIND: 0,
+  REMIND_BY_DEADLINE: 1,
+  REMIND_NOT_ASSIGN: 2,
+  REMIND_NOT_DEADLINE: 3,
+  REMIND_NOT_ASSIGN_DEADLINE: 4,
+};
+
 export const SenderType = {
   FROM_USER: 1,
   FROM_BOT: 0,

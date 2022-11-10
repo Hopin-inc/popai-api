@@ -2,7 +2,7 @@ import { LoggerError } from '../exceptions';
 import { Service } from 'typedi';
 import { LineMessageBuilder } from '../common/line_message';
 import { Todo } from '../entify/todo.entity';
-import { IUser } from '../types';
+import { IChatTool, IRemindType, IUser } from '../types';
 import { LineBot } from '../config/linebot';
 
 import { AppDataSource } from '../config/data-source';
@@ -13,13 +13,16 @@ import { User } from '../entify/user.entity';
 import { Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
+
 import {
   MessageTriggerType,
   MessageType,
+  RemindType,
   OpenStatus,
   ReplyStatus,
   SenderType,
 } from '../const/common';
+
 import moment from 'moment';
 import { toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
@@ -37,20 +40,26 @@ export default class LineRepository {
   }
 
   pushMessageRemind = async (
-    chattool: ChatTool,
+    chattool: IChatTool,
     user: IUser,
     todo: Todo,
-    remindDays: number
+    remindDays: number,
+    dayReminds: number[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
-
         return;
       }
 
+      //1.期日に対するリマインド
+      const remindTypes: IRemindType = {
+        remindType: RemindType.REMIND_BY_DEADLINE,
+        dayReminds: dayReminds,
+      };
+
       const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
-      const chatMessage = await this.saveChatMessage(chattool, user, message, todo);
+      const chatMessage = await this.saveChatMessage(chattool, user, message, remindTypes, todo);
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         user.name,
@@ -101,7 +110,8 @@ export default class LineRepository {
   pushListTaskMessageToAdmin = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>
+    todos: Array<Todo>,
+    dayReminds: number[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -110,9 +120,15 @@ export default class LineRepository {
         return;
       }
 
+      //4. 担当者・期日未設定に対するリマインド
+      const remindTypes: IRemindType = {
+        remindType: RemindType.REMIND_NOT_ASSIGN_DEADLINE,
+        dayReminds: dayReminds,
+      };
+
       const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message);
+      return await this.pushLineMessage(chattool, user, message, remindTypes);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -127,18 +143,24 @@ export default class LineRepository {
   pushNotAssignListTaskMessageToAdmin = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>
+    todos: Array<Todo>,
+    dayReminds: number[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
-
         return;
       }
 
+      //2. 担当者・期日未設定に対するリマインド
+      const remindTypes: IRemindType = {
+        remindType: RemindType.REMIND_NOT_ASSIGN,
+        dayReminds: dayReminds,
+      };
+
       const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message);
+      return await this.pushLineMessage(chattool, user, message, remindTypes);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -153,18 +175,24 @@ export default class LineRepository {
   pushListTaskMessageToUser = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>
+    todos: Array<Todo>,
+    dayReminds: number[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
-
         return;
       }
 
+      //3. 期日未設定に対するリマインド
+      const remindTypes: IRemindType = {
+        remindType: RemindType.REMIND_NOT_DEADLINE,
+        dayReminds: dayReminds,
+      };
+
       const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message);
+      return await this.pushLineMessage(chattool, user, message, remindTypes);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -292,7 +320,7 @@ export default class LineRepository {
     chattool: ChatTool,
     user: IUser,
     message: Message,
-    todo?: Todo
+    remindTypes?: IRemindType
   ): Promise<any> => {
     if (process.env.ENV == 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
@@ -300,7 +328,7 @@ export default class LineRepository {
       await LineBot.pushMessage(user.line_id, message, false);
     }
 
-    return await this.saveChatMessage(chattool, user, message, todo);
+    return await this.saveChatMessage(chattool, user, message, remindTypes);
   };
 
   replyMessage = async (replyToken: string, message: Message): Promise<any> => {
@@ -314,11 +342,14 @@ export default class LineRepository {
   };
 
   saveChatMessage = async (
-    chattool: ChatTool,
+    chattool: IChatTool,
     user: IUser,
     message: Message,
+    remindTypes?: IRemindType,
     todo?: Todo
   ): Promise<ChatMessage> => {
+    const linkToken = await LineBot.getLinkToken(user.line_id);
+
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
     chatMessage.chattool_id = chattool.id;
@@ -335,9 +366,13 @@ export default class LineRepository {
         .toDate()
     );
     chatMessage.user_id = user.id;
-
-    const linkToken = await LineBot.getLinkToken(user.line_id);
     chatMessage.message_token = linkToken;
+
+    if (remindTypes) {
+      const { remindType, dayReminds } = remindTypes;
+      chatMessage.remind_type = remindType;
+      chatMessage.remind_before_days = dayReminds ? dayReminds.join(',') : null;
+    }
 
     return await this.messageRepository.save(chatMessage);
   };

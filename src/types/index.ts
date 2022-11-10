@@ -79,6 +79,12 @@ export type ITodoUserUpdate = {
   users: IUser[];
 };
 
+export type IChatTool = {
+  id: number;
+  name: string;
+  tool_code: string;
+};
+
 export type ITrelloTask = {
   id: string;
   name: string;
@@ -140,8 +146,22 @@ export type IMicrosoftRefresh = {
   todoAppUser: ITodoAppUser;
 };
 
+export type IRemindType = {
+  remindType: number;
+  dayReminds: number[];
+};
+
 export type IRemindTask = {
   remindDays: number;
   cardTodo: ITodoTask;
   delayedCount: number;
+  dayReminds: number[];
+};
+
+export type ITodoLines = {
+  todoId: string;
+  remindDays: number;
+  dayReminds: number[];
+  chattool: IChatTool;
+  user: IUser;
 };

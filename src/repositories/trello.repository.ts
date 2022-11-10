@@ -4,7 +4,6 @@ import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
   ISection,
-  ICompanyCondition,
   ITodo,
   ITodoAppUser,
   ITodoTask,
@@ -15,11 +14,11 @@ import {
   ITodoApp,
   ITodoUserUpdate,
   ITodoUpdate,
+  ITodoLines,
 } from './../types';
 
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
-import { Section } from '../entify/section.entity';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { toJapanDateTime } from '../utils/common';
 import moment from 'moment';
@@ -28,66 +27,35 @@ import TrelloRequest from './../libs/trello.request';
 import LineRepository from './line.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
+import CommonRepository from './modules/common.repository';
 import { ChatToolCode } from '../const/common';
 
 @Service()
 export default class TrelloRepository {
-  private userRepository: Repository<User>;
-  private sectionRepository: Repository<Section>;
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
   private lineBotRepository: LineRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
+  private commonRepository: CommonRepository;
 
   constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
     this.lineBotRepository = Container.get(LineRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
+    this.commonRepository = Container.get(CommonRepository);
   }
-
-  getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    const sections: ISection[] = await this.sectionRepository
-      .createQueryBuilder('sections')
-      .where('sections.company_id = :companyId', { companyId })
-      .andWhere('sections.todoapp_id = :todoappId', { todoappId })
-      .getMany();
-    return sections;
-  };
-
-  getUserTodoApps = async (
-    companyId: number,
-    todoappId: number,
-    hasTrelloId: boolean = true
-  ): Promise<IUser[]> => {
-    const query = this.userRepository
-      .createQueryBuilder('users')
-      .innerJoinAndSelect('users.todoAppUsers', 'todo_app_users')
-      .leftJoinAndSelect('users.companyCondition', 'm_company_conditions')
-      .where('users.company_id = :companyId', { companyId })
-      .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId });
-    if (hasTrelloId) {
-      query.andWhere('todo_app_users.user_app_id IS NOT NULL');
-    } else {
-      query.andWhere('todo_app_users.user_app_id IS NULL');
-    }
-
-    const users: IUser[] = await query.getMany();
-    return users;
-  };
 
   remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
     await this.updateUsersTrello(companyId, todoappId);
-    const sections = await this.getSections(companyId, todoappId);
-    const users = await this.getUserTodoApps(companyId, todoappId);
+    const sections = await this.commonRepository.getSections(companyId, todoappId);
+    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId);
     await this.getUserCardBoards(users, sections, company, todoapp);
   };
 
@@ -105,7 +73,9 @@ export default class TrelloRepository {
         }
       }
 
-      const dayReminds: number[] = await this.getDayReminds(company.companyConditions);
+      const dayReminds: number[] = await this.commonRepository.getDayReminds(
+        company.companyConditions
+      );
       await this.filterUpdateCards(dayReminds, todoTasks);
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -165,7 +135,7 @@ export default class TrelloRepository {
   };
 
   updateUsersTrello = async (companyId: number, todoappId: number): Promise<void> => {
-    const users = await this.getUserTodoApps(companyId, todoappId, false);
+    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId, false);
     for await (const user of users) {
       if (user.todoAppUsers.length) {
         await this.updateTrelloUser(user.todoAppUsers);
@@ -192,14 +162,6 @@ export default class TrelloRepository {
     }
   };
 
-  getDayReminds = async (companyConditions: ICompanyCondition[]): Promise<number[]> => {
-    const dayReminds: number[] = companyConditions
-      .map((s) => s.remind_before_days)
-      .filter(Number.isFinite);
-
-    return dayReminds;
-  };
-
   filterUpdateCards = async (dayReminds: number[], cardTodos: ITodoTask[]): Promise<void> => {
     const cardReminds: IRemindTask[] = [];
     const cardNomals: IRemindTask[] = [];
@@ -222,6 +184,7 @@ export default class TrelloRepository {
             remindDays: diffDays,
             cardTodo: cardTodo,
             delayedCount: delayedCount,
+            dayReminds: dayReminds,
           });
         }
       }
@@ -231,6 +194,7 @@ export default class TrelloRepository {
           remindDays: 0,
           cardTodo: cardTodo,
           delayedCount: delayedCount,
+          dayReminds: dayReminds,
         });
       }
     }
@@ -245,10 +209,12 @@ export default class TrelloRepository {
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
+      const dataTodoLines: ITodoLines[] = [];
       // const pushUserIds = [];
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
+        const dayReminds = taskRemind.dayReminds;
         const { users, todoTask, todoapp, company, section } = cardTodo;
 
         // if (isRemind && user && !pushUserIds.includes(user.id)) {
@@ -293,12 +259,13 @@ export default class TrelloRepository {
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
-                  this.lineBotRepository.pushMessageRemind(
-                    chattool,
-                    user,
-                    { ...todoData, assigned_user_id: user.id },
-                    taskRemind.remindDays
-                  );
+                  dataTodoLines.push({
+                    todoId: todoTask.id,
+                    remindDays: taskRemind.remindDays,
+                    dayReminds: dayReminds,
+                    chattool: chattool,
+                    user: user,
+                  });
                 }
               });
             }
@@ -333,6 +300,7 @@ export default class TrelloRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
+        await this.commonRepository.pushTodoLines(dataTodoLines);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));

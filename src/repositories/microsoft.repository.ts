@@ -2,13 +2,13 @@ import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
   ICompany,
-  ICompanyCondition,
   IMicrosoftRefresh,
   IRemindTask,
   ISection,
   ITodo,
   ITodoApp,
   ITodoAppUser,
+  ITodoLines,
   ITodoTask,
   ITodoUpdate,
   ITodoUserUpdate,
@@ -16,13 +16,11 @@ import {
 } from './../types';
 
 import { AppDataSource } from './../config/data-source';
-import { User } from './../entify/user.entity';
 import { Service, Container } from 'typedi';
 import { ChatToolCode, Common } from './../const/common';
 import { fetchApi } from './../libs/request';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { Todo } from './../entify/todo.entity';
-import { Section } from './../entify/section.entity';
 import { replaceString, toJapanDateTime } from './../utils/common';
 import moment from 'moment';
 import FormData from 'form-data';
@@ -32,89 +30,35 @@ import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import logger from './../logger/winston';
 import { ImplementedTodoApp } from '../entify/implemented.todoapp.entity';
+import CommonRepository from './modules/common.repository';
 
 @Service()
 export default class MicrosoftRepository {
-  private userRepository: Repository<User>;
-  private sectionRepository: Repository<Section>;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private microsoftRequest: MicrosoftRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
   private lineBotRepository: LineRepository;
   private todoUserRepository: TodoUserRepository;
-  private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
+  private commonRepository: CommonRepository;
 
   constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
     this.lineBotRepository = Container.get(LineRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
-    this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
+    this.commonRepository = Container.get(CommonRepository);
   }
-
-  getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    const sections: ISection[] = await this.sectionRepository
-      .createQueryBuilder('sections')
-      .where('sections.company_id = :companyId', { companyId })
-      .andWhere('sections.todoapp_id = :todoappId', { todoappId })
-      .getMany();
-    return sections;
-  };
-
-  getUserTodoApps = async (
-    companyId: number,
-    todoappId: number,
-    hasMicrosoftId: boolean = true
-  ): Promise<IUser[]> => {
-    const query = this.userRepository
-      .createQueryBuilder('users')
-      .innerJoinAndSelect('users.todoAppUsers', 'todo_app_users')
-      .leftJoinAndSelect('users.companyCondition', 'm_company_conditions')
-      .where('users.company_id = :companyId', { companyId })
-      .andWhere('todo_app_users.todoapp_id = :todoappId', { todoappId });
-    if (hasMicrosoftId) {
-      query.andWhere('todo_app_users.user_app_id IS NOT NULL');
-    } else {
-      query.andWhere('todo_app_users.user_app_id IS NULL');
-    }
-
-    const users: IUser[] = await query.getMany();
-    return users;
-  };
-
-  getImplementTodoApp = async (companyId: number, todoappId: number) => {
-    const implementTodoApp = await this.implementedTodoAppRepository.findOneBy({
-      company_id: companyId,
-      todoapp_id: todoappId,
-    });
-
-    if (!implementTodoApp) {
-      logger.error(
-        new LoggerError(
-          'implemented_todo_appsのデータ(company_id=' +
-            companyId +
-            ' todoapp_id=' +
-            todoappId +
-            ')がありません。'
-        )
-      );
-    }
-
-    return implementTodoApp;
-  };
 
   remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
 
     await this.updateUsersMicrosoft(companyId, todoappId);
-    const sections = await this.getSections(companyId, todoappId);
-    const users = await this.getUserTodoApps(companyId, todoappId);
+    const sections = await this.commonRepository.getSections(companyId, todoappId);
+    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId);
     await this.getUserTaskBoards(users, sections, company, todoapp);
   };
 
@@ -132,9 +76,15 @@ export default class MicrosoftRepository {
         }
       }
 
-      const dayReminds: number[] = await this.getDayReminds(company.companyConditions);
+      const dayReminds: number[] = await this.commonRepository.getDayReminds(
+        company.companyConditions
+      );
 
-      const implementTodoApp = await this.getImplementTodoApp(company.id, todoapp.id);
+      const implementTodoApp = await this.commonRepository.getImplementTodoApp(
+        company.id,
+        todoapp.id
+      );
+
       if (implementTodoApp) {
         await this.filterUpdateTask(dayReminds, todoTasks, implementTodoApp);
       }
@@ -210,7 +160,7 @@ export default class MicrosoftRepository {
   };
 
   updateUsersMicrosoft = async (companyId: number, todoappId: number): Promise<void> => {
-    const users = await this.getUserTodoApps(companyId, todoappId, false);
+    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId, false);
     for (const user of users) {
       if (user.todoAppUsers.length) {
         await this.updateMicosoftUser(user.todoAppUsers);
@@ -234,14 +184,6 @@ export default class MicrosoftRepository {
         }
       }
     }
-  };
-
-  getDayReminds = async (companyCondition: ICompanyCondition[]): Promise<number[]> => {
-    const dayReminds: number[] = companyCondition
-      .map((s) => s.remind_before_days)
-      .filter(Number.isFinite);
-
-    return dayReminds;
   };
 
   filterUpdateTask = async (
@@ -270,6 +212,7 @@ export default class MicrosoftRepository {
             remindDays: diffDays,
             cardTodo: cardTodo,
             delayedCount: delayedCount,
+            dayReminds: dayReminds,
           });
         }
       }
@@ -279,6 +222,7 @@ export default class MicrosoftRepository {
           remindDays: 0,
           cardTodo: cardTodo,
           delayedCount: delayedCount,
+          dayReminds: dayReminds,
         });
       }
     }
@@ -337,10 +281,12 @@ export default class MicrosoftRepository {
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
+      const dataTodoLines: ITodoLines[] = [];
       //const pushUserIds = [];
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
+        const dayReminds = taskRemind.dayReminds;
         const { users, todoTask, todoapp, company, section, todoAppUser } = cardTodo;
 
         // if (isRemind && user && !pushUserIds.includes(user.id)) {
@@ -388,12 +334,13 @@ export default class MicrosoftRepository {
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
-                  this.lineBotRepository.pushMessageRemind(
-                    chattool,
-                    user,
-                    { ...todoData, assigned_user_id: user.id },
-                    taskRemind.remindDays
-                  );
+                  dataTodoLines.push({
+                    todoId: todoTask.id,
+                    remindDays: taskRemind.remindDays,
+                    dayReminds: dayReminds,
+                    chattool: chattool,
+                    user: user,
+                  });
                 }
               });
             }
@@ -429,6 +376,7 @@ export default class MicrosoftRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
+        await this.commonRepository.pushTodoLines(dataTodoLines);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));
