@@ -13,7 +13,13 @@ import { User } from '../entify/user.entity';
 import { Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
-import { MessageType, OpenStatus, ReplyStatus, SenderType } from '../const/common';
+import {
+  MessageTriggerType,
+  MessageType,
+  OpenStatus,
+  ReplyStatus,
+  SenderType,
+} from '../const/common';
 import moment from 'moment';
 import { toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
@@ -54,7 +60,8 @@ export default class LineRepository {
       );
 
       if (process.env.ENV == 'LOCAL') {
-        console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
+        // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
+        console.log(messageForSend);
       } else {
         await LineBot.pushMessage(user.line_id, messageForSend, false);
       }
@@ -271,6 +278,16 @@ export default class LineRepository {
     }
   };
 
+  findMessageById = async (id: number): Promise<ChatMessage> => {
+    try {
+      return await this.messageRepository.findOneBy({
+        id: id,
+      });
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
   pushLineMessage = async (
     chattool: ChatTool,
     user: IUser,
@@ -306,8 +323,8 @@ export default class LineRepository {
     chatMessage.is_from_user = SenderType.FROM_BOT;
     chatMessage.chattool_id = chattool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
-    chatMessage.is_replied = ReplyStatus.REPLIED;
-    chatMessage.message_trigger_id = 1; // batch
+    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
+    chatMessage.message_trigger_id = MessageTriggerType.BATCH; // batch
     chatMessage.message_type_id = MessageType.FLEX;
 
     chatMessage.body = LineMessageBuilder.getTextContentFromMessage(message);
