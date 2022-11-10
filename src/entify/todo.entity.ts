@@ -54,7 +54,7 @@ export class Todo {
   is_reminded: boolean;
 
   @Column()
-  is_rescheduled: boolean;
+  delayed_count: number;
 
   @Column({ default: false })
   is_closed: boolean;

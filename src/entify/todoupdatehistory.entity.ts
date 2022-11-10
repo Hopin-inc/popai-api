@@ -9,5 +9,14 @@ export class TodoUpdateHistory {
   todo_id: number;
 
   @Column()
+  deadline_before: Date;
+
+  @Column()
+  deadline_after: Date;
+
+  @Column()
+  is_done: boolean;
+
+  @Column()
   todoapp_reg_updated_at: Date;
 }
