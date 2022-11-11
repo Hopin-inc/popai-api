@@ -4,6 +4,7 @@ import { Get, Route, Controller } from 'tsoa';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
 import { ReplyStatus } from '../const/common';
+import { toJapanDateTime } from '../utils/common';
 
 export default class MessageController extends Controller {
   private messageRepository: Repository<ChatMessage>;
@@ -36,6 +37,10 @@ export default class MessageController extends Controller {
 
     // set is_replied = true
     message.is_replied = ReplyStatus.REPLIED;
+    if (!message.url_clicked_at) {
+      message.url_clicked_at = toJapanDateTime(new Date());
+    }
+
     this.messageRepository.save(message);
 
     return todo.todoapp_reg_url;
