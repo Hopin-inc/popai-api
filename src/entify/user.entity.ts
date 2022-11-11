@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  JoinColumn,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
+import { ChatTool } from './chat_tool.entity';
 import { CompanyCondion } from './company.conditon.entity';
 import { Todo } from './todo.entity';
 import { TodoAppUser } from './todoappuser.entity';
@@ -13,9 +22,6 @@ export class User {
 
   @Column()
   company_id: number;
-
-  @Column()
-  line_id: string;
 
   @OneToMany(
     () => CompanyCondion,
@@ -35,4 +41,15 @@ export class User {
     (todo) => todo.user
   )
   todos: Todo[];
+
+  @ManyToMany(
+    () => ChatTool,
+    (chattool) => chattool.users
+  )
+  @JoinTable({
+    name: 'chat_tool_users',
+    joinColumn: { name: 'user_id' },
+    inverseJoinColumn: { name: 'id' },
+  })
+  chattools: ChatTool[];
 }

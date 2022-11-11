@@ -30,15 +30,19 @@ import { toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
+import CommonRepository from './../repositories/modules/common.repository';
+import { IUser } from './../types';
 
 @Route('line')
 export default class LineController extends Controller {
   private lineRepository: LineRepository;
   private chattoolRepository: Repository<ChatTool>;
+  private commonRepository: CommonRepository;
 
   constructor() {
     super();
     this.lineRepository = Container.get(LineRepository);
+    this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
@@ -229,25 +233,28 @@ export default class LineController extends Controller {
    */
   private async sendSuperiorMessage(
     chattool: ChatTool,
-    superiorUser: User,
+    superiorUser: IUser,
     userName: string,
     taskName: string,
     reportContent: string
   ): Promise<MessageAPIResponseBase> {
-    if (!superiorUser.line_id) {
-      logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
+    const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chattool.id);
+    const user = { ...superiorUser, line_id: chatToolUser?.auth_key };
+
+    if (!chatToolUser?.auth_key) {
+      logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
 
       return;
     }
 
-    await this.lineRepository.pushStartReportToSuperior(chattool, superiorUser);
+    await this.lineRepository.pushStartReportToSuperior(chattool, user);
 
     const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
-      superiorUser.name,
+      user.name,
       userName,
       taskName,
       reportContent
     );
-    return await this.lineRepository.pushLineMessage(chattool, superiorUser, reportMessage);
+    return await this.lineRepository.pushLineMessage(chattool, user, reportMessage);
   }
 }

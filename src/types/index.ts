@@ -3,6 +3,7 @@ import { ChatTool } from '../entify/chat_tool.entity';
 export type ICompany = {
   id: number;
   name: string;
+  admin_user_id: number;
   todoapps?: ITodoApp[];
   admin_user?: IUser;
   companyConditions?: ICompanyCondition[];
@@ -22,7 +23,7 @@ export type ICompanyCondition = {
 export type IUser = {
   id: number;
   name: string;
-  line_id: string;
+  line_id?: string;
   companyCondition?: ICompanyCondition[];
   todoAppUsers?: ITodoAppUser[];
 };
@@ -83,6 +84,13 @@ export type IChatTool = {
   id: number;
   name: string;
   tool_code: string;
+};
+
+export type IChatToolUser = {
+  id: number;
+  auth_key: string;
+  user_id: number;
+  chattool_id: number;
 };
 
 export type ITrelloTask = {

@@ -1,5 +1,5 @@
 import { ICompanyCondition, ISection, ITodoLines, IUser } from './../../types';
-import { Repository } from 'typeorm';
+import { Repository, IsNull, Not } from 'typeorm';
 import { Service, Container } from 'typedi';
 import { AppDataSource } from './../../config/data-source';
 import { Section } from './../../entify/section.entity';
@@ -8,22 +8,22 @@ import { ImplementedTodoApp } from './../../entify/implemented.todoapp.entity';
 import logger from '../../logger/winston';
 import { LoggerError } from '../../exceptions';
 import { Todo } from './../../entify/todo.entity';
-import LineRepository from '../line.repository';
+import { ChatToolUser } from './../../entify/chattool.user.entity';
 
 @Service()
 export default class CommonRepository {
   private sectionRepository: Repository<Section>;
   private userRepository: Repository<User>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
+  private chatToolUserRepository: Repository<ChatToolUser>;
   private todoRepository: Repository<Todo>;
-  private lineBotRepository: LineRepository;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.userRepository = AppDataSource.getRepository(User);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.lineBotRepository = Container.get(LineRepository);
+    this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
@@ -77,30 +77,53 @@ export default class CommonRepository {
     return implementTodoApp;
   };
 
+  getChatToolUsers = async () => {
+    return await this.chatToolUserRepository.find();
+  };
+
+  getChatToolUser = async (userId: number, chatToolId: number) => {
+    const chatToolUser = await this.chatToolUserRepository.findOneBy({
+      user_id: userId,
+      chattool_id: chatToolId,
+      auth_key: Not(IsNull()),
+    });
+
+    if (!chatToolUser) {
+      logger.error(
+        new LoggerError(
+          'chat_tool_usersのデータ(user_id=' +
+            userId +
+            ' chattool_id=' +
+            chatToolId +
+            ')がありません。'
+        )
+      );
+    }
+
+    return chatToolUser;
+  };
+
+  getChatToolUserByLineId = async (authKey: string) => {
+    const users = this.userRepository
+      .createQueryBuilder('users')
+      .innerJoin('chat_tool_users', 'r', 'users.id = r.user_id')
+      .innerJoinAndMapMany(
+        'users.chattools',
+        'm_chat_tools',
+        'c',
+        'c.id = r.chattool_id AND r.auth_key = :authKey',
+        { authKey }
+      )
+      .getMany();
+
+    return users;
+  };
+
   getDayReminds = async (companyConditions: ICompanyCondition[]): Promise<number[]> => {
     const dayReminds: number[] = companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
 
     return dayReminds;
-  };
-
-  pushTodoLines = async (dataTodoLines: ITodoLines[]): Promise<void> => {
-    for (const todoLine of dataTodoLines) {
-      const { todoId, chattool, user, remindDays } = todoLine;
-
-      const todo = await this.todoRepository.findOneBy({
-        todoapp_reg_id: todoId,
-      });
-
-      if (todo) {
-        this.lineBotRepository.pushMessageRemind(
-          chattool,
-          user,
-          { ...todo, assigned_user_id: user.id },
-          remindDays
-        );
-      }
-    }
   };
 }

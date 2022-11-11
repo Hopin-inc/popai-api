@@ -206,6 +206,8 @@ export default class TrelloRepository {
       const dataTodoLines: ITodoLines[] = [];
       // const pushUserIds = [];
 
+      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
         const { users, todoTask, todoapp, company, section } = cardTodo;
@@ -252,12 +254,19 @@ export default class TrelloRepository {
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
-                  dataTodoLines.push({
-                    todoId: todoTask.id,
-                    remindDays: taskRemind.remindDays,
-                    chattool: chattool,
-                    user: user,
-                  });
+                  const chatToolUsers = chattoolUsers.filter(
+                    (chattoolUser) =>
+                      chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
+                  );
+
+                  if (chatToolUsers.length) {
+                    dataTodoLines.push({
+                      todoId: todoTask.id,
+                      remindDays: taskRemind.remindDays,
+                      chattool: chattool,
+                      user: { ...user, line_id: chatToolUsers[0].auth_key },
+                    });
+                  }
                 }
               });
             }
@@ -292,7 +301,7 @@ export default class TrelloRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
-        await this.commonRepository.pushTodoLines(dataTodoLines);
+        await this.lineBotRepository.pushTodoLines(dataTodoLines);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));
