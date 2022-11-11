@@ -6,7 +6,7 @@ export class changeTypeRemindBeforeDaysToMessages1668131536216 implements Migrat
 
     await queryRunner.query(
       `ALTER TABLE messages 
-      MODIFY COLUMN remind_before_days INT DEFAULT 0`
+      MODIFY COLUMN remind_before_days INT NULL`
     );
   }
 

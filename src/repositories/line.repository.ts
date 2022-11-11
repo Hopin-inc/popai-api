@@ -343,7 +343,7 @@ export default class LineRepository {
   ): Promise<ChatMessage> => {
     const { remindType, remindDays } = {
       remindType: RemindType.NOT_REMIND,
-      remindDays: 0,
+      remindDays: null,
       ...remindTypes,
     };
     const linkToken = await LineBot.getLinkToken(user.line_id);
