@@ -6,6 +6,7 @@ import { IUser } from '../types';
 
 export class LineMessageBuilder {
   static createRemindMessage(
+    messageToken: string,
     userName: string,
     todo: Todo,
     remindDays: number,
@@ -62,7 +63,7 @@ export class LineMessageBuilder {
               action: {
                 type: 'uri',
                 label: truncate(todo.todoapp_reg_url, LINE_MAX_LABEL_LENGTH),
-                uri: todo.todoapp_reg_url,
+                uri: process.env.HOST + '/api/message/redirect/' + todo.id + '/' + messageToken,
               },
             },
             {

@@ -57,10 +57,24 @@ export default class LineRepository {
         remindDays: remindDays,
       };
 
-      const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
-      const chatMessage = await this.saveChatMessage(chattool, user, message, remindTypes, todo);
+      const messageToken = await LineBot.getLinkToken(user.line_id);
+      const message = LineMessageBuilder.createRemindMessage(
+        messageToken,
+        user.name,
+        todo,
+        remindDays
+      );
+      const chatMessage = await this.saveChatMessage(
+        chattool,
+        user,
+        message,
+        messageToken,
+        remindTypes,
+        todo
+      );
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
+        chatMessage.message_token,
         user.name,
         todo,
         remindDays,
@@ -321,7 +335,9 @@ export default class LineRepository {
       await LineBot.pushMessage(user.line_id, message, false);
     }
 
-    return await this.saveChatMessage(chattool, user, message, remindTypes);
+    const linkToken = await LineBot.getLinkToken(user.line_id);
+
+    return await this.saveChatMessage(chattool, user, message, linkToken, remindTypes);
   };
 
   replyMessage = async (replyToken: string, message: Message): Promise<any> => {
@@ -338,6 +354,7 @@ export default class LineRepository {
     chattool: IChatTool,
     user: IUser,
     message: Message,
+    messageToken: string,
     remindTypes?: IRemindType,
     todo?: Todo
   ): Promise<ChatMessage> => {
@@ -346,7 +363,6 @@ export default class LineRepository {
       remindDays: null,
       ...remindTypes,
     };
-    const linkToken = await LineBot.getLinkToken(user.line_id);
 
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
@@ -364,7 +380,7 @@ export default class LineRepository {
         .toDate()
     );
     chatMessage.user_id = user.id;
-    chatMessage.message_token = linkToken;
+    chatMessage.message_token = messageToken;
     chatMessage.remind_type = remindType;
     chatMessage.remind_before_days = remindDays;
 

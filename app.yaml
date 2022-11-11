@@ -3,6 +3,7 @@ runtime: nodejs16 # or another supported version
 instance_class: F1
 
 env_variables:
+  HOST: https://rize-angel-dev.dt.r.appspot.com
   ENV: DEV
   PORT: 8080
   DB_HOST: 10.124.160.3
