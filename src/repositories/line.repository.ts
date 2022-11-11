@@ -73,6 +73,7 @@ export default class LineRepository {
         chattool,
         user,
         message,
+        MessageTriggerType.BATCH,
         messageToken,
         remindTypes,
         todo
@@ -110,7 +111,7 @@ export default class LineRepository {
         logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
       } else {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
-        await this.pushLineMessage(chattool, superiorUser, message);
+        await this.pushLineMessage(chattool, superiorUser, message, MessageTriggerType.ACTION);
       }
 
       return;
@@ -144,7 +145,13 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message, remindTypes);
+      return await this.pushLineMessage(
+        chattool,
+        user,
+        message,
+        MessageTriggerType.BATCH,
+        remindTypes
+      );
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -174,7 +181,13 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message, remindTypes);
+      return await this.pushLineMessage(
+        chattool,
+        user,
+        message,
+        MessageTriggerType.BATCH,
+        remindTypes
+      );
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -204,7 +217,13 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message, remindTypes);
+      return await this.pushLineMessage(
+        chattool,
+        user,
+        message,
+        MessageTriggerType.BATCH,
+        remindTypes
+      );
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -226,7 +245,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message);
+      return await this.pushLineMessage(chattool, user, message, MessageTriggerType.BATCH);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -334,6 +353,7 @@ export default class LineRepository {
     chattool: ChatTool,
     user: IUser,
     message: Message,
+    messageTriggerId: number,
     remindTypes?: IRemindType
   ): Promise<any> => {
     if (process.env.ENV == 'LOCAL') {
@@ -344,7 +364,14 @@ export default class LineRepository {
 
     const linkToken = await LineBot.getLinkToken(user.line_id);
 
-    return await this.saveChatMessage(chattool, user, message, linkToken, remindTypes);
+    return await this.saveChatMessage(
+      chattool,
+      user,
+      message,
+      messageTriggerId,
+      linkToken,
+      remindTypes
+    );
   };
 
   replyMessage = async (replyToken: string, message: Message): Promise<any> => {
@@ -375,6 +402,7 @@ export default class LineRepository {
     chattool: IChatTool,
     user: IUser,
     message: Message,
+    messageTriggerId: number,
     messageToken: string,
     remindTypes?: IRemindType,
     todo?: ITodo
@@ -390,7 +418,7 @@ export default class LineRepository {
     chatMessage.chattool_id = chattool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = MessageTriggerType.BATCH; // batch
+    chatMessage.message_trigger_id = messageTriggerId; // batch
     chatMessage.message_type_id = MessageType.FLEX;
 
     chatMessage.body = LineMessageBuilder.getTextContentFromMessage(message);

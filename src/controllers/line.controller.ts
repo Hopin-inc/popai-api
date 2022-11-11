@@ -104,7 +104,7 @@ export default class LineController extends Controller {
                 } else {
                   this.replyDeplayAction(event.replyToken);
                 }
-                this.saveChatMessage(chattool, postData, event, MessageTriggerType.ACTION);
+                this.saveChatMessage(chattool, postData, event, MessageTriggerType.REPLY);
 
                 this.sendSuperiorMessage(
                   chattool,
@@ -255,6 +255,11 @@ export default class LineController extends Controller {
       taskName,
       reportContent
     );
-    return await this.lineRepository.pushLineMessage(chattool, user, reportMessage);
+    return await this.lineRepository.pushLineMessage(
+      chattool,
+      user,
+      reportMessage,
+      MessageTriggerType.ACTION
+    );
   }
 }
