@@ -148,20 +148,18 @@ export type IMicrosoftRefresh = {
 
 export type IRemindType = {
   remindType: number;
-  dayReminds: number[];
+  remindDays?: number;
 };
 
 export type IRemindTask = {
   remindDays: number;
   cardTodo: ITodoTask;
   delayedCount: number;
-  dayReminds: number[];
 };
 
 export type ITodoLines = {
   todoId: string;
   remindDays: number;
-  dayReminds: number[];
   chattool: IChatTool;
   user: IUser;
 };

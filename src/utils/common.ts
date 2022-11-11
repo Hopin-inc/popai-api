@@ -21,3 +21,10 @@ export function toJapanDateTime(utcDateString: Date): Date {
 export function replaceString(str: string, search: string, replace: string): string {
   return str.replace(new RegExp(search, 'g'), replace);
 }
+
+export function diffDays(startDate: Date, endDate: Date) {
+  const startDay = moment(toJapanDateTime(startDate)).startOf('day');
+  const endDay = moment(toJapanDateTime(endDate)).startOf('day');
+
+  return endDay.diff(startDay, 'days');
+}

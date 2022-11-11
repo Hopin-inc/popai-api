@@ -43,8 +43,7 @@ export default class LineRepository {
     chattool: IChatTool,
     user: IUser,
     todo: Todo,
-    remindDays: number,
-    dayReminds: number[]
+    remindDays: number
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -55,7 +54,7 @@ export default class LineRepository {
       //1.期日に対するリマインド
       const remindTypes: IRemindType = {
         remindType: RemindType.REMIND_BY_DEADLINE,
-        dayReminds: dayReminds,
+        remindDays: remindDays,
       };
 
       const message = LineMessageBuilder.createRemindMessage(user.name, todo, remindDays);
@@ -110,8 +109,7 @@ export default class LineRepository {
   pushListTaskMessageToAdmin = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>,
-    dayReminds: number[]
+    todos: Array<Todo>
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -123,7 +121,6 @@ export default class LineRepository {
       //4. 担当者・期日未設定に対するリマインド
       const remindTypes: IRemindType = {
         remindType: RemindType.REMIND_NOT_ASSIGN_DEADLINE,
-        dayReminds: dayReminds,
       };
 
       const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
@@ -143,8 +140,7 @@ export default class LineRepository {
   pushNotAssignListTaskMessageToAdmin = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>,
-    dayReminds: number[]
+    todos: Array<Todo>
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -155,7 +151,6 @@ export default class LineRepository {
       //2. 担当者・期日未設定に対するリマインド
       const remindTypes: IRemindType = {
         remindType: RemindType.REMIND_NOT_ASSIGN,
-        dayReminds: dayReminds,
       };
 
       const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(user, todos);
@@ -175,8 +170,7 @@ export default class LineRepository {
   pushListTaskMessageToUser = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>,
-    dayReminds: number[]
+    todos: Array<Todo>
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -187,7 +181,6 @@ export default class LineRepository {
       //3. 期日未設定に対するリマインド
       const remindTypes: IRemindType = {
         remindType: RemindType.REMIND_NOT_DEADLINE,
-        dayReminds: dayReminds,
       };
 
       const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
@@ -348,6 +341,11 @@ export default class LineRepository {
     remindTypes?: IRemindType,
     todo?: Todo
   ): Promise<ChatMessage> => {
+    const { remindType, remindDays } = {
+      remindType: RemindType.NOT_REMIND,
+      remindDays: null,
+      ...remindTypes,
+    };
     const linkToken = await LineBot.getLinkToken(user.line_id);
 
     const chatMessage = new ChatMessage();
@@ -367,12 +365,8 @@ export default class LineRepository {
     );
     chatMessage.user_id = user.id;
     chatMessage.message_token = linkToken;
-
-    if (remindTypes) {
-      const { remindType, dayReminds } = remindTypes;
-      chatMessage.remind_type = remindType;
-      chatMessage.remind_before_days = dayReminds ? dayReminds.join(',') : null;
-    }
+    chatMessage.remind_type = remindType;
+    chatMessage.remind_before_days = remindDays;
 
     return await this.messageRepository.save(chatMessage);
   };

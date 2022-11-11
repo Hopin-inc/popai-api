@@ -21,7 +21,7 @@ import { ChatToolCode, Common } from './../const/common';
 import { fetchApi } from './../libs/request';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { Todo } from './../entify/todo.entity';
-import { replaceString, toJapanDateTime } from './../utils/common';
+import { replaceString, toJapanDateTime, diffDays } from './../utils/common';
 import moment from 'moment';
 import FormData from 'form-data';
 import MicrosoftRequest from './../libs/microsoft.request';
@@ -200,19 +200,15 @@ export default class MicrosoftRepository {
       const todoTask = cardTodo.todoTask;
 
       if (todoTask.dueDateTime) {
-        const dateExpired = moment(toJapanDateTime(todoTask.dueDateTime)).startOf('day');
-        const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
+        const dayDurations = diffDays(todoTask.dueDateTime, new Date());
+        delayedCount = dayDurations;
 
-        const diffDays = dateNow.diff(dateExpired, 'days');
-        delayedCount = diffDays;
-
-        if (dayReminds.includes(diffDays) && todoTask.percentComplete !== Common.completed) {
+        if (dayReminds.includes(dayDurations) && todoTask.percentComplete !== Common.completed) {
           hasRemind = true;
           taskReminds.push({
-            remindDays: diffDays,
+            remindDays: dayDurations,
             cardTodo: cardTodo,
             delayedCount: delayedCount,
-            dayReminds: dayReminds,
           });
         }
       }
@@ -222,7 +218,6 @@ export default class MicrosoftRepository {
           remindDays: 0,
           cardTodo: cardTodo,
           delayedCount: delayedCount,
-          dayReminds: dayReminds,
         });
       }
     }
@@ -286,7 +281,6 @@ export default class MicrosoftRepository {
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
-        const dayReminds = taskRemind.dayReminds;
         const { users, todoTask, todoapp, company, section, todoAppUser } = cardTodo;
 
         // if (isRemind && user && !pushUserIds.includes(user.id)) {
@@ -337,7 +331,6 @@ export default class MicrosoftRepository {
                   dataTodoLines.push({
                     todoId: todoTask.id,
                     remindDays: taskRemind.remindDays,
-                    dayReminds: dayReminds,
                     chattool: chattool,
                     user: user,
                   });

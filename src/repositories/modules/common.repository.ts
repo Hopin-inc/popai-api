@@ -87,7 +87,7 @@ export default class CommonRepository {
 
   pushTodoLines = async (dataTodoLines: ITodoLines[]): Promise<void> => {
     for (const todoLine of dataTodoLines) {
-      const { todoId, chattool, user, remindDays, dayReminds } = todoLine;
+      const { todoId, chattool, user, remindDays } = todoLine;
 
       const todo = await this.todoRepository.findOneBy({
         todoapp_reg_id: todoId,
@@ -98,8 +98,7 @@ export default class CommonRepository {
           chattool,
           user,
           { ...todo, assigned_user_id: user.id },
-          remindDays,
-          dayReminds
+          remindDays
         );
       }
     }
