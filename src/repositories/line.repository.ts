@@ -1,8 +1,8 @@
 import { LoggerError } from '../exceptions';
-import { Service } from 'typedi';
+import { Service, Container } from 'typedi';
 import { LineMessageBuilder } from '../common/line_message';
 import { Todo } from '../entify/todo.entity';
-import { IChatTool, IRemindType, IUser } from '../types';
+import { IChatTool, IRemindType, ITodoLines, IUser } from '../types';
 import { LineBot } from '../config/linebot';
 
 import { AppDataSource } from '../config/data-source';
@@ -10,7 +10,7 @@ import { Message, Profile } from '@line/bot-sdk';
 import { LineProfile } from '../entify/line_profile.entity';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
 
@@ -26,17 +26,22 @@ import {
 import moment from 'moment';
 import { toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
+import CommonRepository from './modules/common.repository';
 
 @Service()
 export default class LineRepository {
   private lineProfileRepository: Repository<LineProfile>;
   private userRepositoty: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
+  private todoRepository: Repository<Todo>;
+  private commonRepository: CommonRepository;
 
   constructor() {
     this.lineProfileRepository = AppDataSource.getRepository(LineProfile);
     this.userRepositoty = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
+    this.todoRepository = AppDataSource.getRepository(Todo);
+    this.commonRepository = Container.get(CommonRepository);
   }
 
   pushMessageRemind = async (
@@ -250,18 +255,20 @@ export default class LineRepository {
   };
 
   getSuperiorUsers = async (lineId: string): Promise<Array<User>> => {
-    // Get userinfo
-    const userInfo = await this.userRepositoty.findOneBy({ line_id: lineId });
+    // Get user by line id
+    const users = await this.commonRepository.getChatToolUserByLineId(lineId);
 
-    if (!userInfo) {
+    if (!users.length) {
       return Promise.resolve([]);
     }
+
+    const userIds: number[] = users.map((user) => user.id).filter(Number);
 
     // Get supervisords
 
     const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
     const superiorUserIds = await reportingLineRepository.findBy({
-      subordinate_user_id: userInfo.id,
+      subordinate_user_id: In(userIds),
     });
 
     if (superiorUserIds.length == 0) {
@@ -348,6 +355,20 @@ export default class LineRepository {
     }
 
     return;
+  };
+
+  pushTodoLines = async (dataTodoLines: ITodoLines[]): Promise<void> => {
+    for (const todoLine of dataTodoLines) {
+      const { todoId, chattool, user, remindDays } = todoLine;
+
+      const todo = await this.todoRepository.findOneBy({
+        todoapp_reg_id: todoId,
+      });
+
+      if (todo) {
+        this.pushMessageRemind(chattool, user, { ...todo, assigned_user_id: user.id }, remindDays);
+      }
+    }
   };
 
   saveChatMessage = async (

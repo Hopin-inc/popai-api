@@ -5,19 +5,21 @@ import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
 import TrelloRepository from './trello.repository';
-import { ITodoApp } from './../types';
+import { ICompany, ITodoApp } from './../types';
 import { ChatToolCode, Common } from './../const/common';
 import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
 import { Todo } from '../entify/todo.entity';
 import LineRepository from './line.repository';
 import { TodoUser } from './../entify/todouser.entity';
+import CommonRepository from './modules/common.repository';
 
 @Service()
 export default class Remindrepository {
   private trelloRepo: TrelloRepository;
   private microsofRepo: MicrosoftRepository;
   private lineRepo: LineRepository;
+  private commonRepository: CommonRepository;
 
   private companyRepository: Repository<Company>;
   private todoRepository: Repository<Todo>;
@@ -26,6 +28,7 @@ export default class Remindrepository {
     this.trelloRepo = Container.get(TrelloRepository);
     this.microsofRepo = Container.get(MicrosoftRepository);
     this.lineRepo = Container.get(LineRepository);
+    this.commonRepository = Container.get(CommonRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
@@ -47,7 +50,7 @@ export default class Remindrepository {
     }
   };
 
-  remindCompanyApp = async (company: Company, todoapps: ITodoApp[]): Promise<void> => {
+  remindCompanyApp = async (company: ICompany, todoapps: ITodoApp[]): Promise<void> => {
     for (const todoapp of todoapps) {
       switch (todoapp.todo_app_code) {
         case Common.trello:
@@ -81,9 +84,12 @@ export default class Remindrepository {
 
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
+            const user = company.admin_user;
+            const chatToolUser = await this.commonRepository.getChatToolUser(user?.id, chattool.id);
+
             await this.lineRepo.pushListTaskMessageToAdmin(
               chattool,
-              company.admin_user,
+              { ...user, line_id: chatToolUser?.auth_key },
               notSetDueDateAndNotAssign
             );
           }
@@ -93,7 +99,13 @@ export default class Remindrepository {
       } else {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
-            await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, company.admin_user);
+            const user = company.admin_user;
+            const chatToolUser = await this.commonRepository.getChatToolUser(user?.id, chattool.id);
+
+            await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, {
+              ...user,
+              line_id: chatToolUser?.auth_key,
+            });
           }
         });
       }
@@ -109,10 +121,20 @@ export default class Remindrepository {
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-        userTodoMap.forEach(async (todos: Array<Todo>, lineId: string) => {
+        userTodoMap.forEach(async (todos: Array<Todo>, userId: number) => {
           company.chattools.forEach(async (chattool) => {
             if (chattool.tool_code == ChatToolCode.LINE) {
-              await this.lineRepo.pushListTaskMessageToUser(chattool, todos[0].user, todos);
+              const user = todos[0].user;
+              const chatToolUser = await this.commonRepository.getChatToolUser(
+                user.id,
+                chattool.id
+              );
+
+              await this.lineRepo.pushListTaskMessageToUser(
+                chattool,
+                { ...user, line_id: chatToolUser?.auth_key },
+                todos
+              );
             }
           });
 
@@ -129,9 +151,12 @@ export default class Remindrepository {
       if (notSetAssignTasks.length) {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
+            const user = company.admin_user;
+            const chatToolUser = await this.commonRepository.getChatToolUser(user?.id, chattool.id);
+
             await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
               chattool,
-              company.admin_user,
+              { ...user, line_id: chatToolUser?.auth_key },
               notSetAssignTasks
             );
           }
@@ -175,15 +200,15 @@ export default class Remindrepository {
     return todos;
   };
 
-  mapUserTaskList = (todos: Array<Todo>): Map<string, Array<Todo>> => {
-    const map = new Map<string, Array<Todo>>();
+  mapUserTaskList = (todos: Array<Todo>): Map<number, Array<Todo>> => {
+    const map = new Map<number, Array<Todo>>();
 
     todos.forEach((todo) => {
       for (const todoUser of todo.todoUsers) {
-        if (map.has(todoUser.user.line_id)) {
-          map.get(todoUser.user.line_id).push({ ...todo, user: todoUser.user });
+        if (map.has(todoUser.user.id)) {
+          map.get(todoUser.user.id).push({ ...todo, user: todoUser.user });
         } else {
-          map.set(todoUser.user.line_id, [{ ...todo, user: todoUser.user }]);
+          map.set(todoUser.user.id, [{ ...todo, user: todoUser.user }]);
         }
       }
     });

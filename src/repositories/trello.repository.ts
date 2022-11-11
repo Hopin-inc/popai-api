@@ -252,11 +252,16 @@ export default class TrelloRepository {
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
+                  const chatToolUser = await this.commonRepository.getChatToolUser(
+                    user.id,
+                    chattool.id
+                  );
+
                   dataTodoLines.push({
                     todoId: todoTask.id,
                     remindDays: taskRemind.remindDays,
                     chattool: chattool,
-                    user: user,
+                    user: { ...user, line_id: chatToolUser?.auth_key },
                   });
                 }
               });
@@ -292,7 +297,7 @@ export default class TrelloRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
-        await this.commonRepository.pushTodoLines(dataTodoLines);
+        await this.lineBotRepository.pushTodoLines(dataTodoLines);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));
