@@ -48,5 +48,5 @@ export class ChatMessage {
   remind_type: number;
 
   @Column()
-  remind_before_days: string;
+  remind_before_days: number;
 }

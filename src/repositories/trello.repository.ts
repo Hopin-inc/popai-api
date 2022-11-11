@@ -1,5 +1,4 @@
 import { AppDataSource } from '../config/data-source';
-import { User } from '../entify/user.entity';
 import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
@@ -20,7 +19,7 @@ import {
 import { Service, Container } from 'typedi';
 import { Todo } from './../entify/todo.entity';
 import { TodoAppUser } from './../entify/todoappuser.entity';
-import { toJapanDateTime } from '../utils/common';
+import { toJapanDateTime, diffDays } from '../utils/common';
 import moment from 'moment';
 import logger from './../logger/winston';
 import TrelloRequest from './../libs/trello.request';
@@ -172,19 +171,15 @@ export default class TrelloRepository {
       const todoTask = cardTodo.todoTask;
 
       if (todoTask.due) {
-        const dateExpired = moment(toJapanDateTime(todoTask.due)).startOf('day');
-        const dateNow = moment(toJapanDateTime(new Date())).startOf('day');
+        const dayDurations = diffDays(todoTask.due, new Date());
+        delayedCount = dayDurations;
 
-        const diffDays = dateNow.diff(dateExpired, 'days');
-        delayedCount = diffDays;
-
-        if (dayReminds.includes(diffDays) && !todoTask.dueComplete) {
+        if (dayReminds.includes(dayDurations) && !todoTask.dueComplete) {
           hasRemind = true;
           cardReminds.push({
-            remindDays: diffDays,
+            remindDays: dayDurations,
             cardTodo: cardTodo,
             delayedCount: delayedCount,
-            dayReminds: dayReminds,
           });
         }
       }
@@ -194,7 +189,6 @@ export default class TrelloRepository {
           remindDays: 0,
           cardTodo: cardTodo,
           delayedCount: delayedCount,
-          dayReminds: dayReminds,
         });
       }
     }
@@ -214,7 +208,6 @@ export default class TrelloRepository {
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
-        const dayReminds = taskRemind.dayReminds;
         const { users, todoTask, todoapp, company, section } = cardTodo;
 
         // if (isRemind && user && !pushUserIds.includes(user.id)) {
@@ -262,7 +255,6 @@ export default class TrelloRepository {
                   dataTodoLines.push({
                     todoId: todoTask.id,
                     remindDays: taskRemind.remindDays,
-                    dayReminds: dayReminds,
                     chattool: chattool,
                     user: user,
                   });
