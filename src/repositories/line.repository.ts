@@ -2,7 +2,7 @@ import { LoggerError } from '../exceptions';
 import { Service, Container } from 'typedi';
 import { LineMessageBuilder } from '../common/line_message';
 import { Todo } from '../entify/todo.entity';
-import { IChatTool, IRemindType, ITodoLines, IUser } from '../types';
+import { IChatTool, IRemindType, ITodo, ITodoLines, IUser } from '../types';
 import { LineBot } from '../config/linebot';
 
 import { AppDataSource } from '../config/data-source';
@@ -47,7 +47,7 @@ export default class LineRepository {
   pushMessageRemind = async (
     chattool: IChatTool,
     user: IUser,
-    todo: Todo,
+    todo: ITodo,
     remindDays: number
   ): Promise<any> => {
     try {
@@ -128,7 +128,7 @@ export default class LineRepository {
   pushListTaskMessageToAdmin = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>
+    todos: ITodo[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -159,7 +159,7 @@ export default class LineRepository {
   pushNotAssignListTaskMessageToAdmin = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>
+    todos: ITodo[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -189,7 +189,7 @@ export default class LineRepository {
   pushListTaskMessageToUser = async (
     chattool: ChatTool,
     user: IUser,
-    todos: Array<Todo>
+    todos: ITodo[]
   ): Promise<any> => {
     try {
       if (!user.line_id) {
@@ -377,7 +377,7 @@ export default class LineRepository {
     message: Message,
     messageToken: string,
     remindTypes?: IRemindType,
-    todo?: Todo
+    todo?: ITodo
   ): Promise<ChatMessage> => {
     const { remindType, remindDays } = {
       remindType: RemindType.NOT_REMIND,

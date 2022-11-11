@@ -5,7 +5,7 @@ import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { Company } from './../entify/company.entity';
 import MicrosoftRepository from './microsoft.repository';
 import TrelloRepository from './trello.repository';
-import { ICompany, ITodoApp } from './../types';
+import { ICompany, ITodo, ITodoApp } from './../types';
 import { ChatToolCode, Common } from './../const/common';
 import { Service, Container } from 'typedi';
 import logger from './../logger/winston';
@@ -84,17 +84,17 @@ export default class Remindrepository {
         // Send to admin list task which not set duedate
 
         company.chattools.forEach(async (chattool) => {
-          if (chattool.tool_code == ChatToolCode.LINE) {
+          if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
             const adminUser = company.admin_user;
-            const chatToolUsers = chattoolUsers.filter(
+            const chatToolUser = chattoolUsers.find(
               (chattoolUser) =>
                 chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
             );
 
-            if (chatToolUsers.length) {
+            if (chatToolUser) {
               await this.lineRepo.pushListTaskMessageToAdmin(
                 chattool,
-                { ...adminUser, line_id: chatToolUsers[0].auth_key },
+                { ...adminUser, line_id: chatToolUser.auth_key },
                 notSetDueDateAndNotAssign
               );
             }
@@ -104,17 +104,17 @@ export default class Remindrepository {
         await this.updateRemindedCount(notSetDueDateAndNotAssign);
       } else {
         company.chattools.forEach(async (chattool) => {
-          if (chattool.tool_code == ChatToolCode.LINE) {
+          if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
             const adminUser = company.admin_user;
-            const chatToolUsers = chattoolUsers.filter(
+            const chatToolUser = chattoolUsers.find(
               (chattoolUser) =>
                 chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
             );
 
-            if (chatToolUsers.length) {
+            if (chatToolUser) {
               await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, {
                 ...adminUser,
-                line_id: chatToolUsers[0].auth_key,
+                line_id: chatToolUser.auth_key,
               });
             }
           }
@@ -132,20 +132,20 @@ export default class Remindrepository {
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-        userTodoMap.forEach(async (todos: Array<Todo>, userId: number) => {
+        userTodoMap.forEach(async (todos: ITodo[], userId: number) => {
           company.chattools.forEach(async (chattool) => {
             if (chattool.tool_code == ChatToolCode.LINE) {
               const user = todos[0].user;
 
-              const chatToolUsers = chattoolUsers.filter(
+              const chatToolUser = chattoolUsers.find(
                 (chattoolUser) =>
                   chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
               );
 
-              if (chatToolUsers.length) {
+              if (chatToolUser) {
                 await this.lineRepo.pushListTaskMessageToUser(
                   chattool,
-                  { ...user, line_id: chatToolUsers[0].auth_key },
+                  { ...user, line_id: chatToolUser.auth_key },
                   todos
                 );
               }
@@ -164,17 +164,17 @@ export default class Remindrepository {
 
       if (notSetAssignTasks.length) {
         company.chattools.forEach(async (chattool) => {
-          if (chattool.tool_code == ChatToolCode.LINE) {
+          if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
             const adminUser = company.admin_user;
-            const chatToolUsers = chattoolUsers.filter(
+            const chatToolUser = chattoolUsers.find(
               (chattoolUser) =>
                 chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
             );
 
-            if (chatToolUsers.length) {
+            if (chatToolUser) {
               await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
                 chattool,
-                { ...adminUser, line_id: chatToolUsers[0].auth_key },
+                { ...adminUser, line_id: chatToolUser.auth_key },
                 notSetAssignTasks
               );
             }
@@ -219,8 +219,8 @@ export default class Remindrepository {
     return todos;
   };
 
-  mapUserTaskList = (todos: Array<Todo>): Map<number, Array<Todo>> => {
-    const map = new Map<number, Array<Todo>>();
+  mapUserTaskList = (todos: ITodo[]): Map<number, ITodo[]> => {
+    const map = new Map<number, ITodo[]>();
 
     todos.forEach((todo) => {
       for (const todoUser of todo.todoUsers) {
@@ -235,7 +235,7 @@ export default class Remindrepository {
     return map;
   };
 
-  updateRemindedCount = async (todos: Array<Todo>): Promise<any> => {
+  updateRemindedCount = async (todos: ITodo[]): Promise<any> => {
     const todoDatas = todos.map((todo) => {
       return {
         ...todo,
