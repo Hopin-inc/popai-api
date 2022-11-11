@@ -1,14 +1,13 @@
 import { FlexComponent, FlexMessage, Message } from '@line/bot-sdk';
 import { truncate } from './../utils/common';
 import { LINE_MAX_LABEL_LENGTH, TaskStatus } from '../const/common';
-import { Todo } from '../entify/todo.entity';
-import { IUser } from '../types';
+import { ITodo, IUser } from '../types';
 
 export class LineMessageBuilder {
   static createRemindMessage(
     messageToken: string,
     userName: string,
-    todo: Todo,
+    todo: ITodo,
     remindDays: number,
     parentMessageId?: number
   ) {
@@ -250,7 +249,7 @@ export class LineMessageBuilder {
     return reportMessage;
   }
 
-  static createListTaskMessageToAdmin(adminUser: IUser, todos: Array<Todo>) {
+  static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
     const contents: Array<FlexComponent> = [
       {
         type: 'text',
@@ -299,7 +298,7 @@ export class LineMessageBuilder {
     return message;
   }
 
-  static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: Array<Todo>) {
+  static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
     const contents: Array<FlexComponent> = [
       {
         type: 'text',
@@ -348,7 +347,7 @@ export class LineMessageBuilder {
     return message;
   }
 
-  static createListTaskMessageToUser(user: IUser, todos: Array<Todo>) {
+  static createListTaskMessageToUser(user: IUser, todos: ITodo[]) {
     const contents: Array<FlexComponent> = [
       {
         type: 'text',

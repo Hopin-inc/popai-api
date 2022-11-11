@@ -30,9 +30,6 @@ export class Todo {
   section_id: number;
 
   @Column()
-  assigned_user_id: number;
-
-  @Column()
   todoapp_reg_id: string;
 
   @Column()
@@ -61,13 +58,6 @@ export class Todo {
 
   @Column()
   reminded_count: number;
-
-  @ManyToOne(
-    () => User,
-    (user) => user.todos
-  )
-  @JoinColumn({ name: 'assigned_user_id' })
-  user: User;
 
   @ManyToOne(
     () => TodoApp,

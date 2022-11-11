@@ -51,21 +51,28 @@ export type ITodo = {
   name: string;
   todoapp_id: number;
   todoapp_reg_id: string | null;
+  todoapp_reg_url: string | null;
   todoapp_reg_created_by: number | null;
   todoapp_reg_created_at: Date | null;
-  assigned_user_id: number | null;
+  company_id: number;
+  section_id: number;
   deadline: Date | null;
   is_done: boolean | null;
   is_reminded: boolean | null;
   delayed_count: number;
   is_closed: boolean;
   reminded_count: number | null;
+  todoUsers: ITodoUser[];
+  user?: IUser;
+  assigned_user_id?: number | null;
 };
 
 export type ITodoUser = {
   id: number;
   todo_id: number;
   user_id: number;
+  todo: ITodo;
+  user: IUser;
 };
 
 export type ITodoUpdate = {

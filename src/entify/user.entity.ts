@@ -36,12 +36,6 @@ export class User {
   )
   todoAppUsers: TodoAppUser[];
 
-  @OneToMany(
-    () => Todo,
-    (todo) => todo.user
-  )
-  todos: Todo[];
-
   @ManyToMany(
     () => ChatTool,
     (chattool) => chattool.users

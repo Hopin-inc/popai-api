@@ -254,17 +254,17 @@ export default class TrelloRepository {
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
-                  const chatToolUsers = chattoolUsers.filter(
+                  const chatToolUsers = chattoolUsers.find(
                     (chattoolUser) =>
                       chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
                   );
 
-                  if (chatToolUsers.length) {
+                  if (chatToolUsers) {
                     dataTodoLines.push({
                       todoId: todoTask.id,
                       remindDays: taskRemind.remindDays,
                       chattool: chattool,
-                      user: { ...user, line_id: chatToolUsers[0].auth_key },
+                      user: { ...user, line_id: chatToolUsers.auth_key },
                     });
                   }
                 }
