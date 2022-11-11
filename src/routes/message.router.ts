@@ -11,8 +11,6 @@ router.get('/redirect/:todoId/:messageToken', async function(req, res) {
   const messageController = new MessageController();
   const url = await messageController.handleRedirect(todoId, messageToken);
 
-  console.log('url', url);
-
   if (!url) {
     return res.status(404).send('Not found!');
   }
