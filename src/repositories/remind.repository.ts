@@ -68,6 +68,7 @@ export default class Remindrepository {
       logger.error(new LoggerError(company.name + 'の管理者が設定していません。'));
     }
 
+    const chattoolUsers = await this.commonRepository.getChatToolUsers();
     const needRemindTasks = await this.getNotsetDueDateOrNotAssignTasks(company.id);
 
     // 期日未設定のタスクがない旨のメッセージが管理者に送られること
@@ -84,14 +85,19 @@ export default class Remindrepository {
 
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
-            const user = company.admin_user;
-            const chatToolUser = await this.commonRepository.getChatToolUser(user?.id, chattool.id);
-
-            await this.lineRepo.pushListTaskMessageToAdmin(
-              chattool,
-              { ...user, line_id: chatToolUser?.auth_key },
-              notSetDueDateAndNotAssign
+            const adminUser = company.admin_user;
+            const chatToolUsers = chattoolUsers.filter(
+              (chattoolUser) =>
+                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
             );
+
+            if (chatToolUsers.length) {
+              await this.lineRepo.pushListTaskMessageToAdmin(
+                chattool,
+                { ...adminUser, line_id: chatToolUsers[0].auth_key },
+                notSetDueDateAndNotAssign
+              );
+            }
           }
         });
 
@@ -99,13 +105,18 @@ export default class Remindrepository {
       } else {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
-            const user = company.admin_user;
-            const chatToolUser = await this.commonRepository.getChatToolUser(user?.id, chattool.id);
+            const adminUser = company.admin_user;
+            const chatToolUsers = chattoolUsers.filter(
+              (chattoolUser) =>
+                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
+            );
 
-            await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, {
-              ...user,
-              line_id: chatToolUser?.auth_key,
-            });
+            if (chatToolUsers.length) {
+              await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, {
+                ...adminUser,
+                line_id: chatToolUsers[0].auth_key,
+              });
+            }
           }
         });
       }
@@ -125,16 +136,19 @@ export default class Remindrepository {
           company.chattools.forEach(async (chattool) => {
             if (chattool.tool_code == ChatToolCode.LINE) {
               const user = todos[0].user;
-              const chatToolUser = await this.commonRepository.getChatToolUser(
-                user.id,
-                chattool.id
+
+              const chatToolUsers = chattoolUsers.filter(
+                (chattoolUser) =>
+                  chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
               );
 
-              await this.lineRepo.pushListTaskMessageToUser(
-                chattool,
-                { ...user, line_id: chatToolUser?.auth_key },
-                todos
-              );
+              if (chatToolUsers.length) {
+                await this.lineRepo.pushListTaskMessageToUser(
+                  chattool,
+                  { ...user, line_id: chatToolUsers[0].auth_key },
+                  todos
+                );
+              }
             }
           });
 
@@ -151,14 +165,19 @@ export default class Remindrepository {
       if (notSetAssignTasks.length) {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE) {
-            const user = company.admin_user;
-            const chatToolUser = await this.commonRepository.getChatToolUser(user?.id, chattool.id);
-
-            await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
-              chattool,
-              { ...user, line_id: chatToolUser?.auth_key },
-              notSetAssignTasks
+            const adminUser = company.admin_user;
+            const chatToolUsers = chattoolUsers.filter(
+              (chattoolUser) =>
+                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
             );
+
+            if (chatToolUsers.length) {
+              await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
+                chattool,
+                { ...adminUser, line_id: chatToolUsers[0].auth_key },
+                notSetAssignTasks
+              );
+            }
           }
         });
 

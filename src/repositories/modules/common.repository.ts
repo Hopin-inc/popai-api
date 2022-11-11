@@ -77,6 +77,10 @@ export default class CommonRepository {
     return implementTodoApp;
   };
 
+  getChatToolUsers = async () => {
+    return await this.chatToolUserRepository.find();
+  };
+
   getChatToolUser = async (userId: number, chatToolId: number) => {
     const chatToolUser = await this.chatToolUserRepository.findOneBy({
       user_id: userId,
