@@ -39,6 +39,9 @@ export class ChatMessage {
   is_replied: number;
 
   @Column()
+  url_clicked_at: Date;
+
+  @Column()
   reply_content_type_id: number;
 
   @Column()
