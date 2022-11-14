@@ -6,9 +6,11 @@ import {
   JoinColumn,
   ManyToMany,
   JoinTable,
+  OneToOne,
 } from 'typeorm';
 import { ChatTool } from './chat_tool.entity';
 import { CompanyCondion } from './company.conditon.entity';
+import { Section } from './section.entity';
 import { Todo } from './todo.entity';
 import { TodoAppUser } from './todoappuser.entity';
 
@@ -46,4 +48,11 @@ export class User {
     inverseJoinColumn: { name: 'id' },
   })
   chattools: ChatTool[];
+
+  @OneToOne(
+    () => Section,
+    (section) => section.user
+  )
+  @JoinColumn({ name: 'id', referencedColumnName: 'board_admin_user_id' })
+  section: Section;
 }

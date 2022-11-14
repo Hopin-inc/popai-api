@@ -58,22 +58,19 @@ export default class MicrosoftRepository {
 
     await this.updateUsersMicrosoft(companyId, todoappId);
     const sections = await this.commonRepository.getSections(companyId, todoappId);
-    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId);
-    await this.getUserTaskBoards(users, sections, company, todoapp);
+    await this.getUserTaskBoards(sections, company, todoapp);
   };
 
   getUserTaskBoards = async (
-    users: IUser[],
     sections: ISection[],
     company: ICompany,
     todoapp: ITodoApp
   ): Promise<void> => {
     try {
       const todoTasks: ITodoTask[] = [];
-      for await (const user of users) {
-        for (const section of sections) {
-          await this.getTaskBoards(user, section, todoTasks, company, todoapp);
-        }
+
+      for (const section of sections) {
+        await this.getTaskBoards(section.user, section, todoTasks, company, todoapp);
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(
@@ -100,7 +97,7 @@ export default class MicrosoftRepository {
     company: ICompany,
     todoapp: ITodoApp
   ): Promise<void> => {
-    if (!user.todoAppUsers.length) return;
+    if (!user?.todoAppUsers.length) return;
 
     for (const todoAppUser of user.todoAppUsers) {
       if (todoAppUser.api_token && section.board_id) {
