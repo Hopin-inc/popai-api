@@ -51,7 +51,7 @@ export class User {
 
   @OneToOne(
     () => Section,
-    (section) => section.user
+    (section) => section.boardAdminUser
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'board_admin_user_id' })
   section: Section;

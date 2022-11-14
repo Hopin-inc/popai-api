@@ -30,12 +30,12 @@ export default class CommonRepository {
     const sections: ISection[] = await this.sectionRepository
       .createQueryBuilder('sections')
       .innerJoinAndSelect(
-        'sections.user',
+        'sections.boardAdminUser',
         'users',
         'sections.board_admin_user_id = users.id AND users.company_id = :companyId',
         { companyId }
       )
-      .leftJoinAndSelect(
+      .innerJoinAndSelect(
         'users.todoAppUsers',
         'todo_app_users',
         'users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId',

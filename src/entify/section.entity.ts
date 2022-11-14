@@ -26,5 +26,5 @@ export class Section {
     (user) => user.section
   )
   @JoinColumn({ name: 'board_admin_user_id' })
-  user: User;
+  boardAdminUser: User;
 }

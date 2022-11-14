@@ -33,7 +33,7 @@ export type ISection = {
   company_id: number | null;
   todoapp_id: number | null;
   board_id: string;
-  user: IUser;
+  boardAdminUser: IUser;
 };
 
 export type ITodoAppUser = {

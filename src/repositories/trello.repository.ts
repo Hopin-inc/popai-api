@@ -67,7 +67,7 @@ export default class TrelloRepository {
       const todoTasks: ITodoTask[] = [];
 
       for (const section of sections) {
-        await this.getCardBoards(section.user, section, todoTasks, company, todoapp);
+        await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(

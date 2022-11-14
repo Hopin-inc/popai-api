@@ -70,7 +70,7 @@ export default class MicrosoftRepository {
       const todoTasks: ITodoTask[] = [];
 
       for (const section of sections) {
-        await this.getTaskBoards(section.user, section, todoTasks, company, todoapp);
+        await this.getTaskBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(
