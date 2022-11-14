@@ -29,6 +29,18 @@ export default class CommonRepository {
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
     const sections: ISection[] = await this.sectionRepository
       .createQueryBuilder('sections')
+      .innerJoinAndSelect(
+        'sections.boardAdminUser',
+        'users',
+        'sections.board_admin_user_id = users.id AND users.company_id = :companyId',
+        { companyId }
+      )
+      .innerJoinAndSelect(
+        'users.todoAppUsers',
+        'todo_app_users',
+        'users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId',
+        { todoappId }
+      )
       .where('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .getMany();
