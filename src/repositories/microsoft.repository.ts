@@ -357,10 +357,14 @@ export default class MicrosoftRepository {
               newDueTime: taskDeadLine,
               updateTime: toJapanDateTime(new Date()),
             });
+          }
 
-            if (!todoData.is_done && taskRemind.delayedCount > 0) {
-              todoData.delayed_count = todoData.delayed_count + 1;
-            }
+          if (
+            !todoData.is_done &&
+            taskRemind.delayedCount > 0 &&
+            (isDeadlineChanged || !todoData.delayed_count)
+          ) {
+            todoData.delayed_count = todoData.delayed_count + 1;
           }
         }
 

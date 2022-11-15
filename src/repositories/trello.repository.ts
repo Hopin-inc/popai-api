@@ -283,10 +283,14 @@ export default class TrelloRepository {
               newDueTime: taskDeadLine,
               updateTime: toJapanDateTime(todoTask.dateLastActivity),
             });
+          }
 
-            if (!todoData.is_done && taskRemind.delayedCount > 0) {
-              todoData.delayed_count = todoData.delayed_count + 1;
-            }
+          if (
+            !todoData.is_done &&
+            taskRemind.delayedCount > 0 &&
+            (isDeadlineChanged || !todoData.delayed_count)
+          ) {
+            todoData.delayed_count = todoData.delayed_count + 1;
           }
         }
 
