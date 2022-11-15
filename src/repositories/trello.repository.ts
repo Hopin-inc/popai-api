@@ -27,7 +27,7 @@ import LineRepository from './line.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import CommonRepository from './modules/common.repository';
-import { ChatToolCode } from '../const/common';
+import { ChatToolCode, Common } from '../const/common';
 
 @Service()
 export default class TrelloRepository {
@@ -246,8 +246,8 @@ export default class TrelloRepository {
             users: users,
           });
 
-          if (isRemind && !todoTask.closed) {
-            todoData.reminded_count = 1;
+          if (isRemind && !todoTask.closed && todoData.reminded_count < Common.remindMaxCount) {
+            todoData.reminded_count = todoData.reminded_count + 1;
 
             // send Line message
             for (const user of users) {

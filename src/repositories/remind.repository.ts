@@ -80,6 +80,10 @@ export default class Remindrepository {
       );
 
       if (notSetDueDateAndNotAssign.length) {
+        const remindTasks = notSetDueDateAndNotAssign.filter(
+          (tasks) => tasks.reminded_count < Common.remindMaxCount
+        );
+
         // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
         // Send to admin list task which not set duedate
 
@@ -95,13 +99,13 @@ export default class Remindrepository {
               await this.lineRepo.pushListTaskMessageToAdmin(
                 chattool,
                 { ...adminUser, line_id: chatToolUser.auth_key },
-                notSetDueDateAndNotAssign
+                remindTasks
               );
             }
           }
         });
 
-        await this.updateRemindedCount(notSetDueDateAndNotAssign);
+        await this.updateRemindedCount(remindTasks);
       } else {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {

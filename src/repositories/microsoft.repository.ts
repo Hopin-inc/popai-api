@@ -322,8 +322,8 @@ export default class MicrosoftRepository {
             users: users,
           });
 
-          if (isRemind) {
-            todoData.reminded_count = 1;
+          if (isRemind && todoData.reminded_count < Common.remindMaxCount) {
+            todoData.reminded_count = todoData.reminded_count + 1;
             // send Line message
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
