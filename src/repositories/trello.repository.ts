@@ -205,7 +205,6 @@ export default class TrelloRepository {
       // const pushUserIds = [];
 
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
-      const today = toJapanDateTime(new Date());
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
@@ -274,21 +273,20 @@ export default class TrelloRepository {
 
         //update deadline task
         if (taskDeadLine || todoData.is_done) {
-          const deadlineIsChanged = !moment(taskDeadLine).isSame(todo?.deadline);
-          const isDelayed = moment(today).isAfter(taskDeadLine);
+          const isDeadlineChanged = !moment(taskDeadLine).isSame(todo?.deadline);
           const isDoneChanged = todo?.is_done !== todoData.is_done;
 
-          if (deadlineIsChanged || isDoneChanged) {
+          if (isDeadlineChanged || isDoneChanged) {
             dataTodoUpdates.push({
               todoId: todoTask.id,
               dueTime: todo?.deadline,
               newDueTime: taskDeadLine,
               updateTime: toJapanDateTime(todoTask.dateLastActivity),
             });
-          }
 
-          if (!todoData.is_done && isDelayed && !deadlineIsChanged) {
-            todoData.delayed_count = todoData.delayed_count + 1;
+            if (!todoData.is_done && taskRemind.delayedCount > 0) {
+              todoData.delayed_count = todoData.delayed_count + 1;
+            }
           }
         }
 
