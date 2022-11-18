@@ -9,12 +9,12 @@ steps:
       - |-
         cat <<EOF > ./env.yml
         env_variables:
-          - HOST: $HOST
-          - ENV: $ENV
-          - DB_HOST: $DB_HOST
-          - DB_INSTANCE_REGION: $DB_INSTANCE_REGION
-          - DB_DATABASE: $DB_DATABASE
-          - DB_USERNAME: $DB_USERNAME
+          - HOST: $_HOST
+          - ENV: $_ENV
+          - DB_HOST: $_DB_HOST
+          - DB_INSTANCE_REGION: $_DB_INSTANCE_REGION
+          - DB_DATABASE: $_DB_DATABASE
+          - DB_USERNAME: $_DB_USERNAME
           - DB_PASSWORD: $$DB_PASSWORD
           - MICROSOFT_CLIENT_ID: $$MICROSOFT_CLIENT_ID
           - MICROSOFT_CLIENT_SECRET: $$MICROSOFT_CLIENT_SECRET
