@@ -1,13 +1,13 @@
 steps:
-  - id: "decrypt-key"
-    name: "gcr.io/cloud-builders/gcloud"
-    entrypoint: "bash"
+  - id: decrypt-key
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
     args:
-      - '-eEuo'
-      - 'pipefail'
-      - '-c'
+      - -eEuo
+      - pipefail
+      - -c
       - |-
-        cat <<EOF > ./env.yml
+        cat <<EOF > ./env.yaml
         env_variables:
           - HOST: $_HOST
           - ENV: $_ENV
@@ -21,20 +21,27 @@ steps:
           - LINE_CHANNEL_ACCESS_TOKEN: $$LINE_CHANNEL_ACCESS_TOKEN
           - LINE_CHANNEL_SECRET: $$LINE_CHANNEL_SECRET
         EOF
-    secretEnv: [ "DB_PASSWORD", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "LINE_CHANNEL_ACCESS_TOKEN", "LINE_CHANNEL_SECRET" ]
-  - id: "app-deploy"
-    name: "gcr.io/cloud-builders/gcloud"
-    args: [ "app", "deploy" ]
+    secretEnv:
+      - DB_PASSWORD
+      - MICROSOFT_CLIENT_ID
+      - MICROSOFT_CLIENT_SECRET
+      - LINE_CHANNEL_ACCESS_TOKEN
+      - LINE_CHANNEL_SECRET
+  - id: app-deploy
+    name: gcr.io/cloud-builders/gcloud
+    args:
+      - app
+      - deploy
 availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_NUMBER/secrets/DB_PASSWORD/versions/latest
-      env: "DB_PASSWORD"
+      env: DB_PASSWORD
     - versionName: projects/$PROJECT_NUMBER/secrets/MICROSOFT_CLIENT_ID/versions/latest
-      env: "MICROSOFT_CLIENT_ID"
+      env: MICROSOFT_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/MICROSOFT_CLIENT_SECRET/versions/latest
-      env: "MICROSOFT_CLIENT_SECRET"
+      env: MICROSOFT_CLIENT_SECRET
     - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_ACCESS_TOKEN/versions/latest
-      env: "LINE_CHANNEL_ACCESS_TOKEN"
+      env: LINE_CHANNEL_ACCESS_TOKEN
     - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_SECRET/versions/latest
-      env: "LINE_CHANNEL_SECRET"
-timeout: "1600s"
+      env: LINE_CHANNEL_SECRET
+timeout: 1600s
