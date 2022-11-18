@@ -9,12 +9,12 @@ export function truncate(str: string, max: number = 40): string {
   return str.substring(0, max - 3) + '...';
 }
 
-export function toJapanDateTime(utcDateString: Date): Date {
+export function toJapanDateTime(utcDateString: Date, format = 'YYYY/MM/DD HH:mm:ss'): Date {
   return new Date(
     moment
       .utc(utcDateString)
       .tz('Asia/Tokyo')
-      .format('YYYY/MM/DD HH:mm:ss')
+      .format(format)
   );
 }
 

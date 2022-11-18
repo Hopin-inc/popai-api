@@ -59,6 +59,15 @@ export const ChatToolCode = {
   SLACK: 'slack',
 };
 
-export const LINEID_MESSAGE = 'lineid';
+export const LineMessageQueueStatus = {
+  NOT_SEND: 0,
+  WAITING_REPLY: 1,
+  RELIED: 2,
+  NOT_SEND_TIMEOUT: 3,
+  NOT_REPLY_TIMEOUT: 4,
+};
 
+export const LINEID_MESSAGE = 'lineid';
+export const DONE_MESSAGE = '完了しております👍';
+export const DELAY_MESSAGE = 'すみません、遅れております🙇‍♂️';
 export const LINE_MAX_LABEL_LENGTH = 40;

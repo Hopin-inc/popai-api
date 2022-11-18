@@ -1,75 +1,134 @@
 import { AppDataSource } from '../config/data-source';
-import { InternalServerErrorException, LoggerError } from '../exceptions';
-import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
-
-import { Company } from './../entify/company.entity';
-import MicrosoftRepository from './microsoft.repository';
-import TrelloRepository from './trello.repository';
-import { ICompany, ITodo, ITodoApp } from './../types';
-import { ChatToolCode, Common } from './../const/common';
+import { LoggerError } from '../exceptions';
+import { Repository } from 'typeorm';
+import { IChatTool, IChatToolUser, ICompany, ITodo, ITodoLines } from '../types';
+import { ChatToolCode, Common, LineMessageQueueStatus } from '../const/common';
 import { Service, Container } from 'typedi';
-import logger from './../logger/winston';
+import logger from '../logger/winston';
 import { Todo } from '../entify/todo.entity';
 import LineRepository from './line.repository';
-import { TodoUser } from './../entify/todouser.entity';
 import CommonRepository from './modules/common.repository';
+import { diffDays, toJapanDateTime } from './../utils/common';
+import LineQuequeRepository from './modules/line_queque.repository';
+import { ChatTool } from './../entify/chat_tool.entity';
+import { LineMessageQueue } from './../entify/line_message_queue.entity';
 
 @Service()
-export default class Remindrepository {
-  private trelloRepo: TrelloRepository;
-  private microsofRepo: MicrosoftRepository;
+export default class RemindRepository {
   private lineRepo: LineRepository;
   private commonRepository: CommonRepository;
-
-  private companyRepository: Repository<Company>;
   private todoRepository: Repository<Todo>;
+  private lineQueueRepository: LineQuequeRepository;
+  private chattoolRepository: Repository<ChatTool>;
 
   constructor() {
-    this.trelloRepo = Container.get(TrelloRepository);
-    this.microsofRepo = Container.get(MicrosoftRepository);
     this.lineRepo = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
-    this.companyRepository = AppDataSource.getRepository(Company);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
-  remindCompany = async (): Promise<any> => {
-    try {
-      const companies = await this.companyRepository.find({
-        relations: ['todoapps', 'chattools', 'admin_user', 'companyConditions'],
-      });
+  updateStatusOfOldQueueTask = async (): Promise<void> => {
+    this.lineQueueRepository.updateStatusOldQueueTask(
+      LineMessageQueueStatus.NOT_SEND,
+      LineMessageQueueStatus.NOT_SEND_TIMEOUT
+    );
 
-      for (const company of companies) {
-        if (company.todoapps.length) {
-          this.remindCompanyApp(company, company.todoapps);
-        }
-      }
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
-    }
+    this.lineQueueRepository.updateStatusOldQueueTask(
+      LineMessageQueueStatus.WAITING_REPLY,
+      LineMessageQueueStatus.NOT_REPLY_TIMEOUT
+    );
   };
 
-  remindCompanyApp = async (company: ICompany, todoapps: ITodoApp[]): Promise<void> => {
-    for (const todoapp of todoapps) {
-      switch (todoapp.todo_app_code) {
-        case Common.trello:
-          await this.trelloRepo.remindUsers(company, todoapp);
-          break;
-        case Common.microsoft:
-          await this.microsofRepo.remindUsers(company, todoapp);
-          break;
-        default:
-          break;
+  remindTodayTaskForUser = async (): Promise<void> => {
+    const remindTasks: ITodo[] = [];
+    const todoQueueTasks: LineMessageQueue[] = [];
+
+    const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks();
+
+    const chattoolUsers = await this.commonRepository.getChatToolUsers();
+    const chattool = await this.chattoolRepository.findOneBy({
+      tool_code: ChatToolCode.LINE,
+    });
+
+    const userTodoQueueMap = this.mapUserQueueTaskList(
+      todoAllTodayQueueTasks,
+      chattool,
+      chattoolUsers
+    );
+
+    for await (const [userId, todoLines] of userTodoQueueMap) {
+      //push first line
+      const todoLine = todoLines[0];
+      if (todoLine.todoQueueTask.status == LineMessageQueueStatus.NOT_SEND) {
+        await this.lineRepo.pushMessageStartRemindToUser(todoLines);
+        const chatMessage = await this.lineRepo.pushTodoLine(todoLine);
+        todoQueueTasks.push({ ...todoLine.todoQueueTask, message_id: chatMessage?.id });
+        remindTasks.push(todoLine.todo);
       }
     }
 
+    await this.updateStatusLineMessageQueue(todoQueueTasks);
+    await this.updateRemindedCount(remindTasks);
+  };
+
+  mapUserQueueTaskList = (
+    todoAllTodayQueueTasks: LineMessageQueue[],
+    chattool: IChatTool,
+    chattoolUsers: IChatToolUser[]
+  ): Map<number, ITodoLines[]> => {
+    const map = new Map<number, ITodoLines[]>();
+
+    for (const lineQueues of todoAllTodayQueueTasks) {
+      const remindDays = diffDays(lineQueues.todo.deadline, toJapanDateTime(new Date()));
+      const chatToolUser = chattoolUsers.find(
+        (chattoolUser) =>
+          chattool &&
+          chattoolUser.chattool_id == chattool.id &&
+          chattoolUser.user_id == lineQueues.user.id
+      );
+
+      if (chatToolUser) {
+        if (map.has(lineQueues.user_id)) {
+          map.get(lineQueues.user_id).push({
+            todo: lineQueues.todo,
+            user: { ...lineQueues.user, line_id: chatToolUser.auth_key },
+            chattool: chattool,
+            remindDays: remindDays,
+            todoQueueTask: lineQueues,
+          });
+        } else {
+          map.set(lineQueues.user_id, [
+            {
+              todo: lineQueues.todo,
+              user: { ...lineQueues.user, line_id: chatToolUser.auth_key },
+              chattool: chattool,
+              remindDays: remindDays,
+              todoQueueTask: lineQueues,
+            },
+          ]);
+        }
+      }
+    }
+
+    return map;
+  };
+
+  /**
+   * remind task for admin company
+   *
+   * @param company
+   */
+  remindTaskForAdminCompany = async (company: ICompany): Promise<void> => {
     if (!company.admin_user) {
       logger.error(new LoggerError(company.name + 'の管理者が設定していません。'));
     }
 
     const chattoolUsers = await this.commonRepository.getChatToolUsers();
-    const needRemindTasks = await this.getNotsetDueDateOrNotAssignTasks(company.id);
+    const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(
+      company.id
+    );
 
     // 期日未設定のタスクがない旨のメッセージが管理者に送られること
     if (needRemindTasks.length) {
@@ -86,26 +145,27 @@ export default class Remindrepository {
 
         // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
         // Send to admin list task which not set duedate
-
-        company.chattools.forEach(async (chattool) => {
-          if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
-            const adminUser = company.admin_user;
-            const chatToolUser = chattoolUsers.find(
-              (chattoolUser) =>
-                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
-            );
-
-            if (chatToolUser) {
-              await this.lineRepo.pushListTaskMessageToAdmin(
-                chattool,
-                { ...adminUser, line_id: chatToolUser.auth_key },
-                remindTasks
+        if (remindTasks.length) {
+          company.chattools.forEach(async (chattool) => {
+            if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
+              const adminUser = company.admin_user;
+              const chatToolUser = chattoolUsers.find(
+                (chattoolUser) =>
+                  chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
               );
-            }
-          }
-        });
 
-        await this.updateRemindedCount(remindTasks);
+              if (chatToolUser) {
+                await this.lineRepo.pushListTaskMessageToAdmin(
+                  chattool,
+                  { ...adminUser, line_id: chatToolUser.auth_key },
+                  remindTasks
+                );
+              }
+            }
+          });
+
+          await this.updateRemindedCount(remindTasks);
+        }
       } else {
         company.chattools.forEach(async (chattool) => {
           if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
@@ -126,7 +186,6 @@ export default class Remindrepository {
       }
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
-
       const notSetDueDateTasks = needRemindTasks.filter(
         (task) =>
           !task.deadline && task.todoUsers.length && task.reminded_count < Common.remindMaxCount
@@ -190,39 +249,6 @@ export default class Remindrepository {
     }
   };
 
-  getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
-    const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
-      `not exists (${builder.getQuery()})`;
-    const todos: Todo[] = await this.todoRepository
-      .createQueryBuilder('todos')
-      .leftJoinAndSelect('todos.todoUsers', 'todo_users')
-      .leftJoinAndSelect('todo_users.user', 'users')
-      .where('todos.company_id = :companyId', { companyId })
-      .andWhere('todos.is_closed =:closed', { closed: false })
-      .andWhere(
-        new Brackets((qb) => {
-          qb.where('todos.deadline IS NULL').orWhere(
-            notExistsQuery(
-              AppDataSource.getRepository(TodoUser)
-                .createQueryBuilder('todo_users')
-                .where('todo_users.todo_id = todos.id')
-                .andWhere('todo_users.user_id IS NOT NULL')
-            )
-          );
-        })
-      )
-      // .andWhere(
-      //   new Brackets((qb) => {
-      //     qb.where('todos.reminded_count < :count', {
-      //       count: 2,
-      //     });
-      //   })
-      // )
-      .getMany();
-
-    return todos;
-  };
-
   mapUserTaskList = (todos: ITodo[]): Map<number, ITodo[]> => {
     const map = new Map<number, ITodo[]>();
 
@@ -239,6 +265,20 @@ export default class Remindrepository {
     return map;
   };
 
+  updateStatusLineMessageQueue = async (todoQueueTasks: LineMessageQueue[]): Promise<any> => {
+    const lineQueueDatas = todoQueueTasks.map((lineQueue) => {
+      return {
+        ...lineQueue,
+        status: LineMessageQueueStatus.WAITING_REPLY,
+        updated_at: toJapanDateTime(new Date()),
+      };
+    });
+
+    if (lineQueueDatas.length) {
+      return await this.lineQueueRepository.insertOrUpdate(lineQueueDatas);
+    }
+  };
+
   updateRemindedCount = async (todos: ITodo[]): Promise<any> => {
     const todoDatas = todos.map((todo) => {
       return {
@@ -246,6 +286,9 @@ export default class Remindrepository {
         reminded_count: todo.reminded_count + 1,
       };
     });
-    return await this.todoRepository.upsert(todoDatas, []);
+
+    if (todoDatas.length) {
+      return await this.todoRepository.upsert(todoDatas, []);
+    }
   };
 }

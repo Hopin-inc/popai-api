@@ -8,7 +8,7 @@ import {
   ITodo,
   ITodoApp,
   ITodoAppUser,
-  ITodoLines,
+  ITodoQueue,
   ITodoTask,
   ITodoUpdate,
   ITodoUserUpdate,
@@ -25,7 +25,7 @@ import { replaceString, toJapanDateTime, diffDays } from './../utils/common';
 import moment from 'moment';
 import FormData from 'form-data';
 import MicrosoftRequest from './../libs/microsoft.request';
-import LineRepository from './line.repository';
+import LineQuequeRepository from './modules/line_queque.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import logger from './../logger/winston';
@@ -38,7 +38,7 @@ export default class MicrosoftRepository {
   private microsoftRequest: MicrosoftRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
-  private lineBotRepository: LineRepository;
+  private lineQueueRepository: LineQuequeRepository;
   private todoUserRepository: TodoUserRepository;
   private commonRepository: CommonRepository;
 
@@ -47,12 +47,12 @@ export default class MicrosoftRepository {
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
-    this.lineBotRepository = Container.get(LineRepository);
+    this.lineQueueRepository = Container.get(LineQuequeRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
+  syncTaskByUserBoards = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
 
@@ -183,6 +183,45 @@ export default class MicrosoftRepository {
     }
   };
 
+  refreshToken = async (dataRefresh: IMicrosoftRefresh): Promise<ITodoAppUser | null> => {
+    try {
+      const { todoAppUser } = dataRefresh;
+      const todoAppUserData = todoAppUser;
+      const clientId = process.env.MICROSOFT_CLIENT_ID;
+      const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
+
+      if (clientId && clientSecret && todoAppUserData.refresh_token) {
+        const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+
+        const formData = new FormData();
+        formData.append('client_id', clientId);
+        formData.append('scope', 'https://graph.microsoft.com/.default');
+        formData.append('refresh_token', todoAppUserData.refresh_token);
+        formData.append('grant_type', 'refresh_token');
+        formData.append('client_secret', clientSecret);
+
+        const response = await fetchApi(url, 'POST', formData, true);
+
+        if (response.access_token) {
+          const todoAppUser: ITodoAppUser = await this.todoAppUserRepository.findOneBy({
+            id: todoAppUserData.id,
+          });
+
+          if (todoAppUser) {
+            todoAppUser.api_token = response.access_token;
+            todoAppUser.refresh_token = response.refresh_token;
+            todoAppUser.expires_in = response.expires_in;
+            return await this.todoAppUserRepository.save(todoAppUser);
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+
+    return null;
+  };
+
   filterUpdateTask = async (
     dayReminds: number[],
     todoTaskLists: ITodoTask[],
@@ -223,45 +262,6 @@ export default class MicrosoftRepository {
     await this.createTodo(taskNomals, implementTodoApp);
   };
 
-  refreshToken = async (dataRefresh: IMicrosoftRefresh): Promise<ITodoAppUser | null> => {
-    try {
-      const { todoAppUser } = dataRefresh;
-      const todoAppUserData = todoAppUser;
-      const clientId = process.env.MICROSOFT_CLIENT_ID;
-      const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
-
-      if (clientId && clientSecret && todoAppUserData.refresh_token) {
-        const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
-
-        const formData = new FormData();
-        formData.append('client_id', clientId);
-        formData.append('scope', 'https://graph.microsoft.com/.default');
-        formData.append('refresh_token', todoAppUserData.refresh_token);
-        formData.append('grant_type', 'refresh_token');
-        formData.append('client_secret', clientSecret);
-
-        const response = await fetchApi(url, 'POST', formData, true);
-
-        if (response.access_token) {
-          const todoAppUser: ITodoAppUser = await this.todoAppUserRepository.findOneBy({
-            id: todoAppUserData.id,
-          });
-
-          if (todoAppUser) {
-            todoAppUser.api_token = response.access_token;
-            todoAppUser.refresh_token = response.refresh_token;
-            todoAppUser.expires_in = response.expires_in;
-            return await this.todoAppUserRepository.save(todoAppUser);
-          }
-        }
-      }
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-
-    return null;
-  };
-
   createTodo = async (
     taskReminds: IRemindTask[],
     implementTodoApp: ImplementedTodoApp,
@@ -273,7 +273,7 @@ export default class MicrosoftRepository {
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
-      const dataTodoLines: ITodoLines[] = [];
+      const dataLineQueues: ITodoQueue[] = [];
       //const pushUserIds = [];
 
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
@@ -322,8 +322,7 @@ export default class MicrosoftRepository {
           });
 
           if (isRemind && todoData.reminded_count < Common.remindMaxCount) {
-            todoData.reminded_count = todoData.reminded_count + 1;
-            // send Line message
+            // add line queue message
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
@@ -332,10 +331,8 @@ export default class MicrosoftRepository {
                       chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
                   );
                   if (chatToolUser) {
-                    dataTodoLines.push({
+                    dataLineQueues.push({
                       todoId: todoTask.id,
-                      remindDays: taskRemind.remindDays,
-                      chattool: chattool,
                       user: { ...user, line_id: chatToolUser.auth_key },
                     });
                   }
@@ -381,7 +378,7 @@ export default class MicrosoftRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
-        await this.lineBotRepository.pushTodoLines(dataTodoLines);
+        await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));

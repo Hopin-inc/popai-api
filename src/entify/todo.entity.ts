@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 import { TodoApp } from './todoapp.entity';
 import { TodoUser } from './todouser.entity';
-import { User } from './user.entity';
 
 @Entity('todos')
 @Unique(['todoapp_id', 'todoapp_reg_id'])

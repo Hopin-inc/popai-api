@@ -5,20 +5,7 @@
 		"parameters": {},
 		"requestBodies": {},
 		"responses": {},
-		"schemas": {
-			"PingResponse": {
-				"properties": {
-					"message": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"message"
-				],
-				"type": "object",
-				"additionalProperties": false
-			}
-		},
+		"schemas": {},
 		"securitySchemes": {}
 	},
 	"info": {
@@ -31,17 +18,15 @@
 	},
 	"openapi": "3.0.0",
 	"paths": {
-		"/ping": {
+		"/tasks/update": {
 			"get": {
-				"operationId": "GetMessage",
+				"operationId": "SyncTodoTask",
 				"responses": {
 					"200": {
 						"description": "Ok",
 						"content": {
 							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PingResponse"
-								}
+								"schema": {}
 							}
 						}
 					}
@@ -50,9 +35,9 @@
 				"parameters": []
 			}
 		},
-		"/remind": {
+		"/tasks/remind": {
 			"get": {
-				"operationId": "RemindCompany",
+				"operationId": "RemindTaskForCompany",
 				"responses": {
 					"200": {
 						"description": "Ok",

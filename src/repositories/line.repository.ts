@@ -49,7 +49,7 @@ export default class LineRepository {
     user: IUser,
     todo: ITodo,
     remindDays: number
-  ): Promise<any> => {
+  ): Promise<ChatMessage> => {
     try {
       if (!user.line_id) {
         logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
@@ -71,10 +71,11 @@ export default class LineRepository {
       );
       const chatMessage = await this.saveChatMessage(
         chattool,
-        user,
+
         message,
         MessageTriggerType.BATCH,
         messageToken,
+        user,
         remindTypes,
         todo
       );
@@ -83,8 +84,7 @@ export default class LineRepository {
         chatMessage.message_token,
         user.name,
         todo,
-        remindDays,
-        chatMessage.id
+        remindDays
       );
 
       if (process.env.ENV == 'LOCAL') {
@@ -93,6 +93,36 @@ export default class LineRepository {
       } else {
         await LineBot.pushMessage(user.line_id, messageForSend, false);
       }
+
+      return chatMessage;
+    } catch (error) {
+      console.log('user', user);
+      console.log('todo', todo);
+      logger.error(new LoggerError(error.message));
+    }
+  };
+
+  pushMessageStartRemindToUser = async (todoLines: ITodoLines[]): Promise<any> => {
+    try {
+      const user = todoLines[0].user;
+      const chattool = todoLines[0].chattool;
+
+      if (!user.line_id) {
+        logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
+        return;
+      }
+
+      //1.期日に対するリマインド
+      const message = LineMessageBuilder.createStartRemindMessageToUser(user, todoLines);
+
+      if (process.env.ENV == 'LOCAL') {
+        // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
+        console.log(message);
+      } else {
+        await this.pushLineMessage(chattool, user, message, MessageTriggerType.ACTION);
+      }
+
+      return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -273,6 +303,17 @@ export default class LineRepository {
     }
   };
 
+  getUserFromLineId = async (lineId: string): Promise<User> => {
+    // Get user by line id
+    const users = await this.commonRepository.getChatToolUserByLineId(lineId);
+
+    if (!users.length) {
+      return Promise.resolve(null);
+    }
+
+    return users[0];
+  };
+
   getSuperiorUsers = async (lineId: string): Promise<Array<User>> => {
     // Get user by line id
     const users = await this.commonRepository.getChatToolUserByLineId(lineId);
@@ -350,7 +391,7 @@ export default class LineRepository {
   };
 
   pushLineMessage = async (
-    chattool: ChatTool,
+    chattool: IChatTool,
     user: IUser,
     message: Message,
     messageTriggerId: number,
@@ -366,44 +407,52 @@ export default class LineRepository {
 
     return await this.saveChatMessage(
       chattool,
-      user,
+
       message,
       messageTriggerId,
       linkToken,
+      user,
       remindTypes
     );
   };
 
-  replyMessage = async (replyToken: string, message: Message): Promise<any> => {
+  replyMessage = async (
+    chattool: ChatTool,
+    replyToken: string,
+    message: Message,
+    user?: User
+  ): Promise<any> => {
     if (process.env.ENV == 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.replyMessage(replyToken, message);
     }
 
-    return;
+    return await this.saveChatMessage(
+      chattool,
+      message,
+      MessageTriggerType.ACTION,
+      replyToken,
+      user
+    );
   };
 
-  pushTodoLines = async (dataTodoLines: ITodoLines[]): Promise<void> => {
-    for (const todoLine of dataTodoLines) {
-      const { todoId, chattool, user, remindDays } = todoLine;
-
-      const todo = await this.todoRepository.findOneBy({
-        todoapp_reg_id: todoId,
-      });
-
-      if (todo) {
-        this.pushMessageRemind(chattool, user, { ...todo, assigned_user_id: user.id }, remindDays);
-      }
-    }
+  pushTodoLine = async (todoLine: ITodoLines): Promise<ChatMessage> => {
+    const { todo, chattool, user, remindDays } = todoLine;
+    return await this.pushMessageRemind(
+      chattool,
+      user,
+      { ...todo, assigned_user_id: user.id },
+      remindDays
+    );
   };
 
   saveChatMessage = async (
     chattool: IChatTool,
-    user: IUser,
     message: Message,
     messageTriggerId: number,
     messageToken: string,
+    user?: IUser,
     remindTypes?: IRemindType,
     todo?: ITodo
   ): Promise<ChatMessage> => {
@@ -428,7 +477,7 @@ export default class LineRepository {
         .utc()
         .toDate()
     );
-    chatMessage.user_id = user.id;
+    chatMessage.user_id = user?.id;
     chatMessage.message_token = messageToken;
     chatMessage.remind_type = remindType;
     chatMessage.remind_before_days = remindDays;

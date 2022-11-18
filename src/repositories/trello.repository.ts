@@ -8,12 +8,12 @@ import {
   ITodoTask,
   ITrelloAuth,
   IUser,
-  IRemindTask,
   ICompany,
   ITodoApp,
   ITodoUserUpdate,
   ITodoUpdate,
-  ITodoLines,
+  IRemindTask,
+  ITodoQueue,
 } from './../types';
 
 import { Service, Container } from 'typedi';
@@ -23,18 +23,18 @@ import { toJapanDateTime, diffDays } from '../utils/common';
 import moment from 'moment';
 import logger from './../logger/winston';
 import TrelloRequest from './../libs/trello.request';
-import LineRepository from './line.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import CommonRepository from './modules/common.repository';
 import { ChatToolCode, Common } from '../const/common';
+import LineQuequeRepository from './modules/line_queque.repository';
 
 @Service()
 export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
-  private lineBotRepository: LineRepository;
+  private lineQueueRepository: LineQuequeRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
   private commonRepository: CommonRepository;
@@ -43,13 +43,13 @@ export default class TrelloRepository {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
-    this.lineBotRepository = Container.get(LineRepository);
+    this.lineQueueRepository = Container.get(LineQuequeRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  remindUsers = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
+  syncTaskByUserBoards = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
     await this.updateUsersTrello(companyId, todoappId);
@@ -201,7 +201,7 @@ export default class TrelloRepository {
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
-      const dataTodoLines: ITodoLines[] = [];
+      const dataLineQueues: ITodoQueue[] = [];
       // const pushUserIds = [];
 
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
@@ -246,23 +246,19 @@ export default class TrelloRepository {
           });
 
           if (isRemind && !todoTask.closed && todoData.reminded_count < Common.remindMaxCount) {
-            todoData.reminded_count = todoData.reminded_count + 1;
-
-            // send Line message
+            // add line queue message
             for (const user of users) {
               company.chattools.forEach(async (chattool) => {
                 if (chattool.tool_code == ChatToolCode.LINE) {
-                  const chatToolUsers = chattoolUsers.find(
+                  const chatToolUser = chattoolUsers.find(
                     (chattoolUser) =>
                       chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
                   );
 
-                  if (chatToolUsers) {
-                    dataTodoLines.push({
+                  if (chatToolUser) {
+                    dataLineQueues.push({
                       todoId: todoTask.id,
-                      remindDays: taskRemind.remindDays,
-                      chattool: chattool,
-                      user: { ...user, line_id: chatToolUsers.auth_key },
+                      user: { ...user, line_id: chatToolUser.auth_key },
                     });
                   }
                 }
@@ -307,7 +303,7 @@ export default class TrelloRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
-        await this.lineBotRepository.pushTodoLines(dataTodoLines);
+        await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));

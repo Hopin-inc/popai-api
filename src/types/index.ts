@@ -1,4 +1,5 @@
 import { ChatTool } from '../entify/chat_tool.entity';
+import { LineMessageQueue } from './../entify/line_message_queue.entity';
 
 export type ICompany = {
   id: number;
@@ -8,6 +9,7 @@ export type ICompany = {
   admin_user?: IUser;
   companyConditions?: ICompanyCondition[];
   chattools: ChatTool[];
+  todos?: ITodo[];
 };
 
 export type ITodoApp = {
@@ -174,8 +176,19 @@ export type IRemindTask = {
 };
 
 export type ITodoLines = {
-  todoId: string;
+  todo: ITodo;
   remindDays: number;
   chattool: IChatTool;
   user: IUser;
+  todoQueueTask?: LineMessageQueue;
+};
+
+export type ITodoQueue = {
+  todoId: string;
+  user: IUser;
+};
+
+export type ITodoRemind = {
+  remindDays: number;
+  todoTask: ITodo;
 };

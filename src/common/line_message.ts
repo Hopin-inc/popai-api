@@ -1,31 +1,37 @@
-import { FlexComponent, FlexMessage, Message } from '@line/bot-sdk';
+import { FlexComponent, FlexMessage, Message, QuickReply } from '@line/bot-sdk';
 import { truncate } from './../utils/common';
-import { LINE_MAX_LABEL_LENGTH, TaskStatus } from '../const/common';
-import { ITodo, IUser } from '../types';
+import { DELAY_MESSAGE, DONE_MESSAGE, LINE_MAX_LABEL_LENGTH } from '../const/common';
+import { ITodo, ITodoLines, IUser } from '../types';
 
 export class LineMessageBuilder {
   static createRemindMessage(
     messageToken: string,
     userName: string,
     todo: ITodo,
-    remindDays: number,
-    parentMessageId?: number
+    remindDays: number
   ) {
-    let messagePrefix = '';
+    const messagePrefix = LineMessageBuilder.getPrefixMessage(remindDays);
 
-    if (remindDays > 1) {
-      messagePrefix = remindDays + '日前が期日の';
-    } else if (remindDays == 1) {
-      messagePrefix = '昨日が期日の';
-    } else if (remindDays == 0) {
-      messagePrefix = '今日が期日の';
-    } else if (remindDays == -1) {
-      messagePrefix = '明日が期日の';
-    } else if (remindDays == -2) {
-      messagePrefix = '明後日が期日の';
-    } else {
-      messagePrefix = -messagePrefix + '日後が期日';
-    }
+    const quickReply: QuickReply = {
+      items: [
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: DONE_MESSAGE,
+            text: DONE_MESSAGE,
+          },
+        },
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: DELAY_MESSAGE,
+            text: DELAY_MESSAGE,
+          },
+        },
+      ],
+    };
 
     const message: FlexMessage = {
       type: 'flex',
@@ -37,15 +43,15 @@ export class LineMessageBuilder {
           layout: 'vertical',
           spacing: 'md',
           contents: [
-            {
-              type: 'text',
-              text: userName + 'さん',
-            },
-            {
-              type: 'text',
-              text: 'お疲れさまです🙌\n',
-              wrap: true,
-            },
+            // {
+            //   type: 'text',
+            //   text: userName + 'さん',
+            // },
+            // {
+            //   type: 'text',
+            //   text: 'お疲れさまです🙌\n',
+            //   wrap: true,
+            // },
             {
               type: 'text',
               text: messagePrefix + '「' + todo.name + '」の進捗はいかがですか？\n',
@@ -65,49 +71,10 @@ export class LineMessageBuilder {
                 uri: process.env.HOST + '/api/message/redirect/' + todo.id + '/' + messageToken,
               },
             },
-            {
-              type: 'button',
-              style: 'primary',
-              action: {
-                type: 'postback',
-                displayText: '完了しております👍',
-                label: '完了しております',
-                data: JSON.stringify({
-                  todo: {
-                    id: todo.id,
-                    name: todo.name,
-                    assigned_user_id: todo.assigned_user_id,
-                  },
-                  status: TaskStatus.DONE,
-                  user_name: userName,
-                  message: '完了しております👍',
-                  parent_message_id: parentMessageId,
-                }),
-              },
-            },
-            {
-              type: 'button',
-              style: 'secondary',
-              action: {
-                type: 'postback',
-                label: 'すみません、遅れております',
-                displayText: 'すみません、遅れております🙇‍♂️',
-                data: JSON.stringify({
-                  todo: {
-                    id: todo.id,
-                    name: todo.name,
-                    assigned_user_id: todo.assigned_user_id,
-                  },
-                  status: TaskStatus.DELALYED,
-                  user_name: userName,
-                  message: 'すみません、遅れております🙇‍♂️',
-                  parent_message_id: parentMessageId,
-                }),
-              },
-            },
           ],
         },
       },
+      quickReply: quickReply,
     };
 
     return message;
@@ -247,6 +214,74 @@ export class LineMessageBuilder {
     };
 
     return reportMessage;
+  }
+
+  static createStartRemindMessageToUser(user: IUser, todoLines: ITodoLines[]) {
+    const lastedTask = todoLines.reduce((previous, current) => {
+      return current.remindDays < previous.remindDays ? current : previous;
+    });
+
+    const sortedTodoLines = todoLines.sort((a, b) => (a.remindDays < b.remindDays ? 1 : -1));
+
+    const groupMessageMap = new Map<number, ITodoLines[]>();
+    sortedTodoLines.forEach((item) => {
+      if (groupMessageMap.has(item.remindDays)) {
+        groupMessageMap.get(item.remindDays).push(item);
+      } else {
+        groupMessageMap.set(item.remindDays, [item]);
+      }
+    });
+
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: user.name + 'さん\n',
+        wrap: true,
+      },
+      {
+        type: 'text',
+        text: 'お疲れ様です🙌\n',
+        wrap: true,
+      },
+    ];
+
+    let altText = '';
+    groupMessageMap.forEach((onedayTasks, remindDays) => {
+      const messagePrefix = LineMessageBuilder.getPrefixSummaryMessage(remindDays);
+
+      const summaryMessage =
+        '\n' + messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
+
+      contents.push({
+        type: 'text',
+        text: summaryMessage,
+        wrap: true,
+      });
+
+      onedayTasks.forEach((todoLine) =>
+        contents.push({
+          type: 'text',
+          text: '・' + todoLine.todo.name,
+          wrap: true,
+        })
+      );
+      altText = summaryMessage;
+    });
+
+    const message: FlexMessage = {
+      type: 'flex',
+      altText: altText,
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: contents,
+        },
+      },
+    };
+
+    return message;
   }
 
   static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
@@ -527,5 +562,45 @@ export class LineMessageBuilder {
 
         return '';
     }
+  }
+
+  static getPrefixMessage(remindDays: number): string {
+    let messagePrefix = '';
+
+    if (remindDays > 1) {
+      messagePrefix = remindDays + '日前が期日の';
+    } else if (remindDays == 1) {
+      messagePrefix = '昨日が期日の';
+    } else if (remindDays == 0) {
+      messagePrefix = '今日が期日の';
+    } else if (remindDays == -1) {
+      messagePrefix = '明日が期日の';
+    } else if (remindDays == -2) {
+      messagePrefix = '明後日が期日の';
+    } else {
+      messagePrefix = -messagePrefix + '日後が期日';
+    }
+
+    return messagePrefix;
+  }
+
+  static getPrefixSummaryMessage(remindDays: number): string {
+    let messagePrefix = '';
+
+    if (remindDays > 1) {
+      messagePrefix = remindDays + '日前までの期日の';
+    } else if (remindDays == 1) {
+      messagePrefix = '昨日までの期日の';
+    } else if (remindDays == 0) {
+      messagePrefix = '今日までの期日の';
+    } else if (remindDays == -1) {
+      messagePrefix = '明日までの期日の';
+    } else if (remindDays == -2) {
+      messagePrefix = '明後日までの期日の';
+    } else {
+      messagePrefix = -messagePrefix + '日後までの期日';
+    }
+
+    return messagePrefix;
   }
 }

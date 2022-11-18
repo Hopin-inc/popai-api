@@ -1,6 +1,6 @@
-import { ICompanyCondition, ISection, ITodoLines, IUser } from './../../types';
-import { Repository, IsNull, Not } from 'typeorm';
-import { Service, Container } from 'typedi';
+import { ICompanyCondition, ISection, IUser } from './../../types';
+import { Repository, IsNull, Not, Brackets, SelectQueryBuilder } from 'typeorm';
+import { Service } from 'typedi';
 import { AppDataSource } from './../../config/data-source';
 import { Section } from './../../entify/section.entity';
 import { User } from './../../entify/user.entity';
@@ -9,6 +9,8 @@ import logger from '../../logger/winston';
 import { LoggerError } from '../../exceptions';
 import { Todo } from './../../entify/todo.entity';
 import { ChatToolUser } from './../../entify/chattool.user.entity';
+import { TodoUser } from './../../entify/todouser.entity';
+import { Common } from './../../const/common';
 
 @Service()
 export default class CommonRepository {
@@ -137,5 +139,55 @@ export default class CommonRepository {
       .filter(Number.isFinite);
 
     return dayReminds;
+  };
+
+  getTodoDueDateAndAssignedTasks = async (companyId: number): Promise<Array<Todo>> => {
+    const todos: Todo[] = await this.todoRepository
+      .createQueryBuilder('todos')
+      .innerJoinAndSelect('todos.todoUsers', 'todo_users')
+      .innerJoinAndSelect('todo_users.user', 'users')
+      .where('todos.company_id = :companyId', { companyId })
+      .andWhere('todos.is_done =:done', { done: false })
+      .andWhere('todos.is_closed =:closed', { closed: false })
+      .andWhere('todos.deadline IS NOT NULL')
+      .andWhere('todos.reminded_count < :count', {
+        count: Common.remindMaxCount,
+      })
+      .getMany();
+
+    return todos;
+  };
+
+  getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
+    const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
+      `not exists (${builder.getQuery()})`;
+    const todos: Todo[] = await this.todoRepository
+      .createQueryBuilder('todos')
+      .leftJoinAndSelect('todos.todoUsers', 'todo_users')
+      .leftJoinAndSelect('todo_users.user', 'users')
+      .where('todos.company_id = :companyId', { companyId })
+      .andWhere('todos.is_closed =:closed', { closed: false })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('todos.deadline IS NULL').orWhere(
+            notExistsQuery(
+              AppDataSource.getRepository(TodoUser)
+                .createQueryBuilder('todo_users')
+                .where('todo_users.todo_id = todos.id')
+                .andWhere('todo_users.user_id IS NOT NULL')
+            )
+          );
+        })
+      )
+      // .andWhere(
+      //   new Brackets((qb) => {
+      //     qb.where('todos.reminded_count < :count', {
+      //       count: 2,
+      //     });
+      //   })
+      // )
+      .getMany();
+
+    return todos;
   };
 }
