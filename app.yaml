@@ -3,14 +3,13 @@ runtime: nodejs16 # or another supported version
 instance_class: F1
 
 env_variables:
-  HOST: https://rize-angel-dev.dt.r.appspot.com
-  ENV: DEV
+  HOST: $HOST
+  ENV: $ENV
   PORT: 8080
-  DB_HOST: 10.124.161.3
+  DB_HOST: $DB_HOST
   DB_PORT: 3306
-  DB_DATABASE: angel-dev-db
-  DB_USERNAME: root
-  DB_PASSWORD: ''
+  DB_DATABASE: $DB_DATABASE
+  DB_USERNAME: $DB_USERNAME
 
   TRELLO_API_URL: https://api.trello.com
 
@@ -18,18 +17,16 @@ env_variables:
   MICROSOFT_GRAPH_API_VERSION: v1.0
   MICROSOFT_GRAPH_API_ENDPOINT: https://graph.microsoft.com
   MICROSOFT_GRAPH_API_URL: ${MICROSOFT_GRAPH_API_ENDPOINT}/${MICROSOFT_GRAPH_API_VERSION}
-  MICROSOFT_CLIENT_ID: 41341bee-e897-4366-8346-9085baa92ca5
-  MICROSOFT_CLIENT_SECRET: tVa8Q~WX3iUbnU_2_qVCOCiGLMilNmnDeCZZAaBl
-
-  LINE_CHANNEL_ACCESS_TOKEN: r7mqQw5Ob4sVo2g2Ud5xPnORryQV140P5X6gMlLeMpU3OboLX5IMM//8WKYgKM8vVXqw3Gocr6CGOMVUputAX6BxWXlN17ySjHOrnsYAGHSHuUXeZOeLKEOsTwADMtnU2U/4+dYnfJBvZEl0Jjf4twdB04t89/1O/w1cDnyilFU=
-  LINE_CHANNEL_SECRET: f7b05245bea6a4d07aa55483f4c6f533
 
 vpc_access_connector:
- name: projects/rize-angel-dev/locations/asia-northeast2/connectors/connect-to-mysql
- egress_setting: private-ranges-only
+  name: projects/${PROJECT_ID}/locations/{$DB_INSTANCE_REGION}/connectors/connect-to-mysql
+  egress_setting: private-ranges-only
 
 automatic_scaling:
- min_idle_instances: 1
+  min_idle_instances: 1
 
 inbound_services:
-- warmup
+  - warmup
+
+includes:
+  - env.yaml
