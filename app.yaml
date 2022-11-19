@@ -21,9 +21,6 @@ env_variables:
 includes:
   - env.yaml
 
-vpc_access_connector:
-  egress_setting: private-ranges-only
-
 automatic_scaling:
   min_idle_instances: 1
 
