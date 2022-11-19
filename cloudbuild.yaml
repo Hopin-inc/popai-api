@@ -19,9 +19,6 @@ steps:
       - |-
         cat <<EOF > ./app.yaml
         runtime: nodejs16 # or another supported version
-        handlers:
-          - url: /
-            static_dir: dist
         instance_class: F1
         env_variables:
           HOST: $_HOST
