@@ -18,6 +18,9 @@ env_variables:
   MICROSOFT_GRAPH_API_ENDPOINT: https://graph.microsoft.com
   MICROSOFT_GRAPH_API_URL: ${MICROSOFT_GRAPH_API_ENDPOINT}/${MICROSOFT_GRAPH_API_VERSION}
 
+includes:
+  - env.yaml
+
 vpc_access_connector:
   name: projects/${PROJECT_ID}/locations/{$DB_INSTANCE_REGION}/connectors/connect-to-mysql
   egress_setting: private-ranges-only
@@ -27,6 +30,3 @@ automatic_scaling:
 
 inbound_services:
   - warmup
-
-includes:
-  - env.yaml
