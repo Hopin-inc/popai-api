@@ -22,7 +22,6 @@ includes:
   - env.yaml
 
 vpc_access_connector:
-  name: projects/${PROJECT_ID}/locations/asia-northeast2/connectors/connect-to-mysql
   egress_setting: private-ranges-only
 
 automatic_scaling:

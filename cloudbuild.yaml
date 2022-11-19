@@ -19,6 +19,8 @@ steps:
           MICROSOFT_CLIENT_SECRET: $$MICROSOFT_CLIENT_SECRET
           LINE_CHANNEL_ACCESS_TOKEN: $$LINE_CHANNEL_ACCESS_TOKEN
           LINE_CHANNEL_SECRET: $$LINE_CHANNEL_SECRET
+        vpc_access_connector:
+          name: projects/$PROJECT_ID/locations/asia-northeast2/connectors/connect-to-mysql
         EOF
     secretEnv:
       - DB_PASSWORD
