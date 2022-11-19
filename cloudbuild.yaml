@@ -1,11 +1,11 @@
 steps:
   - id: Install packages
-    name: node
+    name: node:16
     entrypoint: yarn
     args:
       - install
   - id: Build
-    name: node
+    name: node:16
     entrypoint: yarn
     args:
       - build
