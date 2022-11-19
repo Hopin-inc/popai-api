@@ -1,5 +1,15 @@
 steps:
-  - id: decrypt-key
+  - id: Install packages
+    name: node
+    entrypoint: yarn
+    args:
+      - install
+  - id: Build
+    name: node
+    entrypoint: yarn
+    args:
+      - build
+  - id: Generate app.yaml with decrypted secrets
     name: gcr.io/cloud-builders/gcloud
     entrypoint: bash
     args:
@@ -42,7 +52,7 @@ steps:
       - MICROSOFT_CLIENT_SECRET
       - LINE_CHANNEL_ACCESS_TOKEN
       - LINE_CHANNEL_SECRET
-  - id: app-deploy
+  - id: Deploy app
     name: gcr.io/cloud-builders/gcloud
     args:
       - app
