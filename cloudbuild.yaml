@@ -7,14 +7,23 @@ steps:
       - pipefail
       - -c
       - |-
-        cat <<EOF > ./app.env.yaml
+        cat <<EOF > ./app.yaml
+        runtime: nodejs16 # or another supported version
+        instance_class: F1
         env_variables:
           HOST: $_HOST
+          PORT: 8080
           ENV: $_ENV
           DB_HOST: $_DB_HOST
+          DB_PORT: 3306
           DB_DATABASE: $_DB_DATABASE
           DB_USERNAME: $_DB_USERNAME
           DB_PASSWORD: $$DB_PASSWORD
+          TRELLO_API_URL: https://api.trello.com
+          MICROSOFT_AAD_ENDPOINT: https://login.microsoftonline.com
+          MICROSOFT_GRAPH_API_VERSION: v1.0
+          MICROSOFT_GRAPH_API_ENDPOINT: https://graph.microsoft.com
+          MICROSOFT_GRAPH_API_URL: ${MICROSOFT_GRAPH_API_ENDPOINT}/${MICROSOFT_GRAPH_API_VERSION}
           MICROSOFT_CLIENT_ID: $$MICROSOFT_CLIENT_ID
           MICROSOFT_CLIENT_SECRET: $$MICROSOFT_CLIENT_SECRET
           LINE_CHANNEL_ACCESS_TOKEN: $$LINE_CHANNEL_ACCESS_TOKEN
@@ -22,8 +31,10 @@ steps:
         vpc_access_connector:
           name: projects/$PROJECT_ID/locations/asia-northeast2/connectors/connect-to-mysql
           egress_setting: private-ranges-only
-        includes:
-          - app.yaml
+        automatic_scaling:
+        min_idle_instances: 1
+        inbound_services:
+          - warmup
         EOF
     secretEnv:
       - DB_PASSWORD
@@ -36,7 +47,6 @@ steps:
     args:
       - app
       - deploy
-      - app.env.yaml
 availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_NUMBER/secrets/DB_PASSWORD/versions/latest
