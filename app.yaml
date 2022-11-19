@@ -3,13 +3,8 @@ runtime: nodejs16 # or another supported version
 instance_class: F1
 
 env_variables:
-  HOST: $HOST
-  ENV: $ENV
   PORT: 8080
-  DB_HOST: $DB_HOST
   DB_PORT: 3306
-  DB_DATABASE: $DB_DATABASE
-  DB_USERNAME: $DB_USERNAME
 
   TRELLO_API_URL: https://api.trello.com
 
@@ -17,9 +12,6 @@ env_variables:
   MICROSOFT_GRAPH_API_VERSION: v1.0
   MICROSOFT_GRAPH_API_ENDPOINT: https://graph.microsoft.com
   MICROSOFT_GRAPH_API_URL: ${MICROSOFT_GRAPH_API_ENDPOINT}/${MICROSOFT_GRAPH_API_VERSION}
-
-includes:
-  - env.yaml
 
 automatic_scaling:
   min_idle_instances: 1
