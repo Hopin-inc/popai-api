@@ -98,6 +98,8 @@ export default class LineController extends Controller {
           switch (messgeContent) {
             case DONE_MESSAGE:
             case DELAY_MESSAGE:
+            case PROGRESS_GOOD_MESSAGE:
+            case PROGRESS_BAD_MESSAGE:
               await this.handleReplyMessage(
                 chattool,
                 user,
