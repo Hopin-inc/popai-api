@@ -8,6 +8,7 @@ steps:
     name: node:16
     entrypoint: yarn
     args:
+      - run
       - build
   - id: Generate app.yaml with decrypted secrets
     name: gcr.io/cloud-builders/gcloud
@@ -18,10 +19,7 @@ steps:
       - -c
       - |-
         cat <<EOF > ./app.yaml
-        runtime: nodejs16 # or another supported version
-        handlers:
-          - url: /.*
-            script: auto
+        runtime: nodejs16
         instance_class: F1
         env_variables:
           HOST: $_HOST
