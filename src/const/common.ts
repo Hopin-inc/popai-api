@@ -7,11 +7,6 @@ export const Common = {
   remindMaxCount: 2,
 };
 
-export const TaskStatus = {
-  DONE: 1,
-  DELALYED: 2,
-};
-
 export const MessageType = {
   TEXT: 1,
   STICKER: 2,
@@ -67,7 +62,8 @@ export const LineMessageQueueStatus = {
   NOT_REPLY_TIMEOUT: 4,
 };
 
-export const LINEID_MESSAGE = 'lineid';
 export const DONE_MESSAGE = '完了しております👍';
 export const DELAY_MESSAGE = 'すみません、遅れております🙇‍♂️';
+export const PROGRESS_GOOD_MESSAGE = '順調です✨️';
+export const PROGRESS_BAD_MESSAGE = 'あまり進んでいません😭';
 export const LINE_MAX_LABEL_LENGTH = 40;

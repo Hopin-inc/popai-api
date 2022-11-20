@@ -1,6 +1,6 @@
 import { FlexComponent, FlexMessage, Message, QuickReply } from '@line/bot-sdk';
 import { truncate } from './../utils/common';
-import { DELAY_MESSAGE, DONE_MESSAGE, LINE_MAX_LABEL_LENGTH } from '../const/common';
+import { DELAY_MESSAGE, DONE_MESSAGE, PROGRESS_GOOD_MESSAGE, PROGRESS_BAD_MESSAGE, LINE_MAX_LABEL_LENGTH } from '../const/common';
 import { ITodo, ITodoLines, IUser } from '../types';
 
 export class LineMessageBuilder {
@@ -22,20 +22,39 @@ export class LineMessageBuilder {
             text: DONE_MESSAGE,
           },
         },
-        {
-          type: 'action',
-          action: {
-            type: 'message',
-            label: DELAY_MESSAGE,
-            text: DELAY_MESSAGE,
-          },
-        },
       ],
     };
+    if (remindDays > 0) {
+      quickReply.items.push({
+        type: 'action',
+        action: {
+          type: 'message',
+          label: DELAY_MESSAGE,
+          text: DELAY_MESSAGE,
+        },
+      });
+    } else {
+      quickReply.items.push({
+        type: 'action',
+        action: {
+          type: 'message',
+          label: PROGRESS_GOOD_MESSAGE,
+          text: PROGRESS_GOOD_MESSAGE,
+        },
+      });
+      quickReply.items.push({
+        type: 'action',
+        action: {
+          type: 'message',
+          label: PROGRESS_BAD_MESSAGE,
+          text: PROGRESS_BAD_MESSAGE,
+        },
+      });
+    }
 
     const message: FlexMessage = {
       type: 'flex',
-      altText: messagePrefix + todo.name + 'の進捗はいかがですか？\n',
+      altText: messagePrefix + '「' + todo.name + '」の進捗はいかがですか？\n',
       contents: {
         type: 'bubble',
         body: {
@@ -94,7 +113,7 @@ export class LineMessageBuilder {
       },
       {
         type: 'text',
-        text: '担当いただき、ありがとうございます😭\n',
+        text: '担当いただき、ありがとうございます😊',
         wrap: true,
       },
     ];
@@ -102,14 +121,14 @@ export class LineMessageBuilder {
     if (superior) {
       contents.push({
         type: 'text',
-        text: superior + 'さんに報告しておきますね💪',
+        text: '\n' + superior + 'さんに報告しておきますね💪',
         wrap: true,
       });
     }
 
     const replyMessage: FlexMessage = {
       type: 'flex',
-      altText: '担当いただき、ありがとうございます\n',
+      altText: '担当いただき、ありがとうございます😊',
       contents: {
         type: 'bubble',
         body: {
@@ -123,10 +142,49 @@ export class LineMessageBuilder {
     return replyMessage;
   }
 
-  static createDeplayReplyMessage() {
+  static createReplyInProgressMessage(superior?: string) {
+    const contents: Array<FlexComponent> = [
+      {
+        type: 'text',
+        text: '承知しました👍\n',
+        wrap: true,
+      },
+    ];
+
+    if (superior) {
+      contents.push({
+        type: 'text',
+        text: superior + 'さんに共有しておきますね！',
+        wrap: true,
+      });
+    }
+
+    contents.push({
+      type: 'text',
+      text: '引き続きよろしくお願いします💪',
+      wrap: true,
+    });
+
     const replyMessage: FlexMessage = {
       type: 'flex',
-      altText: '担当いただき、ありがとうございます\n',
+      altText: '担当いただき、ありがとうございます😊',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: contents,
+        },
+      },
+    };
+
+    return replyMessage;
+  }
+
+  static createDelayReplyMessage() {
+    const replyMessage: FlexMessage = {
+      type: 'flex',
+      altText: '担当いただき、ありがとうございます😊',
       contents: {
         type: 'bubble',
         body: {
@@ -154,7 +212,7 @@ export class LineMessageBuilder {
   static createStartReportToSuperiorMessage(superiorUserName: string) {
     const reportMessage: FlexMessage = {
       type: 'flex',
-      altText: '進捗報告開始\n',
+      altText: '皆さんに進捗を聞いてきたので、ご報告させていただきます。',
       contents: {
         type: 'bubble',
         body: {
@@ -163,7 +221,7 @@ export class LineMessageBuilder {
           contents: [
             {
               type: 'text',
-              text: superiorUserName + 'さん',
+              text: superiorUserName + 'さん\n',
             },
             {
               type: 'text',
@@ -200,7 +258,7 @@ export class LineMessageBuilder {
             },
             {
               type: 'text',
-              text: '申し訳ありませんが、こちらのアカウントから個別に返信することができません…\n',
+              text: '申し訳ありませんが、こちらのアカウントから個別に返信することができません…',
               wrap: true,
             },
             {
@@ -240,7 +298,7 @@ export class LineMessageBuilder {
       },
       {
         type: 'text',
-        text: 'お疲れ様です🙌\n',
+        text: 'お疲れ様です🙌',
         wrap: true,
       },
     ];
@@ -249,8 +307,7 @@ export class LineMessageBuilder {
     groupMessageMap.forEach((onedayTasks, remindDays) => {
       const messagePrefix = LineMessageBuilder.getPrefixSummaryMessage(remindDays);
 
-      const summaryMessage =
-        '\n' + messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
+      const summaryMessage = '\n' + messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
 
       contents.push({
         type: 'text',
@@ -258,13 +315,13 @@ export class LineMessageBuilder {
         wrap: true,
       });
 
-      onedayTasks.forEach((todoLine) =>
+      onedayTasks.forEach((todoLine) => {
         contents.push({
           type: 'text',
           text: '・' + todoLine.todo.name,
           wrap: true,
-        })
-      );
+        });
+      });
       altText = summaryMessage;
     });
 
@@ -293,12 +350,12 @@ export class LineMessageBuilder {
       },
       {
         type: 'text',
-        text: 'お疲れ様です🙌\n\n',
+        text: 'お疲れ様です🙌\n',
         wrap: true,
       },
       {
         type: 'text',
-        text: '現在、次のタスクの担当者と期日が設定されていません😭\n',
+        text: '現在、次のタスクの担当者と期日が設定されていません😭',
         wrap: true,
       },
     ];
@@ -313,13 +370,13 @@ export class LineMessageBuilder {
 
     contents.push({
       type: 'text',
-      text: '\nご確認をお願いします🙏\n',
+      text: '\nご確認をお願いします🙏',
       wrap: true,
     });
 
     const message: FlexMessage = {
       type: 'flex',
-      altText: '現在、次のタスクの担当者と期日が設定されていません\n',
+      altText: '現在、次のタスクの担当者と期日が設定されていません😭',
       contents: {
         type: 'bubble',
         body: {
@@ -342,12 +399,12 @@ export class LineMessageBuilder {
       },
       {
         type: 'text',
-        text: 'お疲れ様です🙌\n\n',
+        text: 'お疲れ様です🙌\n',
         wrap: true,
       },
       {
         type: 'text',
-        text: '現在、次のタスクの担当者が設定されていません😭\n',
+        text: '現在、次のタスクの担当者が設定されていません😭',
         wrap: true,
       },
     ];
@@ -362,13 +419,13 @@ export class LineMessageBuilder {
 
     contents.push({
       type: 'text',
-      text: '\nご確認をお願いします🙏\n',
+      text: '\nご確認をお願いします🙏',
       wrap: true,
     });
 
     const message: FlexMessage = {
       type: 'flex',
-      altText: '現在、次のタスクの担当者が設定されていません\n',
+      altText: '現在、次のタスクの担当者が設定されていません',
       contents: {
         type: 'bubble',
         body: {
@@ -391,12 +448,12 @@ export class LineMessageBuilder {
       },
       {
         type: 'text',
-        text: 'お疲れ様です🙌\n\n',
+        text: 'お疲れ様です🙌\n',
         wrap: true,
       },
       {
         type: 'text',
-        text: '現在、次のタスクの期日が設定されていません😭\n',
+        text: '現在、次のタスクの期日が設定されていません😭',
         wrap: true,
       },
     ];
@@ -411,13 +468,13 @@ export class LineMessageBuilder {
 
     contents.push({
       type: 'text',
-      text: '\nご確認をお願いします🙏\n',
+      text: '\nご確認をお願いします🙏',
       wrap: true,
     });
 
     const message: FlexMessage = {
       type: 'flex',
-      altText: '現在、次のタスクの期日が設定されていません\n',
+      altText: '現在、次のタスクの期日が設定されていません😭',
       contents: {
         type: 'bubble',
         body: {
@@ -440,24 +497,24 @@ export class LineMessageBuilder {
       },
       {
         type: 'text',
-        text: 'お疲れ様です🙌\n\n',
+        text: 'お疲れ様です🙌\n',
         wrap: true,
       },
       {
         type: 'text',
-        text: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした。\n',
+        text: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！',
         wrap: true,
       },
       {
         type: 'text',
-        text: '引き続きよろしくお願いします！\n',
+        text: '引き続きよろしくお願いします！',
         wrap: true,
       },
     ];
 
     const message: FlexMessage = {
       type: 'flex',
-      altText: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした。\n',
+      altText: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！',
       contents: {
         type: 'bubble',
         body: {
@@ -479,7 +536,7 @@ export class LineMessageBuilder {
   ) {
     const reportMessage: FlexMessage = {
       type: 'flex',
-      altText: userName + 'からのレポート\n',
+      altText: userName + 'さんの進捗を共有します！',
       contents: {
         type: 'bubble',
         body: {
@@ -560,6 +617,7 @@ export class LineMessageBuilder {
       case 'video':
         return message.originalContentUrl;
 
+      default:
         return '';
     }
   }
@@ -578,7 +636,7 @@ export class LineMessageBuilder {
     } else if (remindDays == -2) {
       messagePrefix = '明後日が期日の';
     } else {
-      messagePrefix = -messagePrefix + '日後が期日';
+      messagePrefix = -messagePrefix + '日後が期日の';
     }
 
     return messagePrefix;
@@ -588,17 +646,17 @@ export class LineMessageBuilder {
     let messagePrefix = '';
 
     if (remindDays > 1) {
-      messagePrefix = remindDays + '日前までの期日の';
+      messagePrefix = remindDays + '日前が期日の';
     } else if (remindDays == 1) {
-      messagePrefix = '昨日までの期日の';
+      messagePrefix = '昨日が期日の';
     } else if (remindDays == 0) {
-      messagePrefix = '今日までの期日の';
+      messagePrefix = '今日が期日の';
     } else if (remindDays == -1) {
-      messagePrefix = '明日までの期日の';
+      messagePrefix = '明日が期日の';
     } else if (remindDays == -2) {
-      messagePrefix = '明後日までの期日の';
+      messagePrefix = '明後日が期日の';
     } else {
-      messagePrefix = -messagePrefix + '日後までの期日';
+      messagePrefix = -messagePrefix + '日後が期日の';
     }
 
     return messagePrefix;
