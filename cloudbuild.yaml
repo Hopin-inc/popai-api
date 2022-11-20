@@ -29,7 +29,7 @@ steps:
           DB_PORT: 3306
           DB_DATABASE: $_DB_DATABASE
           DB_USERNAME: $_DB_USERNAME
-          DB_PASSWORD: $$DB_PASSWORD
+          DB_PASSWORD: '$$DB_PASSWORD'
           TRELLO_API_URL: https://api.trello.com
           MICROSOFT_AAD_ENDPOINT: https://login.microsoftonline.com
           MICROSOFT_GRAPH_API_VERSION: v1.0
