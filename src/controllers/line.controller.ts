@@ -16,11 +16,10 @@ import {
   ChatToolCode,
   DELAY_MESSAGE,
   DONE_MESSAGE,
-  LINEID_MESSAGE,
   LineMessageQueueStatus,
   MessageTriggerType,
   MessageType,
-  OpenStatus,
+  OpenStatus, PROGRESS_BAD_MESSAGE, PROGRESS_GOOD_MESSAGE,
   ReplyStatus,
   SenderType,
 } from '../const/common';
@@ -86,9 +85,6 @@ export default class LineController extends Controller {
           // eslint-disable-next-line no-case-declarations
           const lineProfile = await LineBot.getProfile(lineId);
           await this.lineRepository.createLineProfile(lineProfile);
-
-          await this.replyClientId(chattool, event.replyToken, lineId);
-
           break;
 
         case 'message':
@@ -100,20 +96,7 @@ export default class LineController extends Controller {
           const user = await this.lineRepository.getUserFromLineId(lineId);
 
           switch (messgeContent) {
-            case LINEID_MESSAGE:
-              await this.replyClientId(chattool, event.replyToken, lineId);
-              break;
-
             case DONE_MESSAGE:
-              await this.handleReplyMessage(
-                chattool,
-                user,
-                lineId,
-                messgeContent,
-                event.replyToken
-              );
-              break;
-
             case DELAY_MESSAGE:
               await this.handleReplyMessage(
                 chattool,
@@ -211,17 +194,33 @@ export default class LineController extends Controller {
     const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
     if (superiorUsers.length == 0) {
-      if (replyMessage == DONE_MESSAGE) {
-        await this.replyDoneAction(chattool, user, replyToken, '');
-      } else {
-        await this.replyDeplayAction(chattool, user, replyToken);
+      switch (replyMessage) {
+        case DONE_MESSAGE:
+          await this.replyDoneAction(chattool, user, replyToken);
+          break;
+        case PROGRESS_GOOD_MESSAGE:
+        case PROGRESS_BAD_MESSAGE:
+          await this.replyInProgressAction(chattool, user, replyToken);
+          break;
+        case DELAY_MESSAGE:
+        default:
+          await this.replyDelayAction(chattool, user, replyToken);
+          break;
       }
     } else {
       superiorUsers.map(async (superiorUser) => {
-        if (replyMessage == DONE_MESSAGE) {
-          await this.replyDoneAction(chattool, user, replyToken, superiorUser.name);
-        } else {
-          await this.replyDeplayAction(chattool, user, replyToken);
+        switch (replyMessage) {
+          case DONE_MESSAGE:
+            await this.replyDoneAction(chattool, user, replyToken, superiorUser.name);
+            break;
+          case PROGRESS_GOOD_MESSAGE:
+          case PROGRESS_BAD_MESSAGE:
+            await this.replyInProgressAction(chattool, user, replyToken, superiorUser.name);
+            break;
+          case DELAY_MESSAGE:
+          default:
+            await this.replyDelayAction(chattool, user, replyToken);
+            break;
         }
         await this.saveChatMessage(
           chattool,
@@ -240,9 +239,14 @@ export default class LineController extends Controller {
 
   /**
    * Save chat message
-   * @param postData
-   * @param event
    * @returns
+   * @param chattool
+   * @param todo
+   * @param userId
+   * @param messageParentId
+   * @param messageContent
+   * @param messageToken
+   * @param messageTriggerId
    */
   private async saveChatMessage(
     chattool: ChatTool,
@@ -277,6 +281,7 @@ export default class LineController extends Controller {
 
   /**
    *
+   * @param chattool
    * @param replyToken
    * @param lineId
    * @returns
@@ -295,6 +300,8 @@ export default class LineController extends Controller {
 
   /**
    *
+   * @param chattool
+   * @param user
    * @param replyToken
    * @param superior
    * @returns
@@ -311,16 +318,35 @@ export default class LineController extends Controller {
 
   /**
    *
+   * @param chattool
+   * @param user
+   * @param replyToken
+   * @param superior
+   * @returns
+   */
+  private async replyInProgressAction(
+    chattool: ChatTool,
+    user: User,
+    replyToken: string,
+    superior?: string
+  ): Promise<MessageAPIResponseBase> {
+    const replyMessage: FlexMessage = LineMessageBuilder.createReplyInProgressMessage(superior);
+    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+  }
+
+  /**
+   *
+   * @param chattool
+   * @param user
    * @param replyToken
    * @returns
    */
-  private async replyDeplayAction(
+  private async replyDelayAction(
     chattool: ChatTool,
     user: User,
     replyToken: string
   ): Promise<MessageAPIResponseBase> {
-    const replyMessage: FlexMessage = LineMessageBuilder.createDeplayReplyMessage();
-
+    const replyMessage: FlexMessage = LineMessageBuilder.createDelayReplyMessage();
     return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
   }
 
@@ -336,6 +362,7 @@ export default class LineController extends Controller {
 
   /**
    *
+   * @param chattool
    * @param superiorUser
    * @param userName
    * @param taskName
@@ -353,8 +380,7 @@ export default class LineController extends Controller {
     const user = { ...superiorUser, line_id: chatToolUser?.auth_key };
 
     if (!chatToolUser?.auth_key) {
-      logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
-
+      logger.error(new LoggerError(user.name + 'さんのLINE IDが設定されていません。'));
       return;
     }
 
