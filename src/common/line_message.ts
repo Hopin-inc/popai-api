@@ -1,6 +1,12 @@
 import { FlexComponent, FlexMessage, Message, QuickReply } from '@line/bot-sdk';
 import { truncate } from './../utils/common';
-import { DELAY_MESSAGE, DONE_MESSAGE, PROGRESS_GOOD_MESSAGE, PROGRESS_BAD_MESSAGE, LINE_MAX_LABEL_LENGTH } from '../const/common';
+import {
+  DELAY_MESSAGE,
+  DONE_MESSAGE,
+  PROGRESS_GOOD_MESSAGE,
+  PROGRESS_BAD_MESSAGE,
+  LINE_MAX_LABEL_LENGTH,
+} from '../const/common';
 import { ITodo, ITodoLines, IUser } from '../types';
 
 export class LineMessageBuilder {
@@ -275,10 +281,6 @@ export class LineMessageBuilder {
   }
 
   static createStartRemindMessageToUser(user: IUser, todoLines: ITodoLines[]) {
-    const lastedTask = todoLines.reduce((previous, current) => {
-      return current.remindDays < previous.remindDays ? current : previous;
-    });
-
     const sortedTodoLines = todoLines.sort((a, b) => (a.remindDays < b.remindDays ? 1 : -1));
 
     const groupMessageMap = new Map<number, ITodoLines[]>();
@@ -307,7 +309,8 @@ export class LineMessageBuilder {
     groupMessageMap.forEach((onedayTasks, remindDays) => {
       const messagePrefix = LineMessageBuilder.getPrefixSummaryMessage(remindDays);
 
-      const summaryMessage = '\n' + messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
+      const summaryMessage =
+        '\n' + messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
 
       contents.push({
         type: 'text',

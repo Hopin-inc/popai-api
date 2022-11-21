@@ -9,6 +9,7 @@ import { Common } from '../const/common';
 import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
 import RemindRepository from './../repositories/remind.repository';
+import LineQuequeRepository from './../repositories/modules/line_queque.repository';
 
 @Service()
 export default class TaskService {
@@ -16,12 +17,14 @@ export default class TaskService {
   private microsofRepo: MicrosoftRepository;
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
+  private lineQueueRepository: LineQuequeRepository;
 
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
     this.microsofRepo = Container.get(MicrosoftRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
+    this.lineQueueRepository = Container.get(LineQuequeRepository);
   }
 
   /**
@@ -29,6 +32,9 @@ export default class TaskService {
    */
   syncTodoTasks = async (): Promise<any> => {
     try {
+      // update old line queue
+      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+
       const companies = await this.companyRepository.find({
         relations: ['todoapps', 'chattools', 'admin_user', 'companyConditions'],
         where: {
@@ -67,14 +73,14 @@ export default class TaskService {
         relations: ['chattools', 'admin_user', 'companyConditions'],
       });
 
-      //remind task for user by queue
-      this.remindRepository.updateStatusOfOldQueueTask();
-      this.remindRepository.remindTodayTaskForUser();
-
       //remind task for adminn
       for (const company of companies) {
-        this.remindRepository.remindTaskForAdminCompany(company);
+        await this.remindRepository.remindTaskForAdminCompany(company);
       }
+
+      //remind task for user by queue
+      // await this.remindRepository.updateStatusOfOldQueueTask();
+      await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);

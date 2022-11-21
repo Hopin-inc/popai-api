@@ -1,11 +1,5 @@
 import { Route, Controller } from 'tsoa';
-import {
-  WebhookEvent,
-  FlexMessage,
-  TextMessage,
-  PostbackEvent,
-  MessageAPIResponseBase,
-} from '@line/bot-sdk';
+import { WebhookEvent, FlexMessage, TextMessage, MessageAPIResponseBase } from '@line/bot-sdk';
 
 import { User } from '../entify/user.entity';
 import { LineMessageBuilder } from '../common/line_message';
@@ -19,7 +13,9 @@ import {
   LineMessageQueueStatus,
   MessageTriggerType,
   MessageType,
-  OpenStatus, PROGRESS_BAD_MESSAGE, PROGRESS_GOOD_MESSAGE,
+  OpenStatus,
+  PROGRESS_BAD_MESSAGE,
+  PROGRESS_GOOD_MESSAGE,
   ReplyStatus,
   SenderType,
 } from '../const/common';

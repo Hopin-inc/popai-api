@@ -29,18 +29,6 @@ export default class RemindRepository {
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
-  updateStatusOfOldQueueTask = async (): Promise<void> => {
-    this.lineQueueRepository.updateStatusOldQueueTask(
-      LineMessageQueueStatus.NOT_SEND,
-      LineMessageQueueStatus.NOT_SEND_TIMEOUT
-    );
-
-    this.lineQueueRepository.updateStatusOldQueueTask(
-      LineMessageQueueStatus.WAITING_REPLY,
-      LineMessageQueueStatus.NOT_REPLY_TIMEOUT
-    );
-  };
-
   remindTodayTaskForUser = async (): Promise<void> => {
     const remindTasks: ITodo[] = [];
     const todoQueueTasks: LineMessageQueue[] = [];
@@ -59,14 +47,13 @@ export default class RemindRepository {
     );
 
     for await (const [userId, todoLines] of userTodoQueueMap) {
+      await this.lineRepo.pushMessageStartRemindToUser(todoLines);
+
       //push first line
       const todoLine = todoLines[0];
-      if (todoLine.todoQueueTask.status == LineMessageQueueStatus.NOT_SEND) {
-        await this.lineRepo.pushMessageStartRemindToUser(todoLines);
-        const chatMessage = await this.lineRepo.pushTodoLine(todoLine);
-        todoQueueTasks.push({ ...todoLine.todoQueueTask, message_id: chatMessage?.id });
-        remindTasks.push(todoLine.todo);
-      }
+      const chatMessage = await this.lineRepo.pushTodoLine(todoLine);
+      todoQueueTasks.push({ ...todoLine.todoQueueTask, message_id: chatMessage?.id });
+      remindTasks.push(todoLine.todo);
     }
 
     await this.updateStatusLineMessageQueue(todoQueueTasks);

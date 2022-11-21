@@ -18,6 +18,18 @@ export default class LineQuequeRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
+  updateStatusOfOldQueueTask = async (): Promise<void> => {
+    await this.updateStatusOldQueueTask(
+      LineMessageQueueStatus.NOT_SEND,
+      LineMessageQueueStatus.NOT_SEND_TIMEOUT
+    );
+
+    await this.updateStatusOldQueueTask(
+      LineMessageQueueStatus.WAITING_REPLY,
+      LineMessageQueueStatus.NOT_REPLY_TIMEOUT
+    );
+  };
+
   getWaitingQueueTask = async (userId: number): Promise<LineMessageQueue> => {
     return await this.linequeueRepository.findOne({
       where: {
@@ -53,16 +65,16 @@ export default class LineQuequeRepository {
   };
 
   updateStatusOldQueueTask = async (currentStatus: number, newStatus: number): Promise<void> => {
-    const todayDate = moment(toJapanDateTime(new Date()))
-      .startOf('day')
-      .toDate();
+    // const todayDate = moment(toJapanDateTime(new Date()))
+    //   .startOf('day')
+    //   .toDate();
 
     await this.linequeueRepository
       .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: newStatus })
       .where('status =:status', { status: currentStatus })
-      .andWhere('remind_date < :todayDate', { todayDate: todayDate })
+      // .andWhere('remind_date < :todayDate', { todayDate: todayDate })
       .execute();
   };
 
@@ -82,12 +94,9 @@ export default class LineQuequeRepository {
         }
       )
       .innerJoinAndSelect('line_message_queues.user', 'users')
-      .where('line_message_queues.status IN (:...statuses)', {
-        statuses: [LineMessageQueueStatus.NOT_SEND, LineMessageQueueStatus.WAITING_REPLY],
-      })
+      .where('status =:status', { status: LineMessageQueueStatus.NOT_SEND })
       .andWhere('remind_date =:remind_date', { remind_date: todayDate })
-      .orderBy({ 'line_message_queues.status': 'DESC' })
-      .addOrderBy('line_message_queues.id', 'ASC')
+      .orderBy({ 'line_message_queues.id': 'ASC' })
       .getMany();
 
     return lineQueues;
@@ -107,14 +116,14 @@ export default class LineQuequeRepository {
           .startOf('day')
           .toDate();
 
-        const todoLineQueue: LineMessageQueue = await this.linequeueRepository.findOneBy({
-          todo_id: todo.id,
-          user_id: user.id,
-          remind_date: todayDate,
-        });
+        // const todoLineQueue: LineMessageQueue = await this.linequeueRepository.findOneBy({
+        //   todo_id: todo.id,
+        //   user_id: user.id,
+        //   remind_date: todayDate,
+        // });
 
         const lineQueueData = new LineMessageQueue();
-        lineQueueData.id = todoLineQueue?.id || null;
+        // lineQueueData.id = todoLineQueue?.id || null;
         lineQueueData.todo_id = todo.id;
         lineQueueData.user_id = user.id;
         lineQueueData.remind_date = todayDate;
