@@ -169,7 +169,7 @@ export default class TrelloRepository {
       const todoTask = cardTodo.todoTask;
 
       if (todoTask.due) {
-        const dayDurations = diffDays(todoTask.due, new Date());
+        const dayDurations = diffDays(toJapanDateTime(todoTask.due), toJapanDateTime(new Date()));
         delayedCount = dayDurations;
 
         if (dayReminds.includes(dayDurations) && !todoTask.dueComplete) {

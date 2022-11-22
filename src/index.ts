@@ -9,6 +9,7 @@ import Router from './routes';
 
 import { AppDataSource } from './config/data-source';
 import moment from 'moment';
+import { toJapanDateTime } from './utils/common';
 
 const myEnv = dotenv.config({ path: path.join(__dirname, '.env') });
 dotenvExpand.expand(myEnv);
@@ -26,6 +27,9 @@ app.use(cors());
 app.get('/_ah/warmup', (req, res) => {
   const currentDate = new Date();
   console.log('current datetime (local) : ' + moment(currentDate).format('YYYY/MM/DD HH:mm:ss'));
+  console.log(
+    'current datetime (JST) : ' + moment(toJapanDateTime(currentDate)).format('YYYY/MM/DD HH:mm:ss')
+  );
 
   res.send('warmup');
 });

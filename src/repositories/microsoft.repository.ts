@@ -236,7 +236,10 @@ export default class MicrosoftRepository {
       const todoTask = cardTodo.todoTask;
 
       if (todoTask.dueDateTime) {
-        const dayDurations = diffDays(todoTask.dueDateTime, new Date());
+        const dayDurations = diffDays(
+          toJapanDateTime(todoTask.dueDateTime),
+          toJapanDateTime(new Date())
+        );
         delayedCount = dayDurations;
 
         if (dayReminds.includes(dayDurations) && todoTask.percentComplete !== Common.completed) {

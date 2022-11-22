@@ -23,8 +23,8 @@ export function replaceString(str: string, search: string, replace: string): str
 }
 
 export function diffDays(startDate: Date, endDate: Date) {
-  const startDay = moment(toJapanDateTime(startDate)).startOf('day');
-  const endDay = moment(toJapanDateTime(endDate)).startOf('day');
+  const startDay = moment(startDate).startOf('day');
+  const endDay = moment(endDate).startOf('day');
 
   return endDay.diff(startDay, 'days');
 }
