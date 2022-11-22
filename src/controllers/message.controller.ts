@@ -36,7 +36,7 @@ export default class MessageController extends Controller {
     }
 
     // set is_replied = true
-    message.is_replied = ReplyStatus.REPLIED;
+    // message.is_replied = ReplyStatus.REPLIED;
     if (!message.url_clicked_at) {
       message.url_clicked_at = toJapanDateTime(new Date());
     }
