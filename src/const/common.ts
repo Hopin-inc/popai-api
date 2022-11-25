@@ -66,5 +66,5 @@ export const DONE_MESSAGE = '完了しております👍';
 export const DELAY_MESSAGE = 'すみません、遅れております🙇‍♂️';
 export const PROGRESS_GOOD_MESSAGE = '順調です✨️';
 export const PROGRESS_BAD_MESSAGE = 'あまり進んでいません😭';
-export const WITHDRAWN_MESSAGE = 'あまり進んでいません😭';
+export const WITHDRAWN_MESSAGE = '撤退しました💧';
 export const LINE_MAX_LABEL_LENGTH = 40;
