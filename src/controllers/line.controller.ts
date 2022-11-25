@@ -196,7 +196,6 @@ export default class LineController extends Controller {
     if (superiorUsers.length == 0) {
       switch (replyMessage) {
         case DONE_MESSAGE:
-        case WITHDRAWN_MESSAGE:
           await this.replyDoneAction(chattool, user, replyToken);
           break;
         case PROGRESS_GOOD_MESSAGE:
@@ -204,15 +203,18 @@ export default class LineController extends Controller {
           await this.replyInProgressAction(chattool, user, replyToken);
           break;
         case DELAY_MESSAGE:
-        default:
           await this.replyDelayAction(chattool, user, replyToken);
+          break;
+        case WITHDRAWN_MESSAGE:
+          await this.replyWithdrawnAction(chattool, user, replyToken);
+          break;
+        default:
           break;
       }
     } else {
       superiorUsers.map(async (superiorUser) => {
         switch (replyMessage) {
           case DONE_MESSAGE:
-          case WITHDRAWN_MESSAGE:
             await this.replyDoneAction(chattool, user, replyToken, superiorUser.name);
             break;
           case PROGRESS_GOOD_MESSAGE:
@@ -220,8 +222,12 @@ export default class LineController extends Controller {
             await this.replyInProgressAction(chattool, user, replyToken, superiorUser.name);
             break;
           case DELAY_MESSAGE:
-          default:
             await this.replyDelayAction(chattool, user, replyToken);
+            break;
+          case WITHDRAWN_MESSAGE:
+            await this.replyWithdrawnAction(chattool, user, replyToken);
+            break;
+          default:
             break;
         }
         await this.saveChatMessage(
@@ -349,6 +355,22 @@ export default class LineController extends Controller {
     replyToken: string
   ): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createDelayReplyMessage();
+    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+  }
+
+  /**
+   *
+   * @param chattool
+   * @param user
+   * @param replyToken
+   * @returns
+   */
+  private async replyWithdrawnAction(
+    chattool: ChatTool,
+    user: User,
+    replyToken: string
+  ): Promise<MessageAPIResponseBase> {
+    const replyMessage: FlexMessage = LineMessageBuilder.createWithdrawnReplyMessage();
     return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
   }
 

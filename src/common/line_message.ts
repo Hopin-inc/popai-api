@@ -193,6 +193,29 @@ export class LineMessageBuilder {
     return replyMessage;
   }
 
+  static createWithdrawnReplyMessage() {
+    const replyMessage: FlexMessage = {
+      type: 'flex',
+      altText: '担当いただき、ありがとうございます😊',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: 'そうなんですね！承知しました😊',
+              wrap: true,
+            },
+          ],
+        },
+      },
+    };
+
+    return replyMessage;
+  }
+
   static createStartReportToSuperiorMessage(superiorUserName: string) {
     const reportMessage: FlexMessage = {
       type: 'flex',
