@@ -10,12 +10,13 @@ import {
   ChatToolCode,
   DELAY_MESSAGE,
   DONE_MESSAGE,
+  PROGRESS_BAD_MESSAGE,
+  PROGRESS_GOOD_MESSAGE,
+  WITHDRAWN_MESSAGE,
   LineMessageQueueStatus,
   MessageTriggerType,
   MessageType,
   OpenStatus,
-  PROGRESS_BAD_MESSAGE,
-  PROGRESS_GOOD_MESSAGE,
   ReplyStatus,
   SenderType,
 } from '../const/common';
@@ -28,9 +29,9 @@ import { ChatTool } from '../entify/chat_tool.entity';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
 import CommonRepository from './../repositories/modules/common.repository';
-import { IUser } from './../types';
+import { IUser } from '../types';
 import LineQuequeRepository from './../repositories/modules/line_queque.repository';
-import { Todo } from './../entify/todo.entity';
+import { Todo } from '../entify/todo.entity';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -96,6 +97,7 @@ export default class LineController extends Controller {
             case DELAY_MESSAGE:
             case PROGRESS_GOOD_MESSAGE:
             case PROGRESS_BAD_MESSAGE:
+            case WITHDRAWN_MESSAGE:
               await this.handleReplyMessage(
                 chattool,
                 user,
@@ -194,6 +196,7 @@ export default class LineController extends Controller {
     if (superiorUsers.length == 0) {
       switch (replyMessage) {
         case DONE_MESSAGE:
+        case WITHDRAWN_MESSAGE:
           await this.replyDoneAction(chattool, user, replyToken);
           break;
         case PROGRESS_GOOD_MESSAGE:
@@ -209,6 +212,7 @@ export default class LineController extends Controller {
       superiorUsers.map(async (superiorUser) => {
         switch (replyMessage) {
           case DONE_MESSAGE:
+          case WITHDRAWN_MESSAGE:
             await this.replyDoneAction(chattool, user, replyToken, superiorUser.name);
             break;
           case PROGRESS_GOOD_MESSAGE:
