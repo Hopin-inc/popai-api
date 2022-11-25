@@ -1,10 +1,11 @@
 import { FlexComponent, FlexMessage, Message, QuickReply } from '@line/bot-sdk';
-import { truncate } from './../utils/common';
+import { truncate } from '../utils/common';
 import {
   DELAY_MESSAGE,
   DONE_MESSAGE,
   PROGRESS_GOOD_MESSAGE,
   PROGRESS_BAD_MESSAGE,
+  WITHDRAWN_MESSAGE,
   LINE_MAX_LABEL_LENGTH,
 } from '../const/common';
 import { ITodo, ITodoLines, IUser } from '../types';
@@ -19,44 +20,21 @@ export class LineMessageBuilder {
     const messagePrefix = LineMessageBuilder.getPrefixMessage(remindDays);
 
     const quickReply: QuickReply = {
-      items: [
-        {
-          type: 'action',
-          action: {
-            type: 'message',
-            label: DONE_MESSAGE,
-            text: DONE_MESSAGE,
-          },
-        },
-      ],
+      items: [],
     };
-    if (remindDays > 0) {
+    const messages: string[] = remindDays > 0
+      ? [DONE_MESSAGE, DELAY_MESSAGE, WITHDRAWN_MESSAGE]
+      : [PROGRESS_GOOD_MESSAGE, PROGRESS_BAD_MESSAGE, DONE_MESSAGE, WITHDRAWN_MESSAGE];
+    messages.forEach(message => {
       quickReply.items.push({
         type: 'action',
         action: {
           type: 'message',
-          label: DELAY_MESSAGE,
-          text: DELAY_MESSAGE,
+          label: message,
+          text: message,
         },
       });
-    } else {
-      quickReply.items.push({
-        type: 'action',
-        action: {
-          type: 'message',
-          label: PROGRESS_GOOD_MESSAGE,
-          text: PROGRESS_GOOD_MESSAGE,
-        },
-      });
-      quickReply.items.push({
-        type: 'action',
-        action: {
-          type: 'message',
-          label: PROGRESS_BAD_MESSAGE,
-          text: PROGRESS_BAD_MESSAGE,
-        },
-      });
-    }
+    });
 
     const message: FlexMessage = {
       type: 'flex',
