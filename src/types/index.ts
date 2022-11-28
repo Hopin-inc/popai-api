@@ -10,6 +10,7 @@ export type ICompany = {
   companyConditions?: ICompanyCondition[];
   chattools: ChatTool[];
   todos?: ITodo[];
+  users: IUser[];
 };
 
 export type ITodoApp = {

@@ -7,9 +7,11 @@ import {
   ManyToMany,
   JoinTable,
   OneToOne,
+  ManyToOne,
 } from 'typeorm';
 import { ChatTool } from './chat_tool.entity';
 import { CompanyCondion } from './company.conditon.entity';
+import { Company } from './company.entity';
 import { Section } from './section.entity';
 import { Todo } from './todo.entity';
 import { TodoAppUser } from './todoappuser.entity';
@@ -55,4 +57,11 @@ export class User {
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'board_admin_user_id' })
   section: Section;
+
+  @ManyToOne(
+    () => Company,
+    (company) => company.users
+  )
+  @JoinColumn({ name: 'company_id' })
+  company: Company;
 }

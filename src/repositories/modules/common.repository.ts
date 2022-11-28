@@ -45,6 +45,7 @@ export default class CommonRepository {
       )
       .where('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
+      .andWhere('sections.board_id IS NOT NULL')
       .getMany();
     return sections;
   };

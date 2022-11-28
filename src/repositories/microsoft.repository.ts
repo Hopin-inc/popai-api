@@ -91,15 +91,15 @@ export default class MicrosoftRepository {
   };
 
   getTaskBoards = async (
-    user: IUser,
+    boardAdminuser: IUser,
     section: ISection,
     todoTasks: ITodoTask[],
     company: ICompany,
     todoapp: ITodoApp
   ): Promise<void> => {
-    if (!user?.todoAppUsers.length) return;
+    if (!boardAdminuser?.todoAppUsers.length) return;
 
-    for (const todoAppUser of user.todoAppUsers) {
+    for (const todoAppUser of boardAdminuser.todoAppUsers) {
       if (todoAppUser.api_token && section.board_id) {
         try {
           const dataRefresh: IMicrosoftRefresh = {
@@ -117,10 +117,20 @@ export default class MicrosoftRepository {
             for (const todoTask of taskTodos['value']) {
               let userCreateBy = null;
               if (todoTask.createdBy) {
-                if (todoTask.createdBy?.user?.id === todoAppUser.user_app_id) {
-                  userCreateBy = user.id;
+                const userCreates = await this.todoUserRepository.getUserAssignTask(company.users, [
+                  todoTask.createdBy?.user?.id,
+                ]);
+
+                if (userCreates.length) {
+                  userCreateBy = userCreates.shift().id;
                 }
               }
+
+              const userAssigns = Object.keys(todoTask.assignments);
+              const users = await this.todoUserRepository.getUserAssignTask(
+                company.users,
+                userAssigns
+              );
 
               const card: ITodoTask = {
                 todoTask: { ...todoTask, userCreateBy: userCreateBy },
@@ -128,23 +138,14 @@ export default class MicrosoftRepository {
                 todoapp: todoapp,
                 todoAppUser: todoAppUser,
                 section: section,
-                users: [],
+                users: users,
               };
 
-              const userAssigns = Object.keys(todoTask.assignments);
               const taskFound = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
 
               if (taskFound) {
-                if (userAssigns.includes(todoAppUser.user_app_id)) {
-                  taskFound.users.push(user);
-                }
-                if (userCreateBy) {
-                  taskFound.todoTask.userCreateBy = userCreateBy;
-                }
+                taskFound.users = users;
               } else {
-                if (userAssigns.includes(todoAppUser.user_app_id)) {
-                  card.users = [user];
-                }
                 todoTasks.push(card);
               }
             }

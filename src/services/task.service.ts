@@ -36,7 +36,13 @@ export default class TaskService {
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
 
       const companies = await this.companyRepository.find({
-        relations: ['todoapps', 'chattools', 'admin_user', 'companyConditions'],
+        relations: [
+          'todoapps',
+          'chattools',
+          'admin_user',
+          'companyConditions',
+          'users.todoAppUsers',
+        ],
         where: {
           todoapps: { id: Not(IsNull()) },
         },

@@ -68,4 +68,17 @@ export default class TodoUserRepository {
 
     await this.todoUserRepository.upsert(todoUserDatas, []);
   };
+
+  getUserAssignTask = async (usersCompany: IUser[], idMembers: string[]): Promise<IUser[]> => {
+    const users = usersCompany.filter((user) => {
+      const userLineIds = user?.todoAppUsers.reduce(function(userAppIds: string[], todoAppUser) {
+        userAppIds.push(todoAppUser.user_app_id);
+        return userAppIds;
+      }, []);
+
+      return idMembers.filter((value) => userLineIds.includes(value)).length;
+    });
+
+    return users;
+  };
 }
