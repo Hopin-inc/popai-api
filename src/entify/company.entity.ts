@@ -71,4 +71,10 @@ export class Company {
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'company_id' })
   companyConditions: CompanyCondion[];
+
+  @OneToMany(
+    () => User,
+    (user) => user.company
+  )
+  users: User[];
 }

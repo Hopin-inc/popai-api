@@ -73,6 +73,7 @@ export default class TrelloRepository {
       const dayReminds: number[] = await this.commonRepository.getDayReminds(
         company.companyConditions
       );
+
       await this.filterUpdateCards(dayReminds, todoTasks);
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -80,15 +81,15 @@ export default class TrelloRepository {
   };
 
   getCardBoards = async (
-    user: IUser,
+    boardAdminuser: IUser,
     section: ISection,
     todoTasks: ITodoTask[],
     company: ICompany,
     todoapp: ITodoApp
   ): Promise<void> => {
-    if (!user?.todoAppUsers.length) return;
+    if (!boardAdminuser?.todoAppUsers.length) return;
 
-    for (const todoAppUser of user.todoAppUsers) {
+    for (const todoAppUser of boardAdminuser.todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token && section.board_id) {
         try {
           const trelloAuth: ITrelloAuth = {
@@ -103,24 +104,24 @@ export default class TrelloRepository {
           );
 
           for (const todoTask of cardTodos) {
+            const users = await this.todoUserRepository.getUserAssignTask(
+              company.users,
+              todoTask.idMembers
+            );
+
             const card: ITodoTask = {
               todoTask: todoTask,
               company: company,
               todoapp: todoapp,
               todoAppUser: todoAppUser,
               section: section,
-              users: [],
+              users: users,
             };
 
             const taskFound = todoTasks.find((task) => task.todoTask?.id === todoTask.id);
             if (taskFound) {
-              if (taskFound.todoTask.idMembers.includes(todoAppUser.user_app_id)) {
-                taskFound.users.push(user);
-              }
+              taskFound.users = users;
             } else {
-              if (todoTask.idMembers.includes(todoAppUser.user_app_id)) {
-                card.users = [user];
-              }
               todoTasks.push(card);
             }
           }
