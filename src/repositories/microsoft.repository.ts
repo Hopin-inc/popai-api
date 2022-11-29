@@ -56,7 +56,7 @@ export default class MicrosoftRepository {
     const companyId = company.id;
     const todoappId = todoapp.id;
 
-    await this.updateUsersMicrosoft(companyId, todoappId);
+    await this.updateUsersMicrosoft(company.users, todoappId);
     const sections = await this.commonRepository.getSections(companyId, todoappId);
     await this.getUserTaskBoards(sections, company, todoapp);
   };
@@ -157,8 +157,13 @@ export default class MicrosoftRepository {
     }
   };
 
-  updateUsersMicrosoft = async (companyId: number, todoappId: number): Promise<void> => {
-    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId, false);
+  updateUsersMicrosoft = async (usersCompany: IUser[], todoappId: number): Promise<void> => {
+    const users = usersCompany.filter((user) => {
+      return user?.todoAppUsers.find(
+        (todoAppUser) => todoAppUser.todoapp_id === todoappId && !todoAppUser.user_app_id
+      );
+    });
+
     for (const user of users) {
       if (user.todoAppUsers.length) {
         await this.updateMicosoftUser(user.todoAppUsers);

@@ -52,7 +52,8 @@ export default class TrelloRepository {
   syncTaskByUserBoards = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
-    await this.updateUsersTrello(companyId, todoappId);
+
+    await this.updateUsersTrello(company.users, todoappId);
     const sections = await this.commonRepository.getSections(companyId, todoappId);
 
     await this.getUserCardBoards(sections, company, todoapp);
@@ -132,8 +133,13 @@ export default class TrelloRepository {
     }
   };
 
-  updateUsersTrello = async (companyId: number, todoappId: number): Promise<void> => {
-    const users = await this.commonRepository.getUserTodoApps(companyId, todoappId, false);
+  updateUsersTrello = async (usersCompany: IUser[], todoappId: number): Promise<void> => {
+    const users = usersCompany.filter((user) => {
+      return user?.todoAppUsers.find(
+        (todoAppUser) => todoAppUser.todoapp_id === todoappId && !todoAppUser.user_app_id
+      );
+    });
+
     for await (const user of users) {
       if (user.todoAppUsers.length) {
         await this.updateTrelloUser(user.todoAppUsers);
