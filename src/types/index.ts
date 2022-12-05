@@ -193,3 +193,7 @@ export type ITodoRemind = {
   remindDays: number;
   todoTask: ITodo;
 };
+
+export type INotionAuth = {
+  access_token: string;
+};
