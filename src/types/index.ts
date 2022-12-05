@@ -104,6 +104,23 @@ export type IChatToolUser = {
   chattool_id: number;
 };
 
+export type INotionTask = {
+  id: string;
+  name: string;
+  isDone: boolean;
+  dueComplete: boolean;
+  dateLastActivity: Date;
+  due: Date;
+  dueReminder: number;
+  url: string;
+  assignee: string[];
+};
+
+export type INotionAuth = {
+  api_key: string;
+  database_id: string;
+};
+
 export type ITrelloTask = {
   id: string;
   name: string;
@@ -118,7 +135,7 @@ export type ITrelloTask = {
 };
 
 export type ITodoTask = {
-  todoTask: ITrelloTask & IMicrosoftTask;
+  todoTask: ITrelloTask & IMicrosoftTask & INotionTask;
   todoapp: ITodoApp;
   todoAppUser: ITodoAppUser;
   company: ICompany;
