@@ -8,7 +8,6 @@ import {
   ITodo,
   ITodoApp,
   ITodoAppUser,
-  ITodoQueue,
   ITodoTask,
   ITodoUpdate,
   ITodoUserUpdate,
@@ -17,7 +16,7 @@ import {
 
 import { AppDataSource } from './../config/data-source';
 import { Service, Container } from 'typedi';
-import { ChatToolCode, Common } from './../const/common';
+import { Common } from './../const/common';
 import { fetchApi } from './../libs/request';
 import { TodoAppUser } from './../entify/todoappuser.entity';
 import { Todo } from './../entify/todo.entity';
@@ -233,48 +232,31 @@ export default class MicrosoftRepository {
     todoTaskLists: ITodoTask[],
     implementTodoApp: ImplementedTodoApp
   ): Promise<void> => {
-    const taskReminds: IRemindTask[] = [];
-    const taskNomals: IRemindTask[] = [];
+    const tasks: IRemindTask[] = [];
 
     for (const cardTodo of todoTaskLists) {
-      let hasRemind = false;
-      let delayedCount = 0;
       const todoTask = cardTodo.todoTask;
+      let dayDurations;
+      let delayedCount = 0;
 
       if (todoTask.dueDateTime) {
-        const dayDurations = diffDays(
-          toJapanDateTime(todoTask.dueDateTime),
-          toJapanDateTime(new Date())
-        );
+        dayDurations = diffDays(toJapanDateTime(todoTask.dueDateTime), toJapanDateTime(new Date()));
         delayedCount = dayDurations;
-
-        if (dayReminds.includes(dayDurations) && todoTask.percentComplete !== Common.completed) {
-          hasRemind = true;
-          taskReminds.push({
-            remindDays: dayDurations,
-            cardTodo: cardTodo,
-            delayedCount: delayedCount,
-          });
-        }
       }
 
-      if (!hasRemind) {
-        taskNomals.push({
-          remindDays: 0,
-          cardTodo: cardTodo,
-          delayedCount: delayedCount,
-        });
-      }
+      tasks.push({
+        remindDays: dayDurations,
+        cardTodo: cardTodo,
+        delayedCount: delayedCount,
+      });
     }
 
-    await this.createTodo(taskReminds, implementTodoApp, true);
-    await this.createTodo(taskNomals, implementTodoApp);
+    await this.createTodo(tasks, implementTodoApp);
   };
 
   createTodo = async (
     taskReminds: IRemindTask[],
-    implementTodoApp: ImplementedTodoApp,
-    isRemind: boolean = false
+    implementTodoApp: ImplementedTodoApp
   ): Promise<void> => {
     try {
       if (!taskReminds.length) return;
@@ -282,20 +264,10 @@ export default class MicrosoftRepository {
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
-      const dataLineQueues: ITodoQueue[] = [];
-      //const pushUserIds = [];
-
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
-        const { users, todoTask, todoapp, company, section, todoAppUser } = cardTodo;
-
-        // if (isRemind && user && !pushUserIds.includes(user.id)) {
-        //   // send to admin of user
-        //   pushUserIds.push(user.id);
-        //   await this.lineBotRepository.pushStartReportToAdmin(user);
-        // }
+        const { users, todoTask, todoapp, company, section } = cardTodo;
 
         const todo: ITodo = await this.todoRepository.findOneBy({
           todoapp_reg_id: todoTask.id,
@@ -329,26 +301,6 @@ export default class MicrosoftRepository {
             todoId: todoTask.id,
             users: users,
           });
-
-          if (isRemind && todoData.reminded_count < Common.remindMaxCount) {
-            // add line queue message
-            for (const user of users) {
-              company.chattools.forEach(async (chattool) => {
-                if (chattool.tool_code == ChatToolCode.LINE) {
-                  const chatToolUser = chattoolUsers.find(
-                    (chattoolUser) =>
-                      chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
-                  );
-                  if (chatToolUser) {
-                    dataLineQueues.push({
-                      todoId: todoTask.id,
-                      user: { ...user, line_id: chatToolUser.auth_key },
-                    });
-                  }
-                }
-              });
-            }
-          }
         }
 
         //update deadline task
@@ -387,7 +339,7 @@ export default class MicrosoftRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
-        await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues);
+        // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));

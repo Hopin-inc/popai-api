@@ -10,6 +10,7 @@ import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
 import RemindRepository from './../repositories/remind.repository';
 import LineQuequeRepository from './../repositories/modules/line_queque.repository';
+import CommonRepository from './../repositories/modules/common.repository';
 
 @Service()
 export default class TaskService {
@@ -18,6 +19,7 @@ export default class TaskService {
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineQuequeRepository;
+  private commonRepository: CommonRepository;
 
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
@@ -25,6 +27,7 @@ export default class TaskService {
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.commonRepository = Container.get(CommonRepository);
   }
 
   /**
@@ -33,7 +36,7 @@ export default class TaskService {
   syncTodoTasks = async (): Promise<any> => {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      // await this.lineQueueRepository.updateStatusOfOldQueueTask();
 
       const companies = await this.companyRepository.find({
         relations: [
@@ -75,17 +78,21 @@ export default class TaskService {
    */
   remindTaskForCompany = async (): Promise<any> => {
     try {
+      // update old line queue
+      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+
       const companies = await this.companyRepository.find({
         relations: ['chattools', 'admin_user', 'companyConditions'],
       });
 
       //remind task for adminn
       for (const company of companies) {
+        await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
         await this.remindRepository.remindTaskForAdminCompany(company);
       }
 
       //remind task for user by queue
-      // await this.remindRepository.updateStatusOfOldQueueTask();
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));

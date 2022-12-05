@@ -186,7 +186,7 @@ export type ITodoLines = {
 
 export type ITodoQueue = {
   todoId: string;
-  user: IUser;
+  userId: number;
 };
 
 export type ITodoRemind = {

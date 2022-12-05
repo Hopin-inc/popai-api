@@ -268,10 +268,15 @@ export default class RemindRepository {
 
   updateRemindedCount = async (todos: ITodo[]): Promise<any> => {
     const todoDatas = todos.map((todo) => {
-      return {
-        ...todo,
-        reminded_count: todo.reminded_count + 1,
-      };
+      const dayDurations = diffDays(todo.deadline, toJapanDateTime(new Date()));
+
+      // reminded_count をカウントアップするのを「期日後のリマインドを送ったとき」のみに限定していただくことは可能でしょうか？
+      // 他の箇所（期日前のリマインドを送ったときなど）で reminded_count をカウントアップする処理は、コメントアウトする形で残しておいていただけますと幸いです。
+      if (dayDurations > 0) {
+        todo.reminded_count = todo.reminded_count + 1;
+      }
+
+      return todo;
     });
 
     if (todoDatas.length) {

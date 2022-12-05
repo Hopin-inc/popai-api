@@ -144,6 +144,7 @@ export default class LineController extends Controller {
 
     // update status
     waitingReplyQueue.status = LineMessageQueueStatus.RELIED;
+    waitingReplyQueue.updated_at = toJapanDateTime(new Date());
     await this.lineQueueRepository.saveQueue(waitingReplyQueue);
     await this.updateIsReplyFlag(waitingReplyQueue.message_id);
 
@@ -173,12 +174,16 @@ export default class LineController extends Controller {
       // change status
       nextQueue.status = LineMessageQueueStatus.WAITING_REPLY;
       nextQueue.message_id = chatMessage?.id;
-
+      nextQueue.updated_at = toJapanDateTime(new Date());
       await this.lineQueueRepository.saveQueue(nextQueue);
-      await this.todoRepository.save({
-        ...todo,
-        reminded_count: todo.reminded_count + 1,
-      });
+
+      // reminded_count をカウントアップするのを「期日後のリマインドを送ったとき」のみに限定していただくことは可能でしょうか？
+      // 他の箇所（期日前のリマインドを送ったときなど）で reminded_count をカウントアップする処理は、コメントアウトする形で残しておいていただけますと幸いです。
+      if (dayDurations > 0) {
+        todo.reminded_count = todo.reminded_count + 1;
+      }
+
+      await this.todoRepository.save(todo);
     }
   }
 

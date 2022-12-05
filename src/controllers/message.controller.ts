@@ -3,7 +3,6 @@ import { Todo } from '../entify/todo.entity';
 import { Get, Route, Controller } from 'tsoa';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
-import { ReplyStatus } from '../const/common';
 import { toJapanDateTime } from '../utils/common';
 
 export default class MessageController extends Controller {

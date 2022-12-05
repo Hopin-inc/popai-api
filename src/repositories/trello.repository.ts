@@ -13,7 +13,6 @@ import {
   ITodoUserUpdate,
   ITodoUpdate,
   IRemindTask,
-  ITodoQueue,
 } from './../types';
 
 import { Service, Container } from 'typedi';
@@ -26,7 +25,6 @@ import TrelloRequest from './../libs/trello.request';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import CommonRepository from './modules/common.repository';
-import { ChatToolCode, Common } from '../const/common';
 import LineQuequeRepository from './modules/line_queque.repository';
 
 @Service()
@@ -167,61 +165,38 @@ export default class TrelloRepository {
   };
 
   filterUpdateCards = async (dayReminds: number[], cardTodos: ITodoTask[]): Promise<void> => {
-    const cardReminds: IRemindTask[] = [];
-    const cardNomals: IRemindTask[] = [];
+    const cards: IRemindTask[] = [];
 
     for (const cardTodo of cardTodos) {
-      let hasRemind = false;
       let delayedCount = 0;
+      let dayDurations;
       const todoTask = cardTodo.todoTask;
 
       if (todoTask.due) {
-        const dayDurations = diffDays(toJapanDateTime(todoTask.due), toJapanDateTime(new Date()));
+        dayDurations = diffDays(toJapanDateTime(todoTask.due), toJapanDateTime(new Date()));
         delayedCount = dayDurations;
-
-        if (dayReminds.includes(dayDurations) && !todoTask.dueComplete) {
-          hasRemind = true;
-          cardReminds.push({
-            remindDays: dayDurations,
-            cardTodo: cardTodo,
-            delayedCount: delayedCount,
-          });
-        }
       }
 
-      if (!hasRemind) {
-        cardNomals.push({
-          remindDays: 0,
-          cardTodo: cardTodo,
-          delayedCount: delayedCount,
-        });
-      }
+      cards.push({
+        remindDays: dayDurations,
+        cardTodo: cardTodo,
+        delayedCount: delayedCount,
+      });
     }
 
-    await this.createTodo(cardReminds, true);
-    await this.createTodo(cardNomals);
+    await this.createTodo(cards);
   };
 
-  createTodo = async (taskReminds: IRemindTask[], isRemind: boolean = false): Promise<void> => {
+  createTodo = async (taskReminds: IRemindTask[]): Promise<void> => {
     try {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
-      const dataLineQueues: ITodoQueue[] = [];
-      // const pushUserIds = [];
-
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
 
       for (const taskRemind of taskReminds) {
         const cardTodo = taskRemind.cardTodo;
         const { users, todoTask, todoapp, company, section } = cardTodo;
-
-        // if (isRemind && user && !pushUserIds.includes(user.id)) {
-        //   // send to admin of user
-        //   pushUserIds.push(user.id);
-        //   await this.lineBotRepository.pushStartReportToAdmin(user);
-        // }
 
         const todo: ITodo = await this.todoRepository.findOneBy({
           todoapp_reg_id: todoTask.id,
@@ -251,27 +226,6 @@ export default class TrelloRepository {
             todoId: todoTask.id,
             users: users,
           });
-
-          if (isRemind && !todoTask.closed && todoData.reminded_count < Common.remindMaxCount) {
-            // add line queue message
-            for (const user of users) {
-              company.chattools.forEach(async (chattool) => {
-                if (chattool.tool_code == ChatToolCode.LINE) {
-                  const chatToolUser = chattoolUsers.find(
-                    (chattoolUser) =>
-                      chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
-                  );
-
-                  if (chatToolUser) {
-                    dataLineQueues.push({
-                      todoId: todoTask.id,
-                      user: { ...user, line_id: chatToolUser.auth_key },
-                    });
-                  }
-                }
-              });
-            }
-          }
         }
 
         //update deadline task
@@ -310,7 +264,7 @@ export default class TrelloRepository {
       if (response) {
         await this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates);
         await this.todoUserRepository.saveTodoUsers(dataTodoUsers);
-        await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues);
+        // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));
