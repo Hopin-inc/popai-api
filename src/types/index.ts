@@ -36,6 +36,7 @@ export type ISection = {
   company_id: number | null;
   todoapp_id: number | null;
   board_id: string;
+  label_id: string | null;
   boardAdminUser: IUser;
 };
 
@@ -118,7 +119,7 @@ export type ITrelloTask = {
 };
 
 export type ITodoTask = {
-  todoTask: ITrelloTask & IMicrosoftTask;
+  todoTask: ITrelloTask & IMicrosoftTask & INotionTask; // TODO:&を|に変える
   todoapp: ITodoApp;
   todoAppUser: ITodoAppUser;
   company: ICompany;
@@ -197,3 +198,20 @@ export type ITodoRemind = {
 export type INotionAuth = {
   access_token: string;
 };
+
+export type IColumnName = {
+  id: string;
+  nameColumn: string;
+  isDoneColumn: string;
+  assigneeColumn: string;
+  dueColumn: string;
+}
+export type INotionTask ={
+  todoapp_reg_id: string;
+  name: string;
+  is_done: boolean;
+  notion_user_id: string[];
+  deadline: Date;
+  created_by: string;
+  created_at: Date;
+}

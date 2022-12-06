@@ -122,6 +122,7 @@ export default class TrelloRepository {
               taskFound.users = users;
             } else {
               todoTasks.push(card);
+              console.log(card);
             }
           }
         } catch (err) {

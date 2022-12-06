@@ -11,11 +11,14 @@ import logger from '../logger/winston';
 import RemindRepository from './../repositories/remind.repository';
 import LineQuequeRepository from './../repositories/modules/line_queque.repository';
 import CommonRepository from './../repositories/modules/common.repository';
+import NotionRepository from '../repositories/notion.repository';
+import { IColumnName } from '../types';
 
 @Service()
 export default class TaskService {
   private trelloRepo: TrelloRepository;
   private microsofRepo: MicrosoftRepository;
+  private notionRepo: NotionRepository;
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineQuequeRepository;
@@ -33,7 +36,7 @@ export default class TaskService {
   /**
    * Update todo task
    */
-  syncTodoTasks = async (): Promise<any> => {
+  syncTodoTasks = async (columnName: IColumnName): Promise<any> => {
     try {
       // update old line queue
       // await this.lineQueueRepository.updateStatusOfOldQueueTask();
@@ -59,6 +62,9 @@ export default class TaskService {
               break;
             case Common.microsoft:
               await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
+              break;
+            case Common.notion:
+              await this.notionRepo.syncTaskByUserBoards(company, todoapp, columnName);
               break;
             default:
               break;

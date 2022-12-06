@@ -2,6 +2,7 @@ export const Common = {
   day_remind: 1,
   trello: 'trello',
   microsoft: 'microsoft',
+  notion: "notion",
   completed: 100,
   microsoftBaseUrl: 'https://tasks.office.com/{tenant}/Home/Task',
   remindMaxCount: 2,

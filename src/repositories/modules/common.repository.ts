@@ -29,7 +29,7 @@ export default class CommonRepository {
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    const sections: ISection[] = await this.sectionRepository
+    let sectionQuery = this.sectionRepository
       .createQueryBuilder('sections')
       .innerJoinAndSelect(
         'sections.boardAdminUser',
@@ -43,9 +43,15 @@ export default class CommonRepository {
         'users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId',
         { todoappId }
       )
+
+      if (todoappId == 3) {
+      sectionQuery = sectionQuery.where("sections.label_id IS NOT NULL")
+    } else {
+      sectionQuery = sectionQuery.where('sections.board_id IS NOT NULL')
+    }
+    const sections:ISection[] = await sectionQuery
       .where('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
-      .andWhere('sections.board_id IS NOT NULL')
       .getMany();
     return sections;
   };
