@@ -201,14 +201,14 @@ export type INotionAuth = {
 
 export type IColumnName = {
   id: number;
-  companyId: number;
-  todoappId: number;
+  company_id: number;
+  todoapp_id: number;
   name: string | null;
-  isDone: string | null;
+  is_done: string | null;
   assignee: string | null;
   due: string | null;
-  createdBy: string | null;
-  createdAt: string | null;
+  created_by: string | null;
+  created_at: string | null;
 }
 
 export type INotionTask ={

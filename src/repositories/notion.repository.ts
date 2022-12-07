@@ -93,11 +93,11 @@ export default class NotionRepository {
     });
     if (columnName) {
       if (
-        !('companyId' in columnName) ||
-        !('todoappId' in columnName) ||
-        !('isDone' in columnName) ||
-        !('createdBy' in columnName) ||
-        !('createdAt' in columnName))
+        !('company_id' in columnName) ||
+        !('todoapp_id' in columnName) ||
+        !('is_done' in columnName) ||
+        !('created_by' in columnName) ||
+        !('created_at' in columnName))
         logger.error(
           new LoggerError(
             'column_nameのデータ(company_id=' +
@@ -156,7 +156,7 @@ export default class NotionRepository {
 
   getIsDone = (columnName: IColumnName, pageProperty: string): boolean => {
     try {
-      return pageProperty[columnName.isDone]['checkbox'];
+      return pageProperty[columnName.is_done]['checkbox'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
