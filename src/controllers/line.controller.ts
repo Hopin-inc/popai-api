@@ -95,12 +95,12 @@ export default class LineController extends Controller {
             const user = await this.lineRepository.getUserFromLineId(lineId);
 
             if (user) {
-              // execute remind
-              const resultCode = await this.taskService.remindTaskForDemoUser(user);
+              await this.replyProcessingJob(chattool, user, event.replyToken);
 
-              if (resultCode == RemindUserJobResult.FAILED_HAS_PROCESSING_JOB) {
-                await this.replyProcessingJob(chattool, user, event.replyToken);
-              }
+              // execute remind
+              await this.taskService.remindTaskForDemoUser(user);
+            } else {
+              console.error('Line ID :' + lineId + 'のアカウントが登録されていません。');
             }
           }
           break;

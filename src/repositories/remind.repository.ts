@@ -152,7 +152,7 @@ export default class RemindRepository {
             }
           });
 
-          await this.updateRemindedCount(remindTasks);
+          // await this.updateRemindedCount(remindTasks);
         }
       } else {
         company.chattools.forEach(async (chattool) => {
@@ -203,7 +203,7 @@ export default class RemindRepository {
             }
           });
 
-          await this.updateRemindedCount(todos);
+          // await this.updateRemindedCount(todos);
         });
       }
 
@@ -232,7 +232,7 @@ export default class RemindRepository {
           }
         });
 
-        await this.updateRemindedCount(notSetAssignTasks);
+        // await this.updateRemindedCount(notSetAssignTasks);
       }
     }
   };
