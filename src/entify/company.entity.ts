@@ -24,6 +24,9 @@ export class Company {
   @Column()
   admin_user_id: number;
 
+  @Column()
+  is_demo: boolean;
+
   @ManyToMany(
     () => TodoApp,
     (todoapp) => todoapp.companies

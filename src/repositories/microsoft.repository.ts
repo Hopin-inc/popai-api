@@ -274,6 +274,7 @@ export default class MicrosoftRepository {
         });
 
         const taskDeadLine = todoTask?.dueDateTime ? toJapanDateTime(todoTask.dueDateTime) : null;
+        const taskUpdated = toJapanDateTime(todoTask.createdDateTime);
 
         const todoData = new Todo();
         todoData.id = todo?.id || null;
@@ -286,7 +287,7 @@ export default class MicrosoftRepository {
           implementTodoApp.primary_domain
         );
         todoData.todoapp_reg_created_by = todoTask.userCreateBy;
-        todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdDateTime);
+        todoData.todoapp_reg_created_at = todo?.todoapp_reg_created_at || taskUpdated;
         todoData.company_id = company.id;
         todoData.section_id = section.id;
         todoData.deadline = taskDeadLine;
@@ -296,7 +297,15 @@ export default class MicrosoftRepository {
         todoData.delayed_count = todo?.delayed_count || 0;
         todoData.reminded_count = todo?.reminded_count || 0;
 
+        //set first update task
+        if (taskDeadLine) {
+          todoData.first_ddl_set_at = todo?.first_ddl_set_at || taskUpdated;
+        }
+
         if (users.length) {
+          //set first update task
+          todoData.first_assigned_at = todo?.first_assigned_at || taskUpdated;
+
           dataTodoUsers.push({
             todoId: todoTask.id,
             users: users,
@@ -330,7 +339,7 @@ export default class MicrosoftRepository {
 
         //Update user
         if (todo) {
-          this.todoUserRepository.updateTodoUser(todo, users);
+          await this.todoUserRepository.updateTodoUser(todo, users);
         }
       }
 

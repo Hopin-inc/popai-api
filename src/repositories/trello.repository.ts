@@ -203,6 +203,7 @@ export default class TrelloRepository {
         });
 
         const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
+        const taskUpdated = toJapanDateTime(todoTask.dateLastActivity);
 
         const todoData = new Todo();
         todoData.id = todo?.id || null;
@@ -211,7 +212,7 @@ export default class TrelloRepository {
         todoData.todoapp_reg_id = todoTask.id;
         todoData.todoapp_reg_url = todoTask.shortUrl;
         todoData.todoapp_reg_created_by = null;
-        todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
+        todoData.todoapp_reg_created_at = todo?.todoapp_reg_created_at || taskUpdated;
         todoData.company_id = company.id;
         todoData.section_id = section.id;
         todoData.deadline = taskDeadLine;
@@ -221,7 +222,15 @@ export default class TrelloRepository {
         todoData.delayed_count = todo?.delayed_count || 0;
         todoData.reminded_count = todo?.reminded_count || 0;
 
+        //set first update task
+        if (taskDeadLine) {
+          todoData.first_ddl_set_at = todo?.first_ddl_set_at || taskUpdated;
+        }
+
         if (users.length) {
+          //set first update task
+          todoData.first_assigned_at = todo?.first_assigned_at || taskUpdated;
+
           dataTodoUsers.push({
             todoId: todoTask.id,
             users: users,
