@@ -16,4 +16,10 @@ export class Section {
 
   @Column()
   dueColumn: string;
+
+  @Column()
+  createdByColumn: string;
+
+  @Column()
+  createdAtColumn: string;
 }

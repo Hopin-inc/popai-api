@@ -205,6 +205,8 @@ export type IColumnName = {
   isDoneColumn: string;
   assigneeColumn: string;
   dueColumn: string;
+  createdByColumn: string;
+  createdAtColumn: string;
 }
 export type INotionTask ={
   todoapp_reg_id: string;

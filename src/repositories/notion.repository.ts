@@ -4,23 +4,23 @@ import { AppDataSource } from '../config/data-source';
 import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
+  IColumnName,
+  ICompany,
+  INotionTask,
+  IRemindTask,
   ISection,
   ITodo,
-  ITodoTask,
-  IUser,
-  ICompany,
   ITodoApp,
-  ITodoUserUpdate,
+  ITodoTask,
   ITodoUpdate,
-  IRemindTask,
-  IColumnName,
-  INotionTask,
+  ITodoUserUpdate,
+  IUser,
 } from '../types';
 
-import { Service, Container } from 'typedi';
+import { Container, Service } from 'typedi';
 import { Todo } from '../entify/todo.entity';
 import { TodoAppUser } from '../entify/todoappuser.entity';
-import { toJapanDateTime, diffDays } from '../utils/common';
+import { diffDays, toJapanDateTime } from '../utils/common';
 import moment from 'moment';
 import logger from './../logger/winston';
 import TodoUserRepository from './modules/todoUser.repository';
@@ -83,8 +83,7 @@ export default class NotionRepository {
 
   getTaskName = (columnName: IColumnName, pageProperty: string): string => {
     try {
-      const result = pageProperty[columnName.nameColumn]['title'][0]['text']['content'];
-      return result;
+      return pageProperty[columnName.nameColumn]['title'][0]['text']['content'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
       return;
@@ -111,9 +110,13 @@ export default class NotionRepository {
 
   getDue = (columnName: IColumnName, pageProperty: string): Date => {
     try {
-      const startDateStr = pageProperty[columnName.dueColumn]['date']['start'];
-      const result = new Date(startDateStr);
-      return result;
+      const endDateStr = pageProperty[columnName.dueColumn]['date']['end'];
+      if(endDateStr != null){
+        return new Date(endDateStr);
+      }else{
+        const startDateStr = pageProperty[columnName.dueColumn]['date']['start'];
+        return new Date(startDateStr);
+      }
     } catch (err) {
       logger.error(new LoggerError(err.message));
       return;
@@ -122,12 +125,28 @@ export default class NotionRepository {
 
   getIsDone = (columnName: IColumnName, pageProperty: string): boolean => {
     try {
-      const result = pageProperty[columnName.isDoneColumn]['checkbox'];
-      return result;
+      return pageProperty[columnName.isDoneColumn]['checkbox'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   };
+
+  getCreatedBy = (pageProperty: string): string =>{
+    try{
+      return pageProperty["created_by"];
+    } catch(err){
+      logger.error(new LoggerError(err.message));
+    }
+  }
+
+  getCreatedAt = (pageProperty: string): Date =>{
+    try{
+      const createdAtStr = pageProperty["created_time"];
+      return new Date(createdAtStr);
+    } catch(err){
+      logger.error(new LoggerError(err.message));
+    }
+  }
 
   getCardBoards = async (
     boardAdminUser: IUser,
@@ -157,8 +176,8 @@ export default class NotionRepository {
               notion_user_id: this.getAssignee(columnName, pageProperty),
               deadline: this.getDue(columnName, pageProperty),
               is_done: this.getIsDone(columnName, pageProperty),
-              created_by: this.getTaskName(columnName, pageProperty),
-              created_at: this.getDue(columnName, pageProperty),
+              created_by: this.getCreatedBy(pageProperty),
+              created_at: this.getCreatedAt(pageProperty),
             };
             pageTodos.push(pageTodo);
 
