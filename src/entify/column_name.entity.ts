@@ -1,25 +1,32 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity('column_name')
-export class Section {
+@Unique(['company_id', 'todoapp_id'])
+export class ColumnName {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  nameColumn: string;
+  company_id: number;
 
   @Column()
-  isDoneColumn: string;
+  todoapp_id: number;
 
   @Column()
-  assigneeColumn: string;
+  name: string;
 
   @Column()
-  dueColumn: string;
+  is_done: string;
 
   @Column()
-  createdByColumn: string;
+  assignee: string;
 
   @Column()
-  createdAtColumn: string;
+  due: string;
+
+  @Column()
+  created_by: string;
+
+  @Column()
+  created_at: string;
 }

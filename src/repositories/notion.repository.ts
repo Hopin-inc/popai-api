@@ -20,6 +20,7 @@ import {
 import { Container, Service } from 'typedi';
 import { Todo } from '../entify/todo.entity';
 import { TodoAppUser } from '../entify/todoappuser.entity';
+import { ColumnName } from '../entify/column_name.entity';
 import { diffDays, toJapanDateTime } from '../utils/common';
 import moment from 'moment';
 import logger from './../logger/winston';
@@ -34,6 +35,7 @@ import { Client } from '@notionhq/client';
 export default class NotionRepository {
   private notionRequest: Client;
   private todoRepository: Repository<Todo>;
+  private columnNameRepository: Repository<ColumnName>;
   private todoUpdateRepository: TodoUpdateRepository;
   private lineQueueRepository: LineQuequeRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
@@ -50,22 +52,25 @@ export default class NotionRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  syncTaskByUserBoards = async (company: ICompany, todoapp: ITodoApp, columnName: IColumnName): Promise<void> => {
+  syncTaskByUserBoards = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
     const companyId = company.id;
     const todoappId = todoapp.id;
 
     const sections = await this.commonRepository.getSections(companyId, todoappId);
-    await this.getUserPageBoards(sections, company, todoapp, columnName);
+    await this.getUserPageBoards(sections, company, todoapp);
   };
 
   getUserPageBoards = async (
     sections: ISection[],
     company: ICompany,
     todoapp: ITodoApp,
-    columnName: IColumnName,
   ): Promise<void> => {
     try {
       const todoTasks: ITodoTask[] = [];
+
+      const companyId = company.id;
+      const todoappId = todoapp.id;
+      const columnName = await this.getColumnName(companyId, todoappId);
 
       for (const section of sections) {
         await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, columnName);
@@ -81,9 +86,35 @@ export default class NotionRepository {
     }
   };
 
+  getColumnName = async (companyId: number, todoappId: number): Promise<IColumnName> => {
+    const columnName = await this.columnNameRepository.findOneBy({
+      company_id: companyId,
+      todoapp_id: todoappId,
+    });
+    if (columnName) {
+      if (
+        !('companyId' in columnName) ||
+        !('todoappId' in columnName) ||
+        !('isDone' in columnName) ||
+        !('createdBy' in columnName) ||
+        !('createdAt' in columnName))
+        logger.error(
+          new LoggerError(
+            'column_nameのデータ(company_id=' +
+            companyId +
+            ' todoapp_id=' +
+            todoappId +
+            ')がありません。',
+          ),
+        );
+    }else{
+      return columnName;
+    }
+  };
+
   getTaskName = (columnName: IColumnName, pageProperty: string): string => {
     try {
-      return pageProperty[columnName.nameColumn]['title'][0]['text']['content'];
+      return pageProperty[columnName.name]['title'][0]['text']['content'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
       return;
@@ -93,7 +124,7 @@ export default class NotionRepository {
   getAssignee = (columnName: IColumnName, pageProperty: string): string[] => {
     try {
       const result: string[] = [];
-      const people = pageProperty[columnName.assigneeColumn]['people'];
+      const people = pageProperty[columnName.assignee]['people'];
       if (people.length < 2) {
         result.push(people[0]['id']);
       } else if (people.length > 1) {
@@ -110,11 +141,11 @@ export default class NotionRepository {
 
   getDue = (columnName: IColumnName, pageProperty: string): Date => {
     try {
-      const endDateStr = pageProperty[columnName.dueColumn]['date']['end'];
-      if(endDateStr != null){
+      const endDateStr = pageProperty[columnName.due]['date']['end'];
+      if (endDateStr != null) {
         return new Date(endDateStr);
-      }else{
-        const startDateStr = pageProperty[columnName.dueColumn]['date']['start'];
+      } else {
+        const startDateStr = pageProperty[columnName.due]['date']['start'];
         return new Date(startDateStr);
       }
     } catch (err) {
@@ -125,28 +156,36 @@ export default class NotionRepository {
 
   getIsDone = (columnName: IColumnName, pageProperty: string): boolean => {
     try {
-      return pageProperty[columnName.isDoneColumn]['checkbox'];
+      return pageProperty[columnName.isDone]['checkbox'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   };
 
-  getCreatedBy = (pageProperty: string): string =>{
-    try{
-      return pageProperty["created_by"];
-    } catch(err){
+  getCreatedBy = (pageProperty: string): string => {
+    try {
+      return pageProperty['created_by'];
+    } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  }
+  };
 
-  getCreatedAt = (pageProperty: string): Date =>{
-    try{
-      const createdAtStr = pageProperty["created_time"];
+  getCreatedAt = (pageProperty: string): Date => {
+    try {
+      const createdAtStr = pageProperty['created_time'];
       return new Date(createdAtStr);
-    } catch(err){
+    } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  }
+  };
+
+  getUrl = (pageProperty: string): string => {
+    try {
+      return pageProperty['url'];
+    } catch (err) {
+      logger.error(new LoggerError(err.message));
+    }
+  };
 
   getCardBoards = async (
     boardAdminUser: IUser,
@@ -178,6 +217,7 @@ export default class NotionRepository {
               is_done: this.getIsDone(columnName, pageProperty),
               created_by: this.getCreatedBy(pageProperty),
               created_at: this.getCreatedAt(pageProperty),
+              todoapp_reg_url: this.getUrl(pageProperty),
             };
             pageTodos.push(pageTodo);
 

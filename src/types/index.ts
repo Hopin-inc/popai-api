@@ -200,14 +200,17 @@ export type INotionAuth = {
 };
 
 export type IColumnName = {
-  id: string;
-  nameColumn: string;
-  isDoneColumn: string;
-  assigneeColumn: string;
-  dueColumn: string;
-  createdByColumn: string;
-  createdAtColumn: string;
+  id: number;
+  companyId: number;
+  todoappId: number;
+  name: string | null;
+  isDone: string | null;
+  assignee: string | null;
+  due: string | null;
+  createdBy: string | null;
+  createdAt: string | null;
 }
+
 export type INotionTask ={
   todoapp_reg_id: string;
   name: string;
@@ -216,4 +219,5 @@ export type INotionTask ={
   deadline: Date;
   created_by: string;
   created_at: Date;
+  todoapp_reg_url: string;
 }

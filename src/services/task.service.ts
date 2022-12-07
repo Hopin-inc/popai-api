@@ -36,7 +36,7 @@ export default class TaskService {
   /**
    * Update todo task
    */
-  syncTodoTasks = async (columnName: IColumnName): Promise<any> => {
+  syncTodoTasks = async (): Promise<any> => {
     try {
       // update old line queue
       // await this.lineQueueRepository.updateStatusOfOldQueueTask();
@@ -64,7 +64,7 @@ export default class TaskService {
               await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.notion:
-              await this.notionRepo.syncTaskByUserBoards(company, todoapp, columnName);
+              await this.notionRepo.syncTaskByUserBoards(company, todoapp);
               break;
             default:
               break;
