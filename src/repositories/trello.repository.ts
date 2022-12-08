@@ -6,33 +6,32 @@ import {
   ITodo,
   ITodoAppUser,
   ITodoTask,
-  ITrelloAuth,
   IUser,
   ICompany,
   ITodoApp,
   ITodoUserUpdate,
   ITodoUpdate,
-  IRemindTask,
-} from './../types';
+  IRemindTask, ITrelloTask,
+} from '../types';
 
 import { Service, Container } from 'typedi';
-import { Todo } from './../entify/todo.entity';
-import { TodoAppUser } from './../entify/todoappuser.entity';
+import { Todo } from '../entify/todo.entity';
+import { TodoAppUser } from '../entify/todoappuser.entity';
 import { toJapanDateTime, diffDays } from '../utils/common';
 import moment from 'moment';
-import logger from './../logger/winston';
+import logger from '../logger/winston';
 import TrelloRequest from './../libs/trello.request';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import CommonRepository from './modules/common.repository';
-import LineQuequeRepository from './modules/line_queque.repository';
+import LineQueueRepository from './modules/lineQueue.repository';
 
 @Service()
 export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
   private commonRepository: CommonRepository;
@@ -41,7 +40,7 @@ export default class TrelloRepository {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.commonRepository = Container.get(CommonRepository);
@@ -91,16 +90,8 @@ export default class TrelloRepository {
     for (const todoAppUser of boardAdminuser.todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token && section.board_id) {
         try {
-          const trelloAuth: ITrelloAuth = {
-            api_key: todoAppUser.api_key,
-            api_token: todoAppUser.api_token,
-          };
-          const cardTodos = await this.trelloRequest.fetchApi(
-            'boards/' + section.board_id + '/cards/all',
-            'GET',
-            {},
-            trelloAuth
-          );
+          const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
+          const cardTodos = await this.trelloRequest.getAllCardsFromBoard(section.board_id, trelloAuth);
 
           for (const todoTask of cardTodos) {
             const users = await this.todoUserRepository.getUserAssignTask(
@@ -149,12 +140,9 @@ export default class TrelloRepository {
     for (const todoAppUser of todoAppUsers) {
       if (todoAppUser.api_key && todoAppUser.api_token) {
         try {
-          const trelloAuth: ITrelloAuth = {
-            api_key: todoAppUser.api_key,
-            api_token: todoAppUser.api_token,
-          };
+          const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
 
-          const me = await this.trelloRequest.fetchApi('members/me', 'GET', {}, trelloAuth);
+          const me = await this.trelloRequest.getMyInfo(trelloAuth);
           todoAppUser.user_app_id = me?.id;
           await this.todoAppUserRepository.save(todoAppUser);
         } catch (err) {
@@ -217,7 +205,7 @@ export default class TrelloRepository {
         todoData.section_id = section.id;
         todoData.deadline = taskDeadLine;
         todoData.is_done = todoTask.dueComplete;
-        todoData.is_reminded = todoTask.dueReminder ? true : false;
+        todoData.is_reminded = !!todoTask.dueReminder;
         todoData.is_closed = todoTask.closed;
         todoData.delayed_count = todo?.delayed_count || 0;
         todoData.reminded_count = todo?.reminded_count || 0;
@@ -279,4 +267,25 @@ export default class TrelloRepository {
       logger.error(new LoggerError(error.message));
     }
   };
+
+  updateTodo = async (id: string, task: Todo, todoAppUser: ITodoAppUser): Promise<void> => {
+    try {
+      const idMembers = task.todoUsers.map(todoUser => {
+        const targetTodoAppUser = todoUser.user.todoAppUsers.find(tau => tau.todoapp_id === todoAppUser.todoapp_id);
+        return targetTodoAppUser.user_app_id;
+      });
+      const trelloTask: Partial<ITrelloTask> = {
+        id: task.todoapp_reg_id,
+        name: task.name,
+        closed: task.is_closed,
+        dueComplete: task.is_done,
+        due: task.deadline,
+        idMembers,
+      }
+      const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
+      await this.trelloRequest.updateCard(id, trelloTask, trelloAuth);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  }
 }

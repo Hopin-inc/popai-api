@@ -8,10 +8,10 @@ import logger from '../logger/winston';
 import { Todo } from '../entify/todo.entity';
 import LineRepository from './line.repository';
 import CommonRepository from './modules/common.repository';
-import { diffDays, toJapanDateTime } from './../utils/common';
-import LineQuequeRepository from './modules/line_queque.repository';
-import { ChatTool } from './../entify/chat_tool.entity';
-import { LineMessageQueue } from './../entify/line_message_queue.entity';
+import { diffDays, toJapanDateTime } from '../utils/common';
+import LineQueueRepository from './modules/lineQueue.repository';
+import { ChatTool } from '../entify/chat_tool.entity';
+import { LineMessageQueue } from '../entify/line_message_queue.entity';
 import { User } from '../entify/user.entity';
 
 @Service()
@@ -19,14 +19,14 @@ export default class RemindRepository {
   private lineRepo: LineRepository;
   private commonRepository: CommonRepository;
   private todoRepository: Repository<Todo>;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private chattoolRepository: Repository<ChatTool>;
 
   constructor() {
     this.lineRepo = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
@@ -183,7 +183,7 @@ export default class RemindRepository {
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-        userTodoMap.forEach(async (todos: ITodo[], userId: number) => {
+        userTodoMap.forEach((todos: ITodo[], userId: number) => {
           company.chattools.forEach(async (chattool) => {
             if (chattool.tool_code == ChatToolCode.LINE) {
               const user = todos[0].user;

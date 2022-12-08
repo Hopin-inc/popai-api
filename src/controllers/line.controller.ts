@@ -20,21 +20,20 @@ import {
   ReplyStatus,
   SenderType,
   REMIND_ME_COMMAND,
-  RemindUserJobResult,
 } from '../const/common';
 import { ChatMessage } from '../entify/message.entity';
 import moment from 'moment';
-import logger from './../logger/winston';
+import logger from '../logger/winston';
 import { LoggerError } from '../exceptions';
 import { diffDays, toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
-import CommonRepository from './../repositories/modules/common.repository';
+import CommonRepository from '../repositories/modules/common.repository';
 import { IUser } from '../types';
-import LineQuequeRepository from './../repositories/modules/line_queque.repository';
+import LineQueueRepository from '../repositories/modules/lineQueue.repository';
 import { Todo } from '../entify/todo.entity';
-import TaskService from './../services/task.service';
+import TaskService from '../services/task.service';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -42,7 +41,7 @@ export default class LineController extends Controller {
   private chattoolRepository: Repository<ChatTool>;
   private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private taskService: TaskService;
 
   constructor() {
@@ -50,7 +49,7 @@ export default class LineController extends Controller {
     this.lineRepository = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);
   }
@@ -157,15 +156,23 @@ export default class LineController extends Controller {
       return;
     }
 
-    // get wating queque message
+    // get waiting queue message
     const waitingReplyQueue = await this.lineQueueRepository.getWaitingQueueTask(user.id);
     if (!waitingReplyQueue) {
       return;
     }
 
     // update status
-    waitingReplyQueue.status = LineMessageQueueStatus.RELIED;
+    waitingReplyQueue.status = LineMessageQueueStatus.REPLIED;
     waitingReplyQueue.updated_at = toJapanDateTime(new Date());
+    const sectionId = waitingReplyQueue.todo.section_id;
+    const todoAppId = waitingReplyQueue.todo.todoapp_id;
+    const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
+    const todoAppUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
+    if (repliedMessage === DONE_MESSAGE && waitingReplyQueue.todo.deadline < waitingReplyQueue.remind_date) {
+      await this.taskService.updateTask(waitingReplyQueue.todo.todoapp_reg_id, waitingReplyQueue.todo, todoAppUser);
+      // FIXME: タスクを更新した後、todos.is_doneとtodo_update_historiesを更新する必要がある。
+    }
     await this.lineQueueRepository.saveQueue(waitingReplyQueue);
     await this.updateIsReplyFlag(waitingReplyQueue.message_id);
 

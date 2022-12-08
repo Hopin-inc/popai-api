@@ -12,22 +12,22 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
   IUser,
-} from './../types';
+} from '../types';
 
-import { AppDataSource } from './../config/data-source';
+import { AppDataSource } from '../config/data-source';
 import { Service, Container } from 'typedi';
-import { Common } from './../const/common';
-import { fetchApi } from './../libs/request';
-import { TodoAppUser } from './../entify/todoappuser.entity';
-import { Todo } from './../entify/todo.entity';
-import { replaceString, toJapanDateTime, diffDays } from './../utils/common';
+import { Common } from '../const/common';
+import { fetchApi } from '../libs/request';
+import { TodoAppUser } from '../entify/todoappuser.entity';
+import { Todo } from '../entify/todo.entity';
+import { replaceString, toJapanDateTime, diffDays } from '../utils/common';
 import moment from 'moment';
 import FormData from 'form-data';
-import MicrosoftRequest from './../libs/microsoft.request';
-import LineQuequeRepository from './modules/line_queque.repository';
+import MicrosoftRequest from '../libs/microsoft.request';
+import LineQueueRepository from './modules/lineQueue.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
-import logger from './../logger/winston';
+import logger from '../logger/winston';
 import { ImplementedTodoApp } from '../entify/implemented.todoapp.entity';
 import CommonRepository from './modules/common.repository';
 
@@ -37,7 +37,7 @@ export default class MicrosoftRepository {
   private microsoftRequest: MicrosoftRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private todoUserRepository: TodoUserRepository;
   private commonRepository: CommonRepository;
 
@@ -46,7 +46,7 @@ export default class MicrosoftRepository {
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.commonRepository = Container.get(CommonRepository);
   }
