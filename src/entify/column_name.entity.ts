@@ -13,7 +13,7 @@ export class ColumnName {
   todoapp_id: number;
 
   @Column()
-  name: string;
+  todo: string;
 
   @Column()
   is_done: string;

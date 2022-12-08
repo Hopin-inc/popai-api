@@ -200,24 +200,27 @@ export type INotionAuth = {
 };
 
 export type IColumnName = {
-  id: number;
-  company_id: number;
-  todoapp_id: number;
-  name: string | null;
-  is_done: string | null;
   assignee: string | null;
-  due: string | null;
-  created_by: string | null;
+  company_id: number;
   created_at: string | null;
+  created_by: string | null;
+  due: string | null;
+  id: number;
+  is_done: string | null;
+  todo: string | null;
+  todoapp_id: number;
 }
 
-export type INotionTask ={
-  todoapp_reg_id: string;
-  name: string;
-  is_done: boolean;
-  notion_user_id: string[];
-  deadline: Date;
+export type INotionTask = {
+  last_edited_at: Date;
   created_by: string;
-  created_at: Date;
+  created_by_id: number;
+  closed: boolean;
+  deadline: Date;
+  dueReminder: number | null;
+  is_done: boolean;
+  name: string;
+  notion_user_id: string[];
+  todoapp_reg_id: string;
   todoapp_reg_url: string;
 }

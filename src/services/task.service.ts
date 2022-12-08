@@ -27,6 +27,7 @@ export default class TaskService {
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
     this.microsofRepo = Container.get(MicrosoftRepository);
+    this.notionRepo = Container.get(NotionRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineQuequeRepository);
@@ -58,10 +59,10 @@ export default class TaskService {
         for (const todoapp of company.todoapps) {
           switch (todoapp.todo_app_code) {
             case Common.trello:
-              await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
+              // await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.microsoft:
-              await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
+              // await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.notion:
               await this.notionRepo.syncTaskByUserBoards(company, todoapp);
@@ -74,6 +75,7 @@ export default class TaskService {
 
       return;
     } catch (error) {
+      console.error(error);
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }

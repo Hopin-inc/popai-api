@@ -44,13 +44,13 @@ export default class CommonRepository {
         { todoappId }
       )
 
-      if (todoappId == 3) {
+    if (todoappId == 3) {
       sectionQuery = sectionQuery.where("sections.label_id IS NOT NULL")
     } else {
       sectionQuery = sectionQuery.where('sections.board_id IS NOT NULL')
     }
     const sections:ISection[] = await sectionQuery
-      .where('sections.company_id = :companyId', { companyId })
+      .andWhere('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .getMany();
     return sections;

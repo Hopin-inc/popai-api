@@ -46,6 +46,7 @@ export default class NotionRepository {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
+    this.columnNameRepository = AppDataSource.getRepository(ColumnName);
     this.lineQueueRepository = Container.get(LineQuequeRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
@@ -92,29 +93,21 @@ export default class NotionRepository {
       todoapp_id: todoappId,
     });
     if (columnName) {
-      if (
-        !('company_id' in columnName) ||
-        !('todoapp_id' in columnName) ||
-        !('is_done' in columnName) ||
-        !('created_by' in columnName) ||
-        !('created_at' in columnName))
-        logger.error(
-          new LoggerError(
-            'column_nameのデータ(company_id=' +
-            companyId +
-            ' todoapp_id=' +
-            todoappId +
-            ')がありません。',
-          ),
-        );
-    }else{
-      return columnName;
+      if (!('company_id' in columnName) || !('todoapp_id' in columnName) || !('is_done' in columnName) || !('created_by' in columnName) || !('created_at' in columnName)) {
+        logger.error(new LoggerError('column_nameのデータ(company_id=' + companyId + ' todoapp_id=' + todoappId + ')がありません。'));
+      } else {
+        return columnName;
+      }
     }
   };
 
   getTaskName = (columnName: IColumnName, pageProperty: string): string => {
     try {
-      return pageProperty[columnName.name]['title'][0]['text']['content'];
+      if (pageProperty[columnName.todo]['title'][0]) {
+        return pageProperty[columnName.todo]['title'][0]['plain_text'];
+      } else {
+        return;
+      }
     } catch (err) {
       logger.error(new LoggerError(err.message));
       return;
@@ -125,14 +118,10 @@ export default class NotionRepository {
     try {
       const result: string[] = [];
       const people = pageProperty[columnName.assignee]['people'];
-      if (people.length < 2) {
-        result.push(people[0]['id']);
-      } else if (people.length > 1) {
-        for (let i = 0; i < people.length; i++) {
-          result.push(people[i]['id']);
-        }
-        return result;
-      }
+      people.forEach(person => {
+        result.push(person['id']);
+      });
+      return result;
     } catch (err) {
       logger.error(new LoggerError(err.message));
       return;
@@ -141,12 +130,14 @@ export default class NotionRepository {
 
   getDue = (columnName: IColumnName, pageProperty: string): Date => {
     try {
-      const endDateStr = pageProperty[columnName.due]['date']['end'];
-      if (endDateStr != null) {
-        return new Date(endDateStr);
-      } else {
-        const startDateStr = pageProperty[columnName.due]['date']['start'];
-        return new Date(startDateStr);
+      if (pageProperty[columnName.due]['date']) {
+        if (pageProperty[columnName.due]['date']['end']) {
+          const endDateStr = pageProperty[columnName.due]['date']['end'];
+          return new Date(endDateStr);
+        } else {
+          const startDateStr = pageProperty[columnName.due]['date']['start'];
+          return new Date(startDateStr);
+        }
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -162,26 +153,26 @@ export default class NotionRepository {
     }
   };
 
-  getCreatedBy = (pageProperty: string): string => {
+  getCreatedBy = (pageInfo: object): string => {
     try {
-      return pageProperty['created_by'];
+      return pageInfo['created_by']['id'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   };
 
-  getCreatedAt = (pageProperty: string): Date => {
+  getLastEditedAt = (pageInfo: object): Date => {
     try {
-      const createdAtStr = pageProperty['created_time'];
-      return new Date(createdAtStr);
+      const lastEditedAtStr = pageInfo['last_edited_time'];
+      return new Date(lastEditedAtStr);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   };
 
-  getUrl = (pageProperty: string): string => {
+  getUrl = (pageInfo: object): string => {
     try {
-      return pageProperty['url'];
+      return pageInfo['url'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -198,7 +189,7 @@ export default class NotionRepository {
     if (!boardAdminUser?.todoAppUsers.length) return;
 
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
-      if (todoAppUser.api_token && section.board_id) {
+      if (section.board_id) {
         try {
           const response = await this.notionRequest.databases.query({ database_id: section.board_id });
           const pageIds: string[] = [];
@@ -215,33 +206,41 @@ export default class NotionRepository {
               notion_user_id: this.getAssignee(columnName, pageProperty),
               deadline: this.getDue(columnName, pageProperty),
               is_done: this.getIsDone(columnName, pageProperty),
-              created_by: this.getCreatedBy(pageProperty),
-              created_at: this.getCreatedAt(pageProperty),
-              todoapp_reg_url: this.getUrl(pageProperty),
+              created_by: this.getCreatedBy(pageInfo),
+              created_by_id: null,
+              last_edited_at: this.getLastEditedAt(pageInfo),
+              todoapp_reg_url: this.getUrl(pageInfo),
+              dueReminder: null,
+              closed: false,
             };
-            pageTodos.push(pageTodo);
 
-            for (const key in pageTodos) {
-              const users = await this.todoUserRepository.getUserAssignTask(
-                company.users,
-                pageTodos[key].user_notion_id,
-              );
+            if (pageTodo['name']) {
+              pageTodos.push(pageTodo);
+            }
+          }
 
-              const page: ITodoTask = {
-                todoTask: pageTodo as any, //TODO:型定義をしっかりする
-                company: company,
-                todoapp: todoapp,
-                todoAppUser: todoAppUser,
-                section: section,
-                users: users,
-              };
+          for (const key in pageTodos) {
+            const users = await this.todoUserRepository.getUserAssignTask(
+              company.users,
+              pageTodos[key].notion_user_id,
+            );
 
-              const taskFound = pageTodos.find((task) => task.todoTask?.id === pageTodo.todoapp_reg_id);
-              if (taskFound) {
-                taskFound.users = users;
-              } else {
-                pageTodos.push(page);
-              }
+            console.log(pageTodos);
+
+            const page: ITodoTask = {
+              todoTask: pageTodos[key] as any, //TODO:型定義をしっかりする
+              company: company,
+              todoapp: todoapp,
+              todoAppUser: todoAppUser,
+              section: section,
+              users: users,
+            };
+
+            const taskFound = todoTasks.find((task) => task.todoTask?.id === pageTodos[key].todoapp_reg_id);
+            if (taskFound) {
+              taskFound.users = users;
+            } else {
+              todoTasks.push(page);
             }
           }
         } catch (err) {
@@ -259,8 +258,8 @@ export default class NotionRepository {
       let dayDurations;
       const todoTask = pageTodo.todoTask;
 
-      if (todoTask.due) {
-        dayDurations = diffDays(toJapanDateTime(todoTask.due), toJapanDateTime(new Date()));
+      if (todoTask.deadline) {
+        dayDurations = diffDays(toJapanDateTime(todoTask.deadline), toJapanDateTime(new Date()));
         delayedCount = dayDurations;
       }
 
@@ -270,7 +269,6 @@ export default class NotionRepository {
         delayedCount: delayedCount,
       });
     }
-
     await this.createTodo(cards);
   };
 
@@ -286,31 +284,30 @@ export default class NotionRepository {
         const { users, todoTask, todoapp, company, section } = cardTodo;
 
         const todo: ITodo = await this.todoRepository.findOneBy({
-          todoapp_reg_id: todoTask.id,
+          todoapp_reg_id: todoTask.todoapp_reg_id,
         });
 
-        const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
+        const taskDeadLine = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
         const todoData = new Todo();
         todoData.id = todo?.id || null;
         todoData.name = todoTask.name;
         todoData.todoapp_id = todoapp.id;
-        todoData.todoapp_reg_id = todoTask.id;
-        todoData.todoapp_reg_url = todoTask.shortUrl;
-        todoData.todoapp_reg_created_by = null;
-        todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.dateLastActivity);
+        todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
+        todoData.todoapp_reg_url = todoTask.todoapp_reg_url;
+        todoData.todoapp_reg_created_by = null; //TODO:idに変換入れる
+        todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.last_edited_at);
         todoData.company_id = company.id;
         todoData.section_id = section.id;
         todoData.deadline = taskDeadLine;
-        todoData.is_done = todoTask.dueComplete;
+        todoData.is_done = todoTask.is_done;
         todoData.is_reminded = !!todoTask.dueReminder;
         todoData.is_closed = todoTask.closed;
         todoData.delayed_count = todo?.delayed_count || 0;
         todoData.reminded_count = todo?.reminded_count || 0;
-
         if (users.length) {
           dataTodoUsers.push({
-            todoId: todoTask.id,
+            todoId: todoTask.todoapp_reg_id,
             users: users,
           });
         }
@@ -322,10 +319,10 @@ export default class NotionRepository {
 
           if (isDeadlineChanged || isDoneChanged) {
             dataTodoUpdates.push({
-              todoId: todoTask.id,
+              todoId: todoTask.todoapp_reg_id,
               dueTime: todo?.deadline,
               newDueTime: taskDeadLine,
-              updateTime: toJapanDateTime(todoTask.dateLastActivity),
+              updateTime: toJapanDateTime(todoTask.last_edited_at),
             });
           }
 
