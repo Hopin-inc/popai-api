@@ -19,6 +19,8 @@ import {
   OpenStatus,
   ReplyStatus,
   SenderType,
+  REMIND_ME_COMMAND,
+  RemindUserJobResult,
 } from '../const/common';
 import { ChatMessage } from '../entify/message.entity';
 import moment from 'moment';
@@ -32,6 +34,7 @@ import CommonRepository from './../repositories/modules/common.repository';
 import { IUser } from '../types';
 import LineQuequeRepository from './../repositories/modules/line_queque.repository';
 import { Todo } from '../entify/todo.entity';
+import TaskService from './../services/task.service';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -40,6 +43,7 @@ export default class LineController extends Controller {
   private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
   private lineQueueRepository: LineQuequeRepository;
+  private taskService: TaskService;
 
   constructor() {
     super();
@@ -48,6 +52,7 @@ export default class LineController extends Controller {
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.lineQueueRepository = Container.get(LineQuequeRepository);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.taskService = Container.get(TaskService);
   }
 
   public async handlerEvents(events: Array<WebhookEvent>): Promise<any> {
@@ -82,6 +87,22 @@ export default class LineController extends Controller {
           // eslint-disable-next-line no-case-declarations
           const lineProfile = await LineBot.getProfile(lineId);
           await this.lineRepository.createLineProfile(lineProfile);
+          break;
+
+        case 'postback':
+          if (event.postback.data == REMIND_ME_COMMAND) {
+            // get user from lineId
+            const user = await this.lineRepository.getUserFromLineId(lineId);
+
+            if (user) {
+              await this.replyProcessingJob(chattool, user, event.replyToken);
+
+              // execute remind
+              await this.taskService.remindTaskForDemoUser(user);
+            } else {
+              console.error('Line ID :' + lineId + 'のアカウントが登録されていません。');
+            }
+          }
           break;
 
         case 'message':
@@ -376,6 +397,15 @@ export default class LineController extends Controller {
     replyToken: string
   ): Promise<MessageAPIResponseBase> {
     const replyMessage: FlexMessage = LineMessageBuilder.createWithdrawnReplyMessage();
+    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+  }
+
+  private async replyProcessingJob(
+    chattool: ChatTool,
+    user: User,
+    replyToken: string
+  ): Promise<MessageAPIResponseBase> {
+    const replyMessage: FlexMessage = LineMessageBuilder.createProcessingJobReplyMessage();
     return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
   }
 

@@ -1,9 +1,10 @@
 import { ITodo, IUser, ITodoUser, ITodoUserUpdate } from './../../types';
 import { Service } from 'typedi';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AppDataSource } from './../../config/data-source';
 import { Todo } from './../../entify/todo.entity';
 import { TodoUser } from './../../entify/todouser.entity';
+import { toJapanDateTime } from '../../utils/common';
 
 @Service()
 export default class TodoUserRepository {
@@ -18,6 +19,7 @@ export default class TodoUserRepository {
   updateTodoUser = async (todo: ITodo, users: IUser[]): Promise<void> => {
     const todoUsers: ITodoUser[] = await this.todoUserRepository.findBy({
       todo_id: todo.id,
+      deleted_at: IsNull(),
     });
 
     const todoUserIds: number[] = todoUsers.map((s) => s.user_id).filter(Number);
@@ -28,15 +30,18 @@ export default class TodoUserRepository {
       .concat(userIds.filter((x) => !todoUserIds.includes(x)));
 
     if (differenceUserIds.length) {
-      const idTodoUsers: number[] = todoUsers
+      const deletedTodoUsers: ITodoUser[] = todoUsers
         .filter(function(obj) {
           return differenceUserIds.includes(obj.user_id);
         })
-        .map((s) => s.id)
-        .filter(Number);
+        .map((s) => {
+          s.deleted_at = toJapanDateTime(new Date());
+          return s;
+        });
 
-      if (idTodoUsers.length) {
-        await this.todoUserRepository.delete(idTodoUsers);
+      if (deletedTodoUsers.length) {
+        // await this.todoUserRepository.delete(idTodoUsers);
+        await this.todoUserRepository.upsert(deletedTodoUsers, []);
       }
     }
   };
@@ -55,18 +60,23 @@ export default class TodoUserRepository {
           const todoUser: ITodoUser = await this.todoUserRepository.findOneBy({
             todo_id: todo.id,
             user_id: user.id,
+            deleted_at: IsNull(),
           });
 
-          const todoUserData = new TodoUser();
-          todoUserData.id = todoUser?.id || null;
-          todoUserData.todo_id = todo.id;
-          todoUserData.user_id = user.id;
-          todoUserDatas.push(todoUserData);
+          if (!todoUser) {
+            const todoUserData = new TodoUser();
+            todoUserData.id = null;
+            todoUserData.todo_id = todo.id;
+            todoUserData.user_id = user.id;
+            todoUserData.created_at = toJapanDateTime(new Date());
+
+            todoUserDatas.push(todoUserData);
+          }
         }
       }
     }
 
-    await this.todoUserRepository.upsert(todoUserDatas, []);
+    await this.todoUserRepository.save(todoUserDatas);
   };
 
   getUserAssignTask = async (usersCompany: IUser[], idMembers: string[]): Promise<IUser[]> => {

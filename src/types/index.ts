@@ -7,6 +7,7 @@ export type ICompany = {
   admin_user_id: number;
   todoapps?: ITodoApp[];
   admin_user?: IUser;
+  is_demo: boolean;
   companyConditions?: ICompanyCondition[];
   chattools: ChatTool[];
   todos?: ITodo[];
@@ -67,6 +68,8 @@ export type ITodo = {
   delayed_count: number;
   is_closed: boolean;
   reminded_count: number | null;
+  first_ddl_set_at: Date | null;
+  first_assigned_at: Date | null;
   todoUsers: ITodoUser[];
   user?: IUser;
   assigned_user_id?: number | null;
@@ -76,6 +79,8 @@ export type ITodoUser = {
   id: number;
   todo_id: number;
   user_id: number;
+  created_at: Date;
+  deleted_at: Date;
   todo: ITodo;
   user: IUser;
 };

@@ -12,6 +12,7 @@ import { diffDays, toJapanDateTime } from './../utils/common';
 import LineQuequeRepository from './modules/line_queque.repository';
 import { ChatTool } from './../entify/chat_tool.entity';
 import { LineMessageQueue } from './../entify/line_message_queue.entity';
+import { User } from '../entify/user.entity';
 
 @Service()
 export default class RemindRepository {
@@ -29,11 +30,11 @@ export default class RemindRepository {
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
-  remindTodayTaskForUser = async (): Promise<void> => {
+  remindTodayTaskForUser = async (user: User = null): Promise<void> => {
     const remindTasks: ITodo[] = [];
     const todoQueueTasks: LineMessageQueue[] = [];
 
-    const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks();
+    const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks(user);
 
     const chattoolUsers = await this.commonRepository.getChatToolUsers();
     const chattool = await this.chattoolRepository.findOneBy({
@@ -151,7 +152,7 @@ export default class RemindRepository {
             }
           });
 
-          await this.updateRemindedCount(remindTasks);
+          // await this.updateRemindedCount(remindTasks);
         }
       } else {
         company.chattools.forEach(async (chattool) => {
@@ -202,7 +203,7 @@ export default class RemindRepository {
             }
           });
 
-          await this.updateRemindedCount(todos);
+          // await this.updateRemindedCount(todos);
         });
       }
 
@@ -231,7 +232,7 @@ export default class RemindRepository {
           }
         });
 
-        await this.updateRemindedCount(notSetAssignTasks);
+        // await this.updateRemindedCount(notSetAssignTasks);
       }
     }
   };

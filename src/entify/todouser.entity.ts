@@ -22,6 +22,12 @@ export class TodoUser {
   @Column()
   user_id: number;
 
+  @Column()
+  created_at: Date;
+
+  @Column()
+  deleted_at: Date;
+
   @ManyToOne(
     () => Todo,
     (todo) => todo.todoUsers

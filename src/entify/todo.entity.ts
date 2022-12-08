@@ -58,6 +58,12 @@ export class Todo {
   @Column()
   reminded_count: number;
 
+  @Column()
+  first_ddl_set_at: Date;
+
+  @Column()
+  first_assigned_at: Date;
+
   @ManyToOne(
     () => TodoApp,
     (todoapp) => todoapp.todos

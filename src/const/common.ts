@@ -63,9 +63,23 @@ export const LineMessageQueueStatus = {
   NOT_REPLY_TIMEOUT: 4,
 };
 
+export const RemindUserJobStatus = {
+  NOT_STARTED: 0,
+  PROCESSING: 1,
+  DONE: 2,
+  ERROR: 99,
+};
+
+export const RemindUserJobResult = {
+  OK: 0,
+  FAILED_HAS_PROCESSING_JOB: 1,
+  FAILED_OTHER: 2,
+};
+
 export const DONE_MESSAGE = '完了しております👍';
 export const DELAY_MESSAGE = 'すみません、遅れております🙇‍♂️';
 export const PROGRESS_GOOD_MESSAGE = '順調です✨️';
 export const PROGRESS_BAD_MESSAGE = 'あまり進んでいません😭';
 export const WITHDRAWN_MESSAGE = '撤退しました💧';
+export const REMIND_ME_COMMAND = 'action_remind_me';
 export const LINE_MAX_LABEL_LENGTH = 40;

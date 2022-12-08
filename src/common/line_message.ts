@@ -22,10 +22,11 @@ export class LineMessageBuilder {
     const quickReply: QuickReply = {
       items: [],
     };
-    const messages: string[] = remindDays > 0
-      ? [DONE_MESSAGE, DELAY_MESSAGE, WITHDRAWN_MESSAGE]
-      : [PROGRESS_GOOD_MESSAGE, PROGRESS_BAD_MESSAGE, DONE_MESSAGE, WITHDRAWN_MESSAGE];
-    messages.forEach(message => {
+    const messages: string[] =
+      remindDays > 0
+        ? [DONE_MESSAGE, DELAY_MESSAGE, WITHDRAWN_MESSAGE]
+        : [PROGRESS_GOOD_MESSAGE, PROGRESS_BAD_MESSAGE, DONE_MESSAGE, WITHDRAWN_MESSAGE];
+    messages.forEach((message) => {
       quickReply.items.push({
         type: 'action',
         action: {
@@ -183,6 +184,29 @@ export class LineMessageBuilder {
             {
               type: 'text',
               text: '引き続きよろしくお願いします💪',
+              wrap: true,
+            },
+          ],
+        },
+      },
+    };
+
+    return replyMessage;
+  }
+
+  static createProcessingJobReplyMessage() {
+    const replyMessage: FlexMessage = {
+      type: 'flex',
+      altText: '処理中です。少々お待ちください。',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '処理中です。少々お待ちください。',
               wrap: true,
             },
           ],
