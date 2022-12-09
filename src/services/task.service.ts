@@ -20,7 +20,7 @@ import { Todo } from "../entify/todo.entity";
 @Service()
 export default class TaskService {
   private trelloRepo: TrelloRepository;
-  private microsofRepo: MicrosoftRepository;
+  private microsoftRepo: MicrosoftRepository;
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineQueueRepository;
@@ -29,7 +29,7 @@ export default class TaskService {
 
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
-    this.microsofRepo = Container.get(MicrosoftRepository);
+    this.microsoftRepo = Container.get(MicrosoftRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineQueueRepository);
@@ -74,7 +74,7 @@ export default class TaskService {
               await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.microsoft:
-              await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
+              await this.microsoftRepo.syncTaskByUserBoards(company, todoapp);
               break;
             default:
               break;
@@ -188,9 +188,10 @@ export default class TaskService {
   updateTask = async (todoappRegId: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false) => {
     switch (task.todoapp.todo_app_code) {
       case Common.trello:
-        await this.trelloRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount)
+        await this.trelloRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
         return;
       case Common.microsoft:
+        await this.microsoftRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
         return;
     }
   }

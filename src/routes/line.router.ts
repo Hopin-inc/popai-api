@@ -8,7 +8,6 @@ const router = express();
 
 router.post('/webhook', async function(req, res) {
   try {
-    console.log(JSON.stringify(req.body))
     const controller = new LineController();
     const response = await controller.handlerEvents(req.body.events);
     ResponseApi.successRes(res, response);

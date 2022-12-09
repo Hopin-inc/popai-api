@@ -55,7 +55,6 @@ export default class LineController extends Controller {
   }
 
   public async handlerEvents(events: Array<WebhookEvent>): Promise<any> {
-    console.log(JSON.stringify(events))
     events.map(async (event) => await this.handleEvent(event));
 
     return {

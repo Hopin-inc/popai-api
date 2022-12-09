@@ -4,7 +4,7 @@ import { ITodoAppUser, ITrelloAuth, ITrelloTask } from '../types';
 
 @Service()
 export default class TrelloRequest {
-  fetchApi = async (uri: string, method: string, params = {}, trelloAuth: ITrelloAuth) => {
+  private fetchApi = async (uri: string, method: string, params = {}, trelloAuth: ITrelloAuth) => {
     let url = process.env.TRELLO_API_URL + '/1/' + uri;
     const { api_key, api_token } = trelloAuth;
 

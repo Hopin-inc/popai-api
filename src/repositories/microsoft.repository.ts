@@ -2,7 +2,7 @@ import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
   ICompany,
-  IMicrosoftRefresh,
+  IMicrosoftRefresh, IMicrosoftTask,
   IRemindTask,
   ISection,
   ITodo,
@@ -101,16 +101,8 @@ export default class MicrosoftRepository {
     for (const todoAppUser of boardAdminuser.todoAppUsers) {
       if (todoAppUser.api_token && section.board_id) {
         try {
-          const dataRefresh: IMicrosoftRefresh = {
-            todoAppUser: todoAppUser,
-          };
-
-          const taskTodos = await this.microsoftRequest.fetchApi(
-            'planner/plans/' + section.board_id + '/tasks',
-            'GET',
-            {},
-            dataRefresh
-          );
+          const dataRefresh: IMicrosoftRefresh = { todoAppUser };
+          const taskTodos = await this.microsoftRequest.getAllTasksFromPlan(section.board_id, dataRefresh);
 
           if (taskTodos['value'] && taskTodos['value'].length) {
             for (const todoTask of taskTodos['value']) {
@@ -174,11 +166,8 @@ export default class MicrosoftRepository {
     for (const todoAppUser of todoAppUsers) {
       if (todoAppUser.api_token) {
         try {
-          const dataRefresh: IMicrosoftRefresh = {
-            todoAppUser: todoAppUser,
-          };
-
-          const me = await this.microsoftRequest.fetchApi('me', 'GET', {}, dataRefresh);
+          const dataRefresh: IMicrosoftRefresh = { todoAppUser };
+          const me = await this.microsoftRequest.getMyInfo(dataRefresh);
           todoAppUser.user_app_id = me?.id;
           await this.todoAppUserRepository.save(todoAppUser);
         } catch (err) {
@@ -354,4 +343,37 @@ export default class MicrosoftRepository {
       logger.error(new LoggerError(error.message));
     }
   };
+
+  updateTodo = async (id: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false): Promise<void> => {
+    try {
+      // const assignees = task.todoUsers.map(todoUser => {
+      //   const targetTodoAppUser = todoUser.user.todoAppUsers.find(tau => tau.todoapp_id === todoAppUser.todoapp_id);
+      //   return targetTodoAppUser.user_app_id;
+      // });
+      const microsoftTask: Partial<IMicrosoftTask> = {
+        id: task.todoapp_reg_id,
+        title: task.name,
+        percentComplete: task.is_done ? Common.completed : 0,
+        dueDateTime: task.deadline,
+        // FIXME: 担当者を変更できるようにする
+      }
+      const dataRefresh: IMicrosoftRefresh = { todoAppUser };
+      await this.microsoftRequest.updateTask(id, microsoftTask, dataRefresh);
+
+      if (correctDelayedCount && task.delayed_count > 0) {
+        task.delayed_count--;
+      }
+
+      await this.todoRepository.save(task);
+      const todoUpdate: ITodoUpdate = {
+        todoId: task.todoapp_reg_id,
+        newDueTime: task.deadline,
+        newIsDone: task.is_done,
+        updateTime: toJapanDateTime(new Date()),
+      }
+      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate)
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import fetch, { HeadersInit } from 'node-fetch';
 import { LoggerError } from '../exceptions';
 import logger from './../logger/winston';
 
@@ -10,6 +10,7 @@ import logger from './../logger/winston';
  * @param params
  * @param isFormData
  * @param accessToken
+ * @param headers
  * @returns
  */
 export async function fetchApi(
@@ -17,12 +18,13 @@ export async function fetchApi(
   method: string,
   params = {},
   isFormData: boolean = false,
-  accessToken: string = null
+  accessToken: string = null,
+  headers?: HeadersInit,
 ) {
   let url = baseUrl;
   const options = {
     method: method,
-    headers: {},
+    headers: headers || {},
     body: null,
   };
 
