@@ -57,7 +57,7 @@ export const ChatToolCode = {
 export const LineMessageQueueStatus = {
   NOT_SEND: 0,
   WAITING_REPLY: 1,
-  RELIED: 2,
+  REPLIED: 2,
   NOT_SEND_TIMEOUT: 3,
   NOT_REPLY_TIMEOUT: 4,
 };

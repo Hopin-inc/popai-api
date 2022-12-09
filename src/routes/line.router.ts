@@ -1,5 +1,5 @@
 import express from 'express';
-import { ResponseApi } from './../common/response';
+import { ResponseApi } from '../common/response';
 import LineController from '../controllers/line.controller';
 import RichMenuController from '../controllers/rich_menu.controller';
 const router = express();

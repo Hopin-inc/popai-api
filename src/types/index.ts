@@ -1,5 +1,5 @@
 import { ChatTool } from '../entify/chat_tool.entity';
-import { LineMessageQueue } from './../entify/line_message_queue.entity';
+import { LineMessageQueue } from '../entify/line_message_queue.entity';
 
 export type ICompany = {
   id: number;
@@ -88,6 +88,7 @@ export type ITodoUpdate = {
   todoId: string;
   dueTime?: Date;
   newDueTime: Date;
+  newIsDone?: boolean;
   updateTime: Date;
 };
 

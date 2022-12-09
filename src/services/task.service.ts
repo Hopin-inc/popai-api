@@ -9,29 +9,30 @@ import { Common, RemindUserJobResult, RemindUserJobStatus } from '../const/commo
 import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
 import RemindRepository from './../repositories/remind.repository';
-import LineQuequeRepository from './../repositories/modules/line_queque.repository';
+import LineQueueRepository from './../repositories/modules/lineQueue.repository';
 import CommonRepository from './../repositories/modules/common.repository';
 import { User } from '../entify/user.entity';
-import { ICompany } from '../types';
+import { ICompany, ITodoAppUser } from '../types';
 import { RemindUserJob } from '../entify/remind_user_job.entity';
 import { toJapanDateTime } from '../utils/common';
+import { Todo } from "../entify/todo.entity";
 
 @Service()
 export default class TaskService {
   private trelloRepo: TrelloRepository;
-  private microsofRepo: MicrosoftRepository;
+  private microsoftRepo: MicrosoftRepository;
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private commonRepository: CommonRepository;
   private remindUserJobRepository: Repository<RemindUserJob>;
 
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
-    this.microsofRepo = Container.get(MicrosoftRepository);
+    this.microsoftRepo = Container.get(MicrosoftRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);
   }
@@ -73,7 +74,7 @@ export default class TaskService {
               await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.microsoft:
-              await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
+              await this.microsoftRepo.syncTaskByUserBoards(company, todoapp);
               break;
             default:
               break;
@@ -183,4 +184,15 @@ export default class TaskService {
       throw new InternalServerErrorException(error.message);
     }
   };
+
+  updateTask = async (todoappRegId: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false) => {
+    switch (task.todoapp.todo_app_code) {
+      case Common.trello:
+        await this.trelloRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
+        return;
+      case Common.microsoft:
+        await this.microsoftRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
+        return;
+    }
+  }
 }

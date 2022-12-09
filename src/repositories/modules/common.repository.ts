@@ -1,16 +1,16 @@
-import { ICompanyCondition, ISection, IUser } from './../../types';
+import { ICompanyCondition, ISection, IUser } from '../../types';
 import { Repository, IsNull, Not, Brackets, SelectQueryBuilder } from 'typeorm';
 import { Service } from 'typedi';
-import { AppDataSource } from './../../config/data-source';
-import { Section } from './../../entify/section.entity';
-import { User } from './../../entify/user.entity';
-import { ImplementedTodoApp } from './../../entify/implemented.todoapp.entity';
+import { AppDataSource } from '../../config/data-source';
+import { Section } from '../../entify/section.entity';
+import { User } from '../../entify/user.entity';
+import { ImplementedTodoApp } from '../../entify/implemented.todoapp.entity';
 import logger from '../../logger/winston';
 import { LoggerError } from '../../exceptions';
-import { Todo } from './../../entify/todo.entity';
-import { ChatToolUser } from './../../entify/chattool.user.entity';
-import { TodoUser } from './../../entify/todouser.entity';
-import { Common } from './../../const/common';
+import { Todo } from '../../entify/todo.entity';
+import { ChatToolUser } from '../../entify/chattool.user.entity';
+import { TodoUser } from '../../entify/todouser.entity';
+import { Common } from '../../const/common';
 
 @Service()
 export default class CommonRepository {
@@ -29,7 +29,7 @@ export default class CommonRepository {
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    const sections: ISection[] = await this.sectionRepository
+    return await this.sectionRepository
       .createQueryBuilder('sections')
       .innerJoinAndSelect(
         'sections.boardAdminUser',
@@ -47,8 +47,15 @@ export default class CommonRepository {
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .andWhere('sections.board_id IS NOT NULL')
       .getMany();
-    return sections;
   };
+
+  getBoardAdminUser = async (sectionId: number): Promise<User> => {
+    const section = await this.sectionRepository.findOne({
+      where: { id: sectionId },
+      relations: ['boardAdminUser', 'boardAdminUser.todoAppUsers']
+    });
+    return section.boardAdminUser;
+  }
 
   getUserTodoApps = async (
     companyId: number,
@@ -67,8 +74,7 @@ export default class CommonRepository {
       query.andWhere('todo_app_users.user_app_id IS NULL');
     }
 
-    const users: IUser[] = await query.getMany();
-    return users;
+    return await query.getMany();
   };
 
   getImplementTodoApp = async (companyId: number, todoappId: number) => {
@@ -119,7 +125,7 @@ export default class CommonRepository {
   };
 
   getChatToolUserByLineId = async (authKey: string) => {
-    const users = this.userRepository
+    return await this.userRepository
       .createQueryBuilder('users')
       .innerJoin('chat_tool_users', 'r', 'users.id = r.user_id')
       .innerJoinAndMapMany(
@@ -130,20 +136,16 @@ export default class CommonRepository {
         { authKey }
       )
       .getMany();
-
-    return users;
   };
 
   getDayReminds = async (companyConditions: ICompanyCondition[]): Promise<number[]> => {
-    const dayReminds: number[] = companyConditions
+    return companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
-
-    return dayReminds;
   };
 
   getTodoDueDateAndAssignedTasks = async (companyId: number): Promise<Array<Todo>> => {
-    const todos: Todo[] = await this.todoRepository
+    return await this.todoRepository
       .createQueryBuilder('todos')
       .innerJoinAndSelect('todos.todoUsers', 'todo_users')
       .innerJoinAndSelect('todo_users.user', 'users')
@@ -155,14 +157,12 @@ export default class CommonRepository {
         count: Common.remindMaxCount,
       })
       .getMany();
-
-    return todos;
   };
 
   getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
     const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
       `not exists (${builder.getQuery()})`;
-    const todos: Todo[] = await this.todoRepository
+    return await this.todoRepository
       .createQueryBuilder('todos')
       .leftJoinAndSelect('todos.todoUsers', 'todo_users')
       .leftJoinAndSelect('todo_users.user', 'users')
@@ -188,7 +188,5 @@ export default class CommonRepository {
       //   })
       // )
       .getMany();
-
-    return todos;
   };
 }
