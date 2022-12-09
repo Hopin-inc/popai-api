@@ -252,7 +252,7 @@ export default class TrelloRepository {
 
         //update user
         if (todo) {
-          this.todoUserRepository.updateTodoUser(todo, users);
+          await this.todoUserRepository.updateTodoUser(todo, users);
         }
       }
 
@@ -268,7 +268,7 @@ export default class TrelloRepository {
     }
   };
 
-  updateTodo = async (id: string, task: Todo, todoAppUser: ITodoAppUser): Promise<void> => {
+  updateTodo = async (id: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false): Promise<void> => {
     try {
       const idMembers = task.todoUsers.map(todoUser => {
         const targetTodoAppUser = todoUser.user.todoAppUsers.find(tau => tau.todoapp_id === todoAppUser.todoapp_id);
@@ -284,6 +284,19 @@ export default class TrelloRepository {
       }
       const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
       await this.trelloRequest.updateCard(id, trelloTask, trelloAuth);
+
+      if (correctDelayedCount && task.delayed_count > 0) {
+        task.delayed_count--;
+      }
+
+      await this.todoRepository.save(task);
+      const todoUpdate: ITodoUpdate = {
+        todoId: task.todoapp_reg_id,
+        newDueTime: task.deadline,
+        newIsDone: task.is_done,
+        updateTime: toJapanDateTime(new Date()),
+      }
+      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate)
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

@@ -1,5 +1,5 @@
 import express from 'express';
-import { ResponseApi } from './../common/response';
+import { ResponseApi } from '../common/response';
 import LineController from '../controllers/line.controller';
 import RichMenuController from '../controllers/rich_menu.controller';
 const router = express();
@@ -8,6 +8,7 @@ const router = express();
 
 router.post('/webhook', async function(req, res) {
   try {
+    console.log(JSON.stringify(req.body))
     const controller = new LineController();
     const response = await controller.handlerEvents(req.body.events);
     ResponseApi.successRes(res, response);

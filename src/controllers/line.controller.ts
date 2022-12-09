@@ -55,6 +55,7 @@ export default class LineController extends Controller {
   }
 
   public async handlerEvents(events: Array<WebhookEvent>): Promise<any> {
+    console.log(JSON.stringify(events))
     events.map(async (event) => await this.handleEvent(event));
 
     return {
@@ -168,10 +169,12 @@ export default class LineController extends Controller {
     const sectionId = waitingReplyQueue.todo.section_id;
     const todoAppId = waitingReplyQueue.todo.todoapp_id;
     const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
-    const todoAppUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
-    if (repliedMessage === DONE_MESSAGE && waitingReplyQueue.todo.deadline < waitingReplyQueue.remind_date) {
-      await this.taskService.updateTask(waitingReplyQueue.todo.todoapp_reg_id, waitingReplyQueue.todo, todoAppUser);
-      // FIXME: タスクを更新した後、todos.is_doneとtodo_update_historiesを更新する必要がある。
+    const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
+    if (repliedMessage === DONE_MESSAGE) {
+      waitingReplyQueue.todo.is_done = true;
+      const todo = waitingReplyQueue.todo;
+      const correctDelayedCount = todo.deadline < waitingReplyQueue.remind_date;
+      await this.taskService.updateTask(todo.todoapp_reg_id, todo, todoAppAdminUser, correctDelayedCount);
     }
     await this.lineQueueRepository.saveQueue(waitingReplyQueue);
     await this.updateIsReplyFlag(waitingReplyQueue.message_id);

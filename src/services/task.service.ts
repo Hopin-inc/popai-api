@@ -185,10 +185,10 @@ export default class TaskService {
     }
   };
 
-  updateTask = async (todoappRegId: string, task: Todo, todoAppUser: ITodoAppUser) => {
+  updateTask = async (todoappRegId: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false) => {
     switch (task.todoapp.todo_app_code) {
       case Common.trello:
-        this.trelloRepo.updateTodo(todoappRegId, task, todoAppUser)
+        await this.trelloRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount)
         return;
       case Common.microsoft:
         return;

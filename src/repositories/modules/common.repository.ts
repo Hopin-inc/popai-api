@@ -50,8 +50,10 @@ export default class CommonRepository {
   };
 
   getBoardAdminUser = async (sectionId: number): Promise<User> => {
-    const where = { id: sectionId };
-    const section = await this.sectionRepository.findOne({ where });
+    const section = await this.sectionRepository.findOne({
+      where: { id: sectionId },
+      relations: ['boardAdminUser', 'boardAdminUser.todoAppUsers']
+    });
     return section.boardAdminUser;
   }
 

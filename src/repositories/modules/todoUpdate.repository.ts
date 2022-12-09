@@ -1,12 +1,11 @@
 import { ITodo, ITodoUpdate } from '../../types';
 import { Service } from 'typedi';
 import { Repository } from 'typeorm';
-import moment from 'moment';
 import { AppDataSource } from '../../config/data-source';
 import logger from '../../logger/winston';
 import { LoggerError } from '../../exceptions';
 import { TodoUpdateHistory } from '../../entify/todoupdatehistory.entity';
-import { Todo } from './../../entify/todo.entity';
+import { Todo } from '../../entify/todo.entity';
 
 @Service()
 export default class TodoUpdateRepository {
@@ -28,7 +27,7 @@ export default class TodoUpdateRepository {
         });
 
         if (todo) {
-          this.saveTodoHistory(todo, dataUpdate);
+          await this.saveTodoHistory(todo, dataUpdate);
         }
       }
     }
@@ -42,7 +41,7 @@ export default class TodoUpdateRepository {
       todoUpdate.todo_id = todo.id;
       todoUpdate.deadline_before = dueTime || newDueTime;
       todoUpdate.deadline_after = newDueTime;
-      todoUpdate.is_done = todo.is_done;
+      todoUpdate.is_done = todo.is_done ?? null;
       todoUpdate.todoapp_reg_updated_at = updateTime;
 
       await this.todoUpdateRepository.save(todoUpdate);

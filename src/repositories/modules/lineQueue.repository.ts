@@ -148,7 +148,7 @@ export default class LineQueueRepository {
           .startOf('day')
           .toDate(),
       },
-      relations: ['todo', 'user', 'message'],
+      relations: ['todo.todoUsers.user.todoAppUsers', 'user', 'message', 'todo.todoapp'],
     });
   };
 
