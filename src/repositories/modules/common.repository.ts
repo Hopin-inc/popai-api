@@ -1,5 +1,5 @@
-import { ICompanyCondition, ISection, IUser } from './../../types';
-import { Repository, IsNull, Not, Brackets, SelectQueryBuilder } from 'typeorm';
+import { ICompanyCondition, ILabelSection, ISection, IUser } from './../../types';
+import { Brackets, IsNull, Not, Repository, SelectQueryBuilder } from 'typeorm';
 import { Service } from 'typedi';
 import { AppDataSource } from './../../config/data-source';
 import { Section } from './../../entify/section.entity';
@@ -11,10 +11,12 @@ import { Todo } from './../../entify/todo.entity';
 import { ChatToolUser } from './../../entify/chattool.user.entity';
 import { TodoUser } from './../../entify/todouser.entity';
 import { Common } from './../../const/common';
+import { LabelSection } from '../../entify/label_section.entity';
 
 @Service()
 export default class CommonRepository {
   private sectionRepository: Repository<Section>;
+  private labelSectionRepository: Repository<LabelSection>;
   private userRepository: Repository<User>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
@@ -22,6 +24,7 @@ export default class CommonRepository {
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
+    this.labelSectionRepository = AppDataSource.getRepository(LabelSection);
     this.userRepository = AppDataSource.getRepository(User);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);
@@ -29,37 +32,49 @@ export default class CommonRepository {
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    let sectionQuery = this.sectionRepository
+    const sections = this.sectionRepository
       .createQueryBuilder('sections')
       .innerJoinAndSelect(
         'sections.boardAdminUser',
         'users',
         'sections.board_admin_user_id = users.id AND users.company_id = :companyId',
-        { companyId }
+        { companyId },
       )
       .innerJoinAndSelect(
         'users.todoAppUsers',
         'todo_app_users',
         'users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId',
-        { todoappId }
+        { todoappId },
       )
-
-    if (todoappId == 3) {
-      sectionQuery = sectionQuery.where("sections.label_id IS NOT NULL")
-    } else {
-      sectionQuery = sectionQuery.where('sections.board_id IS NOT NULL')
-    }
-    const sections:ISection[] = await sectionQuery
-      .andWhere('sections.company_id = :companyId', { companyId })
+      .where('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
+      .andWhere('sections.board_id IS NOT NULL')
       .getMany();
+
     return sections;
   };
+
+  getLabelSections = async (boardId: number): Promise<ILabelSection[]> => {
+    const labelSections = this.labelSectionRepository
+      .createQueryBuilder('label_sections')
+      // .innerJoinAndSelect(
+      //   'label_sections.board_id',
+      //   'sections',
+      //   'label_sections.board_id = sections.id AND sections.id = :boardId',
+      //   { boardId },
+      // )
+      .where('label_sections.board_id = :boardId', {boardId})
+      .andWhere('label_sections.label_id IS NOT NULL')
+      .getMany();
+
+    return labelSections;
+  };
+
 
   getUserTodoApps = async (
     companyId: number,
     todoappId: number,
-    hasAppUserId: boolean = true
+    hasAppUserId: boolean = true,
   ): Promise<IUser[]> => {
     const query = this.userRepository
       .createQueryBuilder('users')
@@ -87,11 +102,11 @@ export default class CommonRepository {
       logger.error(
         new LoggerError(
           'implemented_todo_appsのデータ(company_id=' +
-            companyId +
-            ' todoapp_id=' +
-            todoappId +
-            ')がありません。'
-        )
+          companyId +
+          ' todoapp_id=' +
+          todoappId +
+          ')がありません。',
+        ),
       );
     }
 
@@ -113,11 +128,11 @@ export default class CommonRepository {
       logger.error(
         new LoggerError(
           'chat_tool_usersのデータ(user_id=' +
-            userId +
-            ' chattool_id=' +
-            chatToolId +
-            ')がありません。'
-        )
+          userId +
+          ' chattool_id=' +
+          chatToolId +
+          ')がありません。',
+        ),
       );
     }
 
@@ -133,7 +148,7 @@ export default class CommonRepository {
         'm_chat_tools',
         'c',
         'c.id = r.chattool_id AND r.auth_key = :authKey',
-        { authKey }
+        { authKey },
       )
       .getMany();
 
@@ -181,10 +196,10 @@ export default class CommonRepository {
               AppDataSource.getRepository(TodoUser)
                 .createQueryBuilder('todo_users')
                 .where('todo_users.todo_id = todos.id')
-                .andWhere('todo_users.user_id IS NOT NULL')
-            )
+                .andWhere('todo_users.user_id IS NOT NULL'),
+            ),
           );
-        })
+        }),
       )
       // .andWhere(
       //   new Brackets((qb) => {
@@ -198,3 +213,4 @@ export default class CommonRepository {
     return todos;
   };
 }
+;

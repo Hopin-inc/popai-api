@@ -74,10 +74,10 @@ export default class TaskService {
         for (const todoapp of company.todoapps) {
           switch (todoapp.todo_app_code) {
             case Common.trello:
-              await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
+              // await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.microsoft:
-              await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
+              // await this.microsofRepo.syncTaskByUserBoards(company, todoapp);
               break;
             case Common.notion:
               await this.notionRepo.syncTaskByUserBoards(company, todoapp);

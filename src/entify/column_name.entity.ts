@@ -1,19 +1,18 @@
 import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity('column_name')
-@Unique(['company_id', 'todoapp_id'])
 export class ColumnName {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  company_id: number;
-
-  @Column()
-  todoapp_id: number;
+  board_id: number;
 
   @Column()
   todo: string;
+
+  @Column()
+  section: string;
 
   @Column()
   is_done: string;

@@ -37,7 +37,6 @@ export type ISection = {
   company_id: number | null;
   todoapp_id: number | null;
   board_id: string;
-  label_id: string | null;
   boardAdminUser: IUser;
 };
 
@@ -200,20 +199,16 @@ export type ITodoRemind = {
   todoTask: ITodo;
 };
 
-export type INotionAuth = {
-  access_token: string;
-};
-
 export type IColumnName = {
   assignee: string | null;
-  company_id: number;
+  board_id: number;
   created_at: string | null;
   created_by: string | null;
   due: string | null;
+  section: string | null;
   id: number;
   is_done: string | null;
   todo: string | null;
-  todoapp_id: number;
 }
 
 export type INotionTask = {
@@ -225,7 +220,16 @@ export type INotionTask = {
   dueReminder: number | null;
   is_done: boolean;
   name: string;
+  section: string[] | null;
+  section_id: number[] | null;
   notion_user_id: string[];
   todoapp_reg_id: string;
   todoapp_reg_url: string;
+}
+
+export type ILabelSection = {
+  id: number;
+  board_id: number;
+  label_id: string;
+  name: string;
 }

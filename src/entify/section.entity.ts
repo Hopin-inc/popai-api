@@ -19,14 +19,11 @@ export class Section {
   board_id: string;
 
   @Column()
-  label_id: string;
-
-  @Column()
   board_admin_user_id: number;
 
   @OneToOne(
     () => User,
-    (user) => user.section
+    (user) => user.section,
   )
   @JoinColumn({ name: 'board_admin_user_id' })
   boardAdminUser: User;

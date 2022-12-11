@@ -5,7 +5,7 @@ import { LoggerError } from '../exceptions';
 import { Repository } from 'typeorm';
 import {
   IColumnName,
-  ICompany,
+  ICompany, ILabelSection,
   INotionTask,
   IRemindTask,
   ISection,
@@ -69,11 +69,8 @@ export default class NotionRepository {
     try {
       const todoTasks: ITodoTask[] = [];
 
-      const companyId = company.id;
-      const todoappId = todoapp.id;
-      const columnName = await this.getColumnName(companyId, todoappId);
-
       for (const section of sections) {
+        const columnName = await this.getColumnName(section);
         await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, columnName);
       }
 
@@ -87,14 +84,14 @@ export default class NotionRepository {
     }
   };
 
-  getColumnName = async (companyId: number, todoappId: number): Promise<IColumnName> => {
+  getColumnName = async (section: ISection): Promise<IColumnName> => {
     const columnName = await this.columnNameRepository.findOneBy({
-      company_id: companyId,
-      todoapp_id: todoappId,
+      board_id: section.id,
     });
+
     if (columnName) {
-      if (!('company_id' in columnName) || !('todoapp_id' in columnName) || !('is_done' in columnName) || !('created_by' in columnName) || !('created_at' in columnName)) {
-        logger.error(new LoggerError('column_nameのデータ(company_id=' + companyId + ' todoapp_id=' + todoappId + ')がありません。'));
+      if (!('todo' in columnName) || !('assignee' in columnName) || !('due' in columnName) || !('is_done' in columnName) || !('created_by' in columnName) || !('created_at' in columnName) || !('section' in columnName)) {
+        logger.error(new LoggerError('column_nameのデータ(section.id=' + section.id + ')がありません。'));
       } else {
         return columnName;
       }
@@ -145,6 +142,51 @@ export default class NotionRepository {
     }
   };
 
+  getNotionSection = (columnName: IColumnName, pageProperty: string): string[] => {
+    try {
+      const result: string[] = [];
+      if (pageProperty[columnName.section]['relation'][0]) {
+        const sections = pageProperty[columnName.section]['relation'];
+        sections.forEach(section => {
+          result.push(section['id']);
+        });
+        return result;
+      }
+    } catch (err) {
+      logger.error(new LoggerError(err.message));
+      return;
+    }
+  };
+
+  getNotionSectionId = async (section: ISection, labelIds: string[]): Promise<number[]> => {
+    const registeredLabelIds = [];
+    const sectionId = section.id;
+    const registeredSections = await this.commonRepository.getLabelSections(sectionId);
+
+    registeredSections.forEach(labelSection => {
+      const ele = [];
+      ele.push({ id: labelSection.id });
+      ele.push({ label_id: labelSection.label_id });
+      registeredLabelIds.push(ele);
+    });
+
+    const result: number[] = [];
+
+    if (labelIds) {
+      for (const id of registeredLabelIds) {
+        for (const labelId of labelIds) {
+          if(id[1].label_id === labelId) {
+            result.push(id[0].id);
+          }
+        }
+      }
+      return result;
+    } else {
+      return null;
+    }
+  };
+
+
   getIsDone = (columnName: IColumnName, pageProperty: string): boolean => {
     try {
       return pageProperty[columnName.is_done]['checkbox'];
@@ -160,6 +202,24 @@ export default class NotionRepository {
       logger.error(new LoggerError(err.message));
     }
   };
+
+  getCreatedById = async (usersCompany: IUser[], todoappId: number, createdBy: string): Promise<number> => {
+    const users = usersCompany.filter((user) => {
+      const registeredUserAppIds = user?.todoAppUsers.filter((todoAppUser) => todoAppUser.todoapp_id === todoappId)
+        .reduce(function(userAppIds: string[], todoAppUser) {
+          userAppIds.push(todoAppUser.user_app_id);
+          return userAppIds;
+        }, []);
+      return registeredUserAppIds.find(id => id === createdBy);
+    });
+
+    if (users) {
+      return users[0].id;
+    } else {
+      return;
+    }
+  };
+
 
   getLastEditedAt = (pageInfo: object): Date => {
     try {
@@ -191,11 +251,21 @@ export default class NotionRepository {
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
       if (section.board_id) {
         try {
-          const response = await this.notionRequest.databases.query({ database_id: section.board_id });
+          let response = await this.notionRequest.databases.query({ database_id: section.board_id });
+          const pages = response['results'];
+          while (response['has_more']) {
+            response = await this.notionRequest.databases.query({
+              database_id: section.board_id,
+              start_cursor: response['next_cursor'],
+            });
+            pages.push(...response['results']);
+          }
+
           const pageIds: string[] = [];
-          for (const page of response['results']) {
+          for (const page of pages) {
             pageIds.push(page['id']);
           }
+
           const pageTodos = [];
           for (const pageId of pageIds) {
             const pageInfo = await this.notionRequest.pages.retrieve({ page_id: pageId });
@@ -204,6 +274,8 @@ export default class NotionRepository {
               todoapp_reg_id: pageId,
               name: this.getTaskName(columnName, pageProperty),
               notion_user_id: this.getAssignee(columnName, pageProperty),
+              section: this.getNotionSection(columnName, pageProperty),
+              section_id: null,
               deadline: this.getDue(columnName, pageProperty),
               is_done: this.getIsDone(columnName, pageProperty),
               created_by: this.getCreatedBy(pageInfo),
@@ -213,6 +285,9 @@ export default class NotionRepository {
               dueReminder: null,
               closed: false,
             };
+
+            pageTodo['created_by_id'] = await this.getCreatedById(company.users, todoapp.id, pageTodo.created_by);
+            pageTodo['section_id'] = await this.getNotionSectionId(section, pageTodo.section);
 
             if (pageTodo['name']) {
               pageTodos.push(pageTodo);
@@ -225,14 +300,12 @@ export default class NotionRepository {
               pageTodos[key].notion_user_id,
             );
 
-            console.log(pageTodos);
-
             const page: ITodoTask = {
               todoTask: pageTodos[key] as any, //TODO:型定義をしっかりする
               company: company,
               todoapp: todoapp,
               todoAppUser: todoAppUser,
-              section: section,
+              section: section, //TODO:使ってないから変える
               users: users,
             };
 
@@ -295,10 +368,10 @@ export default class NotionRepository {
         todoData.todoapp_id = todoapp.id;
         todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
         todoData.todoapp_reg_url = todoTask.todoapp_reg_url;
-        todoData.todoapp_reg_created_by = null; //TODO:idに変換入れる
+        todoData.todoapp_reg_created_by = todoTask.created_by_id;
         todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.last_edited_at);
         todoData.company_id = company.id;
-        todoData.section_id = section.id;
+        todoData.section_id = todoTask.section_id[0] || null; //TODO:ITodoTaskが"&"の弊害出ている、MtoMだから中間テーブル必要説？
         todoData.deadline = taskDeadLine;
         todoData.is_done = todoTask.is_done;
         todoData.is_reminded = !!todoTask.dueReminder;

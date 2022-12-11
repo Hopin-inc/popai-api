@@ -60,7 +60,7 @@ export default class TrelloRepository {
   getUserCardBoards = async (
     sections: ISection[],
     company: ICompany,
-    todoapp: ITodoApp
+    todoapp: ITodoApp,
   ): Promise<void> => {
     try {
       const todoTasks: ITodoTask[] = [];
@@ -70,7 +70,7 @@ export default class TrelloRepository {
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(
-        company.companyConditions
+        company.companyConditions,
       );
 
       await this.filterUpdateCards(dayReminds, todoTasks);
@@ -84,7 +84,7 @@ export default class TrelloRepository {
     section: ISection,
     todoTasks: ITodoTask[],
     company: ICompany,
-    todoapp: ITodoApp
+    todoapp: ITodoApp,
   ): Promise<void> => {
     if (!boardAdminuser?.todoAppUsers.length) return;
 
@@ -99,13 +99,13 @@ export default class TrelloRepository {
             'boards/' + section.board_id + '/cards/all',
             'GET',
             {},
-            trelloAuth
+            trelloAuth,
           );
 
           for (const todoTask of cardTodos) {
             const users = await this.todoUserRepository.getUserAssignTask(
               company.users,
-              todoTask.idMembers
+              todoTask.idMembers,
             );
 
             const card: ITodoTask = {
@@ -122,7 +122,6 @@ export default class TrelloRepository {
               taskFound.users = users;
             } else {
               todoTasks.push(card);
-              console.log(card);
             }
           }
         } catch (err) {
@@ -135,7 +134,7 @@ export default class TrelloRepository {
   updateUsersTrello = async (usersCompany: IUser[], todoappId: number): Promise<void> => {
     const users = usersCompany.filter((user) => {
       return user?.todoAppUsers.find(
-        (todoAppUser) => todoAppUser.todoapp_id === todoappId && !todoAppUser.user_app_id
+        (todoAppUser) => todoAppUser.todoapp_id === todoappId && !todoAppUser.user_app_id,
       );
     });
 
