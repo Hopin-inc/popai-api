@@ -28,6 +28,7 @@ export type IUser = {
   id: number;
   name: string;
   line_id?: string;
+  slack_id?: string;
   companyCondition?: ICompanyCondition[];
   todoAppUsers?: ITodoAppUser[];
 };
@@ -198,4 +199,12 @@ export type ITodoQueue = {
 export type ITodoRemind = {
   remindDays: number;
   todoTask: ITodo;
+};
+
+export type ITodoSlacks = {
+  todo: ITodo;
+  remindDays: number;
+  chatTool: IChatTool;
+  user: IUser;
+  todoQueueTask?: LineMessageQueue;
 };

@@ -8,10 +8,10 @@ import {
   WITHDRAWN_MESSAGE,
 } from '../const/common';
 import { ITodo, ITodoSlacks, IUser } from '../types';
+import { MessageAttachment, Block, ActionsBlock } from '@slack/web-api';
 
 export class SlackMessageBuilder {
   static createRemindMessage(
-    messageToken: string,
     userName: string,
     todo: ITodo,
     remindDays: number,
@@ -293,12 +293,12 @@ export class SlackMessageBuilder {
   static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
     const message = {
       blocks: [{
-          type: 'section',
-          text: {
-            type: 'markdown',
-            text: adminUser.name + 'お疲れさまです🙌\n現在、次のタスクの担当者と期日が設定されていません😭',
-          },
-        }],
+        type: 'section',
+        text: {
+          type: 'markdown',
+          text: adminUser.name + 'お疲れさまです🙌\n現在、次のタスクの担当者と期日が設定されていません😭',
+        },
+      }],
     };
 
     todos.forEach((todo) =>
@@ -312,12 +312,12 @@ export class SlackMessageBuilder {
     );
 
     message['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: 'ご確認をお願いします🙏',
-        },
-      });
+      type: 'section',
+      text: {
+        type: 'markdown',
+        text: 'ご確認をお願いします🙏',
+      },
+    });
 
     return message;
   }
@@ -325,12 +325,12 @@ export class SlackMessageBuilder {
   static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
     const message = {
       blocks: [{
-          type: 'section',
-          text: {
-            type: 'markdown',
-            text: adminUser.name + 'お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭',
-          },
-        }],
+        type: 'section',
+        text: {
+          type: 'markdown',
+          text: adminUser.name + 'お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭',
+        },
+      }],
     };
 
     todos.forEach((todo) =>
@@ -344,12 +344,12 @@ export class SlackMessageBuilder {
     );
 
     message['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: 'ご確認をお願いします🙏',
-        },
-      });
+      type: 'section',
+      text: {
+        type: 'markdown',
+        text: 'ご確認をお願いします🙏',
+      },
+    });
 
     return message;
   }
@@ -357,12 +357,12 @@ export class SlackMessageBuilder {
   static createListTaskMessageToUser(user: IUser, todos: ITodo[]) {
     const message = {
       blocks: [{
-          type: 'section',
-          text: {
-            type: 'markdown',
-            text: user.name + 'お疲れさまです🙌\n現在、次のタスクの期日が設定されていません😭',
-          },
-        }],
+        type: 'section',
+        text: {
+          type: 'markdown',
+          text: user.name + 'お疲れさまです🙌\n現在、次のタスクの期日が設定されていません😭',
+        },
+      }],
     };
 
     todos.forEach((todo) =>
@@ -376,12 +376,12 @@ export class SlackMessageBuilder {
     );
 
     message['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: 'ご確認をお願いします🙏',
-        },
-      });
+      type: 'section',
+      text: {
+        type: 'markdown',
+        text: 'ご確認をお願いします🙏',
+      },
+    });
 
     return message;
   }
@@ -389,26 +389,21 @@ export class SlackMessageBuilder {
   static createNoListTaskMessageToAdmin(adminUser: IUser) {
     const message = {
       blocks: [{
-          type: 'section',
-          text: {
-            type: 'markdown',
-            text: adminUser.name + 'お疲れさまです🙌\n現在、担当者・期日が設定されていないタスクはありませんでした。',
-          },
-        }],
+        type: 'section',
+        text: {
+          type: 'markdown',
+          text: adminUser.name + 'お疲れさまです🙌\n現在、担当者・期日が設定されていないタスクはありませんでした。',
+        },
+      }],
     };
 
     return message;
   }
 
-  // static createReportToSuperiorMessage(
-  //   superiorUserName: string,
-  //   userName: string,
-  //   taskName: string,
-  //   reportContent: string,
-  // ) {
-  //   const reportMessage = {}
-  //   return reportMessage;
-  // }
+  // 管理画面でチャットを閲覧できるようにするなどのために作った
+  static getTextContentFromMessage(message: MessageAttachment) {
+    return message.text;
+  }
 
   static getPrefixMessage(remindDays: number): string {
     let messagePrefix = '';

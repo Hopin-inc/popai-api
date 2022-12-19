@@ -31,6 +31,9 @@ export class LineMessageQueue {
   remind_date: Date;
 
   @Column()
+  action_id: string;
+
+  @Column()
   message_id: number;
 
   @CreateDateColumn()

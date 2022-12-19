@@ -21,9 +21,6 @@ export class ChatMessage {
   user_id: number;
 
   @Column()
-  chattool_id: number;
-
-  @Column()
   message_token: string;
 
   @Column()
@@ -52,4 +49,7 @@ export class ChatMessage {
 
   @Column()
   remind_before_days: number;
+
+  @Column()
+  chattool_id: number;
 }
