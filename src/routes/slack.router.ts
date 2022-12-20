@@ -14,3 +14,5 @@ router.post('/webhook', async function(req, res) {
     ResponseApi.errRes(res, err.message, err.status);
   }
 });
+
+export default router;

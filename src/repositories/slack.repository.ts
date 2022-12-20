@@ -84,7 +84,7 @@ export default class SlackRepository {
       if (process.env.ENV == 'LOCAL') {
         console.log(message);
       } else {
-        await SlackBot.postMessage(event.channel_id, message);
+        await SlackBot.chat.postMessage(event.channel_id, message);
       }
 
       return chatMessage;
@@ -398,7 +398,7 @@ export default class SlackRepository {
     if (process.env.ENV == 'LOCAL') {
       console.log(SlackMessageBuilder.getTextContentFromMessage(message));
     } else {
-      await SlackBot.postMessage(event.channel_id, message);
+      await SlackBot.chat.postMessage(event.channel_id, message);
     }
 
     const linkToken = event.configuration_url;

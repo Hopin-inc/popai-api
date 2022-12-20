@@ -32,7 +32,7 @@ import { IUser } from '../types';
 import SlackQueueRepository from '../repositories/modules/slackQueque.repository';
 import { Todo } from '../entify/todo.entity';
 import TaskService from '../services/task.service';
-import { IncomingWebhook } from '@slack/web-api/dist/response/OauthAccessResponse';
+import { IncomingWebhook } from '@slack/webhook';
 import { SlackMessageBuilder } from '../common/slack_message';
 
 @Route('slack')
