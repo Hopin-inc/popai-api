@@ -18,6 +18,9 @@ export class ColumnName {
   is_done: string;
 
   @Column()
+  is_archive: string;
+
+  @Column()
   assignee: string;
 
   @Column()

@@ -90,7 +90,7 @@ export default class NotionRepository {
     });
 
     if (columnName) {
-      if (!('todo' in columnName) || !('assignee' in columnName) || !('due' in columnName) || !('is_done' in columnName) || !('created_by' in columnName) || !('created_at' in columnName) || !('section' in columnName)) {
+      if (!('todo' in columnName) || !('assignee' in columnName) || !('due' in columnName) || !('is_done' in columnName) || !('is_archive' in columnName) || !('created_by' in columnName) || !('created_at' in columnName) || !('section' in columnName)) {
         logger.error(new LoggerError('column_nameのデータ(section.id=' + section.id + ')がありません。'));
       } else {
         return columnName;
@@ -175,7 +175,7 @@ export default class NotionRepository {
     if (labelIds) {
       for (const id of registeredLabelIds) {
         for (const labelId of labelIds) {
-          if(id[1].label_id === labelId) {
+          if (id[1].label_id === labelId) {
             result.push(id[0].id);
           }
         }
@@ -190,6 +190,14 @@ export default class NotionRepository {
   getIsDone = (columnName: IColumnName, pageProperty: string): boolean => {
     try {
       return pageProperty[columnName.is_done]['checkbox'];
+    } catch (err) {
+      logger.error(new LoggerError(err.message));
+    }
+  };
+
+  getIsArchive = (columnName: IColumnName, pageProperty: string): boolean => {
+    try {
+      return pageProperty[columnName.is_archive]['checkbox'];
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -283,11 +291,13 @@ export default class NotionRepository {
               last_edited_at: this.getLastEditedAt(pageInfo),
               todoapp_reg_url: this.getUrl(pageInfo),
               dueReminder: null,
-              closed: false,
+              closed: this.getIsArchive(columnName, pageProperty),
             };
 
             pageTodo['created_by_id'] = await this.getCreatedById(company.users, todoapp.id, pageTodo.created_by);
             pageTodo['section_id'] = await this.getNotionSectionId(section, pageTodo.section);
+
+            console.log(pageTodo);
 
             if (pageTodo['name']) {
               pageTodos.push(pageTodo);

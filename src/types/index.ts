@@ -208,6 +208,7 @@ export type IColumnName = {
   section: string | null;
   id: number;
   is_done: string | null;
+  is_archive: string | null;
   todo: string | null;
 }
 
