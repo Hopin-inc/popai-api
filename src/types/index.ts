@@ -1,6 +1,8 @@
 import { ChatTool } from '../entify/chat_tool.entity';
 import { LineMessageQueue } from '../entify/line_message_queue.entity';
 
+export type valueof<T> = T[keyof T];
+
 export type ICompany = {
   id: number;
   name: string;

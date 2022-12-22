@@ -1,311 +1,168 @@
-import { FlexComponent, FlexMessage, Message, QuickReply } from '@line/bot-sdk';
-import { truncate } from '../utils/common';
+import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from '@line/bot-sdk';
+import { getDate, sliceByNumber } from '../utils/common';
 import {
-  DELAY_MESSAGE,
-  DONE_MESSAGE,
-  PROGRESS_GOOD_MESSAGE,
-  PROGRESS_BAD_MESSAGE,
-  WITHDRAWN_MESSAGE,
-  LINE_MAX_LABEL_LENGTH,
+  replyMessagesBefore,
+  replyMessagesAfter,
+  ReplyMessage,
+  Colors, MessageAssets, ButtonStylesByColor,
 } from '../const/common';
 import { ITodo, ITodoLines, IUser } from '../types';
 
 export class LineMessageBuilder {
-  static createRemindMessage(
-    messageToken: string,
-    userName: string,
-    todo: ITodo,
-    remindDays: number
-  ) {
-    const messagePrefix = LineMessageBuilder.getPrefixMessage(remindDays);
-
-    const quickReply: QuickReply = {
-      items: [],
-    };
-    const messages: string[] =
-      remindDays > 0
-        ? [DONE_MESSAGE, DELAY_MESSAGE, WITHDRAWN_MESSAGE]
-        : [PROGRESS_GOOD_MESSAGE, PROGRESS_BAD_MESSAGE, DONE_MESSAGE, WITHDRAWN_MESSAGE];
-    messages.forEach((message) => {
-      quickReply.items.push({
-        type: 'action',
-        action: {
-          type: 'message',
-          label: message,
-          text: message,
-        },
-      });
-    });
-
+  static createRemindMessage(messageToken: string, userName: string, todo: ITodo, remindDays: number) {
+    const relativeDays = LineMessageBuilder.relativeRemindDays(remindDays);
+    const remindColor = LineMessageBuilder.getRemindColor(remindDays);
+    const taskUrl = process.env.ENV === 'local'
+      ? todo.todoapp_reg_url
+      : `${ process.env.HOST }/api/message/redirect/${ todo.id }/${ messageToken }`;
     const message: FlexMessage = {
-      type: 'flex',
-      altText: messagePrefix + '「' + todo.name + '」の進捗はいかがですか？\n',
+      type: "flex",
+      altText: `「${ todo.name }」の進捗はいかがですか？`,
       contents: {
-        type: 'bubble',
+        type: "bubble",
         body: {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'md',
+          type: "box",
+          layout: "vertical",
           contents: [
-            // {
-            //   type: 'text',
-            //   text: userName + 'さん',
-            // },
-            // {
-            //   type: 'text',
-            //   text: 'お疲れさまです🙌\n',
-            //   wrap: true,
-            // },
             {
-              type: 'text',
-              text: messagePrefix + '「' + todo.name + '」の進捗はいかがですか？\n',
+              type: "text",
+              text: todo.name,
+              weight: "bold",
+              size: "xl",
               wrap: true,
-            },
-            {
-              type: 'text',
-              text: '該当リンクはこちらです👀',
-              wrap: true,
-            },
-            {
-              type: 'button',
-              style: 'link',
               action: {
-                type: 'uri',
-                label: truncate(todo.todoapp_reg_url, LINE_MAX_LABEL_LENGTH),
-                uri: process.env.HOST + '/api/message/redirect/' + todo.id + '/' + messageToken,
+                type: "uri",
+                label: "action",
+                uri: taskUrl,
               },
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              margin: "lg",
+              spacing: "sm",
+              contents: [
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    { type: "text", text: "期限", color: "#BDBDBD", size: "sm", flex: 1 },
+                    {
+                      type: "text",
+                      wrap: true,
+                      color: "#666666",
+                      size: "md",
+                      flex: 5,
+                      contents: [
+                        { type: "span", text: relativeDays, weight: "bold", color: remindColor },
+                        { type: "span", text: `(${ getDate(todo.deadline) })`, size: "sm" },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
+        footer: {
+          type: "box",
+          layout: "vertical",
+          spacing: "md",
+          contents: [],
+          flex: 0,
+        }
       },
-      quickReply: quickReply,
     };
 
+    const buttons: ReplyMessage[] = remindDays > 0 ? replyMessagesAfter : replyMessagesBefore;
+    buttons.filter(b => b.primary).forEach(button => (message.contents as FlexBubble).footer?.contents.push({
+      type: "button",
+      style: ButtonStylesByColor[button.color],
+      height: "md",
+      action: {
+        type: "postback",
+        label: button.label,
+        data: button.status,
+        displayText: button.displayText,
+      },
+      color: Colors[button.color],
+    }));
+    const secondaryButtonContents: FlexBox[] = [];
+    sliceByNumber(buttons.filter(b => !b.primary), 2).forEach(row => {
+      const content: FlexBox = {
+        type: "box",
+        layout: "horizontal",
+        contents: [],
+        spacing: "md",
+      };
+      row.forEach(button => content.contents.push({
+        type: "button",
+        style: ButtonStylesByColor[button.color],
+        height: "md",
+        action: {
+          type: "postback",
+          label: button.label,
+          data: button.status,
+          displayText: button.displayText,
+        },
+        color: Colors[button.color],
+      }));
+      secondaryButtonContents.push(content);
+    });
+    (message.contents as FlexBubble).footer?.contents.push(...secondaryButtonContents);
     return message;
   }
 
-  static createReplyDoneMessage(superior?: string) {
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: '完了しているんですね😌\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: 'お疲れさまでした！',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: '担当いただき、ありがとうございます😊',
-        wrap: true,
-      },
-    ];
-
+  static createReplyDoneMessage(superior?: string): TextMessage {
+    let text = "完了しているんですね😌\n"
+      + "お疲れさまでした！\n\n"
+      + "担当いただき、ありがとうございます😊";
     if (superior) {
-      contents.push({
-        type: 'text',
-        text: '\n' + superior + 'さんに報告しておきますね💪',
-        wrap: true,
-      });
+      text += `\n\n${ superior }さんに報告しておきますね💪`;
     }
-
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '担当いただき、ありがとうございます😊',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
-      },
-    };
-
-    return replyMessage;
+    return { type: "text", text };
   }
 
-  static createReplyInProgressMessage(superior?: string) {
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: '承知しました👍\n',
-        wrap: true,
-      },
-    ];
-
+  static createReplyInProgressMessage(superior?: string): TextMessage {
+    let text = "承知しました👍\n";
     if (superior) {
-      contents.push({
-        type: 'text',
-        text: superior + 'さんに共有しておきますね！',
-        wrap: true,
-      });
+      text += `${ superior }さんに報告しておきますね💪\n\n`;
     }
-
-    contents.push({
-      type: 'text',
-      text: '引き続きよろしくお願いします💪',
-      wrap: true,
-    });
-
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '担当いただき、ありがとうございます😊',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
-      },
-    };
-
-    return replyMessage;
+    text += "引き続きよろしくお願いします💪";
+    return { type: "text", text };
   }
 
-  static createDelayReplyMessage() {
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '担当いただき、ありがとうございます😊',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '承知しました😖',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '引き続きよろしくお願いします💪',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
-    return replyMessage;
+  static createDelayReplyMessage(): TextMessage {
+    const text = "承知しました😖\n引き続きよろしくお願いします💪";
+    return { type: "text", text };
   }
 
-  static createProcessingJobReplyMessage() {
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '処理中です。少々お待ちください。',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '処理中です。少々お待ちください。',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
-    return replyMessage;
+  static createProcessingJobReplyMessage(): TextMessage {
+    const text = "処理中です。少々お待ちください。";
+    return { type: "text", text };
   }
 
-  static createWithdrawnReplyMessage() {
-    const replyMessage: FlexMessage = {
-      type: 'flex',
-      altText: '担当いただき、ありがとうございます😊',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: 'そうなんですね！承知しました😊',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
-    return replyMessage;
+  static createWithdrawnReplyMessage(): TextMessage {
+    const text = "そうなんですね！承知しました😊";
+    return { type: "text", text };
   }
 
-  static createStartReportToSuperiorMessage(superiorUserName: string) {
-    const reportMessage: FlexMessage = {
-      type: 'flex',
-      altText: '皆さんに進捗を聞いてきたので、ご報告させていただきます。',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: superiorUserName + 'さん\n',
-            },
-            {
-              type: 'text',
-              text: 'お疲れさまです🙌\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '皆さんに進捗を聞いてきたので、ご報告させていただきます。',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
-    return reportMessage;
+  static createStartReportToSuperiorMessage(superior: string): TextMessage {
+    const text = `${ superior }さん\n`
+      + "お疲れさまです🙌\n\n"
+      + "タスクの進捗を聞いてきたので、ご報告いたします。";
+    return { type: "text", text };
   }
 
-  static createUnKnownMessage() {
-    const reportMessage: FlexMessage = {
-      type: 'flex',
-      altText: '申し訳ありませんが、こちらのアカウントから個別に返信することができません…\n',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: 'メッセージありがとうございます😊\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '申し訳ありませんが、こちらのアカウントから個別に返信することができません…',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: 'また何かありましたらご連絡しますね🙌',
-              wrap: true,
-            },
-          ],
-        },
-      },
-    };
-
-    return reportMessage;
+  static createUnKnownMessage(): TextMessage {
+    const text = "メッセージありがとうございます😊\n\n"
+      + "申し訳ありませんが、こちらのアカウントから個別に返信することができません…\n"
+      + "また何かありましたらお知らせしますね🙌";
+    return { type: "text", text };
   }
 
-  static createStartRemindMessageToUser(user: IUser, todoLines: ITodoLines[]) {
+  static createStartRemindMessageToUser(user: IUser, todoLines: ITodoLines[], superior?: string) {
     const sortedTodoLines = todoLines.sort((a, b) => (a.remindDays < b.remindDays ? 1 : -1));
 
     const groupMessageMap = new Map<number, ITodoLines[]>();
@@ -317,311 +174,354 @@ export class LineMessageBuilder {
       }
     });
 
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: user.name + 'さん\n',
-        wrap: true,
+    let firstText = `${ user.name }さん、お疲れ様です！\nタスクの進捗をお尋ねします🙇`;
+    if (superior) {
+      firstText += `\nお答えいただいた内容を${ superior }さんにお伝えします！`
+    }
+    const messages: (TextMessage | FlexMessage)[] = [{
+      type: "text",
+      text: firstText,
+    }];
+    messages.push({
+      type: "flex",
+      altText: firstText,
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [],
+          spacing: "xl",
+        },
       },
-      {
-        type: 'text',
-        text: 'お疲れ様です🙌',
-        wrap: true,
-      },
-    ];
+    });
 
-    let altText = '';
-    groupMessageMap.forEach((onedayTasks, remindDays) => {
-      const messagePrefix = LineMessageBuilder.getPrefixSummaryMessage(remindDays);
-
-      const summaryMessage =
-        '\n' + messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
-
-      contents.push({
-        type: 'text',
-        text: summaryMessage,
-        wrap: true,
-      });
-
-      onedayTasks.forEach((todoLine) => {
-        contents.push({
-          type: 'text',
-          text: '・' + todoLine.todo.name,
-          wrap: true,
+    groupMessageMap.forEach((targetDueTodos, remindDays) => {
+      const relativeDays = LineMessageBuilder.relativeRemindDays(remindDays);
+      const remindColor = LineMessageBuilder.getRemindColor(remindDays);
+      const targetDueBlock: FlexBox = {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "box",
+            layout: "baseline",
+            contents: [{
+              type: "text",
+              weight: "regular",
+              size: "sm",
+              wrap: true,
+              contents: [
+                { type: "span", text: relativeDays, weight: "bold", color: remindColor },
+                { type: "span", text: `が期日のタスク: ${ targetDueTodos.length }件` },
+              ],
+              color: "#757575",
+            }],
+            spacing: "xs",
+          },
+          { type: "box", layout: "vertical", contents: [] },
+        ],
+        spacing: "sm",
+      };
+      targetDueTodos.forEach(todoLine => {
+        (targetDueBlock.contents[1] as FlexBox).contents.push({
+          type: "box",
+          layout: "baseline",
+          spacing: "sm",
+          contents: [
+            { type: "icon", url: MessageAssets.CHECK, size: "sm" },
+            { type: "text", text: todoLine.todo.name, wrap: false },
+          ],
+          action: { type: "uri", label: "タスクの詳細", uri: todoLine.todo.todoapp_reg_url },
         });
       });
-      altText = summaryMessage;
+      ((messages[1] as FlexMessage).contents as FlexBubble).body?.contents.push(targetDueBlock);
     });
 
+    return messages;
+  }
+
+  static createListTaskMessageToAdmin(todos: ITodo[]): FlexMessage {
     const message: FlexMessage = {
-      type: 'flex',
-      altText: altText,
+      type: "flex",
+      altText: `現在、${ todos.length }件のタスクの担当者・期日が設定されていません😭`,
       contents: {
-        type: 'bubble',
+        type: "bubble",
         body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "box",
+              layout: "baseline",
+              contents: [
+                { type: "icon", url: MessageAssets.ALERT, size: "xs" },
+                {
+                  type: "text",
+                  weight: "regular",
+                  size: "sm",
+                  wrap: true,
+                  contents: [
+                    { type: "span", text: `${ todos.length }件のタスクの` },
+                    { type: "span", text: "担当者・期日", weight: "bold" },
+                    { type: "span", text: "が未設定です。" },
+                  ],
+                  color: Colors.alert,
+                }
+              ],
+              spacing: "xs",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [],
+            }
+          ],
+          spacing: "sm"
+        }
       },
     };
-
+    todos.forEach(todo => ((message.contents as FlexBubble).body.contents[1] as FlexBox).contents.push({
+      type: "box",
+      layout: "baseline",
+      spacing: "sm",
+      contents: [
+        { type: "icon", url: MessageAssets.CHECK, size: "sm" },
+        { type: "text", text: todo.name, wrap: false },
+      ],
+      action: { type: "uri", label: "タスクの詳細", uri: todo.todoapp_reg_url },
+    }));
     return message;
   }
 
-  static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: adminUser.name + 'さん\n',
-        wrap: true,
+  static createNotAssignListTaskMessageToAdmin(todos: ITodo[]): FlexMessage {
+    const message: FlexMessage = {
+      type: "flex",
+      altText: `現在、${ todos.length }件のタスクの担当者が設定されていません😭`,
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "box",
+              layout: "baseline",
+              contents: [
+                { type: "icon", url: MessageAssets.ALERT, size: "xs" },
+                {
+                  type: "text",
+                  weight: "regular",
+                  size: "sm",
+                  wrap: true,
+                  contents: [
+                    { type: "span", text: `${ todos.length }件のタスクの` },
+                    { type: "span", text: "担当者", weight: "bold" },
+                    { type: "span", text: "が未設定です。" },
+                  ],
+                  color: Colors.alert,
+                }
+              ],
+              spacing: "xs",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [],
+            }
+          ],
+          spacing: "sm"
+        }
       },
-      {
-        type: 'text',
-        text: 'お疲れ様です🙌\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: '現在、次のタスクの担当者と期日が設定されていません😭',
-        wrap: true,
-      },
-    ];
+    };
+    todos.forEach(todo => ((message.contents as FlexBubble).body.contents[1] as FlexBox).contents.push({
+      type: "box",
+      layout: "baseline",
+      spacing: "sm",
+      contents: [
+        { type: "icon", url: MessageAssets.CHECK, size: "sm" },
+        { type: "text", text: todo.name, wrap: false },
+      ],
+      action: { type: "uri", label: "タスクの詳細", uri: todo.todoapp_reg_url },
+    }));
+    return message;
+  }
 
-    todos.forEach((todo) =>
-      contents.push({
-        type: 'text',
-        text: '・' + todo.name,
-        wrap: true,
-      })
-    );
+  static createListTaskMessageToUser(todos: ITodo[]): FlexMessage {
+    const message: FlexMessage = {
+      type: "flex",
+      altText: `現在、${ todos.length }件のタスクの期日が設定されていません😭`,
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "box",
+              layout: "baseline",
+              contents: [
+                { type: "icon", url: MessageAssets.ALERT, size: "xs" },
+                {
+                  type: "text",
+                  weight: "regular",
+                  size: "sm",
+                  wrap: true,
+                  contents: [
+                    { type: "span", text: `${ todos.length }件のタスクの` },
+                    { type: "span", text: "期日", weight: "bold" },
+                    { type: "span", text: "が未設定です。" },
+                  ],
+                  color: Colors.alert,
+                }
+              ],
+              spacing: "xs",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [],
+            }
+          ],
+          spacing: "sm"
+        }
+      },
+    };
+    todos.forEach(todo => ((message.contents as FlexBubble).body.contents[1] as FlexBox).contents.push({
+      type: "box",
+      layout: "baseline",
+      spacing: "sm",
+      contents: [
+        { type: "icon", url: MessageAssets.CHECK, size: "sm" },
+        { type: "text", text: todo.name, wrap: false },
+      ],
+      action: { type: "uri", label: "タスクの詳細", uri: todo.todoapp_reg_url },
+    }));
+    return message;
+  }
 
-    contents.push({
+  static createNoListTaskMessageToAdmin(adminUser: IUser): TextMessage {
+    return {
       type: 'text',
-      text: '\nご確認をお願いします🙏',
-      wrap: true,
-    });
-
-    const message: FlexMessage = {
-      type: 'flex',
-      altText: '現在、次のタスクの担当者と期日が設定されていません😭',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
-      },
+      text: `${ adminUser.name }さん\n`
+        + 'お疲れ様です🙌\n\n'
+        + '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！\n'
+        + '引き続きよろしくお願いします！',
     };
-
-    return message;
-  }
-
-  static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: adminUser.name + 'さん\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: 'お疲れ様です🙌\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: '現在、次のタスクの担当者が設定されていません😭',
-        wrap: true,
-      },
-    ];
-
-    todos.forEach((todo) =>
-      contents.push({
-        type: 'text',
-        text: '・' + todo.name,
-        wrap: true,
-      })
-    );
-
-    contents.push({
-      type: 'text',
-      text: '\nご確認をお願いします🙏',
-      wrap: true,
-    });
-
-    const message: FlexMessage = {
-      type: 'flex',
-      altText: '現在、次のタスクの担当者が設定されていません',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
-      },
-    };
-
-    return message;
-  }
-
-  static createListTaskMessageToUser(user: IUser, todos: ITodo[]) {
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: user.name + 'さん\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: 'お疲れ様です🙌\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: '現在、次のタスクの期日が設定されていません😭',
-        wrap: true,
-      },
-    ];
-
-    todos.forEach((todo) =>
-      contents.push({
-        type: 'text',
-        text: '・' + todo.name,
-        wrap: true,
-      })
-    );
-
-    contents.push({
-      type: 'text',
-      text: '\nご確認をお願いします🙏',
-      wrap: true,
-    });
-
-    const message: FlexMessage = {
-      type: 'flex',
-      altText: '現在、次のタスクの期日が設定されていません😭',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
-      },
-    };
-
-    return message;
-  }
-
-  static createNoListTaskMessageToAdmin(adminUser: IUser) {
-    const contents: Array<FlexComponent> = [
-      {
-        type: 'text',
-        text: adminUser.name + 'さん\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: 'お疲れ様です🙌\n',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！',
-        wrap: true,
-      },
-      {
-        type: 'text',
-        text: '引き続きよろしくお願いします！',
-        wrap: true,
-      },
-    ];
-
-    const message: FlexMessage = {
-      type: 'flex',
-      altText: '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！',
-      contents: {
-        type: 'bubble',
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          contents: contents,
-        },
-      },
-    };
-
-    return message;
   }
 
   static createReportToSuperiorMessage(
-    superiorUserName: string,
-    userName: string,
+    username: string,
     taskName: string,
-    reportContent: string
-  ) {
-    const reportMessage: FlexMessage = {
+    taskUrl: string,
+    deadline: Date,
+    content: string
+  ): FlexMessage {
+    return {
       type: 'flex',
-      altText: userName + 'さんの進捗を共有します！',
+      altText: `${ username }さんから「${ taskName }」の進捗共有がありました！`,
       contents: {
-        type: 'bubble',
+        type: "bubble",
         body: {
-          type: 'box',
-          layout: 'vertical',
+          type: "box",
+          layout: "vertical",
           contents: [
             {
-              type: 'text',
-              text: taskName + '\n',
+              type: "text",
+              text: taskName,
+              weight: "bold",
+              size: "xl",
               wrap: true,
+              action: { type: "uri", label: "タスクの詳細", uri: taskUrl },
             },
             {
-              type: 'text',
-              text: '●担当者',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: userName + 'さん\n',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: '●現在の進捗',
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: reportContent,
-              wrap: true,
+              type: "box",
+              layout: "vertical",
+              margin: "lg",
+              spacing: "sm",
+              contents: [
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    { type: "text", text: "期限", color: "#BDBDBD", size: "sm", flex: 1 },
+                    {
+                      type: "text",
+                      wrap: true,
+                      color: "#666666",
+                      size: "md",
+                      flex: 4,
+                      contents: [
+                        { type: "span", text: "あさって", weight: "bold", color: "#FFB300" },
+                        { type: "span", text: `(${ getDate(deadline) })`, size: "sm" },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    { type: "text", text: "担当者", color: "#BDBDBD", size: "sm", flex: 1 },
+                    { type: "text", text: `${ username }さん`, color: "#666666", size: "md", flex: 4, wrap: true },
+                  ],
+                },
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    { type: "text", text: "進捗", color: "#BDBDBD", size: "sm", flex: 1 },
+                    { type: "text", text: content, color: "#666666", size: "md", flex: 4, wrap: true },
+                  ],
+                },
+              ],
             },
           ],
         },
       },
     };
-
-    return reportMessage;
   }
 
-  static getTextContentFromMessage(message: Message) {
+  static getTextContentFromMessage(message: Message): string {
     switch (message.type) {
       case 'text':
         return message.text;
 
       case 'flex':
         const texts = [];
-        const messageContents = message.contents;
-
-        if (messageContents.type == 'bubble') {
-          const flexComponents = messageContents.body.contents ?? [];
-          flexComponents.forEach((element) => {
-            if (element.type == 'text') {
-              texts.push(element.text);
+        const findText = (components: FlexComponent[]) => {
+          components.forEach(component => {
+            switch (component.type) {
+              case "text":
+                if (component.text) {
+                  texts.push(component.text);
+                } else if (component.contents) {
+                  findText(component.contents);
+                }
+                break;
+              case "span":
+                let lastText = texts.pop();
+                texts.push(lastText + component.text);
+                break;
+              case "box":
+                if (component.contents) {
+                  findText(component.contents);
+                }
+                break;
+              default:
+                break;
             }
           });
         }
 
+        const messageContents = message.contents;
+        if (messageContents.type === "bubble") {
+          const flexComponents = messageContents.body?.contents ?? [];
+          findText(flexComponents);
+        }
         return texts.join('\n');
 
       case 'audio':
@@ -650,43 +550,23 @@ export class LineMessageBuilder {
     }
   }
 
-  static getPrefixMessage(remindDays: number): string {
-    let messagePrefix = '';
-
+  static relativeRemindDays(remindDays: number): string {
     if (remindDays > 1) {
-      messagePrefix = remindDays + '日前が期日の';
-    } else if (remindDays == 1) {
-      messagePrefix = '昨日が期日の';
-    } else if (remindDays == 0) {
-      messagePrefix = '今日が期日の';
-    } else if (remindDays == -1) {
-      messagePrefix = '明日が期日の';
-    } else if (remindDays == -2) {
-      messagePrefix = '明後日が期日の';
+      return `${ remindDays.toString() }日前`;
+    } else if (remindDays === 1) {
+      return '昨日';
+    } else if (remindDays === 0) {
+      return '今日';
+    } else if (remindDays === -1) {
+      return '明日';
+    } else if (remindDays === -2) {
+      return 'あさって';
     } else {
-      messagePrefix = -messagePrefix + '日後が期日の';
+      return `${ (-remindDays).toString() }日後`;
     }
-
-    return messagePrefix;
   }
 
-  static getPrefixSummaryMessage(remindDays: number): string {
-    let messagePrefix = '';
-
-    if (remindDays > 1) {
-      messagePrefix = remindDays + '日前が期日の';
-    } else if (remindDays == 1) {
-      messagePrefix = '昨日が期日の';
-    } else if (remindDays == 0) {
-      messagePrefix = '今日が期日の';
-    } else if (remindDays == -1) {
-      messagePrefix = '明日が期日の';
-    } else if (remindDays == -2) {
-      messagePrefix = '明後日が期日の';
-    } else {
-      messagePrefix = -messagePrefix + '日後が期日の';
-    }
-
-    return messagePrefix;
+  static getRemindColor(remindDays: number): string {
+    return remindDays > 0 ? Colors.alert : Colors.warning;
   }
 }

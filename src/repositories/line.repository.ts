@@ -1,19 +1,19 @@
-import { LoggerError } from '../exceptions';
 import { Service, Container } from 'typedi';
+import { Message, Profile } from '@line/bot-sdk';
+import moment from 'moment';
+import { LoggerError } from '../exceptions';
 import { LineMessageBuilder } from '../common/line_message';
 import { Todo } from '../entify/todo.entity';
 import { IChatTool, IRemindType, ITodo, ITodoLines, IUser } from '../types';
 import { LineBot } from '../config/linebot';
-
 import { AppDataSource } from '../config/data-source';
-import { Message, Profile } from '@line/bot-sdk';
+import { ChatTool } from '../entify/chat_tool.entity';
 import { LineProfile } from '../entify/line_profile.entity';
+import { ChatMessage } from '../entify/message.entity';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
 import { In, Repository } from 'typeorm';
-import { ChatMessage } from '../entify/message.entity';
-import logger from './../logger/winston';
-
+import logger from '../logger/winston';
 import {
   MessageTriggerType,
   MessageType,
@@ -22,23 +22,20 @@ import {
   ReplyStatus,
   SenderType,
 } from '../const/common';
-
-import moment from 'moment';
 import { toJapanDateTime } from '../utils/common';
-import { ChatTool } from '../entify/chat_tool.entity';
 import CommonRepository from './modules/common.repository';
 
 @Service()
 export default class LineRepository {
   private lineProfileRepository: Repository<LineProfile>;
-  private userRepositoty: Repository<User>;
+  private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
 
   constructor() {
     this.lineProfileRepository = AppDataSource.getRepository(LineProfile);
-    this.userRepositoty = AppDataSource.getRepository(User);
+    this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.commonRepository = Container.get(CommonRepository);
@@ -63,15 +60,9 @@ export default class LineRepository {
       };
 
       const messageToken = await LineBot.getLinkToken(user.line_id);
-      const message = LineMessageBuilder.createRemindMessage(
-        messageToken,
-        user.name,
-        todo,
-        remindDays
-      );
+      const message = LineMessageBuilder.createRemindMessage(messageToken, user.name, todo, remindDays);
       const chatMessage = await this.saveChatMessage(
         chattool,
-
         message,
         MessageTriggerType.BATCH,
         messageToken,
@@ -113,13 +104,15 @@ export default class LineRepository {
       }
 
       //1.期日に対するリマインド
-      const message = LineMessageBuilder.createStartRemindMessageToUser(user, todoLines);
+      const messages = LineMessageBuilder.createStartRemindMessageToUser(user, todoLines);
 
       if (process.env.ENV == 'LOCAL') {
         // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
-        console.log(message);
+        console.log(messages);
       } else {
-        await this.pushLineMessage(chattool, user, message, MessageTriggerType.ACTION);
+        for (const message of messages) {
+          await this.pushLineMessage(chattool, user, message, MessageTriggerType.ACTION);
+        }
       }
 
       return;
@@ -152,6 +145,7 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+   * @param chattool
    * @param user
    * @param todos
    * @returns
@@ -173,7 +167,7 @@ export default class LineRepository {
         remindType: RemindType.REMIND_NOT_ASSIGN_DEADLINE,
       };
 
-      const message = LineMessageBuilder.createListTaskMessageToAdmin(user, todos);
+      const message = LineMessageBuilder.createListTaskMessageToAdmin(todos);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
         chattool,
@@ -189,6 +183,7 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+   * @param chattool
    * @param user
    * @param todos
    * @returns
@@ -209,7 +204,7 @@ export default class LineRepository {
         remindType: RemindType.REMIND_NOT_ASSIGN,
       };
 
-      const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(user, todos);
+      const message = LineMessageBuilder.createNotAssignListTaskMessageToAdmin(todos);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
         chattool,
@@ -225,6 +220,7 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで担当者に送られること
+   * @param chattool
    * @param user
    * @param todos
    * @returns
@@ -245,7 +241,7 @@ export default class LineRepository {
         remindType: RemindType.REMIND_NOT_DEADLINE,
       };
 
-      const message = LineMessageBuilder.createListTaskMessageToUser(user, todos);
+      const message = LineMessageBuilder.createListTaskMessageToUser(todos);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
         chattool,
@@ -261,8 +257,8 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスクがない旨のメッセージが管理者に送られること
+   * @param chattool
    * @param user
-   * @param todos
    * @returns
    */
   pushNoListTaskMessageToAdmin = async (chattool: ChatTool, user: IUser): Promise<any> => {
@@ -335,14 +331,12 @@ export default class LineRepository {
       return Promise.resolve([]);
     }
 
-    const superiorUsers = await this.userRepositoty
+    return await this.userRepository
       .createQueryBuilder('users')
       .where('id IN (:...ids)', {
         ids: superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id),
       })
       .getMany();
-
-    return superiorUsers;
   };
 
   getSuperiorOfUsers = async (userIds: number[]): Promise<Array<User>> => {
@@ -362,14 +356,12 @@ export default class LineRepository {
 
     const userIdList = superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id);
 
-    const superiorUsers = await this.userRepositoty
+    return await this.userRepository
       .createQueryBuilder('users')
       .where('id IN (:...ids)', {
         ids: userIdList,
       })
       .getMany();
-
-    return superiorUsers;
   };
 
   createMessage = async (chatMessage: ChatMessage): Promise<ChatMessage> => {
@@ -407,7 +399,6 @@ export default class LineRepository {
 
     return await this.saveChatMessage(
       chattool,
-
       message,
       messageTriggerId,
       linkToken,
