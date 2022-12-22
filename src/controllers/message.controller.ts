@@ -1,6 +1,6 @@
 import { ChatMessage } from '../entify/message.entity';
 import { Todo } from '../entify/todo.entity';
-import { Get, Route, Controller } from 'tsoa';
+import { Get, Controller } from 'tsoa';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
 import { toJapanDateTime } from '../utils/common';
@@ -40,7 +40,7 @@ export default class MessageController extends Controller {
       message.url_clicked_at = toJapanDateTime(new Date());
     }
 
-    this.messageRepository.save(message);
+    await this.messageRepository.save(message);
 
     return todo.todoapp_reg_url;
   }
