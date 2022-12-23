@@ -51,5 +51,11 @@ export class ChatMessage {
   remind_before_days: number;
 
   @Column()
-  chattool_id: number;
+  chatTool_id: number;
+
+  @Column()
+  channel_id: string;
+
+  @Column()
+  thread_id: string;
 }

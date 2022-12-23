@@ -7,8 +7,8 @@ import {
   PROGRESS_GOOD_MESSAGE,
   WITHDRAWN_MESSAGE,
 } from '../const/common';
-import { ITodo, ITodoSlacks, IUser } from '../types';
-import { MessageAttachment, Block, ActionsBlock } from '@slack/web-api';
+import { ITodo, IUser, ITodoSlacks } from '../types';
+import { MessageAttachment } from '@slack/web-api';
 
 export class SlackMessageBuilder {
   static createRemindMessage(
@@ -18,7 +18,7 @@ export class SlackMessageBuilder {
   ) {
     const messagePrefix = SlackMessageBuilder.getPrefixMessage(remindDays);
 
-    const message = remindDays > 0
+    return remindDays > 0
       ? {
         blocks: [
           {
@@ -118,12 +118,10 @@ export class SlackMessageBuilder {
           },
         ],
       };
-    return message;
   }
 
-
-  static createReplyDoneMessage(superior?: string) {
-    const replyMessage = {
+  static createReplyDoneMessage() {
+    return {
       blocks: [
         {
           type: 'section',
@@ -135,25 +133,10 @@ export class SlackMessageBuilder {
         },
       ],
     };
-
-    if (superior) {
-      replyMessage['blocks'].push(
-        {
-          type: 'section',
-          text: {
-            type: 'plain_text',
-            text: superior + 'さんに報告しておきますね💪',
-            emoji: true,
-          },
-        },
-      );
-    }
-
-    return replyMessage;
   }
 
-  static createReplyInProgressMessage(superior?: string) {
-    const replyMessage = {
+  static createReplyInProgressMessage() {
+    return {
       blocks: [
         {
           type: 'section',
@@ -165,32 +148,10 @@ export class SlackMessageBuilder {
         },
       ],
     };
-
-    if (superior) {
-      replyMessage['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'plain_text',
-          text: superior + 'さんに報告しておきますね！',
-          emoji: true,
-        },
-      });
-    }
-
-    replyMessage['blocks'].push({
-      type: 'section',
-      text: {
-        type: 'plain_text',
-        text: '引き続きよろしくお願いします💪',
-        emoji: true,
-      },
-    });
-
-    return replyMessage;
   }
 
   static createDelayReplyMessage() {
-    const replyMessage = {
+    return {
       blocks: [
         {
           type: 'section',
@@ -202,12 +163,11 @@ export class SlackMessageBuilder {
         },
       ],
     };
-    return replyMessage;
   }
 
 
   static createWithdrawnReplyMessage() {
-    const replyMessage = {
+    return {
       blocks: [
         {
           type: 'section',
@@ -219,23 +179,22 @@ export class SlackMessageBuilder {
         },
       ],
     };
-    return replyMessage;
   }
 
-  //TODO:スレッドに送る
-  static createStartReportToSuperiorMessage(superiorUserName: string) {
-    const reportMessage = {
+  static createReportToSuperiorMessage(superiorUserId: string, channelId: string, threadId: string) {
+    return {
       blocks: [
         {
           type: 'section',
+          channel_id: channelId,
+          thread_ts: threadId,
           text: {
             type: 'markdown',
-            text: superiorUserName + 'ご確認ください👀',
+            text: '<' + superiorUserId + '>ご確認ください👀',
           },
         },
       ],
     };
-    return reportMessage;
   }
 
   static createStartRemindMessageToUser(user: IUser, todoSlacks: ITodoSlacks[]) {
@@ -284,10 +243,9 @@ export class SlackMessageBuilder {
             text: '- ' + todoSlack.todo.name,
           },
         });
-
-        return messages;
       });
     });
+    return messages;
   }
 
   static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
@@ -387,7 +345,7 @@ export class SlackMessageBuilder {
   }
 
   static createNoListTaskMessageToAdmin(adminUser: IUser) {
-    const message = {
+    return {
       blocks: [{
         type: 'section',
         text: {
@@ -396,8 +354,6 @@ export class SlackMessageBuilder {
         },
       }],
     };
-
-    return message;
   }
 
   // 管理画面でチャットを閲覧できるようにするなどのために作った

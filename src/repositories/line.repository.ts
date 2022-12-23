@@ -1,5 +1,7 @@
+// noinspection DuplicatedCode
+
 import { LoggerError } from '../exceptions';
-import { Service, Container } from 'typedi';
+import { Container, Service } from 'typedi';
 import { LineMessageBuilder } from '../common/line_message';
 import { Todo } from '../entify/todo.entity';
 import { IChatTool, IRemindType, ITodo, ITodoLines, IUser } from '../types';
@@ -14,14 +16,7 @@ import { In, Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
 
-import {
-  MessageTriggerType,
-  MessageType,
-  RemindType,
-  OpenStatus,
-  ReplyStatus,
-  SenderType,
-} from '../const/common';
+import { MessageTriggerType, MessageType, OpenStatus, RemindType, ReplyStatus, SenderType } from '../const/common';
 
 import moment from 'moment';
 import { toJapanDateTime } from '../utils/common';
@@ -151,6 +146,7 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+   * @param chattool
    * @param user
    * @param todos
    * @returns
@@ -188,6 +184,7 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+   * @param chattool
    * @param user
    * @param todos
    * @returns
@@ -224,6 +221,7 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで担当者に送られること
+   * @param chattool
    * @param user
    * @param todos
    * @returns
@@ -260,8 +258,8 @@ export default class LineRepository {
 
   /**
    * 期日未設定のタスクがない旨のメッセージが管理者に送られること
+   * @param chattool
    * @param user
-   * @param todos
    * @returns
    */
   pushNoListTaskMessageToAdmin = async (chattool: ChatTool, user: IUser): Promise<any> => {
@@ -304,7 +302,7 @@ export default class LineRepository {
 
   getUserFromLineId = async (lineId: string): Promise<User> => {
     // Get user by line id
-    const users = await this.commonRepository.getChatToolUserByLineId(lineId);
+    const users = await this.commonRepository.getChatToolUserByUserId(lineId);
 
     if (!users.length) {
       return Promise.resolve(null);
@@ -315,7 +313,7 @@ export default class LineRepository {
 
   getSuperiorUsers = async (lineId: string): Promise<Array<User>> => {
     // Get user by line id
-    const users = await this.commonRepository.getChatToolUserByLineId(lineId);
+    const users = await this.commonRepository.getChatToolUserByUserId(lineId);
 
     if (!users.length) {
       return Promise.resolve([]);
@@ -334,42 +332,38 @@ export default class LineRepository {
       return Promise.resolve([]);
     }
 
-    const superiorUsers = await this.userRepositoty
+    return await this.userRepositoty
       .createQueryBuilder('users')
       .where('id IN (:...ids)', {
         ids: superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id),
       })
       .getMany();
-
-    return superiorUsers;
   };
 
-  getSuperiorOfUsers = async (userIds: number[]): Promise<Array<User>> => {
-    if (!userIds.length) return [];
-
-    const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
-    const superiorUserIds = await reportingLineRepository
-      .createQueryBuilder('reporting_lines')
-      .where('subordinate_user_id IN (:...ids)', {
-        ids: userIds,
-      })
-      .getMany();
-
-    if (superiorUserIds.length == 0) {
-      return Promise.resolve([]);
-    }
-
-    const userIdList = superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id);
-
-    const superiorUsers = await this.userRepositoty
-      .createQueryBuilder('users')
-      .where('id IN (:...ids)', {
-        ids: userIdList,
-      })
-      .getMany();
-
-    return superiorUsers;
-  };
+  // getSuperiorOfUsers = async (userIds: number[]): Promise<Array<User>> => {
+  //   if (!userIds.length) return [];
+  //
+  //   const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
+  //   const superiorUserIds = await reportingLineRepository
+  //     .createQueryBuilder('reporting_lines')
+  //     .where('subordinate_user_id IN (:...ids)', {
+  //       ids: userIds,
+  //     })
+  //     .getMany();
+  //
+  //   if (superiorUserIds.length == 0) {
+  //     return Promise.resolve([]);
+  //   }
+  //
+  //   const userIdList = superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id);
+  //
+  //   return await this.userRepositoty
+  //     .createQueryBuilder('users')
+  //     .where('id IN (:...ids)', {
+  //       ids: userIdList,
+  //     })
+  //     .getMany();
+  // };
 
   createMessage = async (chatMessage: ChatMessage): Promise<ChatMessage> => {
     try {
@@ -463,7 +457,7 @@ export default class LineRepository {
 
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chattool_id = chattool.id;
+    chatMessage.chatTool_id = chattool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
     chatMessage.message_trigger_id = messageTriggerId; // batch

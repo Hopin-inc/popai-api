@@ -19,6 +19,9 @@ export class Section {
   board_id: string;
 
   @Column()
+  channel_id: string;
+
+  @Column()
   board_admin_user_id: number;
 
   @OneToOne(

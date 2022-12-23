@@ -8,7 +8,7 @@ const router = express();
 router.post('/webhook', async function(req, res) {
   try {
     const controller = new SlackController();
-    const response = await controller.handleEvent(req.body.events);
+    const response = await controller.handleEvent(req.body.payload);
     ResponseApi.successRes(res, response);
   } catch (err) {
     ResponseApi.errRes(res, err.message, err.status);

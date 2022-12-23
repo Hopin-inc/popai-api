@@ -5,19 +5,40 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bdbe46c3-9d85-4fd3-8b31-1ef3751045a3" name="変更" comment="add closed to pageTodo">
-      <change afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/database/migrations/1671522797644-change_line_profiles_beacause_add_slack.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/database/migrations/1671585458325-add_channel_and_thread_to_messages.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/database/migrations/1671695531833-add_channel_id_to_section.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/common/slack_message.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/common/slack_message.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/config/slackbot.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/config/slackbot.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/line.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/line.controller.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/controllers/slack.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/slack.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/entify/message.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/entify/message.entity.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/entify/section.entity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/entify/section.entity.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/repositories/line.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/repositories/line.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/repositories/modules/common.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/repositories/modules/common.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/repositories/modules/lineQueue.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/repositories/modules/lineQueue.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/repositories/modules/slackQueque.repository.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/repositories/slack.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/repositories/slack.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/routes/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/routes/slack.router.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/slack.router.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/task.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/task.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/index.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -63,21 +84,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "yarn",
-    "ts.external.directory.path": "/Users/naokisakata/ghq/github.com/RIZE-Inc/angel-task-mgmt/node_modules/typescript/lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;yarn&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/naokisakata/ghq/github.com/RIZE-Inc/angel-task-mgmt/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="アプリケーションレベル" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task id="LOCAL-00001" summary="add closed to pageTodo">
@@ -94,6 +115,7 @@
       <option name="presentableId" value="Default" />
       <updated>1671505819249</updated>
       <workItem from="1671505820480" duration="1613000" />
+      <workItem from="1671516576196" duration="67806000" />
     </task>
     <option name="localTasksCounter" value="2" />
     <servers />
@@ -105,16 +127,5 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="add closed to pageTodo" />
     <option name="LAST_COMMIT_MESSAGE" value="add closed to pageTodo" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/src/controllers/slack.controller.ts</url>
-          <line>27</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

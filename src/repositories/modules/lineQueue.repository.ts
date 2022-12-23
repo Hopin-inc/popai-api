@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import moment from 'moment';
 import { AppDataSource } from '../../config/data-source';
 import { LineMessageQueue } from '../../entify/line_message_queue.entity';
-import { ChatToolCode, Common, LineMessageQueueStatus } from '../../const/common';
+import { ChatToolCode, Common, LineMessageQueueStatus, RemindType } from '../../const/common';
 import { diffDays, toJapanDateTime } from '../../utils/common';
 import { Todo } from '../../entify/todo.entity';
 import { ICompany } from '../../types';
@@ -221,7 +221,7 @@ export default class LineQueueRepository {
         }
       )
       .innerJoinAndSelect('line_message_queues.user', 'users')
-      .where('status = :status', { status: LineMessageQueueStatus.NOT_SEND })
+      .where('is_reminded = :is_reminded', { is_reminded: RemindType.NOT_REMIND })
       .andWhere('remind_date = :remind_date', { remind_date: todayDate })
       .orderBy({ 'line_message_queues.id': 'ASC' });
 
