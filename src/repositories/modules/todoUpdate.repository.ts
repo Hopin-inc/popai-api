@@ -1,11 +1,11 @@
-import { ITodo, ITodoUpdate } from '../../types';
-import { Service } from 'typedi';
-import { Repository } from 'typeorm';
-import { AppDataSource } from '../../config/data-source';
-import logger from '../../logger/winston';
-import { LoggerError } from '../../exceptions';
-import { TodoUpdateHistory } from '../../entify/todoupdatehistory.entity';
-import { Todo } from '../../entify/todo.entity';
+import { ITodo, ITodoUpdate } from "../../types";
+import { Service } from "typedi";
+import { Repository } from "typeorm";
+import { AppDataSource } from "../../config/dataSource";
+import logger from "../../logger/winston";
+import { LoggerError } from "../../exceptions";
+import { TodoUpdateHistory } from "../../entify/todoUpdateHistory.entity";
+import { Todo } from "../../entify/todo.entity";
 
 @Service()
 export default class TodoUpdateRepository {

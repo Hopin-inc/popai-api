@@ -1,9 +1,9 @@
-import { ChatMessage } from '../entify/message.entity';
-import { Todo } from '../entify/todo.entity';
-import { Get, Controller } from 'tsoa';
-import { Repository } from 'typeorm';
-import { AppDataSource } from '../config/data-source';
-import { toJapanDateTime } from '../utils/common';
+import { ChatMessage } from "../entify/message.entity";
+import { Todo } from "../entify/todo.entity";
+import { Get, Controller } from "tsoa";
+import { Repository } from "typeorm";
+import { AppDataSource } from "../config/dataSource";
+import { toJapanDateTime } from "../utils/common";
 
 export default class MessageController extends Controller {
   private messageRepository: Repository<ChatMessage>;
@@ -15,14 +15,14 @@ export default class MessageController extends Controller {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
-  @Get('/')
+  @Get("/")
   public async handleRedirect(todoId: number, messageToken: string): Promise<string> {
     const todo = await this.todoRepository.findOneBy({
       id: todoId,
     });
 
     if (!todo) {
-      return '';
+      return "";
     }
 
     const message = await this.messageRepository.findOneBy({
@@ -31,7 +31,7 @@ export default class MessageController extends Controller {
     });
 
     if (!message) {
-      return '';
+      return "";
     }
 
     // set is_replied = true

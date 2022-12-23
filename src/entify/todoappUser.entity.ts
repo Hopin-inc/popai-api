@@ -1,8 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { TodoApp } from './todoapp.entity';
-import { User } from './user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
+import { TodoApp } from "./todoapp.entity";
+import { User } from "./user.entity";
 
-@Entity('todo_app_users')
+@Entity("todo_app_users")
 export class TodoAppUser {
   @PrimaryGeneratedColumn()
   id: number;
@@ -32,13 +32,13 @@ export class TodoAppUser {
     () => User,
     (user) => user.todoAppUsers
   )
-  @JoinColumn({ name: 'employee_id' })
+  @JoinColumn({ name: "employee_id" })
   user: User;
 
   @ManyToOne(
     () => TodoApp,
     (todoapp) => todoapp.todoappuser
   )
-  @JoinColumn({ name: 'todoapp_id' })
+  @JoinColumn({ name: "todoapp_id" })
   todoapp: TodoApp;
 }

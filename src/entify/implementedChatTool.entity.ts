@@ -1,8 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
-import { ChatTool } from './chat_tool.entity';
-import { Company } from './company.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from "typeorm";
+import { ChatTool } from "./chatTool.entity";
+import { Company } from "./company.entity";
 
-@Entity('implemented_chat_tools')
+@Entity("implemented_chat_tools")
 export class ImplementedChatTool {
   @PrimaryGeneratedColumn()
   id: number;
@@ -17,13 +17,13 @@ export class ImplementedChatTool {
     () => Company,
     (company) => company.id
   )
-  @JoinColumn({ name: 'company_id' })
+  @JoinColumn({ name: "company_id" })
   company: Company;
 
   @OneToOne(
     () => ChatTool,
     (chattool) => chattool.id
   )
-  @JoinColumn({ name: 'chattool_id' })
+  @JoinColumn({ name: "chattool_id" })
   chattool: ChatTool;
 }

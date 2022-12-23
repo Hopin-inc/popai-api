@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 
-@Entity('todo_update_histories')
+@Entity("todo_update_histories")
 export class TodoUpdateHistory {
   @PrimaryGeneratedColumn()
   id: number;

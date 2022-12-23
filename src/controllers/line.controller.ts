@@ -1,11 +1,11 @@
-import { Controller, Route } from 'tsoa';
-import { FlexMessage, MessageAPIResponseBase, TextMessage, WebhookEvent } from '@line/bot-sdk';
+import { Controller, Route } from "tsoa";
+import { FlexMessage, MessageAPIResponseBase, TextMessage, WebhookEvent } from "@line/bot-sdk";
 
-import { User } from '../entify/user.entity';
-import { LineMessageBuilder } from '../common/line_message';
-import { LineBot } from '../config/linebot';
-import LineRepository from '../repositories/line.repository';
-import Container from 'typedi';
+import { User } from "../entify/user.entity";
+import { LineMessageBuilder } from "../common/lineMessages";
+import { LineBot } from "../config/linebot";
+import LineRepository from "../repositories/line.repository";
+import Container from "typedi";
 import {
   ChatToolCode,
   LineMessageQueueStatus,
@@ -18,22 +18,22 @@ import {
   ReplyStatus,
   SenderType,
   TodoStatus
-} from '../const/common';
-import { ChatMessage } from '../entify/message.entity';
-import moment from 'moment';
-import logger from '../logger/winston';
-import { LoggerError } from '../exceptions';
-import { diffDays, toJapanDateTime } from '../utils/common';
-import { ChatTool } from '../entify/chat_tool.entity';
-import { Repository } from 'typeorm';
-import { AppDataSource } from '../config/data-source';
-import CommonRepository from '../repositories/modules/common.repository';
-import { ITodo, IUser } from '../types';
-import LineQueueRepository from '../repositories/modules/lineQueue.repository';
-import { Todo } from '../entify/todo.entity';
-import TaskService from '../services/task.service';
+} from "../const/common";
+import { ChatMessage } from "../entify/message.entity";
+import moment from "moment";
+import logger from "../logger/winston";
+import { LoggerError } from "../exceptions";
+import { diffDays, toJapanDateTime } from "../utils/common";
+import { ChatTool } from "../entify/chatTool.entity";
+import { Repository } from "typeorm";
+import { AppDataSource } from "../config/dataSource";
+import CommonRepository from "../repositories/modules/common.repository";
+import { ITodo, IUser } from "../types";
+import LineQueueRepository from "../repositories/modules/lineQueue.repository";
+import { Todo } from "../entify/todo.entity";
+import TaskService from "../services/task.service";
 
-@Route('line')
+@Route("line")
 export default class LineController extends Controller {
   private lineRepository: LineRepository;
   private chattoolRepository: Repository<ChatTool>;
@@ -56,7 +56,7 @@ export default class LineController extends Controller {
     events.map(async (event) => await this.handleEvent(event));
 
     return {
-      message: 'line webhook',
+      message: "line webhook",
     };
   }
 
@@ -71,7 +71,7 @@ export default class LineController extends Controller {
         tool_code: ChatToolCode.LINE,
       });
       if (!chattool) {
-        logger.error(new LoggerError('LINE is not implemented yet!'));
+        logger.error(new LoggerError("LINE is not implemented yet!"));
         return;
       }
 
@@ -79,21 +79,21 @@ export default class LineController extends Controller {
       const user = await this.lineRepository.getUserFromLineId(lineId);
 
       switch (event.type) {
-        case 'follow':
+        case "follow":
           // LINE Official Account is added as a friend
           // eslint-disable-next-line no-case-declarations
           const lineProfile = await LineBot.getProfile(lineId);
           await this.lineRepository.createLineProfile(lineProfile);
           return;
 
-        case 'postback':
+        case "postback":
           if (event.postback.data === REMIND_ME_COMMAND) {
             // get user from lineId
             if (user) {
               await this.replyProcessingJob(chattool, user, event.replyToken);
               await this.taskService.remindTaskForDemoUser(user);
             } else {
-              console.error('Line ID :' + lineId + 'のアカウントが登録されていません。');
+              console.error("Line ID :" + lineId + "のアカウントが登録されていません。");
             }
           } else if (messageData.includes(event.postback.data)) {
             const messageContent = replyMessages.find(message => message.status === event.postback.data)?.displayText;
@@ -101,7 +101,7 @@ export default class LineController extends Controller {
           }
           return;
 
-        case 'message':
+        case "message":
           const unknownMessage = LineMessageBuilder.createUnKnownMessage();
           await this.lineRepository.replyMessage(chattool, event.replyToken, unknownMessage, user);
           return;
@@ -227,7 +227,7 @@ export default class LineController extends Controller {
     const messageMatchesStatus = (message: string, status: TodoStatus): boolean => {
       const targetMessages = replyMessages.filter(m => m.status === status).map(m => m.displayText);
       return targetMessages.includes(message);
-    }
+    };
 
     if (messageMatchesStatus(replyMessage, TodoStatus.DONE)) {
       await this.replyDoneAction(chattool, user, replyToken, superior);
@@ -385,7 +385,7 @@ export default class LineController extends Controller {
     const user = { ...superiorUser, line_id: chatToolUser?.auth_key };
 
     if (!chatToolUser?.auth_key) {
-      logger.error(new LoggerError(user.name + 'さんのLINE IDが設定されていません。'));
+      logger.error(new LoggerError(user.name + "さんのLINE IDが設定されていません。"));
       return;
     }
 

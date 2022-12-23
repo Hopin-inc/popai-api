@@ -1,7 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from "typeorm";
+import { User } from "./user.entity";
 
-@Entity('sections')
+@Entity("sections")
 export class Section {
   @PrimaryGeneratedColumn()
   id: number;
@@ -25,6 +25,6 @@ export class Section {
     () => User,
     (user) => user.section
   )
-  @JoinColumn({ name: 'board_admin_user_id' })
+  @JoinColumn({ name: "board_admin_user_id" })
   boardAdminUser: User;
 }

@@ -1,18 +1,18 @@
-import express from 'express';
-import TaskController from './../controllers/task.controller';
-import { ResponseApi } from '../common/response';
+import express from "express";
+import TaskController from "./../controllers/task.controller";
+import { ResponseApi } from "../common/response";
 
 const router = express();
 
-router.get('/update', async (req, res) => {
+router.get("/update", async (req, res) => {
   try {
-    const userAgent = req.get('user-agent');
-    console.log('userAgent', userAgent);
+    const userAgent = req.get("user-agent");
+    console.log("userAgent", userAgent);
     if (
-      process.env.ENV != 'LOCAL' &&
-      !userAgent.endsWith('AppEngine-Google; (+http://code.google.com/appengine)')
+      process.env.ENV != "LOCAL" &&
+      !userAgent.endsWith("AppEngine-Google; (+http://code.google.com/appengine)")
     ) {
-      return res.status(403).send('Access restricted!');
+      return res.status(403).send("Access restricted!");
     }
 
     const controller = new TaskController();
@@ -23,15 +23,15 @@ router.get('/update', async (req, res) => {
   }
 });
 
-router.get('/remind', async (req, res) => {
+router.get("/remind", async (req, res) => {
   try {
-    const userAgent = req.get('user-agent');
-    console.log('userAgent', userAgent);
+    const userAgent = req.get("user-agent");
+    console.log("userAgent", userAgent);
     if (
-      process.env.ENV != 'LOCAL' &&
-      !userAgent.endsWith('AppEngine-Google; (+http://code.google.com/appengine)')
+      process.env.ENV != "LOCAL" &&
+      !userAgent.endsWith("AppEngine-Google; (+http://code.google.com/appengine)")
     ) {
-      return res.status(403).send('Access restricted!');
+      return res.status(403).send("Access restricted!");
     }
 
     // update before remind

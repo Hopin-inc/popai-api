@@ -1,5 +1,5 @@
-import { LoggerError } from '../exceptions';
-import { Repository } from 'typeorm';
+import { LoggerError } from "../exceptions";
+import { Repository } from "typeorm";
 import {
   ICompany,
   IMicrosoftRefresh, IMicrosoftTask,
@@ -12,24 +12,24 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
   IUser,
-} from '../types';
+} from "../types";
 
-import { AppDataSource } from '../config/data-source';
-import { Service, Container } from 'typedi';
-import { Common } from '../const/common';
-import { fetchApi } from '../libs/request';
-import { TodoAppUser } from '../entify/todoappuser.entity';
-import { Todo } from '../entify/todo.entity';
-import { replaceString, toJapanDateTime, diffDays } from '../utils/common';
-import moment from 'moment';
-import FormData from 'form-data';
-import MicrosoftRequest from '../libs/microsoft.request';
-import LineQueueRepository from './modules/lineQueue.repository';
-import TodoUserRepository from './modules/todoUser.repository';
-import TodoUpdateRepository from './modules/todoUpdate.repository';
-import logger from '../logger/winston';
-import { ImplementedTodoApp } from '../entify/implemented.todoapp.entity';
-import CommonRepository from './modules/common.repository';
+import { AppDataSource } from "../config/dataSource";
+import { Service, Container } from "typedi";
+import { Common } from "../const/common";
+import { fetchApi } from "../libs/request";
+import { TodoAppUser } from "../entify/todoappUser.entity";
+import { Todo } from "../entify/todo.entity";
+import { replaceString, toJapanDateTime, diffDays } from "../utils/common";
+import moment from "moment";
+import FormData from "form-data";
+import MicrosoftRequest from "../libs/microsoft.request";
+import LineQueueRepository from "./modules/lineQueue.repository";
+import TodoUserRepository from "./modules/todoUser.repository";
+import TodoUpdateRepository from "./modules/todoUpdate.repository";
+import logger from "../logger/winston";
+import { ImplementedTodoApp } from "../entify/implemented.todoapp.entity";
+import CommonRepository from "./modules/common.repository";
 
 @Service()
 export default class MicrosoftRepository {
@@ -104,8 +104,8 @@ export default class MicrosoftRepository {
           const dataRefresh: IMicrosoftRefresh = { todoAppUser };
           const taskTodos = await this.microsoftRequest.getAllTasksFromPlan(section.board_id, dataRefresh);
 
-          if (taskTodos['value'] && taskTodos['value'].length) {
-            for (const todoTask of taskTodos['value']) {
+          if (taskTodos["value"] && taskTodos["value"].length) {
+            for (const todoTask of taskTodos["value"]) {
               let userCreateBy = null;
               if (todoTask.createdBy) {
                 const userCreates = await this.todoUserRepository.getUserAssignTask(company.users, [
@@ -185,16 +185,16 @@ export default class MicrosoftRepository {
       const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
 
       if (clientId && clientSecret && todoAppUserData.refresh_token) {
-        const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+        const url = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 
         const formData = new FormData();
-        formData.append('client_id', clientId);
-        formData.append('scope', 'https://graph.microsoft.com/.default');
-        formData.append('refresh_token', todoAppUserData.refresh_token);
-        formData.append('grant_type', 'refresh_token');
-        formData.append('client_secret', clientSecret);
+        formData.append("client_id", clientId);
+        formData.append("scope", "https://graph.microsoft.com/.default");
+        formData.append("refresh_token", todoAppUserData.refresh_token);
+        formData.append("grant_type", "refresh_token");
+        formData.append("client_secret", clientSecret);
 
-        const response = await fetchApi(url, 'POST', formData, true);
+        const response = await fetchApi(url, "POST", formData, true);
 
         if (response.access_token) {
           const todoAppUser: ITodoAppUser = await this.todoAppUserRepository.findOneBy({
@@ -271,8 +271,8 @@ export default class MicrosoftRepository {
         todoData.todoapp_id = todoapp.id;
         todoData.todoapp_reg_id = todoTask.id;
         todoData.todoapp_reg_url = replaceString(
-          Common.microsoftBaseUrl.concat('/', todoTask.id),
-          '{tenant}',
+          Common.microsoftBaseUrl.concat("/", todoTask.id),
+          "{tenant}",
           implementTodoApp.primary_domain
         );
         todoData.todoapp_reg_created_by = todoTask.userCreateBy;
@@ -356,7 +356,7 @@ export default class MicrosoftRepository {
         percentComplete: task.is_done ? Common.completed : 0,
         dueDateTime: task.deadline,
         // FIXME: 担当者を変更できるようにする
-      }
+      };
       const dataRefresh: IMicrosoftRefresh = { todoAppUser };
       await this.microsoftRequest.updateTask(id, microsoftTask, dataRefresh);
 
@@ -370,10 +370,10 @@ export default class MicrosoftRepository {
         newDueTime: task.deadline,
         newIsDone: task.is_done,
         updateTime: toJapanDateTime(new Date()),
-      }
-      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate)
+      };
+      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  }
+  };
 }

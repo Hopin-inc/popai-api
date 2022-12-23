@@ -1,6 +1,6 @@
-import { AppDataSource } from '../config/data-source';
-import { LoggerError } from '../exceptions';
-import { Repository } from 'typeorm';
+import { AppDataSource } from "../config/dataSource";
+import { LoggerError } from "../exceptions";
+import { Repository } from "typeorm";
 import {
   ISection,
   ITodo,
@@ -11,20 +11,21 @@ import {
   ITodoApp,
   ITodoUserUpdate,
   ITodoUpdate,
-  IRemindTask, ITrelloTask,
-} from '../types';
+  IRemindTask,
+  ITrelloTask,
+} from "../types";
 
-import { Service, Container } from 'typedi';
-import { Todo } from '../entify/todo.entity';
-import { TodoAppUser } from '../entify/todoappuser.entity';
-import { toJapanDateTime, diffDays } from '../utils/common';
-import moment from 'moment';
-import logger from '../logger/winston';
-import TrelloRequest from './../libs/trello.request';
-import TodoUserRepository from './modules/todoUser.repository';
-import TodoUpdateRepository from './modules/todoUpdate.repository';
-import CommonRepository from './modules/common.repository';
-import LineQueueRepository from './modules/lineQueue.repository';
+import { Service, Container } from "typedi";
+import { Todo } from "../entify/todo.entity";
+import { TodoAppUser } from "../entify/todoappUser.entity";
+import { toJapanDateTime, diffDays } from "../utils/common";
+import moment from "moment";
+import logger from "../logger/winston";
+import TrelloRequest from "../libs/trello.request";
+import TodoUserRepository from "./modules/todoUser.repository";
+import TodoUpdateRepository from "./modules/todoUpdate.repository";
+import CommonRepository from "./modules/common.repository";
+import LineQueueRepository from "./modules/lineQueue.repository";
 
 @Service()
 export default class TrelloRepository {
@@ -129,7 +130,7 @@ export default class TrelloRepository {
       );
     });
 
-    for await (const user of users) {
+    for (const user of users) {
       if (user.todoAppUsers.length) {
         await this.updateTrelloUser(user.todoAppUsers);
       }
@@ -281,7 +282,7 @@ export default class TrelloRepository {
         dueComplete: task.is_done,
         due: task.deadline,
         idMembers,
-      }
+      };
       const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
       await this.trelloRequest.updateCard(id, trelloTask, trelloAuth);
 
@@ -295,10 +296,10 @@ export default class TrelloRepository {
         newDueTime: task.deadline,
         newIsDone: task.is_done,
         updateTime: toJapanDateTime(new Date()),
-      }
-      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate)
+      };
+      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  }
+  };
 }

@@ -7,13 +7,13 @@ import {
   JoinColumn,
   OneToOne,
   OneToMany,
-} from 'typeorm';
-import { ChatTool } from './chat_tool.entity';
-import { CompanyCondion } from './company.conditon.entity';
-import { TodoApp } from './todoapp.entity';
-import { User } from './user.entity';
+} from "typeorm";
+import { ChatTool } from "./chatTool.entity";
+import { CompanyCondion } from "./company.conditon.entity";
+import { TodoApp } from "./todoapp.entity";
+import { User } from "./user.entity";
 
-@Entity('companies')
+@Entity("companies")
 export class Company {
   @PrimaryGeneratedColumn()
   id: number;
@@ -32,14 +32,14 @@ export class Company {
     (todoapp) => todoapp.companies
   )
   @JoinTable({
-    name: 'implemented_todo_apps',
+    name: "implemented_todo_apps",
     joinColumn: {
-      name: 'company_id',
-      referencedColumnName: 'id',
+      name: "company_id",
+      referencedColumnName: "id",
     },
     inverseJoinColumn: {
-      name: 'todoapp_id',
-      referencedColumnName: 'id',
+      name: "todoapp_id",
+      referencedColumnName: "id",
     },
   })
   todoapps: TodoApp[];
@@ -49,14 +49,14 @@ export class Company {
     (chattool) => chattool.companies
   )
   @JoinTable({
-    name: 'implemented_chat_tools',
+    name: "implemented_chat_tools",
     joinColumn: {
-      name: 'company_id',
-      referencedColumnName: 'id',
+      name: "company_id",
+      referencedColumnName: "id",
     },
     inverseJoinColumn: {
-      name: 'chattool_id',
-      referencedColumnName: 'id',
+      name: "chattool_id",
+      referencedColumnName: "id",
     },
   })
   chattools: ChatTool[];
@@ -65,14 +65,14 @@ export class Company {
     () => User,
     (user) => user.id
   )
-  @JoinColumn({ name: 'admin_user_id' })
+  @JoinColumn({ name: "admin_user_id" })
   admin_user: User;
 
   @OneToMany(
     () => CompanyCondion,
     (conditon) => conditon.company
   )
-  @JoinColumn({ name: 'id', referencedColumnName: 'company_id' })
+  @JoinColumn({ name: "id", referencedColumnName: "company_id" })
   companyConditions: CompanyCondion[];
 
   @OneToMany(

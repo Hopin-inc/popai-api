@@ -1,5 +1,5 @@
-import { ChatTool } from '../entify/chat_tool.entity';
-import { LineMessageQueue } from '../entify/line_message_queue.entity';
+import { ChatTool } from "../entify/chatTool.entity";
+import { LineMessageQueue } from "../entify/lineMessageQueue";
 
 export type valueof<T> = T[keyof T];
 
@@ -140,8 +140,8 @@ export type ITrelloAuth = {
 };
 
 export type IMicrosoftStatus = {
-  NOT_START: 'notStarted';
-  COMPLETED: 'completed';
+  NOT_START: "notStarted";
+  COMPLETED: "completed";
 };
 
 export type IMicrosoftCreateBy = {

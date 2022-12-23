@@ -1,7 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from "typeorm";
+import { User } from "./user.entity";
 
-@Entity('chat_tool_users')
+@Entity("chat_tool_users")
 export class ChatToolUser {
   @PrimaryGeneratedColumn()
   id: number;
@@ -19,6 +19,6 @@ export class ChatToolUser {
     () => User,
     (user) => user.id
   )
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: "user_id" })
   user: User;
 }

@@ -1,9 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany } from 'typeorm';
-import { Company } from './company.entity';
-import { Todo } from './todo.entity';
-import { TodoAppUser } from './todoappuser.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, OneToMany } from "typeorm";
+import { Company } from "./company.entity";
+import { Todo } from "./todo.entity";
+import { TodoAppUser } from "./todoappUser.entity";
 
-@Entity('m_todo_apps')
+@Entity("m_todo_apps")
 export class TodoApp {
   @PrimaryGeneratedColumn()
   id: number;

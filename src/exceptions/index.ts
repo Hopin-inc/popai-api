@@ -1,4 +1,4 @@
-import { StatusCodes } from './../common/status-codes';
+import { StatusCodes } from "../common/statusCodes";
 
 export class HttpException {
   constructor(message, statusCode?: StatusCodes) {
@@ -7,13 +7,13 @@ export class HttpException {
 }
 
 export class UnauthorizedException extends HttpException {
-  constructor(message: string = 'Unauthorized') {
+  constructor(message: string = "Unauthorized") {
     super(message, StatusCodes.UNAUTHORIZED);
   }
 }
 
 export class InternalServerErrorException extends HttpException {
-  constructor(message: string = 'Internal Server Error') {
+  constructor(message: string = "Internal Server Error") {
     super(message, StatusCodes.INTERNAL_SERVER_ERROR);
   }
 }

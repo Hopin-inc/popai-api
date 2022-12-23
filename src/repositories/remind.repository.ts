@@ -1,18 +1,18 @@
-import { AppDataSource } from '../config/data-source';
-import { LoggerError } from '../exceptions';
-import { Repository } from 'typeorm';
-import { IChatTool, IChatToolUser, ICompany, ITodo, ITodoLines } from '../types';
-import { ChatToolCode, Common, LineMessageQueueStatus } from '../const/common';
-import { Service, Container } from 'typedi';
-import logger from '../logger/winston';
-import { Todo } from '../entify/todo.entity';
-import LineRepository from './line.repository';
-import CommonRepository from './modules/common.repository';
-import { diffDays, toJapanDateTime } from '../utils/common';
-import LineQueueRepository from './modules/lineQueue.repository';
-import { ChatTool } from '../entify/chat_tool.entity';
-import { LineMessageQueue } from '../entify/line_message_queue.entity';
-import { User } from '../entify/user.entity';
+import { AppDataSource } from "../config/dataSource";
+import { LoggerError } from "../exceptions";
+import { Repository } from "typeorm";
+import { IChatTool, IChatToolUser, ICompany, ITodo, ITodoLines } from "../types";
+import { ChatToolCode, Common, LineMessageQueueStatus } from "../const/common";
+import { Service, Container } from "typedi";
+import logger from "../logger/winston";
+import { Todo } from "../entify/todo.entity";
+import LineRepository from "./line.repository";
+import CommonRepository from "./modules/common.repository";
+import { diffDays, toJapanDateTime } from "../utils/common";
+import LineQueueRepository from "./modules/lineQueue.repository";
+import { ChatTool } from "../entify/chatTool.entity";
+import { LineMessageQueue } from "../entify/lineMessageQueue";
+import { User } from "../entify/user.entity";
 
 @Service()
 export default class RemindRepository {
@@ -47,7 +47,7 @@ export default class RemindRepository {
       chattoolUsers
     );
 
-    for await (const [userId, todoLines] of userTodoQueueMap) {
+    for (const [_userId, todoLines] of userTodoQueueMap) {
       await this.lineRepo.pushMessageStartRemindToUser(todoLines);
 
       //push first line
@@ -110,7 +110,7 @@ export default class RemindRepository {
    */
   remindTaskForAdminCompany = async (company: ICompany): Promise<void> => {
     if (!company.admin_user) {
-      logger.error(new LoggerError(company.name + 'の管理者が設定していません。'));
+      logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
     }
 
     const chattoolUsers = await this.commonRepository.getChatToolUsers();
@@ -134,7 +134,7 @@ export default class RemindRepository {
         // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
         // Send to admin list task which not set duedate
         if (remindTasks.length) {
-          company.chattools.forEach(async (chattool) => {
+          for (const chattool of company.chattools) {
             if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
               const adminUser = company.admin_user;
               const chatToolUser = chattoolUsers.find(
@@ -150,12 +150,12 @@ export default class RemindRepository {
                 );
               }
             }
-          });
+          }
 
           // await this.updateRemindedCount(remindTasks);
         }
       } else {
-        company.chattools.forEach(async (chattool) => {
+        for (const chattool of company.chattools) {
           if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
             const adminUser = company.admin_user;
             const chatToolUser = chattoolUsers.find(
@@ -170,7 +170,7 @@ export default class RemindRepository {
               });
             }
           }
-        });
+        }
       }
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
@@ -183,7 +183,7 @@ export default class RemindRepository {
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-        userTodoMap.forEach((todos: ITodo[], userId: number) => {
+        userTodoMap.forEach((todos: ITodo[], _userId: number) => {
           company.chattools.forEach(async (chattool) => {
             if (chattool.tool_code == ChatToolCode.LINE) {
               const user = todos[0].user;
@@ -214,7 +214,7 @@ export default class RemindRepository {
       );
 
       if (notSetAssignTasks.length) {
-        company.chattools.forEach(async (chattool) => {
+        for (const chattool of company.chattools) {
           if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
             const adminUser = company.admin_user;
             const chatToolUser = chattoolUsers.find(
@@ -230,7 +230,7 @@ export default class RemindRepository {
               );
             }
           }
-        });
+        }
 
         // await this.updateRemindedCount(notSetAssignTasks);
       }

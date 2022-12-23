@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { StatusCodes } from './status-codes';
+import { Response } from "express";
+import { StatusCodes } from "./statusCodes";
 
 export class ResponseApi {
   /**
@@ -14,7 +14,7 @@ export class ResponseApi {
     res: Response,
     data: object,
     status: number = StatusCodes.OK,
-    message: string = ''
+    message: string = ""
   ) {
     return res.status(status).json({ status, data, message });
   }
@@ -29,7 +29,7 @@ export class ResponseApi {
    */
   static errRes(
     res: Response,
-    message = 'Sever Error',
+    message = "Sever Error",
     status = StatusCodes.INTERNAL_SERVER_ERROR
   ) {
     return res.status(status).json({

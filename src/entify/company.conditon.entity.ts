@@ -1,8 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Company } from './company.entity';
-import { User } from './user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Company } from "./company.entity";
+import { User } from "./user.entity";
 
-@Entity('m_company_conditions')
+@Entity("m_company_conditions")
 export class CompanyCondion {
   @PrimaryGeneratedColumn()
   id: number;
@@ -17,13 +17,13 @@ export class CompanyCondion {
     () => User,
     (user) => user.companyCondition
   )
-  @JoinColumn({ name: 'company_id', referencedColumnName: 'company_id' })
+  @JoinColumn({ name: "company_id", referencedColumnName: "company_id" })
   user: User;
 
   @ManyToOne(
     () => Company,
     (company) => company.companyConditions
   )
-  @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
+  @JoinColumn({ name: "company_id", referencedColumnName: "id" })
   company: Company;
 }

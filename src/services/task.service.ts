@@ -1,20 +1,20 @@
-import { AppDataSource } from '../config/data-source';
-import { InternalServerErrorException, LoggerError } from '../exceptions';
-import { Not, Repository, IsNull } from 'typeorm';
+import { AppDataSource } from "../config/dataSource";
+import { InternalServerErrorException, LoggerError } from "../exceptions";
+import { Not, Repository, IsNull } from "typeorm";
 
-import { Company } from '../entify/company.entity';
-import MicrosoftRepository from '../repositories/microsoft.repository';
-import TrelloRepository from '../repositories/trello.repository';
-import { Common, RemindUserJobResult, RemindUserJobStatus } from '../const/common';
-import { Service, Container } from 'typedi';
-import logger from '../logger/winston';
-import RemindRepository from './../repositories/remind.repository';
-import LineQueueRepository from './../repositories/modules/lineQueue.repository';
-import CommonRepository from './../repositories/modules/common.repository';
-import { User } from '../entify/user.entity';
-import { ICompany, ITodoAppUser } from '../types';
-import { RemindUserJob } from '../entify/remind_user_job.entity';
-import { toJapanDateTime } from '../utils/common';
+import { Company } from "../entify/company.entity";
+import MicrosoftRepository from "../repositories/microsoft.repository";
+import TrelloRepository from "../repositories/trello.repository";
+import { Common, RemindUserJobResult, RemindUserJobStatus } from "../const/common";
+import { Service, Container } from "typedi";
+import logger from "../logger/winston";
+import RemindRepository from "../repositories/remind.repository";
+import LineQueueRepository from "../repositories/modules/lineQueue.repository";
+import CommonRepository from "../repositories/modules/common.repository";
+import { User } from "../entify/user.entity";
+import { ICompany, ITodoAppUser } from "../types";
+import { RemindUserJob } from "../entify/remindUserJob.entity";
+import { toJapanDateTime } from "../utils/common";
 import { Todo } from "../entify/todo.entity";
 
 @Service()
@@ -58,11 +58,11 @@ export default class TaskService {
 
       const companies = await this.companyRepository.find({
         relations: [
-          'todoapps',
-          'chattools',
-          'admin_user',
-          'companyConditions',
-          'users.todoAppUsers',
+          "todoapps",
+          "chattools",
+          "admin_user",
+          "companyConditions",
+          "users.todoAppUsers",
         ],
         where: whereCondition,
       });
@@ -99,7 +99,7 @@ export default class TaskService {
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
 
       const companies = await this.companyRepository.find({
-        relations: ['chattools', 'admin_user', 'companyConditions'],
+        relations: ["chattools", "admin_user", "companyConditions"],
       });
 
       //remind task for adminn
@@ -121,7 +121,7 @@ export default class TaskService {
    */
   remindTaskForDemoUser = async (user: User): Promise<number> => {
     try {
-      console.log('remindTaskForDemoUser - START');
+      console.log("remindTaskForDemoUser - START");
 
       const processingJobs = await this.remindUserJobRepository.findBy({
         user_id: user.id,
@@ -140,7 +140,7 @@ export default class TaskService {
       await this.remindUserJobRepository.save(job);
 
       const userCompany = await this.companyRepository.findOne({
-        relations: ['todoapps', 'chattools', 'admin_user', 'companyConditions'],
+        relations: ["todoapps", "chattools", "admin_user", "companyConditions"],
         where: {
           todoapps: { id: Not(IsNull()) },
           ...{ id: user.company_id, is_demo: true },
@@ -176,7 +176,7 @@ export default class TaskService {
         await this.remindUserJobRepository.save(processingJob);
       }
 
-      console.log('remindTaskForDemoUser - END');
+      console.log("remindTaskForDemoUser - END");
 
       return RemindUserJobResult.OK;
     } catch (error) {
@@ -194,5 +194,5 @@ export default class TaskService {
         await this.microsoftRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
         return;
     }
-  }
+  };
 }

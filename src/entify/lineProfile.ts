@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn } from "typeorm";
 
-@Entity('line_profiles')
+@Entity("line_profiles")
 export class LineProfile {
   @PrimaryColumn()
   line_id: string;

@@ -1,8 +1,8 @@
-import express from 'express';
-import MessageController from '../controllers/message.controller';
+import express from "express";
+import MessageController from "../controllers/message.controller";
 const router = express();
 
-router.get('/redirect/:todoId/:messageToken', async function(req, res) {
+router.get("/redirect/:todoId/:messageToken", async function(req, res) {
   console.log(req.params);
 
   const todoId: number = +req.params.todoId;
@@ -12,7 +12,7 @@ router.get('/redirect/:todoId/:messageToken', async function(req, res) {
   const url = await messageController.handleRedirect(todoId, messageToken);
 
   if (!url) {
-    return res.status(404).send('Not found!');
+    return res.status(404).send("Not found!");
   }
   return res.redirect(url);
 });

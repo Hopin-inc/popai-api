@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 
-@Entity('remind_user_jobs')
+@Entity("remind_user_jobs")
 export class RemindUserJob {
   @PrimaryGeneratedColumn()
   id: number;

@@ -1,18 +1,18 @@
-import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from '@line/bot-sdk';
-import { getDate, sliceByNumber } from '../utils/common';
+import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
+import { getDate, sliceByNumber } from "../utils/common";
 import {
   replyMessagesBefore,
   replyMessagesAfter,
   ReplyMessage,
   Colors, MessageAssets, ButtonStylesByColor,
-} from '../const/common';
-import { ITodo, ITodoLines, IUser } from '../types';
+} from "../const/common";
+import { ITodo, ITodoLines, IUser } from "../types";
 
 export class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: ITodo, remindDays: number) {
     const relativeDays = LineMessageBuilder.relativeRemindDays(remindDays);
     const remindColor = LineMessageBuilder.getRemindColor(remindDays);
-    const taskUrl = process.env.ENV === 'local'
+    const taskUrl = process.env.ENV === "local"
       ? todo.todoapp_reg_url
       : `${ process.env.HOST }/api/message/redirect/${ todo.id }/${ messageToken }`;
     const message: FlexMessage = {
@@ -176,7 +176,7 @@ export class LineMessageBuilder {
 
     let firstText = `${ user.name }さん、お疲れ様です！\nタスクの進捗をお尋ねします🙇`;
     if (superior) {
-      firstText += `\nお答えいただいた内容を${ superior }さんにお伝えします！`
+      firstText += `\nお答えいただいた内容を${ superior }さんにお伝えします！`;
     }
     const messages: (TextMessage | FlexMessage)[] = [{
       type: "text",
@@ -402,11 +402,11 @@ export class LineMessageBuilder {
 
   static createNoListTaskMessageToAdmin(adminUser: IUser): TextMessage {
     return {
-      type: 'text',
+      type: "text",
       text: `${ adminUser.name }さん\n`
-        + 'お疲れ様です🙌\n\n'
-        + '現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！\n'
-        + '引き続きよろしくお願いします！',
+        + "お疲れ様です🙌\n\n"
+        + "現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！\n"
+        + "引き続きよろしくお願いします！",
     };
   }
 
@@ -418,7 +418,7 @@ export class LineMessageBuilder {
     content: string
   ): FlexMessage {
     return {
-      type: 'flex',
+      type: "flex",
       altText: `${ username }さんから「${ taskName }」の進捗共有がありました！`,
       contents: {
         type: "bubble",
@@ -487,10 +487,10 @@ export class LineMessageBuilder {
 
   static getTextContentFromMessage(message: Message): string {
     switch (message.type) {
-      case 'text':
+      case "text":
         return message.text;
 
-      case 'flex':
+      case "flex":
         const texts = [];
         const findText = (components: FlexComponent[]) => {
           components.forEach(component => {
@@ -503,7 +503,7 @@ export class LineMessageBuilder {
                 }
                 break;
               case "span":
-                let lastText = texts.pop();
+                const lastText = texts.pop();
                 texts.push(lastText + component.text);
                 break;
               case "box":
@@ -515,38 +515,38 @@ export class LineMessageBuilder {
                 break;
             }
           });
-        }
+        };
 
         const messageContents = message.contents;
         if (messageContents.type === "bubble") {
           const flexComponents = messageContents.body?.contents ?? [];
           findText(flexComponents);
         }
-        return texts.join('\n');
+        return texts.join("\n");
 
-      case 'audio':
+      case "audio":
         return message.originalContentUrl;
 
-      case 'image':
+      case "image":
         return message.originalContentUrl;
 
-      case 'imagemap':
+      case "imagemap":
         return message.baseUrl;
 
-      case 'location':
+      case "location":
         return message.address;
 
-      case 'sticker':
+      case "sticker":
         return message.packageId;
 
-      case 'template':
+      case "template":
         return message.altText;
 
-      case 'video':
+      case "video":
         return message.originalContentUrl;
 
       default:
-        return '';
+        return "";
     }
   }
 
@@ -554,13 +554,13 @@ export class LineMessageBuilder {
     if (remindDays > 1) {
       return `${ remindDays.toString() }日前`;
     } else if (remindDays === 1) {
-      return '昨日';
+      return "昨日";
     } else if (remindDays === 0) {
-      return '今日';
+      return "今日";
     } else if (remindDays === -1) {
-      return '明日';
+      return "明日";
     } else if (remindDays === -2) {
-      return 'あさって';
+      return "あさって";
     } else {
       return `${ (-remindDays).toString() }日後`;
     }

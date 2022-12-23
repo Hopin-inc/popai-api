@@ -1,6 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 
-@Entity('implemented_todo_apps')
+@Entity("implemented_todo_apps")
 export class ImplementedTodoApp {
   @PrimaryGeneratedColumn()
   id: number;

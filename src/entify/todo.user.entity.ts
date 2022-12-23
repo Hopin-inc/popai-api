@@ -6,12 +6,12 @@ import {
   ManyToOne,
   JoinColumn,
   OneToOne,
-} from 'typeorm';
-import { Todo } from './todo.entity';
-import { User } from './user.entity';
+} from "typeorm";
+import { Todo } from "./todo.entity";
+import { User } from "./user.entity";
 
-@Entity('todo_users')
-@Unique(['todo_id', 'user_id'])
+@Entity("todo_users")
+@Unique(["todo_id", "user_id"])
 export class TodoUser {
   @PrimaryGeneratedColumn()
   id: number;
@@ -32,13 +32,13 @@ export class TodoUser {
     () => Todo,
     (todo) => todo.todoUsers
   )
-  @JoinColumn({ name: 'todo_id' })
+  @JoinColumn({ name: "todo_id" })
   todo: Todo;
 
   @OneToOne(
     () => User,
     (user) => user.id
   )
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: "user_id" })
   user: User;
 }

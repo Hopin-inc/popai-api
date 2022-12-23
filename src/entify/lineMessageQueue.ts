@@ -7,13 +7,13 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
-} from 'typeorm';
-import { ChatMessage } from './message.entity';
-import { Todo } from './todo.entity';
-import { User } from './user.entity';
+} from "typeorm";
+import { ChatMessage } from "./message.entity";
+import { Todo } from "./todo.entity";
+import { User } from "./user.entity";
 
-@Entity('line_message_queues')
-@Unique(['todo_id', 'user_id', 'status', 'remind_date'])
+@Entity("line_message_queues")
+@Unique(["todo_id", "user_id", "status", "remind_date"])
 export class LineMessageQueue {
   @PrimaryGeneratedColumn()
   id: number;
@@ -40,14 +40,14 @@ export class LineMessageQueue {
   updated_at: Date;
 
   @OneToOne(() => User)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: "user_id" })
   user: User;
 
   @OneToOne(() => Todo)
-  @JoinColumn({ name: 'todo_id' })
+  @JoinColumn({ name: "todo_id" })
   todo: Todo;
 
   @OneToOne(() => ChatMessage)
-  @JoinColumn({ name: 'message_id' })
+  @JoinColumn({ name: "message_id" })
   message: ChatMessage;
 }
