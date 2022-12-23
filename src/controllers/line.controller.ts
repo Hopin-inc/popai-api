@@ -155,6 +155,7 @@ export default class LineController extends Controller {
       user,
       repliedMessage,
       waitingReplyQueue.todo,
+      waitingReplyQueue.message.remind_before_days,
       waitingReplyQueue.message_id
     );
 
@@ -194,6 +195,7 @@ export default class LineController extends Controller {
     user: User,
     replyMessage: string,
     todo: Todo,
+    remindDays,
     messageParentId: number
   ) {
     const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
@@ -201,7 +203,7 @@ export default class LineController extends Controller {
     if (superiorUsers.length == 0) {
       await this.handleByReplyMessage(replyMessage, chattool, user, replyToken);
     } else {
-      superiorUsers.map(async (superiorUser) => {
+      await Promise.all(superiorUsers.map(async (superiorUser) => {
         await this.handleByReplyMessage(replyMessage, chattool, user, replyToken, superiorUser.name);
         await this.saveChatMessage(
           chattool,
@@ -212,8 +214,15 @@ export default class LineController extends Controller {
           replyToken,
           MessageTriggerType.REPLY
         );
-        await this.sendSuperiorMessage(chattool, superiorUser, user.name, todo, replyMessage);
-      });
+        await this.sendSuperiorMessage(
+          chattool,
+          superiorUser,
+          user.name,
+          todo,
+          remindDays,
+          replyMessage
+        );
+      }));
     }
   }
 
@@ -371,6 +380,7 @@ export default class LineController extends Controller {
    * @param superiorUser
    * @param userName
    * @param todo
+   * @param remindDays
    * @param reportContent
    * @returns
    */
@@ -379,6 +389,7 @@ export default class LineController extends Controller {
     superiorUser: IUser,
     userName: string,
     todo: ITodo,
+    remindDays: number,
     reportContent: string
   ): Promise<MessageAPIResponseBase> {
     const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chattool.id);
@@ -396,6 +407,7 @@ export default class LineController extends Controller {
       todo.name,
       todo.todoapp_reg_url,
       todo.deadline,
+      remindDays,
       reportContent
     );
     return await this.lineRepository.pushLineMessage(
