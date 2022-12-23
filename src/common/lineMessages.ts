@@ -415,8 +415,10 @@ export class LineMessageBuilder {
     taskName: string,
     taskUrl: string,
     deadline: Date,
+    remindDays: number,
     content: string
   ): FlexMessage {
+    const relativeDays = LineMessageBuilder.relativeRemindDays(remindDays);
     return {
       type: "flex",
       altText: `${ username }さんから「${ taskName }」の進捗共有がありました！`,
@@ -453,7 +455,7 @@ export class LineMessageBuilder {
                       size: "md",
                       flex: 4,
                       contents: [
-                        { type: "span", text: "あさって", weight: "bold", color: "#FFB300" },
+                        { type: "span", text: relativeDays, weight: "bold", color: this.getRemindColor(remindDays) },
                         { type: "span", text: `(${ getDate(deadline) })`, size: "sm" },
                       ],
                     },
