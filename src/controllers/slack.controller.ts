@@ -17,7 +17,6 @@ import {
   OpenStatus,
   ReplyStatus,
   SenderType,
-
 } from '../const/common';
 import { ChatMessage } from '../entify/message.entity';
 import moment from 'moment';
@@ -33,6 +32,7 @@ import { Todo } from '../entify/todo.entity';
 import TaskService from '../services/task.service';
 import { SlackMessageBuilder } from '../common/slack_message';
 import { MessageAttachment } from '@slack/web-api';
+import { SlackBot } from '../config/slackbot';
 
 @Route('slack')
 export default class SlackController extends Controller {
@@ -62,35 +62,33 @@ export default class SlackController extends Controller {
         return;
       }
 
-      if (typeof payload === 'object' && 'type' in payload && 'user' in payload
-        && 'message' in payload && 'container' in payload && 'response_url' in payload && 'actions' in payload) {
-        if (payload.type === 'block_actions') {
-          const { user, container, message } = payload;
+      if (payload.type === 'block_actions') {
+        const { user, container, actions } = payload;
 
-          const slackId = user.id;
-          const messageContent = message.text.toLowerCase();
-          const slackUser = await this.SlackRepository.getUserFromSlackId(slackId);
+        const slackId = user.id;
+        const rawRepliedMessage = actions[0].text.text.toLowerCase();
+        const slackUser = await this.SlackRepository.getUserFromSlackId(slackId);
 
-          const channelId = container.channel_id;
-          const threadId = container.message_ts;
+        const channelId = container.channel_id;
+        const threadId = container.message_ts;
 
-          switch (messageContent) {
-            case DONE_MESSAGE:
-            case DELAY_MESSAGE:
-            case PROGRESS_GOOD_MESSAGE:
-            case PROGRESS_BAD_MESSAGE:
-            case WITHDRAWN_MESSAGE:
-              await this.handleReplyMessage(
-                chatTool,
-                slackUser,
-                slackId,
-                messageContent,
-                channelId,
-                threadId,
-              );
-              break;
-          }
-        }
+        this.replaceMessage(rawRepliedMessage).then((repliedMessage) =>{
+        switch (repliedMessage) {
+          case DONE_MESSAGE:
+          case DELAY_MESSAGE:
+          case PROGRESS_GOOD_MESSAGE:
+          case PROGRESS_BAD_MESSAGE:
+          case WITHDRAWN_MESSAGE:
+            this.handleReplyMessage(
+              chatTool,
+              slackUser,
+              slackId,
+              repliedMessage,
+              channelId,
+              threadId,
+            );
+            break;
+        }});
       } else {
         logger.error(new LoggerError('Unknown Response'));
       }
@@ -99,6 +97,19 @@ export default class SlackController extends Controller {
       console.error(error);
     }
   }
+
+private async replaceMessage(message: string) {
+  let modifiedMessage = '';
+
+  modifiedMessage = message.replace(':+1:', '👍');
+  modifiedMessage = modifiedMessage.replace(':おじぎ_男性:', '🙇‍♂️');
+  modifiedMessage = modifiedMessage.replace(':ピカピカ:', '✨');
+  modifiedMessage = modifiedMessage.replace(':大泣き:', '😭');
+  modifiedMessage = modifiedMessage.replace(':しずく:', '💧');
+
+  return modifiedMessage;
+}
+
 
   private async handleReplyMessage(
     chatTool: ChatTool,
@@ -113,6 +124,15 @@ export default class SlackController extends Controller {
     }
 
     const slackTodo = await this.SlackRepository.getSlackTodo(channelId, threadId);
+    console.dir(slackTodo, { depth: null });
+
+    await SlackBot.chat.update({
+      channel: channelId,
+      ts: threadId,
+      text: repliedMessage,
+      blocks: SlackMessageBuilder.createReplaceMessage(slackId, slackTodo, repliedMessage).blocks,
+    });
+
     const sectionId = slackTodo.section_id;
     const todoAppId = slackTodo.todoapp_id;
     const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
@@ -192,7 +212,7 @@ export default class SlackController extends Controller {
           MessageTriggerType.REPLY,
         );
 
-        await this.sendSuperiorMessage(chatTool, superiorUser, user.name, todo?.name);
+        await this.sendSuperiorMessage(chatTool, superiorUser, channelId, threadId);
       });
     }
   }
@@ -319,26 +339,22 @@ export default class SlackController extends Controller {
    * @param threadId
    * @returns
    */
-  private async sendSuperiorMessage( //TODO:channelIdとthreadIdでpostする
+  private async sendSuperiorMessage(
     chatTool: ChatTool,
     superiorUser: IUser,
     channelId: string,
     threadId: string,
   ): Promise<MessageAttachment> {
     const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chatTool.id);
-    const user = { ...superiorUser, line_id: chatToolUser?.auth_key };
+    const user = { ...superiorUser, slack_id: chatToolUser?.auth_key };
 
-    //TODO:chatTool×companyにauthKeyの紐付きに合わせてvalidationを抽象化する
     if (!chatToolUser?.auth_key) {
       logger.error(new LoggerError(user.name + 'さんのSLACK IDが設定されていません。'));
       return;
     }
 
-    const reportMessage = SlackMessageBuilder.createReportToSuperiorMessage(
-      user.slack_id,
-      channelId,
-      threadId,
-    );
+    const reportMessage = SlackMessageBuilder.createReportToSuperiorMessage(user.slack_id);
+    console.log(reportMessage, channelId, threadId);
     return await this.SlackRepository.pushSlackMessage(
       chatTool,
       user,

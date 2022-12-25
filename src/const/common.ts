@@ -80,5 +80,6 @@ export const DELAY_MESSAGE = 'すみません、遅れております🙇‍♂�
 export const PROGRESS_GOOD_MESSAGE = '順調です✨️';
 export const PROGRESS_BAD_MESSAGE = 'あまり進んでいません😭';
 export const WITHDRAWN_MESSAGE = '撤退しました💧';
+export const CHANGE_MESSAGE = '変更する';
 export const REMIND_ME_COMMAND = 'action_remind_me';
 export const LINE_MAX_LABEL_LENGTH = 40;

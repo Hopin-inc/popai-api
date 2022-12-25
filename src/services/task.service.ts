@@ -46,7 +46,7 @@ export default class TaskService {
   syncTodoTasks = async (company: ICompany = null): Promise<any> => {
     try {
       // update old line queue
-      // await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await this.lineQueueRepository.updateStatusOfOldQueueTask();
 
       let whereCondition = {
         todoapps: { id: Not(IsNull()) },
@@ -106,18 +106,17 @@ export default class TaskService {
         relations: ['chattools', 'admin_user', 'companyConditions'],
       });
 
-      //remind task for admin
       for (const company of companies) {
         await this.lineQueueRepository.createTodayQueueTask(company, lineUsers);
         await this.remindRepository.remindTaskForAdminCompany(company);
       }
-      //remind task for user by queue
       await this.remindRepository.remindTodayTaskForUser();
 
-      //slack
       for (const company of companies) {
-        await this.slackRepository.remindTaskForAdminCompany(company);
-        await this.slackRepository.remindTodayTaskForUser(company);
+        if (company.id === 2) {
+          await this.slackRepository.remindTaskForAdminCompany(company);
+          await this.slackRepository.remindTodayTaskForUser(company);
+        }
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));

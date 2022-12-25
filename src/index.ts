@@ -19,9 +19,10 @@ const PORT = process.env.PORT || 8080;
 const app: Application = express();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })) //as anyに近いような処理では
 app.use(morgan('tiny'));
 app.use(express.static('public'));
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
 app.use(cors());
 
 app.get('/_ah/warmup', (req, res) => {

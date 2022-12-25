@@ -4,20 +4,13 @@ import { LoggerError } from '../exceptions';
 import { Container, Service } from 'typedi';
 import { SlackMessageBuilder } from '../common/slack_message';
 import { Todo } from '../entify/todo.entity';
-import {
-  IChatTool,
-  ICompany,
-  IRemindType,
-  ITodoSlacks,
-  ITodo,
-  IUser, IChatToolUser, ITodoLines,
-} from '../types';
+import { IChatTool, IChatToolUser, ICompany, IRemindType, ITodo, ITodoSlacks, IUser } from '../types';
 import { SlackBot } from '../config/slackbot';
 
 import { AppDataSource } from '../config/data-source';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
 import logger from './../logger/winston';
 
@@ -86,24 +79,27 @@ export default class SlackRepository {
         remindDays,
       );
 
-      const chatMessage = await this.saveChatMessage(
-        chatTool,
-        message,
-        MessageTriggerType.BATCH,
-        channelId,
-        null,
-        user,
-        remindTypes,
-        todo,
-      );
-
       if (process.env.ENV == 'LOCAL') {
         console.log(message);
       } else {
-        await SlackBot.chat.postMessage({ channel: channelId, blocks: message.blocks });
+        const response = await SlackBot.chat.postMessage({
+          channel: channelId,
+          text: 'お知らせ',
+          blocks: message.blocks,
+        });
+        if (response.ok === true) {
+          return await this.saveChatMessage(
+            chatTool,
+            message,
+            MessageTriggerType.BATCH,
+            channelId,
+            response.ts,
+            user,
+            remindTypes,
+            todo,
+          );
+        }
       }
-
-      return chatMessage;
     } catch (error) {
       console.log('user', user);
       console.log('todo', todo);
@@ -228,7 +224,7 @@ export default class SlackRepository {
    * @param channelId
    * @returns
    */
-  pushListTaskMessageToUser = async ( //TODO:channelIdでpostする
+  pushListTaskMessageToUser = async (
     chatTool: ChatTool,
     user: IUser,
     todos: ITodo[],
@@ -314,10 +310,13 @@ export default class SlackRepository {
     const message = await this.messageRepository.findOneBy({
       channel_id: channelId,
       thread_id: threadId,
+      todo_id: Not(IsNull()),
     });
 
-    return await this.todoRepository.findOneBy({
-      id: message.todo_id,
+    return await this.todoRepository.findOne({
+      where: {
+        id: message.todo_id,
+      }, relations: ['todoapp'],
     });
   };
 
@@ -351,17 +350,23 @@ export default class SlackRepository {
     if (process.env.ENV == 'LOCAL') {
       console.log(SlackMessageBuilder.getTextContentFromMessage(message));
     } else {
-      await SlackBot.chat.postMessage({ channel: channelId, thread_ts: threadId, blocks: message.blocks });
+      const response = await SlackBot.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadId,
+        text: 'お知らせ',
+        blocks: message.blocks,
+      });
+      if (response.ok === true) {
+        return await this.saveChatMessage(
+          chatTool,
+          message,
+          messageTriggerId,
+          channelId,
+          threadId,
+          user,
+        );
+      }
     }
-
-    return await this.saveChatMessage(
-      chatTool,
-      message,
-      messageTriggerId,
-      channelId,
-      threadId,
-      user,
-    );
   };
 
   replyMessage = async (
@@ -374,17 +379,23 @@ export default class SlackRepository {
     if (process.env.ENV == 'LOCAL') {
       console.log(SlackMessageBuilder.getTextContentFromMessage(message));
     } else {
-      await SlackBot.chat.postMessage({ channel: channelId, thread_ts: threadId, blocks: message.blocks });
+      const response = await SlackBot.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadId,
+        text: 'お知らせ',
+        blocks: message.blocks,
+      });
+      if (response.ok === true) {
+        return await this.saveChatMessage(
+          chatTool,
+          message,
+          MessageTriggerType.ACTION,
+          channelId,
+          threadId,
+          user,
+        );
+      }
     }
-
-    return await this.saveChatMessage(
-      chatTool,
-      message,
-      MessageTriggerType.ACTION,
-      channelId,
-      threadId,
-      user,
-    );
   };
 
   getUserFromSlackId = async (slackId: string): Promise<User> => {
@@ -449,9 +460,12 @@ export default class SlackRepository {
   };
 
   getSendChannel = async (company: ICompany): Promise<string> => {
-    const section = await this.sectionRepository.findOneBy({
-      company_id: company.id,
-    });
+    const companyId = company.id;
+    const section = await this.sectionRepository
+      .createQueryBuilder('sections')
+      .where('sections.company_id = :companyId', { companyId })
+      .andWhere('sections.channel_id IS NOT NULL')
+      .getOne();
 
     return section.channel_id;
   };
@@ -462,27 +476,50 @@ export default class SlackRepository {
     }
     const channelId = await this.getSendChannel(company);
 
-    const chattoolUsers = await this.commonRepository.getChatToolUsers();
-    const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(
-      company.id,
-    );
-
-    // 期日未設定のタスクがない旨のメッセージが管理者に送られること
-    if (needRemindTasks.length) {
-      // 期日未設定のタスクがある場合
-
-      const notSetDueDateAndNotAssign = needRemindTasks.filter(
-        (task) => !task.deadline && !task.todoUsers.length,
+    if (channelId) {
+      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+      const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(
+        company.id,
       );
 
-      if (notSetDueDateAndNotAssign.length) {
-        const remindTasks = notSetDueDateAndNotAssign.filter(
-          (tasks) => tasks.reminded_count < Common.remindMaxCount,
+      // 期日未設定のタスクがない旨のメッセージが管理者に送られること
+      if (needRemindTasks.length) {
+        // 期日未設定のタスクがある場合
+
+        const notSetDueDateAndNotAssign = needRemindTasks.filter(
+          (task) => !task.deadline && !task.todoUsers.length,
         );
 
-        // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
-        // Send to admin list task which not set duedate
-        if (remindTasks.length) {
+        if (notSetDueDateAndNotAssign.length) {
+          const remindTasks = notSetDueDateAndNotAssign.filter(
+            (tasks) => tasks.reminded_count < Common.remindMaxCount,
+          );
+
+          // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
+          // Send to admin list task which not set duedate
+          if (remindTasks.length) {
+            for (const chattool of company.chattools) {
+              if (chattool.tool_code == ChatToolCode.SLACK && company.admin_user) {
+                const adminUser = company.admin_user;
+                const chatToolUser = chattoolUsers.find(
+                  (chattoolUser) =>
+                    chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id,
+                );
+
+                if (chatToolUser) {
+                  await this.pushListTaskMessageToAdmin(
+                    chattool,
+                    { ...adminUser, line_id: chatToolUser.auth_key },
+                    remindTasks,
+                    channelId,
+                  );
+                }
+              }
+            }
+
+            // await this.updateRemindedCount(remindTasks);
+          }
+        } else {
           for (const chattool of company.chattools) {
             if (chattool.tool_code == ChatToolCode.SLACK && company.admin_user) {
               const adminUser = company.admin_user;
@@ -492,100 +529,81 @@ export default class SlackRepository {
               );
 
               if (chatToolUser) {
-                await this.pushListTaskMessageToAdmin(
+                await this.pushNoListTaskMessageToAdmin(
                   chattool,
                   { ...adminUser, line_id: chatToolUser.auth_key },
-                  remindTasks,
-                  channelId,
-                );
+                  channelId);
               }
             }
           }
-
-          // await this.updateRemindedCount(remindTasks);
         }
-      } else {
-        for (const chattool of company.chattools) {
-          if (chattool.tool_code == ChatToolCode.SLACK && company.admin_user) {
-            const adminUser = company.admin_user;
-            const chatToolUser = chattoolUsers.find(
-              (chattoolUser) =>
-                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id,
-            );
 
-            if (chatToolUser) {
-              await this.pushNoListTaskMessageToAdmin(
-                chattool,
-                { ...adminUser, line_id: chatToolUser.auth_key },
-                channelId);
-            }
-          }
+        // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
+        const notSetDueDateTasks = needRemindTasks.filter(
+          (task) =>
+            !task.deadline && task.todoUsers.length && task.reminded_count < Common.remindMaxCount,
+        );
+
+        // Send list task to each user
+        if (notSetDueDateTasks.length) {
+          const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
+
+          userTodoMap.forEach((todos: ITodo[], userId: number) => {
+            company.chattools.forEach(async (chattool) => {
+              if (chattool.tool_code == ChatToolCode.SLACK) {
+                const user = todos[0].user;
+
+                const chatToolUser = chattoolUsers.find(
+                  (chattoolUser) =>
+                    chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id,
+                );
+
+                if (chatToolUser) {
+                  await this.pushListTaskMessageToUser(
+                    chattool,
+                    { ...user, slack_id: chatToolUser.auth_key },
+                    todos,
+                    channelId,
+                  );
+                }
+              }
+            });
+
+            // await this.updateRemindedCount(todos);
+          });
         }
-      }
 
-      // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
-      const notSetDueDateTasks = needRemindTasks.filter(
-        (task) =>
-          !task.deadline && task.todoUsers.length && task.reminded_count < Common.remindMaxCount,
-      );
+        // 担当者未設定・期日設定済みの場合
+        const notSetAssignTasks = needRemindTasks.filter(
+          (task) =>
+            task.deadline && !task.todoUsers.length && task.reminded_count < Common.remindMaxCount,
+        );
 
-      // Send list task to each user
-      if (notSetDueDateTasks.length) {
-        const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
-
-        userTodoMap.forEach((todos: ITodo[], userId: number) => {
-          company.chattools.forEach(async (chattool) => {
-            if (chattool.tool_code == ChatToolCode.SLACK) {
-              const user = todos[0].user;
-
+        if (notSetAssignTasks.length) {
+          for (const chattool of company.chattools) {
+            if (chattool.tool_code == ChatToolCode.SLACK && company.admin_user) {
+              const adminUser = company.admin_user;
               const chatToolUser = chattoolUsers.find(
                 (chattoolUser) =>
-                  chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id,
+                  chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id,
               );
 
               if (chatToolUser) {
-                await this.pushListTaskMessageToUser(
+                await this.pushNotAssignListTaskMessageToAdmin(
                   chattool,
-                  { ...user, slack_id: chatToolUser.auth_key },
-                  todos,
+                  { ...adminUser, slack_id: chatToolUser.auth_key },
+                  notSetAssignTasks,
                   channelId,
                 );
               }
             }
-          });
-
-          // await this.updateRemindedCount(todos);
-        });
-      }
-
-      // 担当者未設定・期日設定済みの場合
-      const notSetAssignTasks = needRemindTasks.filter(
-        (task) =>
-          task.deadline && !task.todoUsers.length && task.reminded_count < Common.remindMaxCount,
-      );
-
-      if (notSetAssignTasks.length) {
-        for (const chattool of company.chattools) {
-          if (chattool.tool_code == ChatToolCode.SLACK && company.admin_user) {
-            const adminUser = company.admin_user;
-            const chatToolUser = chattoolUsers.find(
-              (chattoolUser) =>
-                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id,
-            );
-
-            if (chatToolUser) {
-              await this.pushNotAssignListTaskMessageToAdmin(
-                chattool,
-                { ...adminUser, slack_id: chatToolUser.auth_key },
-                notSetAssignTasks,
-                channelId,
-              );
-            }
           }
-        }
 
-        // await this.updateRemindedCount(notSetAssignTasks);
+          // await this.updateRemindedCount(notSetAssignTasks);
+        }
       }
+    } else {
+      console.log('NOT channelId');
     }
   };
 
@@ -614,34 +632,32 @@ export default class SlackRepository {
 
     for (const remindTask of remindTasks) {
       const remindDays = diffDays(remindTask.deadline, toJapanDateTime(new Date()));
-      const chatToolUser = chatToolUsers.find(
-        (chatToolUser) =>
-          chatTool &&
-          chatToolUser.chattool_id == chatTool.id &&
-          chatToolUser.user_id == remindTask.user.id,
-      );
+      for (const todoUser of remindTask.todoUsers) {
+        const chatToolUser = chatToolUsers.find(
+          (chatToolUser) =>
+            chatTool &&
+            chatToolUser.chattool_id == chatTool.id &&
+            chatToolUser.user_id == todoUser.user_id,
+        );
 
-      if (chatToolUser) {
-        if (map.has(remindTask.user.id)) {
-          map.get(remindTask.user.id).push({
-            todo: remindTask,
-            user: remindTask.user,
-            // user: { .. remindTask.user, slack_id: chatToolUser.auth_key },
-            chatTool: chatTool,
-            remindDays: remindDays,
-            // todoQueueTask: remindTask,
-          });
-        } else {
-          map.set(remindTask.user.id, [
-            {
+        if (chatToolUser) {
+          if (map.has(todoUser.user_id)) {
+            map.get(todoUser.user_id).push({
               todo: remindTask,
-              user: remindTask.user,
-              // user: { .. remindTask.user, slack_id: chatToolUser.auth_key },
+              user: { ...todoUser.user, slack_id: chatToolUser.auth_key },
               chatTool: chatTool,
               remindDays: remindDays,
-              // todoQueueTask: remindTask,
-            },
-          ]);
+            });
+          } else {
+            map.set(todoUser.user_id, [
+              {
+                todo: remindTask,
+                user: { ...todoUser.user, slack_id: chatToolUser.auth_key },
+                chatTool: chatTool,
+                remindDays: remindDays,
+              },
+            ]);
+          }
         }
       }
     }

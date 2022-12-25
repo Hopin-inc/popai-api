@@ -400,7 +400,6 @@ export default class LineRepository {
 
     return await this.saveChatMessage(
       chattool,
-
       message,
       messageTriggerId,
       linkToken,

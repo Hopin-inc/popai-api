@@ -6,9 +6,11 @@ import {
   PROGRESS_BAD_MESSAGE,
   PROGRESS_GOOD_MESSAGE,
   WITHDRAWN_MESSAGE,
+  CHANGE_MESSAGE,
 } from '../const/common';
 import { ITodo, IUser, ITodoSlacks } from '../types';
 import { MessageAttachment } from '@slack/web-api';
+import { Todo } from '../entify/todo.entity';
 
 export class SlackMessageBuilder {
   static createRemindMessage(
@@ -22,43 +24,43 @@ export class SlackMessageBuilder {
       ? {
         blocks: [
           {
-            type: 'section',
-            text: {
-              type: 'markdown',
-              text: messagePrefix + '<' + todo.todoapp_reg_url + '|' + todo.name + '>の進捗はいかがですか？',
+            'type': 'section',
+            'text': {
+              'type': 'mrkdwn',
+              'text': messagePrefix + '<' + todo.todoapp_reg_url + '|' + todo.name + '>の進捗はいかがですか？',
             },
           },
           {
-            type: 'actions',
-            elements: [
+            'type': 'actions',
+            'elements': [
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: DONE_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': DONE_MESSAGE,
                 },
-                style: 'primary',
-                value: 'click_me_123',
+                'style': 'primary',
+                'value': 'click_me_123',
               },
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: WITHDRAWN_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': WITHDRAWN_MESSAGE,
                 },
-                style: 'danger',
-                value: 'click_me_123',
+                'style': 'danger',
+                'value': 'click_me_123',
               },
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: DELAY_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': DELAY_MESSAGE,
                 },
-                value: 'click_me_123',
+                'value': 'click_me_123',
               },
             ],
           },
@@ -67,52 +69,52 @@ export class SlackMessageBuilder {
       : {
         blocks: [
           {
-            type: 'section',
-            text: {
-              type: 'markdown',
-              text: messagePrefix + '<' + todo.todoapp_reg_url + '|' + todo.name + '>の進捗はいかがですか？',
+            'type': 'section',
+            'text': {
+              'type': 'mrkdwn',
+              'text': messagePrefix + '<' + todo.todoapp_reg_url + '|' + todo.name + '>の進捗はいかがですか？',
             },
           },
           {
-            type: 'actions',
-            elements: [
+            'type': 'actions',
+            'elements': [
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: DONE_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': DONE_MESSAGE,
                 },
-                style: 'primary',
-                value: 'click_me_123',
+                'style': 'primary',
+                'value': 'click_me_123',
               },
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: WITHDRAWN_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': WITHDRAWN_MESSAGE,
                 },
-                style: 'danger',
-                value: 'click_me_123',
+                'style': 'danger',
+                'value': 'click_me_123',
               },
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: PROGRESS_GOOD_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': PROGRESS_GOOD_MESSAGE,
                 },
-                value: 'click_me_123',
+                'value': 'click_me_123',
               },
               {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  emoji: true,
-                  text: PROGRESS_BAD_MESSAGE,
+                'type': 'button',
+                'text': {
+                  'type': 'plain_text',
+                  'emoji': true,
+                  'text': PROGRESS_BAD_MESSAGE,
                 },
-                value: 'click_me_123',
+                'value': 'click_me_123',
               },
             ],
           },
@@ -120,15 +122,56 @@ export class SlackMessageBuilder {
       };
   }
 
+  static createReplaceMessage(userId: string, todo: Todo, message: string) {
+    return {
+      blocks: [
+        {
+          'type': 'section',
+          'text': {
+            'type': 'mrkdwn',
+            'text': '<' + todo.todoapp_reg_url + '|' + todo.name + '>は' + message,
+          },
+        },
+        // {
+        //   'type': 'actions',
+        //   'elements': [
+        //     {
+        //       'type': 'button',
+        //       'text': {
+        //         'type': 'plain_text',
+        //         'emoji': true,
+        //         'text': CHANGE_MESSAGE,
+        //       },
+        //       'value': 'click_me_123',
+        //     }],
+        // },
+        {
+          'type': 'context',
+          'elements': [
+            {
+              'type': 'image',
+              'image_url': 'https://image.freepik.com/free-photo/red-drawing-pin_1156-445.jpg',
+              'alt_text': 'images',
+            },
+            {
+              'type': 'mrkdwn',
+              'text': '<@' + userId + '>が答えました',
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   static createReplyDoneMessage() {
     return {
       blocks: [
         {
-          type: 'section',
-          text: {
-            type: 'plain_text',
-            text: '完了しているんですね😌\nお疲れさまでした！\n\n担当いただき、ありがとうございます😊',
-            emoji: true,
+          'type': 'section',
+          'text': {
+            'type': 'plain_text',
+            'text': '完了しているんですね😌\nお疲れさまでした！\n\n担当いただき、ありがとうございます😊',
+            'emoji': true,
           },
         },
       ],
@@ -139,11 +182,11 @@ export class SlackMessageBuilder {
     return {
       blocks: [
         {
-          type: 'section',
-          text: {
-            type: 'plain_text',
-            text: '承知しました👍',
-            emoji: true,
+          'type': 'section',
+          'text': {
+            'type': 'plain_text',
+            'text': '承知しました👍',
+            'emoji': true,
           },
         },
       ],
@@ -154,43 +197,40 @@ export class SlackMessageBuilder {
     return {
       blocks: [
         {
-          type: 'section',
-          text: {
-            type: 'plain_text',
-            text: '承知しました😖\n引き続きよろしくお願いします💪',
-            emoji: true,
+          'type': 'section',
+          'text': {
+            'type': 'plain_text',
+            'text': '承知しました😖\n引き続きよろしくお願いします💪',
+            'emoji': true,
           },
         },
       ],
     };
   }
-
 
   static createWithdrawnReplyMessage() {
     return {
       blocks: [
         {
-          type: 'section',
-          text: {
-            type: 'plain_text',
-            text: 'そうなんですね😲\n承知しました💪',
-            emoji: true,
+          'type': 'section',
+          'text': {
+            'type': 'plain_text',
+            'text': 'そうなんですね😲\n承知しました💪',
+            'emoji': true,
           },
         },
       ],
     };
   }
 
-  static createReportToSuperiorMessage(superiorUserId: string, channelId: string, threadId: string) {
+  static createReportToSuperiorMessage(superiorUserId: string) {
     return {
       blocks: [
         {
-          type: 'section',
-          channel_id: channelId,
-          thread_ts: threadId,
-          text: {
-            type: 'markdown',
-            text: '<' + superiorUserId + '>ご確認ください👀',
+          'type': 'section',
+          'text': {
+            'type': 'mrkdwn',
+            'text': '<@' + superiorUserId + '>ご確認ください👀',
           },
         },
       ],
@@ -212,10 +252,10 @@ export class SlackMessageBuilder {
     const messages = {
       blocks: [
         {
-          type: 'section',
-          text: {
-            type: 'markdown',
-            text: user.name + 'お疲れさまです🙌',
+          'type': 'section',
+          'text': {
+            'type': 'mrkdwn',
+            'text': '<@' + user.slack_id + '>お疲れさまです🙌',
           },
         },
       ],
@@ -227,20 +267,20 @@ export class SlackMessageBuilder {
       const summaryMessage =
         messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
 
-      messages['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: summaryMessage,
+      messages.blocks.push({
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': summaryMessage,
         },
       });
 
       onedayTasks.forEach((todoSlack) => {
-        messages['blocks'].push({
-          type: 'text',
-          text: {
-            type: 'markdown',
-            text: '- ' + todoSlack.todo.name,
+        messages.blocks.push({
+          'type': 'section',
+          'text': {
+            'type': 'mrkdwn',
+            'text': '- ' + todoSlack.todo.name,
           },
         });
       });
@@ -251,29 +291,29 @@ export class SlackMessageBuilder {
   static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
     const message = {
       blocks: [{
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: adminUser.name + 'お疲れさまです🙌\n現在、次のタスクの担当者と期日が設定されていません😭',
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': '<@' + adminUser.slack_id + '>お疲れさまです🙌\n現在、次のタスクの担当者と期日が設定されていません😭',
         },
       }],
     };
 
     todos.forEach((todo) =>
-      message['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: '- ' + todo.name,
+      message.blocks.push({
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': '- ' + todo.name,
         },
       }),
     );
 
-    message['blocks'].push({
-      type: 'section',
-      text: {
-        type: 'markdown',
-        text: 'ご確認をお願いします🙏',
+    message.blocks.push({
+      'type': 'section',
+      'text': {
+        'type': 'mrkdwn',
+        'text': 'ご確認をお願いします🙏',
       },
     });
 
@@ -281,31 +321,26 @@ export class SlackMessageBuilder {
   }
 
   static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
+    const notAssignTodos = [];
+    todos.forEach((todo) =>
+      notAssignTodos.push('🔖️ <' + todo.todoapp_reg_url + '|' + todo.name + '>'),
+    );
+
     const message = {
       blocks: [{
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: adminUser.name + 'お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭',
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': '<@/' + adminUser.slack_id + '>お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭\n\n' + notAssignTodos.join('\n'),
         },
       }],
     };
 
-    todos.forEach((todo) =>
-      message['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: '- ' + todo.name,
-        },
-      }),
-    );
-
-    message['blocks'].push({
-      type: 'section',
-      text: {
-        type: 'markdown',
-        text: 'ご確認をお願いします🙏',
+    message.blocks.push({
+      'type': 'section',
+      'text': {
+        'type': 'mrkdwn',
+        'text': 'ご確認をお願いします🙏',
       },
     });
 
@@ -315,29 +350,29 @@ export class SlackMessageBuilder {
   static createListTaskMessageToUser(user: IUser, todos: ITodo[]) {
     const message = {
       blocks: [{
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: user.name + 'お疲れさまです🙌\n現在、次のタスクの期日が設定されていません😭',
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': '<@' + user.slack_id + '>お疲れさまです🙌\n現在、次のタスクの期日が設定されていません😭',
         },
       }],
     };
 
     todos.forEach((todo) =>
-      message['blocks'].push({
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: '- ' + todo.name,
+      message.blocks.push({
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': '- ' + todo.name,
         },
       }),
     );
 
-    message['blocks'].push({
-      type: 'section',
-      text: {
-        type: 'markdown',
-        text: 'ご確認をお願いします🙏',
+    message.blocks.push({
+      'type': 'section',
+      'text': {
+        'type': 'mrkdwn',
+        'text': 'ご確認をお願いします🙏',
       },
     });
 
@@ -347,18 +382,18 @@ export class SlackMessageBuilder {
   static createNoListTaskMessageToAdmin(adminUser: IUser) {
     return {
       blocks: [{
-        type: 'section',
-        text: {
-          type: 'markdown',
-          text: adminUser.name + 'お疲れさまです🙌\n現在、担当者・期日が設定されていないタスクはありませんでした。',
+        'type': 'section',
+        'text': {
+          'type': 'mrkdwn',
+          'text': '<@' + adminUser.slack_id + '>お疲れさまです🙌\n現在、担当者・期日が設定されていないタスクはありませんでした。',
         },
       }],
     };
   }
 
   // 管理画面でチャットを閲覧できるようにするなどのために作った
-  static getTextContentFromMessage(message: MessageAttachment) {
-    return message.text;
+  static getTextContentFromMessage(message) {
+    return message.blocks[0].text.text;
   }
 
   static getPrefixMessage(remindDays: number): string {
