@@ -5,9 +5,9 @@ import { AppDataSource } from '../../config/data-source';
 import { LineMessageQueue } from '../../entify/line_message_queue.entity';
 import { ChatToolCode, Common, LineMessageQueueStatus } from '../../const/common';
 import { diffDays, toJapanDateTime } from '../../utils/common';
-import { Todo } from './../../entify/todo.entity';
-import { ICompany } from './../../types';
-import { ChatToolUser } from './../../entify/chattool.user.entity';
+import { Todo } from '../../entify/todo.entity';
+import { ICompany } from '../../types';
+import { ChatToolUser } from '../../entify/chattool.user.entity';
 import CommonRepository from './common.repository';
 import { Company } from '../../entify/company.entity';
 import { User } from '../../entify/user.entity';
@@ -37,8 +37,9 @@ export default class LineQuequeRepository {
   };
 
   createTodayQueueTask = async (company: Company, chattoolUsers: ChatToolUser[]): Promise<any> => {
-    const todos: Todo[] = await this.getRemindTodoTask(company);
-    await this.createLineQueueMessage(company, chattoolUsers, todos);
+    const companyWithChattools = { ...company, chattools: company.chatTools };
+    const todos: Todo[] = await this.getRemindTodoTask(companyWithChattools);
+    await this.createLineQueueMessage(companyWithChattools, chattoolUsers, todos);
   };
 
   createTodayQueueTaskForUser = async (
@@ -66,19 +67,17 @@ export default class LineQuequeRepository {
       const dayDurations = diffDays(todo.deadline, today);
 
       if (dayReminds.includes(dayDurations)) {
-        for (const todoUser of todo.todoUsers) {
-          company.chattools.forEach(async (chattool) => {
-            if (chattool.tool_code == ChatToolCode.LINE) {
+        for (const user of todo.users) {
+          company.chattools.forEach(async chattool => {
+            if (chattool.tool_code === ChatToolCode.LINE) {
               const chatToolUser = chattoolUsers.find(
-                (chattoolUser) =>
-                  chattoolUser.chattool_id == chattool.id &&
-                  chattoolUser.user_id == todoUser.user_id
+                chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id
               );
 
               if (chatToolUser) {
                 const lineQueueData = new LineMessageQueue();
                 lineQueueData.todo_id = todo.id;
-                lineQueueData.user_id = todoUser.user_id;
+                lineQueueData.user_id = user.id;
                 lineQueueData.remind_date = moment(today)
                   .startOf('day')
                   .toDate();

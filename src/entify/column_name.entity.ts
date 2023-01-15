@@ -1,34 +1,44 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from "typeorm";
+import BaseEntity from "./base.entity";
+import { Section } from "./section.entity";
 
-@Entity('column_name')
-export class ColumnName {
+@Entity('column_names')
+export class ColumnName extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  board_id: number;
+  section_id: number;
 
-  @Column()
-  todo: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_todo: string;
 
-  @Column()
-  section: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_section: string;
 
-  @Column()
-  is_done: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_is_done: string;
 
-  @Column()
-  is_archive: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_is_archived: string;
 
-  @Column()
-  assignee: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_assignee: string;
 
-  @Column()
-  due: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_due: string;
 
-  @Column()
-  created_by: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_created_at: string;
 
-  @Column()
-  created_at: string;
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  label_created_by: string;
+
+  @OneToOne(
+    () => Section,
+    section => section,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+  )
+  @JoinColumn({ name: "section_id" })
+  section: Section;
 }

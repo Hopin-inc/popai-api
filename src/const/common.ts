@@ -36,18 +36,18 @@ export const RemindType = {
 };
 
 export const SenderType = {
-  FROM_USER: 1,
-  FROM_BOT: 0,
+  FROM_USER: true,
+  FROM_BOT: false,
 };
 
 export const ReplyStatus = {
-  REPLIED: 1,
-  NOT_REPLIED: 0,
+  REPLIED: true,
+  NOT_REPLIED: false,
 };
 
 export const OpenStatus = {
-  OPENNED: 1,
-  CLOSED: 0,
+  OPENNED: true,
+  CLOSED: false,
 };
 
 export const ChatToolCode = {

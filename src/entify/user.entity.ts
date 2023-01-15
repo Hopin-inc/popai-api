@@ -1,67 +1,69 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  OneToMany,
-  JoinColumn,
-  ManyToMany,
-  JoinTable,
-  OneToOne,
-  ManyToOne,
-} from 'typeorm';
-import { ChatTool } from './chat_tool.entity';
-import { CompanyCondion } from './company.conditon.entity';
-import { Company } from './company.entity';
-import { Section } from './section.entity';
-import { Todo } from './todo.entity';
-import { TodoAppUser } from './todoappuser.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne } from "typeorm";
+import { Company } from "./company.entity";
+import { Section } from "./section.entity";
+import BaseEntity from "./base.entity";
+import { ChatToolUser } from "./chattool.user.entity";
+import { TodoAppUser } from "./todoappuser.entity";
+import { TodoUser } from "./todouser.entity";
+import { ChatTool } from "./chat_tool.entity";
+import { Todo } from "./todo.entity";
+import { TodoApp } from "./todoapp.entity";
 
-@Entity('users')
-export class User {
+@Entity("users")
+export class User extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   company_id: number;
 
   @OneToMany(
-    () => CompanyCondion,
-    (conditon) => conditon.user
-  )
-  @JoinColumn({ name: 'company_id', referencedColumnName: 'company_id' })
-  companyCondition: CompanyCondion[];
-
-  @OneToMany(
     () => TodoAppUser,
-    (todoappuser) => todoappuser.user
+    todoAppUsers => todoAppUsers.user,
+    { cascade: true }
   )
   todoAppUsers: TodoAppUser[];
 
-  @ManyToMany(
-    () => ChatTool,
-    (chattool) => chattool.users
-  )
-  @JoinTable({
-    name: 'chat_tool_users',
-    joinColumn: { name: 'user_id' },
-    inverseJoinColumn: { name: 'id' },
-  })
-  chattools: ChatTool[];
+  get todoApps(): TodoApp[] {
+    return this.todoAppUsers.map(record => record.todoApp);
+  }
 
-  @OneToOne(
-    () => Section,
-    (section) => section.boardAdminUser
+  @OneToMany(
+    () => ChatToolUser,
+    chattoolUser => chattoolUser.user,
+    { cascade: true }
   )
-  @JoinColumn({ name: 'id', referencedColumnName: 'board_admin_user_id' })
-  section: Section;
+  chattoolUsers: ChatToolUser[];
+
+  get chatTools(): ChatTool[] {
+    return this.chattoolUsers.map(record => record.chattool);
+  }
+
+  @OneToMany(
+    () => Section,
+    section => section.boardAdminUser,
+    { cascade: false }
+  )
+  adminSections: Section[];
 
   @ManyToOne(
     () => Company,
-    (company) => company.users
+    { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
   )
-  @JoinColumn({ name: 'company_id' })
+  @JoinColumn({ name: "company_id" })
   company: Company;
+
+  @OneToMany(
+    () => TodoUser,
+    todoUser => todoUser.user,
+    { cascade: true }
+  )
+  todoUsers: TodoUser[];
+
+  get todos(): Todo[] {
+    return this.todoUsers.map(record => record.todo);
+  }
 }

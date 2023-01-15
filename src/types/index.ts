@@ -1,12 +1,15 @@
 import { ChatTool } from '../entify/chat_tool.entity';
-import { LineMessageQueue } from './../entify/line_message_queue.entity';
+import { LineMessageQueue } from '../entify/line_message_queue.entity';
+import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+
+export type valueOf<T> = T[keyof T];
 
 export type ICompany = {
   id: number;
   name: string;
   admin_user_id: number;
   todoapps?: ITodoApp[];
-  admin_user?: IUser;
+  adminUser?: IUser;
   is_demo: boolean;
   companyConditions?: ICompanyCondition[];
   chattools: ChatTool[];
@@ -40,8 +43,14 @@ export type ISection = {
   boardAdminUser: IUser;
 };
 
+export type ITodoSection = {
+  todo_id: number;
+  section_id: number;
+  created_at: Date;
+  deleted_at: Date;
+}
+
 export type ITodoAppUser = {
-  id: number;
   employee_id: number | null;
   todoapp_id: number | null;
   user_app_id: string;
@@ -60,7 +69,6 @@ export type ITodo = {
   todoapp_reg_created_by: number | null;
   todoapp_reg_created_at: Date | null;
   company_id: number;
-  section_id: number;
   deadline: Date | null;
   is_done: boolean | null;
   is_reminded: boolean | null;
@@ -69,13 +77,13 @@ export type ITodo = {
   reminded_count: number | null;
   first_ddl_set_at: Date | null;
   first_assigned_at: Date | null;
+  todoSections: ITodoSection[];
   todoUsers: ITodoUser[];
   user?: IUser;
   assigned_user_id?: number | null;
 };
 
 export type ITodoUser = {
-  id: number;
   todo_id: number;
   user_id: number;
   created_at: Date;
@@ -96,6 +104,11 @@ export type ITodoUserUpdate = {
   users: IUser[];
 };
 
+export type ITodoSectionUpdate = {
+  todoId: string;
+  sections: ISection[];
+}
+
 export type IChatTool = {
   id: number;
   name: string;
@@ -103,7 +116,6 @@ export type IChatTool = {
 };
 
 export type IChatToolUser = {
-  id: number;
   auth_key: string;
   user_id: number;
   chattool_id: number;
@@ -122,12 +134,14 @@ export type ITrelloTask = {
   idMembers: string[];
 };
 
-export type ITodoTask = {
-  todoTask: ITrelloTask & IMicrosoftTask & INotionTask; // TODO:&を|に変える
+export type ITask = ITrelloTask | IMicrosoftTask | INotionTask;
+
+export type ITodoTask<T extends ITask> = {
+  todoTask: T;
   todoapp: ITodoApp;
   todoAppUser: ITodoAppUser;
   company: ICompany;
-  section: ISection;
+  sections: ISection[];
   users?: IUser[];
 };
 
@@ -136,15 +150,17 @@ export type ITrelloAuth = {
   api_token: string;
 };
 
+export type ITrelloMember = Record<string, any> & {
+  id: string;
+}
+
 export type IMicrosoftStatus = {
   NOT_START: 'notStarted';
   COMPLETED: 'completed';
 };
 
 export type IMicrosoftCreateBy = {
-  user: {
-    id: string;
-  };
+  user: IMicrosoftMember;
 };
 
 export type IMicrosoftAssignedBy = IMicrosoftCreateBy;
@@ -170,14 +186,37 @@ export type IMicrosoftRefresh = {
   todoAppUser: ITodoAppUser;
 };
 
+export type IMicrosoftToken = {
+  token_type: string;
+  score: string;
+  expires_in: number;
+  access_token: string;
+  refresh_token: string;
+}
+
+export type IMicrosoftMember = Record<string, any> & {
+  id: string;
+}
+
+export type IMicrosoftErrorResponse = {
+  error: {
+    code: string;
+    message: string;
+    innerError: {
+      requestId: string;
+      date: string;
+    };
+  };
+}
+
 export type IRemindType = {
   remindType: number;
   remindDays?: number;
 };
 
-export type IRemindTask = {
+export type IRemindTask<T extends ITask> = {
   remindDays: number;
-  cardTodo: ITodoTask;
+  cardTodo: ITodoTask<T>;
   delayedCount: number;
 };
 
@@ -200,16 +239,15 @@ export type ITodoRemind = {
 };
 
 export type IColumnName = {
-  assignee: string | null;
-  board_id: number;
-  created_at: string | null;
-  created_by: string | null;
-  due: string | null;
-  section: string | null;
+  label_assignee: string | null;
+  section_id: number;
+  label_created_at: string | null;
+  label_due: string | null;
+  label_section: string | null;
   id: number;
-  is_done: string | null;
-  is_archive: string | null;
-  todo: string | null;
+  label_is_done: string | null;
+  label_is_archived: string | null;
+  label_todo: string | null;
 }
 
 export type INotionTask = {
@@ -221,16 +259,18 @@ export type INotionTask = {
   dueReminder: number | null;
   is_done: boolean;
   name: string;
-  section: string[] | null;
-  section_id: number[] | null;
+  sections: string[];
+  section_ids: number[];
   notion_user_id: string[];
   todoapp_reg_id: string;
   todoapp_reg_url: string;
 }
 
-export type ILabelSection = {
+export type ISectionLabel = {
   id: number;
-  board_id: number;
+  section_id: number;
   label_id: string;
   name: string;
 }
+
+export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>

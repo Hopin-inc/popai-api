@@ -1,12 +1,11 @@
-import { ITodo, ITodoUpdate } from '../../types';
-import { Service } from 'typedi';
-import { Repository } from 'typeorm';
-import moment from 'moment';
-import { AppDataSource } from '../../config/data-source';
-import logger from '../../logger/winston';
-import { LoggerError } from '../../exceptions';
-import { TodoUpdateHistory } from '../../entify/todoupdatehistory.entity';
-import { Todo } from './../../entify/todo.entity';
+import { ITodo, ITodoUpdate } from "../../types";
+import { Service } from "typedi";
+import { Repository } from "typeorm";
+import { AppDataSource } from "../../config/data-source";
+import logger from "../../logger/winston";
+import { LoggerError } from "../../exceptions";
+import { TodoUpdateHistory } from "../../entify/todoupdatehistory.entity";
+import { Todo } from "../../entify/todo.entity";
 
 @Service()
 export default class TodoUpdateRepository {
@@ -28,7 +27,7 @@ export default class TodoUpdateRepository {
         });
 
         if (todo) {
-          this.saveTodoHistory(todo, dataUpdate);
+          await this.saveTodoHistory(todo, dataUpdate);
         }
       }
     }

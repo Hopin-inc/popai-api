@@ -1,19 +1,22 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
+import { User } from "./user.entity";
+import BaseEntity from "./base.entity";
 
 @Entity('remind_user_jobs')
-export class RemindUserJob {
+export class RemindUserJob extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   user_id: number;
 
-  @Column()
+  @Column({ default: 0 })
   status: number;
 
-  @Column()
-  created_at: Date;
-
-  @Column()
-  updated_at: Date;
+  @ManyToOne(
+    () => User,
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+  )
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 }

@@ -1,22 +1,22 @@
-import { ICompanyCondition, ILabelSection, ISection, IUser } from './../../types';
-import { Brackets, IsNull, Not, Repository, SelectQueryBuilder } from 'typeorm';
-import { Service } from 'typedi';
-import { AppDataSource } from './../../config/data-source';
-import { Section } from './../../entify/section.entity';
-import { User } from './../../entify/user.entity';
-import { ImplementedTodoApp } from './../../entify/implemented.todoapp.entity';
-import logger from '../../logger/winston';
-import { LoggerError } from '../../exceptions';
-import { Todo } from './../../entify/todo.entity';
-import { ChatToolUser } from './../../entify/chattool.user.entity';
-import { TodoUser } from './../../entify/todouser.entity';
-import { Common } from './../../const/common';
-import { LabelSection } from '../../entify/label_section.entity';
+import { ICompanyCondition, ISection, ISectionLabel, IUser } from "../../types";
+import { Brackets, IsNull, Not, Repository, SelectQueryBuilder } from "typeorm";
+import { Service } from "typedi";
+import { AppDataSource } from "../../config/data-source";
+import { Section } from "../../entify/section.entity";
+import { User } from "../../entify/user.entity";
+import { ImplementedTodoApp } from "../../entify/implemented.todoapp.entity";
+import logger from "../../logger/winston";
+import { LoggerError } from "../../exceptions";
+import { Todo } from "../../entify/todo.entity";
+import { ChatToolUser } from "../../entify/chattool.user.entity";
+import { TodoUser } from "../../entify/todouser.entity";
+import { Common } from "../../const/common";
+import { SectionLabel } from "../../entify/sectionLabel.entity";
 
 @Service()
 export default class CommonRepository {
   private sectionRepository: Repository<Section>;
-  private labelSectionRepository: Repository<LabelSection>;
+  private labelSectionRepository: Repository<SectionLabel>;
   private userRepository: Repository<User>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
@@ -24,7 +24,7 @@ export default class CommonRepository {
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
-    this.labelSectionRepository = AppDataSource.getRepository(LabelSection);
+    this.labelSectionRepository = AppDataSource.getRepository(SectionLabel);
     this.userRepository = AppDataSource.getRepository(User);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);
@@ -32,7 +32,7 @@ export default class CommonRepository {
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    const sections = this.sectionRepository
+    return this.sectionRepository
       .createQueryBuilder('sections')
       .innerJoinAndSelect(
         'sections.boardAdminUser',
@@ -50,24 +50,20 @@ export default class CommonRepository {
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .andWhere('sections.board_id IS NOT NULL')
       .getMany();
-
-    return sections;
   };
 
-  getLabelSections = async (boardId: number): Promise<ILabelSection[]> => {
-    const labelSections = this.labelSectionRepository
-      .createQueryBuilder('label_sections')
+  getSectionLabels = async (sectionId: number): Promise<ISectionLabel[]> => {
+    return this.labelSectionRepository
+      .createQueryBuilder('section_labels')
       // .innerJoinAndSelect(
-      //   'label_sections.board_id',
+      //   'section_labels.section_id',
       //   'sections',
-      //   'label_sections.board_id = sections.id AND sections.id = :boardId',
+      //   'section_labels.section_id = sections.id AND sections.id = :boardId',
       //   { boardId },
       // )
-      .where('label_sections.board_id = :boardId', {boardId})
-      .andWhere('label_sections.label_id IS NOT NULL')
+      .where('section_labels.section_id = :sectionId', { sectionId })
+      .andWhere('section_labels.label_id IS NOT NULL')
       .getMany();
-
-    return labelSections;
   };
 
 
@@ -87,9 +83,7 @@ export default class CommonRepository {
     } else {
       query.andWhere('todo_app_users.user_app_id IS NULL');
     }
-
-    const users: IUser[] = await query.getMany();
-    return users;
+    return await query.getMany();
   };
 
   getImplementTodoApp = async (companyId: number, todoappId: number) => {
@@ -140,7 +134,7 @@ export default class CommonRepository {
   };
 
   getChatToolUserByLineId = async (authKey: string) => {
-    const users = this.userRepository
+    return this.userRepository
       .createQueryBuilder('users')
       .innerJoin('chat_tool_users', 'r', 'users.id = r.user_id')
       .innerJoinAndMapMany(
@@ -151,20 +145,16 @@ export default class CommonRepository {
         { authKey },
       )
       .getMany();
-
-    return users;
   };
 
   getDayReminds = async (companyConditions: ICompanyCondition[]): Promise<number[]> => {
-    const dayReminds: number[] = companyConditions
+    return companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
-
-    return dayReminds;
   };
 
   getTodoDueDateAndAssignedTasks = async (companyId: number): Promise<Array<Todo>> => {
-    const todos: Todo[] = await this.todoRepository
+    return await this.todoRepository
       .createQueryBuilder('todos')
       .innerJoinAndSelect('todos.todoUsers', 'todo_users')
       .innerJoinAndSelect('todo_users.user', 'users')
@@ -176,14 +166,12 @@ export default class CommonRepository {
         count: Common.remindMaxCount,
       })
       .getMany();
-
-    return todos;
   };
 
   getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
     const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
       `not exists (${builder.getQuery()})`;
-    const todos: Todo[] = await this.todoRepository
+    return await this.todoRepository
       .createQueryBuilder('todos')
       .leftJoinAndSelect('todos.todoUsers', 'todo_users')
       .leftJoinAndSelect('todo_users.user', 'users')
@@ -209,8 +197,5 @@ export default class CommonRepository {
       //   })
       // )
       .getMany();
-
-    return todos;
   };
 }
-;
