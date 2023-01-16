@@ -26,11 +26,19 @@ export default class TrelloRequest {
     return await this.fetchApi(`boards/${boardId}/cards/all`, 'GET', {}, trelloAuth);
   }
 
+  public async getArchiveListsFromBoard(boardId: string, trelloAuth: ITrelloAuth) {
+    return await this.fetchApi(`boards/${boardId}/lists/closed`, 'GET', {}, trelloAuth);
+  }
+
+  public async getActivityLogFromBoard(boardId: string, trelloAuth: ITrelloAuth) {
+    return await this.fetchApi(`boards/${boardId}/actions`, 'GET', {}, trelloAuth);
+  }
+
   public async getMyInfo(trelloAuth: ITrelloAuth) {
     return await this.fetchApi(`members/me`, 'GET', {}, trelloAuth);
   }
 
   public async updateCard(id: string, task: Partial<ITrelloTask>, trelloAuth: ITrelloAuth) {
-    return await this.fetchApi(`cards/${id}`, 'PUT', task, trelloAuth)
+    return await this.fetchApi(`cards/${id}`, 'PUT', task, trelloAuth);
   }
 }

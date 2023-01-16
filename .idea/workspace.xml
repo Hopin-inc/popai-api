@@ -4,7 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="519b8b3f-2261-4cb0-9b28-4492976ec9f2" name="変更" comment="..." />
+    <list default="true" id="519b8b3f-2261-4cb0-9b28-4492976ec9f2" name="変更" comment="...">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/libs/trello.request.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/libs/trello.request.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/repositories/trello.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/repositories/trello.repository.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/index.ts" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -116,6 +123,11 @@
       <workItem from="1670905195913" duration="489000" />
       <workItem from="1670905810591" duration="17213000" />
       <workItem from="1670977866729" duration="10923000" />
+      <workItem from="1673518994069" duration="561000" />
+      <workItem from="1673519573170" duration="132000" />
+      <workItem from="1673519845545" duration="34000" />
+      <workItem from="1673520505687" duration="3826000" />
+      <workItem from="1673593773201" duration="10142000" />
     </task>
     <task id="LOCAL-00001" summary="delete notion.request.ts">
       <created>1670328168443</created>
