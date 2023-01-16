@@ -80,7 +80,8 @@ export class Todo extends BaseEntity {
   todoUsers: TodoUser[];
 
   get users(): User[] {
-    return this.todoUsers.map(record => record.user);
+    const todoUsers = this.todoUsers;
+    return todoUsers ? todoUsers.map(record => record.user) : [];
   }
 
   @OneToMany(
@@ -91,7 +92,8 @@ export class Todo extends BaseEntity {
   todoSections: TodoSection[];
 
   get sections(): Section[] {
-    return this.todoSections.map(record => record.section);
+    const todoSections = this.todoSections;
+    return todoSections ? todoSections.map(record => record.section) : [];
   }
 
   @OneToMany(

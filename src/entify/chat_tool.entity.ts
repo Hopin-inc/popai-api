@@ -24,7 +24,8 @@ export class ChatTool extends BaseEntity {
   chattoolCompanies: ImplementedChatTool[];
 
   get companies(): Company[] {
-    return this.chattoolCompanies.map(record => record.company);
+    const chattoolCompanies = this.chattoolCompanies;
+    return chattoolCompanies ? chattoolCompanies.map(record => record.company) : [];
   }
 
   @OneToMany(
@@ -35,6 +36,7 @@ export class ChatTool extends BaseEntity {
   chattoolUsers: ChatToolUser[];
 
   get users(): User[] {
-    return this.chattoolUsers.map(record => record.user);
+    const chattoolUsers = this.chattoolUsers;
+    return chattoolUsers ? chattoolUsers.map(record => record.user) : [];
   }
 }

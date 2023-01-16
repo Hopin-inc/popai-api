@@ -31,7 +31,8 @@ export class Company extends BaseEntity {
   implementedTodoApps: ImplementedTodoApp[];
 
   get todoApps(): TodoApp[] {
-    return this.implementedTodoApps.map(record => record.todoApp);
+    const implementedTodoApps = this.implementedTodoApps;
+    return implementedTodoApps ? implementedTodoApps.map(record => record.todoApp) : [];
   }
 
   @OneToMany(
@@ -42,7 +43,8 @@ export class Company extends BaseEntity {
   implementedChatTools: ImplementedChatTool[];
 
   get chatTools(): ChatTool[] {
-    return this.implementedChatTools.map(record => record.chattool);
+    const implementedChatTools = this.implementedChatTools;
+    return implementedChatTools ? implementedChatTools.map(record => record.chattool) : [];
   }
 
   @ManyToOne(

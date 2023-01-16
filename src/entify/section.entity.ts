@@ -54,7 +54,8 @@ export class Section {
   todoSections: TodoSection[];
 
   get sections(): Section[] {
-    return this.todoSections.map(record => record.section);
+    const todoSections = this.todoSections;
+    return todoSections ? todoSections.map(record => record.section) : [];
   }
 
   @OneToOne(

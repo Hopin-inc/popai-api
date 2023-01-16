@@ -25,7 +25,8 @@ export class TodoApp extends BaseEntity {
   implementedCompanies: ImplementedTodoApp[];
 
   get companies(): Company[] {
-    return this.implementedCompanies.map(record => record.company);
+    const implementedCompanies = this.implementedCompanies;
+    return implementedCompanies ? implementedCompanies.map(record => record.company) : [];
   }
 
   @OneToMany(
@@ -36,7 +37,8 @@ export class TodoApp extends BaseEntity {
   todoAppUsers: TodoAppUser[];
 
   get users(): User[] {
-    return this.todoAppUsers.map(record => record.user);
+    const todoAppUsers = this.todoAppUsers;
+    return todoAppUsers ? todoAppUsers.map(record => record.user) : [];
   }
 
   @OneToMany(

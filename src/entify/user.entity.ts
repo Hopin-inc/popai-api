@@ -28,7 +28,8 @@ export class User extends BaseEntity {
   todoAppUsers: TodoAppUser[];
 
   get todoApps(): TodoApp[] {
-    return this.todoAppUsers.map(record => record.todoApp);
+    const todoAppUsers = this.todoAppUsers
+    return todoAppUsers ? todoAppUsers.map(record => record.todoApp) : [];
   }
 
   @OneToMany(
@@ -39,7 +40,8 @@ export class User extends BaseEntity {
   chattoolUsers: ChatToolUser[];
 
   get chatTools(): ChatTool[] {
-    return this.chattoolUsers.map(record => record.chattool);
+    const chattoolUsers = this.chattoolUsers;
+    return chattoolUsers ? chattoolUsers.map(record => record.chattool) : [];
   }
 
   @OneToMany(
@@ -64,6 +66,7 @@ export class User extends BaseEntity {
   todoUsers: TodoUser[];
 
   get todos(): Todo[] {
-    return this.todoUsers.map(record => record.todo);
+    const todoUsers = this.todoUsers;
+    return todoUsers ? todoUsers.map(record => record.todo) : [];
   }
 }
