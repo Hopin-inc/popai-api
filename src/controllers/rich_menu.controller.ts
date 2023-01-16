@@ -7,14 +7,17 @@ import { ChatToolCode } from '../const/common';
 import logger from '../logger/winston';
 import { LoggerError } from '../exceptions';
 import { User } from "../entify/user.entity";
+import { ChatToolUser } from "../entify/chattool.user.entity";
 
 export default class RichMenuController extends Controller {
   private chattoolRepository: Repository<ChatTool>;
+  private chattoolUserRepository: Repository<ChatToolUser>;
   private userRepository: Repository<User>;
 
   constructor() {
     super();
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
+    this.chattoolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.userRepository = AppDataSource.getRepository(User);
   }
 
@@ -37,8 +40,8 @@ export default class RichMenuController extends Controller {
       throw new Error('Demo rich menu id not found!');
     }
     // get demo users
-    const lineUsers = await this.userRepository
-      .createQueryBuilder('users')
+    const lineUsers = await this.chattoolUserRepository
+      .createQueryBuilder('chat_tool_users')
       .innerJoinAndSelect('chat_tool_users.user', 'user')
       .innerJoinAndSelect('user.company', 'company')
       // .where('company.is_demo = :is_demo', { is_demo: true })
@@ -47,12 +50,12 @@ export default class RichMenuController extends Controller {
       .getMany();
 
     const demolineIds = lineUsers
-      .filter(lineUser => lineUser.company.is_demo)
-      .map(lineUser => lineUser.chattoolUsers.find(cu => cu.chattool.tool_code === ChatToolCode.LINE)?.auth_key);
+      .filter(lineUser => lineUser.user.company.is_demo)
+      .map(lineUser => lineUser.auth_key);
 
     const defaultlineIds = lineUsers
-      .filter(lineUser => !lineUser.company.is_demo)
-      .map(lineUser => lineUser.chattoolUsers.find(cu => cu.chattool.tool_code === ChatToolCode.LINE)?.auth_key);
+      .filter(lineUser => !lineUser.user.company.is_demo)
+      .map(lineUser => lineUser.auth_key);
 
     // set default rich menu
     // await LineBot.setDefaultRichMenu(defaultRichMenuId);
