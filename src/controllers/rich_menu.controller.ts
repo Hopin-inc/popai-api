@@ -4,18 +4,21 @@ import { AppDataSource } from '../config/data-source';
 import { LineBot } from '../config/linebot';
 import { ChatTool } from '../entify/chat_tool.entity';
 import { ChatToolCode } from '../const/common';
-import logger from './../logger/winston';
+import logger from '../logger/winston';
 import { LoggerError } from '../exceptions';
-import { ChatToolUser } from '../entify/chattool.user.entity';
+import { User } from "../entify/user.entity";
+import { ChatToolUser } from "../entify/chattool.user.entity";
 
 export default class RichMenuController extends Controller {
   private chattoolRepository: Repository<ChatTool>;
   private chattoolUserRepository: Repository<ChatToolUser>;
+  private userRepository: Repository<User>;
 
   constructor() {
     super();
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.chattoolUserRepository = AppDataSource.getRepository(ChatToolUser);
+    this.userRepository = AppDataSource.getRepository(User);
   }
 
   @Post('/')
@@ -47,12 +50,12 @@ export default class RichMenuController extends Controller {
       .getMany();
 
     const demolineIds = lineUsers
-      .filter((lineUser) => lineUser.user.company.is_demo)
-      .map((lineUser) => lineUser.auth_key);
+      .filter(lineUser => lineUser.user.company.is_demo)
+      .map(lineUser => lineUser.auth_key);
 
     const defaultlineIds = lineUsers
-      .filter((lineUser) => !lineUser.user.company.is_demo)
-      .map((lineUser) => lineUser.auth_key);
+      .filter(lineUser => !lineUser.user.company.is_demo)
+      .map(lineUser => lineUser.auth_key);
 
     // set default rich menu
     // await LineBot.setDefaultRichMenu(defaultRichMenuId);

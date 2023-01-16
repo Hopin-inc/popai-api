@@ -1,16 +1,17 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn } from "typeorm";
+import BaseEntity from "./base.entity";
 
 @Entity('line_profiles')
-export class LineProfile {
-  @PrimaryColumn()
+export class LineProfile extends BaseEntity {
+  @PrimaryColumn({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
   line_id: string;
 
-  @Column()
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   display_name: string;
 
-  @Column()
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   picture_url: string;
 
-  @Column()
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   status_message: string;
 }

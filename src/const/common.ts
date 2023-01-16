@@ -2,6 +2,7 @@ export const Common = {
   day_remind: 1,
   trello: 'trello',
   microsoft: 'microsoft',
+  notion: "notion",
   completed: 100,
   microsoftBaseUrl: 'https://tasks.office.com/{tenant}/Home/Task',
   remindMaxCount: 2,
@@ -14,7 +15,7 @@ export const MessageType = {
   VIDEO: 4,
   AUDIO: 5,
   LOCATION: 6,
-  IMAMEMAP: 7,
+  IMAGE_MAP: 7,
   TEMPLATE: 8,
   FLEX: 9,
 };
@@ -35,18 +36,18 @@ export const RemindType = {
 };
 
 export const SenderType = {
-  FROM_USER: 1,
-  FROM_BOT: 0,
+  FROM_USER: true,
+  FROM_BOT: false,
 };
 
 export const ReplyStatus = {
-  REPLIED: 1,
-  NOT_REPLIED: 0,
+  REPLIED: true,
+  NOT_REPLIED: false,
 };
 
 export const OpenStatus = {
-  OPENNED: 1,
-  CLOSED: 0,
+  OPENNED: true,
+  CLOSED: false,
 };
 
 export const ChatToolCode = {
@@ -75,10 +76,99 @@ export const RemindUserJobResult = {
   FAILED_OTHER: 2,
 };
 
-export const DONE_MESSAGE = '完了しております👍';
-export const DELAY_MESSAGE = 'すみません、遅れております🙇‍♂️';
-export const PROGRESS_GOOD_MESSAGE = '順調です✨️';
-export const PROGRESS_BAD_MESSAGE = 'あまり進んでいません😭';
-export const WITHDRAWN_MESSAGE = '撤退しました💧';
+export const Colors: { [key: string]: string } = {
+  normal: '#F5F5F5',
+  warning: '#FBC02D',
+  alert: '#F44336',
+}
+
+export const ButtonStylesByColor: { [key: keyof typeof Colors]: "primary" | "secondary" | "link" } = {
+  normal: 'secondary',
+  warning: 'secondary',
+  alert: 'primary',
+}
+
+export enum TodoStatus {
+  DONE = "STATUS_DONE",
+  DELAYED = "STATUS_DELAYED",
+  ONGOING = "STATUS_ONGOING",
+  NOT_YET = "STATUS_NOT_YET",
+  WITHDRAWN = "STATUS_WITHDRAWN",
+}
+
+export type ReplyMessage = {
+  status: TodoStatus,
+  label: string,
+  displayText: string,
+  primary: boolean,
+  color: keyof typeof Colors,
+};
+
+export const replyMessagesBefore: ReplyMessage[] = [
+  {
+    status: TodoStatus.ONGOING,
+    label: "順調です✨️",
+    displayText: "順調です✨️",
+    primary: true,
+    color: "normal",
+  },
+  {
+    status: TodoStatus.NOT_YET,
+    label: "あまり進んでいません😭",
+    displayText: "あまり進んでいません😭",
+    primary: true,
+    color: "normal",
+  },
+  {
+    status: TodoStatus.DONE,
+    label: "完了👍",
+    displayText: "完了しております👍",
+    primary: false,
+    color: "normal",
+  },
+  {
+    status: TodoStatus.WITHDRAWN,
+    label: "撤退しました",
+    displayText: "撤退しました💧",
+    primary: false,
+    color: "alert",
+  },
+];
+
+export const replyMessagesAfter: ReplyMessage[] = [
+  {
+    status: TodoStatus.DONE,
+    label: "完了しました👍",
+    displayText: "完了しました👍",
+    primary: true,
+    color: "normal",
+  },
+  {
+    status: TodoStatus.DELAYED,
+    label: "遅れております🙇‍♂️",
+    displayText: "すみません、遅れております🙇‍♂️",
+    primary: true,
+    color: "normal",
+  },
+  {
+    status: TodoStatus.WITHDRAWN,
+    label: "撤退しました💧",
+    displayText: "撤退しました💧",
+    primary: true,
+    color: "alert",
+  },
+];
+
+export const replyMessages: ReplyMessage[] = replyMessagesBefore.concat(replyMessagesAfter);
+
+const messageDataBefore: string[] = replyMessagesBefore.map(message => message.status);
+const messageDataAfter: string[] = replyMessagesAfter.map(message => message.status);
+export const messageData: string[] = messageDataBefore.concat(messageDataAfter);
+
+export const MessageAssets = {
+  CHECK: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671105268/angel_materials/check_dark_in0ogu.png",
+  ALERT: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671104878/angel_materials/alert_danger_kbb622.png",
+}
+
 export const REMIND_ME_COMMAND = 'action_remind_me';
 export const LINE_MAX_LABEL_LENGTH = 40;

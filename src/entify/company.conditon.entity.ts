@@ -1,9 +1,9 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Company } from './company.entity';
-import { User } from './user.entity';
+import BaseEntity from "./base.entity";
 
 @Entity('m_company_conditions')
-export class CompanyCondion {
+export class CompanyCondition extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -14,16 +14,9 @@ export class CompanyCondion {
   remind_before_days: number;
 
   @ManyToOne(
-    () => User,
-    (user) => user.companyCondition
-  )
-  @JoinColumn({ name: 'company_id', referencedColumnName: 'company_id' })
-  user: User;
-
-  @ManyToOne(
     () => Company,
-    (company) => company.companyConditions
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
   )
-  @JoinColumn({ name: 'company_id', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'company_id' })
   company: Company;
 }
