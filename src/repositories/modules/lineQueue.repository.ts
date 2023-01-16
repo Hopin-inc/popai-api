@@ -13,7 +13,7 @@ import { Company } from '../../entify/company.entity';
 import { User } from '../../entify/user.entity';
 
 @Service()
-export default class LineQuequeRepository {
+export default class LineQueueRepository {
   private linequeueRepository: Repository<LineMessageQueue>;
   private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
@@ -124,15 +124,11 @@ export default class LineQuequeRepository {
       .leftJoinAndSelect('todos.todoUsers', 'todo_users')
       .leftJoinAndSelect('todo_users.user', 'users')
       .where('todos.is_done = :done', { done: false })
-      .andWhere('todos.is_closed =:closed', { closed: false })
-      .andWhere('todos.company_id =:company_id', { company_id: company.id })
+      .andWhere('todos.is_closed = :closed', { closed: false })
+      .andWhere('todos.company_id = :company_id', { company_id: company.id })
       .andWhere('todos.reminded_count < :reminded_count', { reminded_count: Common.remindMaxCount })
-      .andWhere('todos.deadline >= :min_date', {
-        min_date: minDate,
-      })
-      .andWhere('todos.deadline <= :max_date', {
-        max_date: maxDate,
-      })
+      .andWhere('todos.deadline >= :min_date', { min_date: minDate })
+      .andWhere('todos.deadline <= :max_date', { max_date: maxDate })
       .andWhere('todo_users.deleted_at IS NULL');
 
     if (user) {
@@ -151,7 +147,7 @@ export default class LineQuequeRepository {
           .startOf('day')
           .toDate(),
       },
-      relations: ['todo', 'user', 'message'],
+      relations: ['todo.todoUsers.user.todoAppUsers', 'user', 'message', 'todo.todoapp'],
     });
   };
 
@@ -168,8 +164,8 @@ export default class LineQuequeRepository {
     });
   };
 
-  saveQueue = async (queque: LineMessageQueue) => {
-    return await this.linequeueRepository.save(queque);
+  saveQueue = async (queue: LineMessageQueue) => {
+    return await this.linequeueRepository.save(queue);
   };
 
   insertOrUpdate = async (lineQueueDatas: LineMessageQueue[]) => {
@@ -185,7 +181,7 @@ export default class LineQuequeRepository {
       .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: newStatus })
-      .where('status =:status', { status: currentStatus })
+      .where('status = :status', { status: currentStatus })
       // .andWhere('remind_date < :todayDate', { todayDate: todayDate })
       .execute();
   };
@@ -195,7 +191,7 @@ export default class LineQuequeRepository {
       .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: LineMessageQueueStatus.NOT_SEND_TIMEOUT })
-      .where('status =:status', { status: LineMessageQueueStatus.NOT_SEND })
+      .where('status = :status', { status: LineMessageQueueStatus.NOT_SEND })
       .andWhere('user_id = :user_id', { user_id: userId })
       .execute();
 
@@ -203,7 +199,7 @@ export default class LineQuequeRepository {
       .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: LineMessageQueueStatus.NOT_REPLY_TIMEOUT })
-      .where('status =:status', { status: LineMessageQueueStatus.WAITING_REPLY })
+      .where('status = :status', { status: LineMessageQueueStatus.WAITING_REPLY })
       .andWhere('user_id = :user_id', { user_id: userId })
       .execute();
   };
@@ -224,8 +220,8 @@ export default class LineQuequeRepository {
         }
       )
       .innerJoinAndSelect('line_message_queues.user', 'users')
-      .where('status =:status', { status: LineMessageQueueStatus.NOT_SEND })
-      .andWhere('remind_date =:remind_date', { remind_date: todayDate })
+      .where('status = :status', { status: LineMessageQueueStatus.NOT_SEND })
+      .andWhere('remind_date = :remind_date', { remind_date: todayDate })
       .orderBy({ 'line_message_queues.id': 'ASC' });
 
     if (user) {

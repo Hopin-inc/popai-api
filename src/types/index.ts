@@ -96,6 +96,7 @@ export type ITodoUpdate = {
   todoId: string;
   dueTime?: Date;
   newDueTime: Date;
+  newIsDone?: boolean;
   updateTime: Date;
 };
 

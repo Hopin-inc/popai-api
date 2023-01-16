@@ -1,10 +1,10 @@
 import { fetchApi } from './request';
 import { Service } from 'typedi';
-import { ITrelloAuth } from '../types';
+import { ITodoAppUser, ITrelloAuth, ITrelloTask } from '../types';
 
 @Service()
 export default class TrelloRequest {
-  fetchApi = async <Req, Res> (uri: string, method: string, params = {}, trelloAuth: ITrelloAuth): Promise<Res> => {
+  private fetchApi = async <Req, Res> (uri: string, method: string, params = {}, trelloAuth: ITrelloAuth): Promise<Res> => {
     let url = process.env.TRELLO_API_URL + '/1/' + uri;
     const { api_key, api_token } = trelloAuth;
 
@@ -16,4 +16,21 @@ export default class TrelloRequest {
     url += '?' + new URLSearchParams(authParam).toString();
     return fetchApi<Req, Res>(url, method, params);
   };
+
+  public generateAuth(todoAppUser: ITodoAppUser): ITrelloAuth {
+    const { api_key, api_token } = todoAppUser;
+    return { api_key, api_token };
+  }
+
+  public async getAllCardsFromBoard(boardId: string, trelloAuth: ITrelloAuth) {
+    return await this.fetchApi(`boards/${boardId}/cards/all`, 'GET', {}, trelloAuth);
+  }
+
+  public async getMyInfo(trelloAuth: ITrelloAuth) {
+    return await this.fetchApi(`members/me`, 'GET', {}, trelloAuth);
+  }
+
+  public async updateCard(id: string, task: Partial<ITrelloTask>, trelloAuth: ITrelloAuth) {
+    return await this.fetchApi(`cards/${id}`, 'PUT', task, trelloAuth)
+  }
 }

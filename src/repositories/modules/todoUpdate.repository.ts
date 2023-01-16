@@ -41,7 +41,7 @@ export default class TodoUpdateRepository {
       todoUpdate.todo_id = todo.id;
       todoUpdate.deadline_before = dueTime || newDueTime;
       todoUpdate.deadline_after = newDueTime;
-      todoUpdate.is_done = todo.is_done;
+      todoUpdate.is_done = todo.is_done ?? null;
       todoUpdate.todoapp_reg_updated_at = updateTime;
 
       await this.todoUpdateRepository.save(todoUpdate);

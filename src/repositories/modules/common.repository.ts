@@ -32,19 +32,19 @@ export default class CommonRepository {
   }
 
   getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
-    return this.sectionRepository
+    return await this.sectionRepository
       .createQueryBuilder('sections')
       .innerJoinAndSelect(
         'sections.boardAdminUser',
         'users',
         'sections.board_admin_user_id = users.id AND users.company_id = :companyId',
-        { companyId },
+        { companyId }
       )
       .innerJoinAndSelect(
         'users.todoAppUsers',
         'todo_app_users',
         'users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId',
-        { todoappId },
+        { todoappId }
       )
       .where('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
@@ -66,11 +66,18 @@ export default class CommonRepository {
       .getMany();
   };
 
+  getBoardAdminUser = async (sectionId: number): Promise<User> => {
+    const section = await this.sectionRepository.findOne({
+      where: { id: sectionId },
+      relations: ['boardAdminUser', 'boardAdminUser.todoAppUsers']
+    });
+    return section.boardAdminUser;
+  }
 
   getUserTodoApps = async (
     companyId: number,
     todoappId: number,
-    hasAppUserId: boolean = true,
+    hasAppUserId: boolean = true
   ): Promise<IUser[]> => {
     const query = this.userRepository
       .createQueryBuilder('users')
@@ -83,6 +90,7 @@ export default class CommonRepository {
     } else {
       query.andWhere('todo_app_users.user_app_id IS NULL');
     }
+
     return await query.getMany();
   };
 
@@ -96,11 +104,11 @@ export default class CommonRepository {
       logger.error(
         new LoggerError(
           'implemented_todo_appsのデータ(company_id=' +
-          companyId +
-          ' todoapp_id=' +
-          todoappId +
-          ')がありません。',
-        ),
+            companyId +
+            ' todoapp_id=' +
+            todoappId +
+            ')がありません。'
+        )
       );
     }
 
@@ -122,11 +130,11 @@ export default class CommonRepository {
       logger.error(
         new LoggerError(
           'chat_tool_usersのデータ(user_id=' +
-          userId +
-          ' chattool_id=' +
-          chatToolId +
-          ')がありません。',
-        ),
+            userId +
+            ' chattool_id=' +
+            chatToolId +
+            ')がありません。'
+        )
       );
     }
 
@@ -134,7 +142,7 @@ export default class CommonRepository {
   };
 
   getChatToolUserByLineId = async (authKey: string) => {
-    return this.userRepository
+    return await this.userRepository
       .createQueryBuilder('users')
       .innerJoin('chat_tool_users', 'r', 'users.id = r.user_id')
       .innerJoinAndMapMany(
@@ -142,7 +150,7 @@ export default class CommonRepository {
         'm_chat_tools',
         'c',
         'c.id = r.chattool_id AND r.auth_key = :authKey',
-        { authKey },
+        { authKey }
       )
       .getMany();
   };
@@ -184,10 +192,10 @@ export default class CommonRepository {
               AppDataSource.getRepository(TodoUser)
                 .createQueryBuilder('todo_users')
                 .where('todo_users.todo_id = todos.id')
-                .andWhere('todo_users.user_id IS NOT NULL'),
-            ),
+                .andWhere('todo_users.user_id IS NOT NULL')
+            )
           );
-        }),
+        })
       )
       // .andWhere(
       //   new Brackets((qb) => {

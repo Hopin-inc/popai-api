@@ -1,5 +1,5 @@
-import { Route, Controller } from 'tsoa';
-import { WebhookEvent, FlexMessage, TextMessage, MessageAPIResponseBase } from '@line/bot-sdk';
+import { Controller, Route } from 'tsoa';
+import { FlexMessage, MessageAPIResponseBase, TextMessage, WebhookEvent } from '@line/bot-sdk';
 
 import { User } from '../entify/user.entity';
 import { LineMessageBuilder } from '../common/line_message';
@@ -8,33 +8,30 @@ import LineRepository from '../repositories/line.repository';
 import Container from 'typedi';
 import {
   ChatToolCode,
-  DELAY_MESSAGE,
-  DONE_MESSAGE,
-  PROGRESS_BAD_MESSAGE,
-  PROGRESS_GOOD_MESSAGE,
-  WITHDRAWN_MESSAGE,
   LineMessageQueueStatus,
+  messageData,
   MessageTriggerType,
   MessageType,
   OpenStatus,
+  REMIND_ME_COMMAND,
+  replyMessages,
   ReplyStatus,
   SenderType,
-  REMIND_ME_COMMAND,
-  RemindUserJobResult,
+  TodoStatus
 } from '../const/common';
 import { ChatMessage } from '../entify/message.entity';
 import moment from 'moment';
-import logger from './../logger/winston';
+import logger from '../logger/winston';
 import { LoggerError } from '../exceptions';
 import { diffDays, toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
-import CommonRepository from './../repositories/modules/common.repository';
-import { IUser } from '../types';
-import LineQuequeRepository from './../repositories/modules/line_queque.repository';
+import CommonRepository from '../repositories/modules/common.repository';
+import { ITodo, IUser } from '../types';
+import LineQueueRepository from '../repositories/modules/lineQueue.repository';
 import { Todo } from '../entify/todo.entity';
-import TaskService from './../services/task.service';
+import TaskService from '../services/task.service';
 
 @Route('line')
 export default class LineController extends Controller {
@@ -42,7 +39,7 @@ export default class LineController extends Controller {
   private chattoolRepository: Repository<ChatTool>;
   private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private taskService: TaskService;
 
   constructor() {
@@ -50,7 +47,7 @@ export default class LineController extends Controller {
     this.lineRepository = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);
   }
@@ -73,13 +70,13 @@ export default class LineController extends Controller {
       const chattool = await this.chattoolRepository.findOneBy({
         tool_code: ChatToolCode.LINE,
       });
-
       if (!chattool) {
         logger.error(new LoggerError('LINE is not implemented yet!'));
         return;
       }
 
       const lineId = event.source.userId;
+      const user = await this.lineRepository.getUserFromLineId(lineId);
 
       switch (event.type) {
         case 'follow':
@@ -87,60 +84,31 @@ export default class LineController extends Controller {
           // eslint-disable-next-line no-case-declarations
           const lineProfile = await LineBot.getProfile(lineId);
           await this.lineRepository.createLineProfile(lineProfile);
-          break;
+          return;
 
         case 'postback':
-          if (event.postback.data == REMIND_ME_COMMAND) {
+          if (event.postback.data === REMIND_ME_COMMAND) {
             // get user from lineId
-            const user = await this.lineRepository.getUserFromLineId(lineId);
-
             if (user) {
               await this.replyProcessingJob(chattool, user, event.replyToken);
-
-              // execute remind
               await this.taskService.remindTaskForDemoUser(user);
             } else {
               console.error('Line ID :' + lineId + 'のアカウントが登録されていません。');
             }
+          } else if (messageData.includes(event.postback.data)) {
+            const messageContent = replyMessages.find(message => message.status === event.postback.data)?.displayText;
+            await this.handleReplyMessage(chattool, user, lineId, messageContent, event.replyToken);
           }
-          break;
+          return;
 
         case 'message':
-          // eslint-disable-next-line no-case-declarations
-          const message: any = event.message;
-          const messgeContent = message.text.toLowerCase();
+          const unknownMessage = LineMessageBuilder.createUnKnownMessage();
+          await this.lineRepository.replyMessage(chattool, event.replyToken, unknownMessage, user);
+          return;
 
-          // get user from lineId
-          const user = await this.lineRepository.getUserFromLineId(lineId);
-
-          switch (messgeContent) {
-            case DONE_MESSAGE:
-            case DELAY_MESSAGE:
-            case PROGRESS_GOOD_MESSAGE:
-            case PROGRESS_BAD_MESSAGE:
-            case WITHDRAWN_MESSAGE:
-              await this.handleReplyMessage(
-                chattool,
-                user,
-                lineId,
-                messgeContent,
-                event.replyToken
-              );
-              break;
-
-            default:
-              const unknownMessage = LineMessageBuilder.createUnKnownMessage();
-              await this.lineRepository.replyMessage(
-                chattool,
-                event.replyToken,
-                unknownMessage,
-                user
-              );
-              break;
-          }
+        default:
+          return;
       }
-
-      return;
     } catch (error) {
       console.error(error);
     }
@@ -157,15 +125,26 @@ export default class LineController extends Controller {
       return;
     }
 
-    // get wating queque message
+    // get waiting queue message
     const waitingReplyQueue = await this.lineQueueRepository.getWaitingQueueTask(user.id);
     if (!waitingReplyQueue) {
       return;
     }
 
     // update status
-    waitingReplyQueue.status = LineMessageQueueStatus.RELIED;
+    waitingReplyQueue.status = LineMessageQueueStatus.REPLIED;
     waitingReplyQueue.updated_at = toJapanDateTime(new Date());
+    const sectionId = waitingReplyQueue.todo.section_id;
+    const todoAppId = waitingReplyQueue.todo.todoapp_id;
+    const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
+    const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
+    const doneMessages = replyMessages.filter(m => m.status === TodoStatus.DONE).map(m => m.displayText);
+    if (doneMessages.includes(repliedMessage)) {
+      waitingReplyQueue.todo.is_done = true;
+      const todo = waitingReplyQueue.todo;
+      const correctDelayedCount = todo.deadline < waitingReplyQueue.remind_date;
+      await this.taskService.updateTask(todo.todoapp_reg_id, todo, todoAppAdminUser, correctDelayedCount);
+    }
     await this.lineQueueRepository.saveQueue(waitingReplyQueue);
     await this.updateIsReplyFlag(waitingReplyQueue.message_id);
 
@@ -176,6 +155,7 @@ export default class LineController extends Controller {
       user,
       repliedMessage,
       waitingReplyQueue.todo,
+      waitingReplyQueue.message.remind_before_days,
       waitingReplyQueue.message_id
     );
 
@@ -215,47 +195,16 @@ export default class LineController extends Controller {
     user: User,
     replyMessage: string,
     todo: Todo,
+    remindDays,
     messageParentId: number
   ) {
     const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
     if (superiorUsers.length == 0) {
-      switch (replyMessage) {
-        case DONE_MESSAGE:
-          await this.replyDoneAction(chattool, user, replyToken);
-          break;
-        case PROGRESS_GOOD_MESSAGE:
-        case PROGRESS_BAD_MESSAGE:
-          await this.replyInProgressAction(chattool, user, replyToken);
-          break;
-        case DELAY_MESSAGE:
-          await this.replyDelayAction(chattool, user, replyToken);
-          break;
-        case WITHDRAWN_MESSAGE:
-          await this.replyWithdrawnAction(chattool, user, replyToken);
-          break;
-        default:
-          break;
-      }
+      await this.handleByReplyMessage(replyMessage, chattool, user, replyToken);
     } else {
-      superiorUsers.map(async (superiorUser) => {
-        switch (replyMessage) {
-          case DONE_MESSAGE:
-            await this.replyDoneAction(chattool, user, replyToken, superiorUser.name);
-            break;
-          case PROGRESS_GOOD_MESSAGE:
-          case PROGRESS_BAD_MESSAGE:
-            await this.replyInProgressAction(chattool, user, replyToken, superiorUser.name);
-            break;
-          case DELAY_MESSAGE:
-            await this.replyDelayAction(chattool, user, replyToken);
-            break;
-          case WITHDRAWN_MESSAGE:
-            await this.replyWithdrawnAction(chattool, user, replyToken);
-            break;
-          default:
-            break;
-        }
+      await Promise.all(superiorUsers.map(async (superiorUser) => {
+        await this.handleByReplyMessage(replyMessage, chattool, user, replyToken, superiorUser.name);
         await this.saveChatMessage(
           chattool,
           todo,
@@ -265,9 +214,38 @@ export default class LineController extends Controller {
           replyToken,
           MessageTriggerType.REPLY
         );
+        await this.sendSuperiorMessage(
+          chattool,
+          superiorUser,
+          user.name,
+          todo,
+          remindDays,
+          replyMessage
+        );
+      }));
+    }
+  }
 
-        await this.sendSuperiorMessage(chattool, superiorUser, user.name, todo?.name, replyMessage);
-      });
+  private async handleByReplyMessage(
+    replyMessage: string,
+    chattool: ChatTool,
+    user: User,
+    replyToken: string,
+    superior?: string
+  ) {
+    const messageMatchesStatus = (message: string, status: TodoStatus): boolean => {
+      const targetMessages = replyMessages.filter(m => m.status === status).map(m => m.displayText);
+      return targetMessages.includes(message);
+    }
+
+    if (messageMatchesStatus(replyMessage, TodoStatus.DONE)) {
+      await this.replyDoneAction(chattool, user, replyToken, superior);
+    } else if (messageMatchesStatus(replyMessage, TodoStatus.ONGOING) || messageMatchesStatus(replyMessage, TodoStatus.NOT_YET)) {
+      await this.replyInProgressAction(chattool, user, replyToken, superior);
+    } else if (messageMatchesStatus(replyMessage, TodoStatus.DELAYED)) {
+      await this.replyDelayAction(chattool, user, replyToken);
+    } else if (messageMatchesStatus(replyMessage, TodoStatus.WITHDRAWN)) {
+      await this.replyWithdrawnAction(chattool, user, replyToken);
     }
   }
 
@@ -301,35 +279,12 @@ export default class LineController extends Controller {
 
     chatMessage.body = messageContent;
     chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = toJapanDateTime(
-      moment()
-        .utc()
-        .toDate()
-    );
+    chatMessage.send_at = toJapanDateTime(moment().utc().toDate());
     chatMessage.message_token = messageToken;
     chatMessage.user_id = userId;
     chatMessage.parent_message_id = messageParentId;
 
     return await this.lineRepository.createMessage(chatMessage);
-  }
-
-  /**
-   *
-   * @param chattool
-   * @param replyToken
-   * @param lineId
-   * @returns
-   */
-  private async replyClientId(
-    chattool: ChatTool,
-    replyToken: string,
-    lineId: string
-  ): Promise<MessageAPIResponseBase> {
-    const textMessage: TextMessage = {
-      type: 'text',
-      text: 'あなたのLineIDをお知らせます。\n' + lineId,
-    };
-    return await this.lineRepository.replyMessage(chattool, replyToken, textMessage);
   }
 
   /**
@@ -346,8 +301,8 @@ export default class LineController extends Controller {
     replyToken: string,
     superior?: string
   ): Promise<MessageAPIResponseBase> {
-    const replyMessage: FlexMessage = LineMessageBuilder.createReplyDoneMessage(superior);
-    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+    const message: TextMessage = LineMessageBuilder.createReplyDoneMessage(superior);
+    return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
   }
 
   /**
@@ -364,8 +319,8 @@ export default class LineController extends Controller {
     replyToken: string,
     superior?: string
   ): Promise<MessageAPIResponseBase> {
-    const replyMessage: FlexMessage = LineMessageBuilder.createReplyInProgressMessage(superior);
-    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+    const message: TextMessage = LineMessageBuilder.createReplyInProgressMessage(superior);
+    return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
   }
 
   /**
@@ -380,8 +335,8 @@ export default class LineController extends Controller {
     user: User,
     replyToken: string
   ): Promise<MessageAPIResponseBase> {
-    const replyMessage: FlexMessage = LineMessageBuilder.createDelayReplyMessage();
-    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+    const message: TextMessage = LineMessageBuilder.createDelayReplyMessage();
+    return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
   }
 
   /**
@@ -396,8 +351,8 @@ export default class LineController extends Controller {
     user: User,
     replyToken: string
   ): Promise<MessageAPIResponseBase> {
-    const replyMessage: FlexMessage = LineMessageBuilder.createWithdrawnReplyMessage();
-    return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
+    const message: TextMessage = LineMessageBuilder.createWithdrawnReplyMessage();
+    return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
   }
 
   private async replyProcessingJob(
@@ -405,7 +360,7 @@ export default class LineController extends Controller {
     user: User,
     replyToken: string
   ): Promise<MessageAPIResponseBase> {
-    const replyMessage: FlexMessage = LineMessageBuilder.createProcessingJobReplyMessage();
+    const replyMessage: TextMessage = LineMessageBuilder.createProcessingJobReplyMessage();
     return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
   }
 
@@ -424,7 +379,8 @@ export default class LineController extends Controller {
    * @param chattool
    * @param superiorUser
    * @param userName
-   * @param taskName
+   * @param todo
+   * @param remindDays
    * @param reportContent
    * @returns
    */
@@ -432,7 +388,8 @@ export default class LineController extends Controller {
     chattool: ChatTool,
     superiorUser: IUser,
     userName: string,
-    taskName: string,
+    todo: ITodo,
+    remindDays: number,
     reportContent: string
   ): Promise<MessageAPIResponseBase> {
     const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chattool.id);
@@ -446,9 +403,11 @@ export default class LineController extends Controller {
     await this.lineRepository.pushStartReportToSuperior(chattool, user);
 
     const reportMessage: FlexMessage = LineMessageBuilder.createReportToSuperiorMessage(
-      user.name,
       userName,
-      taskName,
+      todo.name,
+      todo.todoapp_reg_url,
+      todo.deadline,
+      remindDays,
       reportContent
     );
     return await this.lineRepository.pushLineMessage(

@@ -27,7 +27,7 @@ import { replaceString, toJapanDateTime, diffDays } from '../utils/common';
 import moment from 'moment';
 import FormData from 'form-data';
 import MicrosoftRequest from '../libs/microsoft.request';
-import LineQuequeRepository from './modules/line_queque.repository';
+import LineQueueRepository from './modules/lineQueue.repository';
 import TodoUserRepository from './modules/todoUser.repository';
 import TodoUpdateRepository from './modules/todoUpdate.repository';
 import logger from '../logger/winston';
@@ -41,7 +41,7 @@ export default class MicrosoftRepository {
   private microsoftRequest: MicrosoftRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
   private commonRepository: CommonRepository;
@@ -51,7 +51,7 @@ export default class MicrosoftRepository {
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
@@ -102,16 +102,8 @@ export default class MicrosoftRepository {
     for (const todoAppUser of boardAdminuser.todoAppUsers) {
       if (todoAppUser.api_token && section.board_id) {
         try {
-          const dataRefresh: IMicrosoftRefresh = {
-            todoAppUser: todoAppUser,
-          };
-
-          const taskTodos = await this.microsoftRequest.fetchApi( // TODO: Define type
-            'planner/plans/' + section.board_id + '/tasks',
-            'GET',
-            {},
-            dataRefresh
-          );
+          const dataRefresh: IMicrosoftRefresh = { todoAppUser };
+          const taskTodos = await this.microsoftRequest.getAllTasksFromPlan(section.board_id, dataRefresh);
 
           const tasks = taskTodos['value']
           if (tasks && tasks.length) {
@@ -188,11 +180,8 @@ export default class MicrosoftRepository {
     for (const todoAppUser of todoAppUsers) {
       if (todoAppUser.api_token) {
         try {
-          const dataRefresh: IMicrosoftRefresh = {
-            todoAppUser: todoAppUser,
-          };
-
-          const me = await this.microsoftRequest.fetchApi('me', 'GET', {}, dataRefresh);  // TODO: Define type
+          const dataRefresh: IMicrosoftRefresh = { todoAppUser };
+          const me = await this.microsoftRequest.getMyInfo(dataRefresh);
           todoAppUser.user_app_id = me?.id;
           await this.todoAppUserRepository.save(todoAppUser);
         } catch (err) {
@@ -395,4 +384,37 @@ export default class MicrosoftRepository {
       await this.todoSectionRepository.updateTodoSection(todo, sections);
     }
   };
+
+  updateTodo = async (id: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false): Promise<void> => {
+    try {
+      // const assignees = task.todoUsers.map(todoUser => {
+      //   const targetTodoAppUser = todoUser.user.todoAppUsers.find(tau => tau.todoapp_id === todoAppUser.todoapp_id);
+      //   return targetTodoAppUser.user_app_id;
+      // });
+      const microsoftTask: Partial<IMicrosoftTask> = {
+        id: task.todoapp_reg_id,
+        title: task.name,
+        percentComplete: task.is_done ? Common.completed : 0,
+        dueDateTime: task.deadline,
+        // FIXME: 担当者を変更できるようにする
+      }
+      const dataRefresh: IMicrosoftRefresh = { todoAppUser };
+      await this.microsoftRequest.updateTask(id, microsoftTask, dataRefresh);
+
+      if (correctDelayedCount && task.delayed_count > 0) {
+        task.delayed_count--;
+      }
+
+      await this.todoRepository.save(task);
+      const todoUpdate: ITodoUpdate = {
+        todoId: task.todoapp_reg_id,
+        newDueTime: task.deadline,
+        newIsDone: task.is_done,
+        updateTime: toJapanDateTime(new Date()),
+      }
+      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate)
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  }
 }
