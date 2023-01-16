@@ -1,10 +1,10 @@
-import { ITodo, IUser, ITodoUser, ITodoUserUpdate } from './../../types';
-import { Service } from 'typedi';
-import { IsNull, Repository } from 'typeorm';
-import { AppDataSource } from './../../config/data-source';
-import { Todo } from './../../entify/todo.entity';
-import { TodoUser } from './../../entify/todouser.entity';
-import { toJapanDateTime } from '../../utils/common';
+import { ITodo, ITodoUser, ITodoUserUpdate, IUser } from "../../types";
+import { Service } from "typedi";
+import { IsNull, Repository } from "typeorm";
+import { AppDataSource } from "../../config/data-source";
+import { Todo } from "../../entify/todo.entity";
+import { TodoUser } from "../../entify/todouser.entity";
+import { toJapanDateTime } from "../../utils/common";
 
 @Service()
 export default class TodoUserRepository {
@@ -47,7 +47,6 @@ export default class TodoUserRepository {
   };
 
   saveTodoUsers = async (dataTodoUsers: ITodoUserUpdate[]): Promise<void> => {
-    //todo
     const todoUserDatas = [];
 
     for await (const dataTodoUser of dataTodoUsers) {
@@ -65,7 +64,6 @@ export default class TodoUserRepository {
 
           if (!todoUser) {
             const todoUserData = new TodoUser();
-            todoUserData.id = null;
             todoUserData.todo_id = todo.id;
             todoUserData.user_id = user.id;
             todoUserData.created_at = toJapanDateTime(new Date());
@@ -80,7 +78,7 @@ export default class TodoUserRepository {
   };
 
   getUserAssignTask = async (usersCompany: IUser[], idMembers: string[]): Promise<IUser[]> => {
-    const users = usersCompany.filter((user) => {
+    return usersCompany.filter((user) => {
       const userLineIds = user?.todoAppUsers.reduce(function(userAppIds: string[], todoAppUser) {
         userAppIds.push(todoAppUser.user_app_id);
         return userAppIds;
@@ -88,7 +86,5 @@ export default class TodoUserRepository {
 
       return idMembers.filter((value) => userLineIds.includes(value)).length;
     });
-
-    return users;
   };
 }

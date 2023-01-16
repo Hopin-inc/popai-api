@@ -1,13 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, PrimaryColumn } from "typeorm";
+import BaseEntity from "./base.entity";
 
 @Entity('reporting_lines')
-export class ReportingLine {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
+export class ReportingLine extends BaseEntity {
+  @PrimaryColumn()
   superior_user_id: number;
 
-  @Column()
+  @PrimaryColumn()
   subordinate_user_id: number;
 }

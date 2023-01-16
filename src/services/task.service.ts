@@ -1,16 +1,16 @@
 import { AppDataSource } from '../config/data-source';
 import { InternalServerErrorException, LoggerError } from '../exceptions';
-import { Not, Repository, IsNull } from 'typeorm';
-
+import { Repository, FindOptionsWhere } from "typeorm";
 import { Company } from '../entify/company.entity';
 import MicrosoftRepository from '../repositories/microsoft.repository';
 import TrelloRepository from '../repositories/trello.repository';
 import { Common, RemindUserJobResult, RemindUserJobStatus } from '../const/common';
 import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
-import RemindRepository from './../repositories/remind.repository';
-import LineQueueRepository from './../repositories/modules/lineQueue.repository';
-import CommonRepository from './../repositories/modules/common.repository';
+import RemindRepository from '../repositories/remind.repository';
+import LineQueueRepository from '../repositories/modules/lineQueue.repository';
+import CommonRepository from '../repositories/modules/common.repository';
+import NotionRepository from '../repositories/notion.repository';
 import { User } from '../entify/user.entity';
 import { ICompany, ITodoAppUser } from '../types';
 import { RemindUserJob } from '../entify/remind_user_job.entity';
@@ -21,6 +21,7 @@ import { Todo } from "../entify/todo.entity";
 export default class TaskService {
   private trelloRepo: TrelloRepository;
   private microsoftRepo: MicrosoftRepository;
+  private notionRepo: NotionRepository;
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineQueueRepository;
@@ -30,6 +31,7 @@ export default class TaskService {
   constructor() {
     this.trelloRepo = Container.get(TrelloRepository);
     this.microsoftRepo = Container.get(MicrosoftRepository);
+    this.notionRepo = Container.get(NotionRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineQueueRepository);
@@ -45,36 +47,25 @@ export default class TaskService {
       // update old line queue
       // await this.lineQueueRepository.updateStatusOfOldQueueTask();
 
-      let whereCondition = {
-        todoapps: { id: Not(IsNull()) },
-      };
-
-      if (company) {
-        whereCondition = {
-          todoapps: { id: Not(IsNull()) },
-          ...{ id: company.id },
-        };
-      }
+      const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
       const companies = await this.companyRepository.find({
-        relations: [
-          'todoapps',
-          'chattools',
-          'admin_user',
-          'companyConditions',
-          'users.todoAppUsers',
-        ],
-        where: whereCondition,
+        relations: ['implementedTodoApps.todoApp', 'implementedChatTools.chattool', 'adminUser', 'companyConditions', 'users.todoAppUsers'],
+        where,
       });
 
       for (const company of companies) {
-        for (const todoapp of company.todoapps) {
+        for (const todoapp of company.todoApps) {
+          const companyWithChatTools = { ...company, chattools: company.chatTools }
           switch (todoapp.todo_app_code) {
             case Common.trello:
-              await this.trelloRepo.syncTaskByUserBoards(company, todoapp);
+              await this.trelloRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.microsoft:
-              await this.microsoftRepo.syncTaskByUserBoards(company, todoapp);
+              await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              break;
+            case Common.notion:
+              await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             default:
               break;
@@ -99,13 +90,13 @@ export default class TaskService {
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
 
       const companies = await this.companyRepository.find({
-        relations: ['chattools', 'admin_user', 'companyConditions'],
+        relations: ['implementedChatTools.chattool', 'adminUser', 'companyConditions'],
       });
 
       //remind task for adminn
       for (const company of companies) {
         await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
-        await this.remindRepository.remindTaskForAdminCompany(company);
+        await this.remindRepository.remindTaskForAdminCompany({ ...company, chattools: company.chatTools });
       }
 
       //remind task for user by queue
@@ -140,11 +131,8 @@ export default class TaskService {
       await this.remindUserJobRepository.save(job);
 
       const userCompany = await this.companyRepository.findOne({
-        relations: ['todoapps', 'chattools', 'admin_user', 'companyConditions'],
-        where: {
-          todoapps: { id: Not(IsNull()) },
-          ...{ id: user.company_id, is_demo: true },
-        },
+        relations: ['implementedTodoApps.todoapp', 'implementedChatTools.chattool', 'adminUser', 'companyConditions'],
+        where: { id: user.company_id, is_demo: true },
       });
 
       if (!userCompany) {
@@ -152,14 +140,15 @@ export default class TaskService {
       }
 
       // sync task for company of the user
-      await this.syncTodoTasks(userCompany);
+      const companyWithChatTools = { ...userCompany, chattools: userCompany.chatTools };
+      await this.syncTodoTasks(companyWithChatTools);
 
       // update old line queue
       await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
 
       // create queue for user
-      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
+      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, companyWithChatTools);
 
       //remind task for user by queue
       await this.remindRepository.remindTodayTaskForUser(user);

@@ -1,9 +1,9 @@
-import TaskService from './../services/task.service';
-import { Get, Route, Controller } from 'tsoa';
+import TaskService from "../services/task.service";
+import { Get, Route, Controller } from "tsoa";
 
-import { Container } from 'typedi';
+import { Container } from "typedi";
 
-@Route('tasks')
+@Route("tasks")
 export default class TaskController extends Controller {
   private taskService: TaskService;
 
@@ -12,19 +12,19 @@ export default class TaskController extends Controller {
     this.taskService = Container.get(TaskService);
   }
 
-  @Get('/update')
+  @Get("/update")
   public async syncTodoTask(): Promise<any> {
-    console.log('TaskController#syncTodoTask - START');
+    console.log("TaskController#syncTodoTask - START");
     await this.taskService.syncTodoTasks();
-    console.log('TaskController#syncTodoTask - END');
+    console.log("TaskController#syncTodoTask - END");
     return;
   }
 
-  @Get('/remind')
+  @Get("/remind")
   public async remindTaskForCompany(): Promise<any> {
-    console.log('TaskController#remindTaskForCompany - START');
+    console.log("TaskController#remindTaskForCompany - START");
     await this.taskService.remindTaskForCompany();
-    console.log('TaskController#remindTaskForCompany - END');
+    console.log("TaskController#remindTaskForCompany - END");
 
     return;
   }

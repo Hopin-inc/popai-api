@@ -1,20 +1,22 @@
-import { ICompanyCondition, ISection, IUser } from '../../types';
-import { Repository, IsNull, Not, Brackets, SelectQueryBuilder } from 'typeorm';
-import { Service } from 'typedi';
-import { AppDataSource } from '../../config/data-source';
-import { Section } from '../../entify/section.entity';
-import { User } from '../../entify/user.entity';
-import { ImplementedTodoApp } from '../../entify/implemented.todoapp.entity';
-import logger from '../../logger/winston';
-import { LoggerError } from '../../exceptions';
-import { Todo } from '../../entify/todo.entity';
-import { ChatToolUser } from '../../entify/chattool.user.entity';
-import { TodoUser } from '../../entify/todouser.entity';
-import { Common } from '../../const/common';
+import { ICompanyCondition, ISection, ISectionLabel, IUser } from "../../types";
+import { Brackets, IsNull, Not, Repository, SelectQueryBuilder } from "typeorm";
+import { Service } from "typedi";
+import { AppDataSource } from "../../config/data-source";
+import { Section } from "../../entify/section.entity";
+import { User } from "../../entify/user.entity";
+import { ImplementedTodoApp } from "../../entify/implemented.todoapp.entity";
+import logger from "../../logger/winston";
+import { LoggerError } from "../../exceptions";
+import { Todo } from "../../entify/todo.entity";
+import { ChatToolUser } from "../../entify/chattool.user.entity";
+import { TodoUser } from "../../entify/todouser.entity";
+import { Common } from "../../const/common";
+import { SectionLabel } from "../../entify/sectionLabel.entity";
 
 @Service()
 export default class CommonRepository {
   private sectionRepository: Repository<Section>;
+  private labelSectionRepository: Repository<SectionLabel>;
   private userRepository: Repository<User>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
@@ -22,6 +24,7 @@ export default class CommonRepository {
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
+    this.labelSectionRepository = AppDataSource.getRepository(SectionLabel);
     this.userRepository = AppDataSource.getRepository(User);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);
@@ -46,6 +49,20 @@ export default class CommonRepository {
       .where('sections.company_id = :companyId', { companyId })
       .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .andWhere('sections.board_id IS NOT NULL')
+      .getMany();
+  };
+
+  getSectionLabels = async (companyId: number, todoappId: number): Promise<ISectionLabel[]> => {
+    return this.labelSectionRepository
+      .createQueryBuilder('section_labels')
+      .innerJoinAndSelect(
+        'section_labels.section',
+        'sections',
+        'section_labels.section_id = sections.id'
+      )
+      .where('sections.company_id = :companyId', { companyId })
+      .andWhere('sections.todoapp_id = :todoappId', { todoappId })
+      .andWhere('section_labels.label_id IS NOT NULL')
       .getMany();
   };
 
