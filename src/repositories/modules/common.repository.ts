@@ -52,16 +52,16 @@ export default class CommonRepository {
       .getMany();
   };
 
-  getSectionLabels = async (sectionId: number): Promise<ISectionLabel[]> => {
+  getSectionLabels = async (companyId: number, todoappId: number): Promise<ISectionLabel[]> => {
     return this.labelSectionRepository
       .createQueryBuilder('section_labels')
-      // .innerJoinAndSelect(
-      //   'section_labels.section_id',
-      //   'sections',
-      //   'section_labels.section_id = sections.id AND sections.id = :boardId',
-      //   { boardId },
-      // )
-      .where('section_labels.section_id = :sectionId', { sectionId })
+      .innerJoinAndSelect(
+        'section_labels.section',
+        'sections',
+        'section_labels.section_id = sections.id'
+      )
+      .where('sections.company_id = :companyId', { companyId })
+      .andWhere('sections.todoapp_id = :todoappId', { todoappId })
       .andWhere('section_labels.label_id IS NOT NULL')
       .getMany();
   };

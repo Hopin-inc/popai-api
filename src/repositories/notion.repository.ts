@@ -9,7 +9,9 @@ import {
   IRemindTask,
   ISection,
   ITodo,
-  ITodoApp, ITodoAppUser, ITodoSectionUpdate,
+  ITodoApp,
+  ITodoAppUser,
+  ITodoSectionUpdate,
   ITodoTask,
   ITodoUpdate,
   ITodoUserUpdate,
@@ -141,17 +143,16 @@ export default class NotionRepository {
     }
   };
 
-  getNotionSectionId = async (section: ISection, labelIds: string[]): Promise<number[]> => {
-    const sectionId = section.id;
-    const registeredLabelSections = await this.commonRepository.getSectionLabels(sectionId);
-    const registeredLabelRecords = registeredLabelSections.map(labelSection => {
-      return { id: labelSection.id, label_id: labelSection.label_id };
+  getNotionSectionIds = async (company: ICompany, todoApp: ITodoApp, labelIds: string[]): Promise<number[]> => {
+    const registeredSectionLabels = await this.commonRepository.getSectionLabels(company.id, todoApp.id);
+    const registeredLabelRecords = registeredSectionLabels.map(sectionLabel => {
+      return { sectionId: sectionLabel.section_id, labelId: sectionLabel.label_id };
     });
 
     const results: number[] = [];
     registeredLabelRecords.forEach(record => {
-      if (labelIds.includes(record.label_id)) {
-        results.push(record.id);
+      if (labelIds.includes(record.labelId)) {
+        results.push(record.sectionId);
       }
     });
     return results;
@@ -272,9 +273,12 @@ export default class NotionRepository {
     const pageInfo = await this.notionRequest.pages.retrieve({ page_id: pageId }) as PageObjectResponse;
     const pageProperty = pageInfo.properties;
     if (pageProperty) {
+      const name = this.getTaskName(columnName, pageProperty);
+      if (!name) return;
+
       const pageTodo: INotionTask = {
         todoapp_reg_id: pageId,
-        name: this.getTaskName(columnName, pageProperty),
+        name,
         notion_user_id: this.getAssignee(columnName, pageProperty),
         sections: this.getNotionSections(columnName, pageProperty),
         section_ids: [],
@@ -287,13 +291,9 @@ export default class NotionRepository {
         dueReminder: null,
         closed: this.getIsArchive(columnName, pageProperty),
       };
-
       pageTodo.created_by_id = await this.getCreatedById(company.users, todoapp.id, pageTodo.created_by);
-      pageTodo.section_ids = await this.getNotionSectionId(section, pageTodo.sections);
-
-      if (pageTodo.name) {
-        pageTodos.push(pageTodo);
-      }
+      pageTodo.section_ids = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
+      pageTodos.push(pageTodo);
     }
   }
 
@@ -305,18 +305,15 @@ export default class NotionRepository {
     sections: ISection[],
     todoAppUser: ITodoAppUser
   ): Promise<void> => {
-    const users = await this.todoUserRepository.getUserAssignTask(
-      company.users,
-      pageTodo.notion_user_id,
-    );
+    const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.notion_user_id);
 
     const page: ITodoTask<INotionTask> = {
       todoTask: pageTodo,
-      company: company,
-      todoapp: todoapp,
-      todoAppUser: todoAppUser,
+      company,
+      todoapp,
+      todoAppUser,
       sections: sections.filter(section => pageTodo.section_ids.includes(section.id)),
-      users: users,
+      users,
     };
 
     const taskFound = todoTasks.find(task => task.todoTask?.todoapp_reg_id === pageTodo.todoapp_reg_id);
@@ -385,9 +382,7 @@ export default class NotionRepository {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    const todo: ITodo = await this.todoRepository.findOneBy({
-      todoapp_reg_id: todoTask.todoapp_reg_id,
-    });
+    const todo: ITodo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoapp_reg_id });
 
     const taskDeadLine = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
