@@ -4,13 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="519b8b3f-2261-4cb0-9b28-4492976ec9f2" name="変更" comment="...">
+    <list default="true" id="519b8b3f-2261-4cb0-9b28-4492976ec9f2" name="変更" comment="Create issue/archiveList">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/libs/trello.request.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/libs/trello.request.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/repositories/trello.repository.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/repositories/trello.repository.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/task.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/task.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,6 +127,7 @@
       <workItem from="1673519845545" duration="34000" />
       <workItem from="1673520505687" duration="3826000" />
       <workItem from="1673593773201" duration="10142000" />
+      <workItem from="1673845897078" duration="2877000" />
     </task>
     <task id="LOCAL-00001" summary="delete notion.request.ts">
       <created>1670328168443</created>
@@ -199,7 +199,14 @@
       <option name="project" value="LOCAL" />
       <updated>1671493035415</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Create issue/archiveList">
+      <created>1673845937327</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1673845937327</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -226,6 +233,7 @@
     <MESSAGE value="add slack.repository.ts" />
     <MESSAGE value="create slack_message.ts" />
     <MESSAGE value="..." />
-    <option name="LAST_COMMIT_MESSAGE" value="..." />
+    <MESSAGE value="Create issue/archiveList" />
+    <option name="LAST_COMMIT_MESSAGE" value="Create issue/archiveList" />
   </component>
 </project>

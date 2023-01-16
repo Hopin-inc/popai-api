@@ -1,6 +1,6 @@
-import { AppDataSource } from "../config/data-source";
-import { LoggerError } from "../exceptions";
-import { Repository } from "typeorm";
+import { AppDataSource } from '../config/data-source';
+import { LoggerError } from '../exceptions';
+import { Repository } from 'typeorm';
 import {
   ISection,
   ITodo,
@@ -15,19 +15,21 @@ import {
   ITrelloTask,
   ITodoSectionUpdate,
   ITrelloMember,
-} from "../types";
-import { Service, Container } from "typedi";
-import { Todo } from "../entify/todo.entity";
-import { TodoAppUser } from "../entify/todoappuser.entity";
-import { toJapanDateTime, diffDays } from "../utils/common";
-import moment from "moment";
-import logger from "../logger/winston";
-import TrelloRequest from "../libs/trello.request";
-import TodoUserRepository from "./modules/todoUser.repository";
-import TodoUpdateRepository from "./modules/todoUpdate.repository";
-import CommonRepository from "./modules/common.repository";
+  ITrelloList,
+  ITrelloActivityLog,
+} from '../types';
+import { Service, Container } from 'typedi';
+import { Todo } from '../entify/todo.entity';
+import { TodoAppUser } from '../entify/todoappuser.entity';
+import { toJapanDateTime, diffDays } from '../utils/common';
+import moment from 'moment';
+import logger from '../logger/winston';
+import TrelloRequest from '../libs/trello.request';
+import TodoUserRepository from './modules/todoUser.repository';
+import TodoUpdateRepository from './modules/todoUpdate.repository';
+import CommonRepository from './modules/common.repository';
 import LineQueueRepository from './modules/lineQueue.repository';
-import TodoSectionRepository from "./modules/todo.section.repository";
+import TodoSectionRepository from './modules/todo.section.repository';
 
 @Service()
 export default class TrelloRepository {
@@ -64,20 +66,17 @@ export default class TrelloRepository {
   getUserCardBoards = async (
     sections: ISection[],
     company: ICompany,
-    todoapp: ITodoApp
+    todoapp: ITodoApp,
   ): Promise<void> => {
     try {
       const todoTasks: ITodoTask<ITrelloTask>[] = [];
-
       for (const section of sections) {
         await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
-      console.log(`[${ company.name } - ${ todoapp.name }] getCardBoards: ${ todoTasks.length }`);
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
 
       await this.filterUpdateCards(dayReminds, todoTasks);
-      console.log(`[${ company.name } - ${ todoapp.name }] filterUpdateCards: ${ dayReminds }`);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -88,7 +87,7 @@ export default class TrelloRepository {
     section: ISection,
     todoTasks: ITodoTask<ITrelloTask>[],
     company: ICompany,
-    todoapp: ITodoApp
+    todoapp: ITodoApp,
   ): Promise<void> => {
     if (!boardAdminuser?.todoAppUsers.length) return;
 
@@ -97,7 +96,7 @@ export default class TrelloRepository {
         try {
           const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
           const cardTodos: ITrelloTask[] = await this.trelloRequest.getAllCardsFromBoard(section.board_id, trelloAuth);
-           const archiveLists: ITrelloList[] = await this.trelloRequest.getArchiveListsFromBoard(section.board_id, trelloAuth);
+          const archiveLists: ITrelloList[] = await this.trelloRequest.getArchiveListsFromBoard(section.board_id, trelloAuth);
           const archiveListIds: string[] = [];
           for (const list of archiveLists) {
             archiveListIds.push(list.id);
@@ -107,7 +106,7 @@ export default class TrelloRepository {
           const createCards = activityLogs.filter(log => log.type === 'createCard');
 
           await Promise.all(cardTodos.map(todoTask => {
-            return this.addTodoTask(todoTask, boardAdminuser, section, todoTasks, company, todoapp, todoAppUser);
+            return this.addTodoTask(todoTask, boardAdminuser, section, todoTasks, company, todoapp, todoAppUser, archiveListIds, createCards);
           }));
         } catch (err) {
           logger.error(new LoggerError(err.message));
@@ -123,7 +122,9 @@ export default class TrelloRepository {
     todoTasks: ITodoTask<ITrelloTask>[],
     company: ICompany,
     todoapp: ITodoApp,
-    todoAppUser: ITodoAppUser
+    todoAppUser: ITodoAppUser,
+    archiveListIds: string[],
+    createCards: ITrelloActivityLog[],
   ): Promise<void> => {
     const users = await this.todoUserRepository.getUserAssignTask(
       company.users,
@@ -131,24 +132,25 @@ export default class TrelloRepository {
     );
 
     if (archiveListIds.length) {
-              for (const id of archiveListIds) {
-                if (todoTask.idList == id) {
-                  todoTask.closed = true;
-                  console.log("isClosedCard");
-                  console.log(todoTask);
-                }
-              }
-            }
+      for (const id of archiveListIds) {
+        if (todoTask.idList == id) {
+          todoTask.closed = true;
+          console.log('isClosedCard');
+          console.log(todoTask.name);
+        }
+      }
+    }
 
-            const sameCard = createCards.find(card => card.data.card.id === todoTask.id);
-            if (sameCard) {
-              todoTask.idMemberCreator = sameCard.idMemberCreator;
-              console.log("idMemberCreator");
-              console.log(todoTask.idMemberCreator);
-              todoTask.createdAt = sameCard.date;
-              console.log("createdAt");
-              console.log(todoTask.createdAt);
-            }
+    const sameCard = createCards.find(card => card.data.card.id === todoTask.id);
+    if (sameCard) {
+      todoTask.idMemberCreator = sameCard.idMemberCreator;
+      if (!todoTask.idMemberCreator) {
+        console.log(todoTask.idMemberCreator);
+      }
+      todoTask.createdAt = sameCard.date;
+      // console.log('createdAt');
+      // console.log(todoTask.createdAt);
+    }
 
     const card: ITodoTask<ITrelloTask> = {
       todoTask: todoTask,
@@ -165,7 +167,7 @@ export default class TrelloRepository {
     } else {
       todoTasks.push(card);
     }
-  }
+  };
 
   updateUsersTrello = async (usersCompany: IUser[], todoappId: number): Promise<void> => {
     const users = usersCompany.filter((user) => {
@@ -263,11 +265,9 @@ export default class TrelloRepository {
 
     const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
     const taskUpdated = toJapanDateTime(todoTask.dateLastActivity);
-        const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
-        const taskUpdated = toJapanDateTime(todoTask.dateLastActivity);
-        const createdBy = await this.todoAppUserRepository.findOneBy({
-          user_app_id: todoTask.idMemberCreator,
-        });
+    const createdBy = await this.todoAppUserRepository.findOneBy({
+      user_app_id: todoTask.idMemberCreator,
+    });
 
     const todoData = new Todo();
     todoData.id = todo?.id || null;
@@ -275,7 +275,7 @@ export default class TrelloRepository {
     todoData.todoapp_id = todoapp.id;
     todoData.todoapp_reg_id = todoTask.id;
     todoData.todoapp_reg_url = todoTask.shortUrl;
-    todoData.todoapp_reg_created_by = createdBy.employee_id;
+    todoData.todoapp_reg_created_by = createdBy.employee_id || null;
     todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdAt) || taskUpdated;
     todoData.company_id = company.id;
     todoData.deadline = taskDeadLine;
@@ -291,7 +291,7 @@ export default class TrelloRepository {
     }
 
     if (sections.length) {
-      dataTodoSections.push({ todoId: todoTask.id, sections })
+      dataTodoSections.push({ todoId: todoTask.id, sections });
     }
 
     if (users.length) {

@@ -1,6 +1,6 @@
 import { fetchApi } from './request';
 import { Service } from 'typedi';
-import { ITodoAppUser, ITrelloAuth, ITrelloMember, ITrelloTask } from "../types";
+import { ITodoAppUser, ITrelloAuth, ITrelloMember, ITrelloTask ,ITrelloList, ITrelloActivityLog} from "../types";
 
 @Service()
 export default class TrelloRequest {
@@ -27,11 +27,11 @@ export default class TrelloRequest {
   }
 
   public async getArchiveListsFromBoard(boardId: string, trelloAuth: ITrelloAuth) {
-    return await this.fetchApi(`boards/${boardId}/lists/closed`, 'GET', {}, trelloAuth);
+    return await this.fetchApi<{}, ITrelloList[]>(`boards/${boardId}/lists/closed`, 'GET', {}, trelloAuth);
   }
 
   public async getActivityLogFromBoard(boardId: string, trelloAuth: ITrelloAuth) {
-    return await this.fetchApi(`boards/${boardId}/actions`, 'GET', {}, trelloAuth);
+    return await this.fetchApi<{}, ITrelloActivityLog[]>(`boards/${boardId}/actions`, 'GET', {}, trelloAuth);
   }
 
   public async getMyInfo(trelloAuth: ITrelloAuth) {
