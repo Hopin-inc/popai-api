@@ -1,6 +1,6 @@
 import { fetchApi } from './request';
 import { Service } from 'typedi';
-import { ITodoAppUser, ITrelloAuth, ITrelloTask } from '../types';
+import { ITodoAppUser, ITrelloAuth, ITrelloMember, ITrelloTask } from "../types";
 
 @Service()
 export default class TrelloRequest {
@@ -23,14 +23,14 @@ export default class TrelloRequest {
   }
 
   public async getAllCardsFromBoard(boardId: string, trelloAuth: ITrelloAuth) {
-    return await this.fetchApi(`boards/${boardId}/cards/all`, 'GET', {}, trelloAuth);
+    return await this.fetchApi<{}, ITrelloTask[]>(`boards/${boardId}/cards/all`, 'GET', {}, trelloAuth);
   }
 
   public async getMyInfo(trelloAuth: ITrelloAuth) {
-    return await this.fetchApi(`members/me`, 'GET', {}, trelloAuth);
+    return await this.fetchApi<{}, ITrelloMember>(`members/me`, 'GET', {}, trelloAuth);
   }
 
   public async updateCard(id: string, task: Partial<ITrelloTask>, trelloAuth: ITrelloAuth) {
-    return await this.fetchApi(`cards/${id}`, 'PUT', task, trelloAuth)
+    return await this.fetchApi<{}, void>(`cards/${id}`, 'PUT', task, trelloAuth)
   }
 }

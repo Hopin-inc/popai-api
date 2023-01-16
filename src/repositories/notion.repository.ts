@@ -28,7 +28,7 @@ import logger from "./../logger/winston";
 import TodoUserRepository from "./modules/todoUser.repository";
 import TodoUpdateRepository from "./modules/todoUpdate.repository";
 import CommonRepository from "./modules/common.repository";
-import LineQuequeRepository from "./modules/line_queque.repository";
+import LineQueueRepository from "./modules/lineQueue.repository";
 
 import { Client } from "@notionhq/client";
 import TodoSectionRepository from "./modules/todo.section.repository";
@@ -40,7 +40,7 @@ export default class NotionRepository {
   private todoRepository: Repository<Todo>;
   private columnNameRepository: Repository<ColumnName>;
   private todoUpdateRepository: TodoUpdateRepository;
-  private lineQueueRepository: LineQuequeRepository;
+  private lineQueueRepository: LineQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
@@ -51,7 +51,7 @@ export default class NotionRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
     this.columnNameRepository = AppDataSource.getRepository(ColumnName);
-    this.lineQueueRepository = Container.get(LineQuequeRepository);
+    this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
