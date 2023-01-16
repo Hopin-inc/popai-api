@@ -37,6 +37,7 @@ steps:
           MICROSOFT_GRAPH_API_URL: https://graph.microsoft.com/v1.0
           MICROSOFT_CLIENT_ID: $$MICROSOFT_CLIENT_ID
           MICROSOFT_CLIENT_SECRET: $$MICROSOFT_CLIENT_SECRET
+          NOTION_ACCESS_TOKEN: $$NOTION_ACCESS_TOKEN
           LINE_CHANNEL_ACCESS_TOKEN: $$LINE_CHANNEL_ACCESS_TOKEN
           LINE_CHANNEL_SECRET: $$LINE_CHANNEL_SECRET
         vpc_access_connector:
@@ -51,6 +52,7 @@ steps:
       - DB_PASSWORD
       - MICROSOFT_CLIENT_ID
       - MICROSOFT_CLIENT_SECRET
+      - NOTION_ACCESS_TOKEN
       - LINE_CHANNEL_ACCESS_TOKEN
       - LINE_CHANNEL_SECRET
   - id: Deploy app
@@ -66,6 +68,8 @@ availableSecrets:
       env: MICROSOFT_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/MICROSOFT_CLIENT_SECRET/versions/latest
       env: MICROSOFT_CLIENT_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_ACCESS_TOKEN/versions/latest
+      env: NOTION_ACCESS_TOKEN
     - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_ACCESS_TOKEN/versions/latest
       env: LINE_CHANNEL_ACCESS_TOKEN
     - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_SECRET/versions/latest
