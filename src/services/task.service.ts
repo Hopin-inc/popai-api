@@ -9,6 +9,7 @@ import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
 import RemindRepository from '../repositories/remind.repository';
 import LineQueueRepository from '../repositories/modules/lineQueue.repository';
+import SlackRepository from "../repositories/slack.repository";
 import CommonRepository from '../repositories/modules/common.repository';
 import NotionRepository from '../repositories/notion.repository';
 import { User } from '../entify/user.entity';
@@ -90,8 +91,6 @@ export default class TaskService {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
-
-      const lineUsers = chattoolUsers.filter(user => user.chattool_id === 1);
       const companies = await this.companyRepository.find({
         relations: ['implementedChatTools.chattool', 'adminUser', 'companyConditions'],
       });
@@ -102,10 +101,10 @@ export default class TaskService {
       }
       await this.remindRepository.remindTodayTaskForUser();
 
-      for (const company of companies) {
+      for (const company of companies) {  // TODO: なぜかcompany_id=2のみの個別処理があるので、排除する。
         if (company.id === 2) {
-          await this.slackRepository.remindTaskForAdminCompany(company);
-          await this.slackRepository.remindTodayTaskForUser(company);
+          // await this.slackRepository.remindTaskForAdminCompany(company); // TODO: companyの型が違うので、修正する。
+          // await this.slackRepository.remindTodayTaskForUser(company);  // TODO: companyの型が違うので、修正する。
         }
       }
     } catch (error) {

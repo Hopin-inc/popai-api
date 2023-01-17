@@ -1,125 +1,33 @@
-// noinspection DuplicatedCode
-
-import {
-  DELAY_MESSAGE,
-  DONE_MESSAGE,
-  PROGRESS_BAD_MESSAGE,
-  PROGRESS_GOOD_MESSAGE,
-  WITHDRAWN_MESSAGE,
-  CHANGE_MESSAGE,
-} from '../const/common';
-import { ITodo, IUser, ITodoSlacks } from '../types';
-import { MessageAttachment } from '@slack/web-api';
+import { ITodo, IUser, ITodoSlack } from '../types';
 import { Todo } from '../entify/todo.entity';
+import { replyActionsAfter, replyActionsBefore } from "../const/slack";
+import { relativeRemindDays } from "../const/common";
 
 export class SlackMessageBuilder {
-  static createRemindMessage(
-    userName: string,
-    todo: ITodo,
-    remindDays: number,
-  ) {
-    const messagePrefix = SlackMessageBuilder.getPrefixMessage(remindDays);
-
-    return remindDays > 0
-      ? {
-        blocks: [
-          {
-            'type': 'section',
-            'text': {
-              'type': 'mrkdwn',
-              'text': messagePrefix + '<' + todo.todoapp_reg_url + '|' + todo.name + '>の進捗はいかがですか？',
-            },
-          },
-          {
-            'type': 'actions',
-            'elements': [
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': DONE_MESSAGE,
-                },
-                'style': 'primary',
-                'value': 'click_me_123',
-              },
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': WITHDRAWN_MESSAGE,
-                },
-                'style': 'danger',
-                'value': 'click_me_123',
-              },
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': DELAY_MESSAGE,
-                },
-                'value': 'click_me_123',
-              },
-            ],
-          },
-        ],
-      }
-      : {
-        blocks: [
-          {
-            'type': 'section',
-            'text': {
-              'type': 'mrkdwn',
-              'text': messagePrefix + '<' + todo.todoapp_reg_url + '|' + todo.name + '>の進捗はいかがですか？',
-            },
-          },
-          {
-            'type': 'actions',
-            'elements': [
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': DONE_MESSAGE,
-                },
-                'style': 'primary',
-                'value': 'click_me_123',
-              },
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': WITHDRAWN_MESSAGE,
-                },
-                'style': 'danger',
-                'value': 'click_me_123',
-              },
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': PROGRESS_GOOD_MESSAGE,
-                },
-                'value': 'click_me_123',
-              },
-              {
-                'type': 'button',
-                'text': {
-                  'type': 'plain_text',
-                  'emoji': true,
-                  'text': PROGRESS_BAD_MESSAGE,
-                },
-                'value': 'click_me_123',
-              },
-            ],
-          },
-        ],
-      };
+  static createRemindMessage(userName: string, todo: ITodo, remindDays: number) {
+    const relativeDays = SlackMessageBuilder.getPrefixMessage(remindDays);
+    const actions = remindDays > 0 ? replyActionsAfter : replyActionsBefore;
+    const blocks = [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `${ relativeDays }が期日の<${ todo.todoapp_reg_url }|${ todo.name }>の進捗はいかがですか？`,
+        },
+      },
+      {
+        type: 'actions',
+        elements: actions.map(action => {
+          return {
+            type: 'button',
+            text: { type: 'plain_text', emoji: true, text: action.text },
+            style: action.style,
+            value: action.status,
+          };
+        }),
+      },
+    ];
+    return { blocks };
   }
 
   static createReplaceMessage(userId: string, todo: Todo, message: string) {
@@ -237,10 +145,10 @@ export class SlackMessageBuilder {
     };
   }
 
-  static createStartRemindMessageToUser(user: IUser, todoSlacks: ITodoSlacks[]) {
+  static createStartRemindMessageToUser(user: IUser, todoSlacks: ITodoSlack[]) {
     const sortedTodoSlacks = todoSlacks.sort((a, b) => (a.remindDays < b.remindDays ? 1 : -1));
 
-    const groupMessageMap = new Map<number, ITodoSlacks[]>();
+    const groupMessageMap = new Map<number, ITodoSlack[]>();
     sortedTodoSlacks.forEach((item) => {
       if (groupMessageMap.has(item.remindDays)) {
         groupMessageMap.get(item.remindDays).push(item);
@@ -252,17 +160,14 @@ export class SlackMessageBuilder {
     const messages = {
       blocks: [
         {
-          'type': 'section',
-          'text': {
-            'type': 'mrkdwn',
-            'text': '<@' + user.slack_id + '>お疲れさまです🙌',
-          },
+          type: 'section',
+          text: { type: 'mrkdwn', text: `<@${ user.slack_id }>お疲れさまです🙌` },
         },
       ],
     };
 
     groupMessageMap.forEach((onedayTasks, remindDays) => {
-      const messagePrefix = SlackMessageBuilder.getPrefixSummaryMessage(remindDays);
+      const messagePrefix = relativeRemindDays(remindDays);
 
       const summaryMessage =
         messagePrefix + 'タスクが' + onedayTasks.length + '件あります。';
@@ -401,33 +306,13 @@ export class SlackMessageBuilder {
 
     if (remindDays > 1) {
       messagePrefix = remindDays + '日前が期日の';
-    } else if (remindDays == 1) {
+    } else if (remindDays === 1) {
       messagePrefix = '昨日が期日の';
-    } else if (remindDays == 0) {
+    } else if (remindDays === 0) {
       messagePrefix = '今日が期日の';
-    } else if (remindDays == -1) {
+    } else if (remindDays === -1) {
       messagePrefix = '明日が期日の';
-    } else if (remindDays == -2) {
-      messagePrefix = '明後日が期日の';
-    } else {
-      messagePrefix = -messagePrefix + '日後が期日の';
-    }
-
-    return messagePrefix;
-  }
-
-  static getPrefixSummaryMessage(remindDays: number): string {
-    let messagePrefix = '';
-
-    if (remindDays > 1) {
-      messagePrefix = remindDays + '日前が期日の';
-    } else if (remindDays == 1) {
-      messagePrefix = '昨日が期日の';
-    } else if (remindDays == 0) {
-      messagePrefix = '今日が期日の';
-    } else if (remindDays == -1) {
-      messagePrefix = '明日が期日の';
-    } else if (remindDays == -2) {
+    } else if (remindDays === -2) {
       messagePrefix = '明後日が期日の';
     } else {
       messagePrefix = -messagePrefix + '日後が期日の';

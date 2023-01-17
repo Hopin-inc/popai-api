@@ -231,7 +231,7 @@ export type ITodoLines = {
   todoQueueTask?: LineMessageQueue;
 };
 
-export type ITodoSlacks = {
+export type ITodoSlack = {
   todo: ITodo;
   remindDays: number;
   chatTool: IChatTool;

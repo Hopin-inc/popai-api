@@ -134,7 +134,8 @@ export default class LineController extends Controller {
     // update status
     waitingReplyQueue.status = LineMessageQueueStatus.REPLIED;
     waitingReplyQueue.updated_at = toJapanDateTime(new Date());
-    const sectionId = waitingReplyQueue.todo.sections.length ? waitingReplyQueue.todo.sections[0].id : null;
+    const sections = waitingReplyQueue.todo.sections;
+    const sectionId = sections.length ? sections[0].id : null;
     const todoAppId = waitingReplyQueue.todo.todoapp_id;
     const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
     const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
@@ -200,7 +201,7 @@ export default class LineController extends Controller {
   ) {
     const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
-    if (superiorUsers.length == 0) {
+    if (superiorUsers.length === 0) {
       await this.handleByReplyMessage(replyMessage, chattool, user, replyToken);
     } else {
       await Promise.all(superiorUsers.map(async (superiorUser) => {
@@ -233,18 +234,18 @@ export default class LineController extends Controller {
     replyToken: string,
     superior?: string
   ) {
-    const messageMatchesStatus = (message: string, status: TodoStatus): boolean => {
-      const targetMessages = replyMessages.filter(m => m.status === status).map(m => m.displayText);
+    const messageMatchesStatus = (message: string, statuses: TodoStatus[]): boolean => {
+      const targetMessages = replyMessages.filter(m => statuses.includes(m.status)).map(m => m.displayText);
       return targetMessages.includes(message);
     }
 
-    if (messageMatchesStatus(replyMessage, TodoStatus.DONE)) {
+    if (messageMatchesStatus(replyMessage, [TodoStatus.DONE])) {
       await this.replyDoneAction(chattool, user, replyToken, superior);
-    } else if (messageMatchesStatus(replyMessage, TodoStatus.ONGOING) || messageMatchesStatus(replyMessage, TodoStatus.NOT_YET)) {
+    } else if (messageMatchesStatus(replyMessage, [TodoStatus.ONGOING, TodoStatus.NOT_YET])) {
       await this.replyInProgressAction(chattool, user, replyToken, superior);
-    } else if (messageMatchesStatus(replyMessage, TodoStatus.DELAYED)) {
+    } else if (messageMatchesStatus(replyMessage, [TodoStatus.DELAYED])) {
       await this.replyDelayAction(chattool, user, replyToken);
-    } else if (messageMatchesStatus(replyMessage, TodoStatus.WITHDRAWN)) {
+    } else if (messageMatchesStatus(replyMessage, [TodoStatus.WITHDRAWN])) {
       await this.replyWithdrawnAction(chattool, user, replyToken);
     }
   }

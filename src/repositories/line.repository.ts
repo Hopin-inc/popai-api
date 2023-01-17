@@ -74,7 +74,7 @@ export default class LineRepository {
         remindDays
       );
 
-      if (process.env.ENV == 'LOCAL') {
+      if (process.env.ENV === 'LOCAL') {
         // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(messageForSend);
       } else {
@@ -102,7 +102,7 @@ export default class LineRepository {
       //1.期日に対するリマインド
       const messages = LineMessageBuilder.createStartRemindMessageToUser(user, todoLines);
 
-      if (process.env.ENV == 'LOCAL') {
+      if (process.env.ENV === 'LOCAL') {
         // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(messages);
       } else {
@@ -323,7 +323,7 @@ export default class LineRepository {
       subordinate_user_id: In(userIds),
     });
 
-    if (superiorUserIds.length == 0) {
+    if (superiorUserIds.length === 0) {
       return Promise.resolve([]);
     }
     
@@ -346,7 +346,7 @@ export default class LineRepository {
       })
       .getMany();
 
-    if (superiorUserIds.length == 0) {
+    if (superiorUserIds.length === 0) {
       return Promise.resolve([]);
     }
 
@@ -381,7 +381,7 @@ export default class LineRepository {
     messageTriggerId: number,
     remindTypes?: IRemindType
   ): Promise<any> => {
-    if (process.env.ENV == 'LOCAL') {
+    if (process.env.ENV === 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.pushMessage(user.line_id, message, false);
@@ -398,7 +398,7 @@ export default class LineRepository {
     message: Message,
     user?: User
   ): Promise<any> => {
-    if (process.env.ENV == 'LOCAL') {
+    if (process.env.ENV === 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.replyMessage(replyToken, message);
