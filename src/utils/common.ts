@@ -28,3 +28,12 @@ export function diffDays(startDate: Date, endDate: Date) {
 
   return endDay.diff(startDay, 'days');
 }
+
+export function getDate(date: Date, format = 'YYYY/MM/DD') {
+  return moment(date).format(format);
+}
+
+export function sliceByNumber<T>(array: T[], n: number): T[][] {
+  const length = Math.ceil(array.length / n);
+  return new Array(length).fill(null).map((_, i) => array.slice(i * n, (i + 1) * n));
+}

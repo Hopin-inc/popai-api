@@ -13,14 +13,14 @@ import logger from './../logger/winston';
  * @param headers
  * @returns
  */
-export async function fetchApi(
+export async function fetchApi<Req extends Record<string, any>, Res>(
   baseUrl: string,
   method: string,
-  params = {},
+  params: Partial<Req> = {},
   isFormData: boolean = false,
   accessToken: string = null,
   headers?: HeadersInit,
-) {
+): Promise<Res> {
   let url = baseUrl;
   const options = {
     method: method,

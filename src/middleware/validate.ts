@@ -2,7 +2,7 @@ import { RequestHandler } from 'express';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { sanitize } from 'class-sanitizer';
-import { StatusCodes } from './../common/status-codes';
+import { StatusCodes } from '../common/status-codes';
 
 export function dtoValidation(type: any, skipMissingProperties = false): RequestHandler {
   return (req, res, next) => {

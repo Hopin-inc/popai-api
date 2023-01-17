@@ -44,10 +44,10 @@ export default class RemindRepository {
     const userTodoQueueMap = this.mapUserQueueTaskList(
       todoAllTodayQueueTasks,
       chattool,
-      chattoolUsers
+      chattoolUsers,
     );
 
-    for await (const [userId, todoLines] of userTodoQueueMap) {
+    for await (const [_, todoLines] of userTodoQueueMap) {
       await this.lineRepo.pushMessageStartRemindToUser(todoLines);
 
       //push first line
@@ -70,11 +70,8 @@ export default class RemindRepository {
 
     for (const lineQueues of todoAllTodayQueueTasks) {
       const remindDays = diffDays(lineQueues.todo.deadline, toJapanDateTime(new Date()));
-      const chatToolUser = chattoolUsers.find(
-        (chattoolUser) =>
-          chattool &&
-          chattoolUser.chattool_id == chattool.id &&
-          chattoolUser.user_id == lineQueues.user.id
+      const chatToolUser = chattoolUsers.find(chattoolUser =>
+        chattool && chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === lineQueues.user.id
       );
 
       if (chatToolUser) {
@@ -109,58 +106,50 @@ export default class RemindRepository {
    * @param company
    */
   remindTaskForAdminCompany = async (company: ICompany): Promise<void> => {
-    if (!company.admin_user) {
-      logger.error(new LoggerError(company.name + 'の管理者が設定していません。'));
+    if (!company.adminUser) {
+      logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
     }
 
     const chattoolUsers = await this.commonRepository.getChatToolUsers();
-    const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(
-      company.id
-    );
+    const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(company.id);
 
     // 期日未設定のタスクがない旨のメッセージが管理者に送られること
     if (needRemindTasks.length) {
       // 期日未設定のタスクがある場合
 
-      const notSetDueDateAndNotAssign = needRemindTasks.filter(
-        (task) => !task.deadline && !task.todoUsers.length
-      );
+      const notSetDueDateAndNotAssign = needRemindTasks.filter(todo => !todo.deadline && !todo.todoUsers.length);
 
       if (notSetDueDateAndNotAssign.length) {
-        const remindTasks = notSetDueDateAndNotAssign.filter(
-          (tasks) => tasks.reminded_count < Common.remindMaxCount
-        );
+        const remindTasks = notSetDueDateAndNotAssign.filter(todo => todo.reminded_count < Common.remindMaxCount);
 
         // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
         // Send to admin list task which not set duedate
         if (remindTasks.length) {
-          company.chattools.forEach(async (chattool) => {
-            if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
-              const adminUser = company.admin_user;
+          for (const chattool of company.chattools) {
+            if (chattool.tool_code === ChatToolCode.LINE && company.adminUser) {
+              const adminUser = company.adminUser;
               const chatToolUser = chattoolUsers.find(
-                (chattoolUser) =>
-                  chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
+                chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
               );
 
               if (chatToolUser) {
                 await this.lineRepo.pushListTaskMessageToAdmin(
                   chattool,
                   { ...adminUser, line_id: chatToolUser.auth_key },
-                  remindTasks
+                  remindTasks,
                 );
               }
             }
-          });
+          }
 
           // await this.updateRemindedCount(remindTasks);
         }
       } else {
-        company.chattools.forEach(async (chattool) => {
-          if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
-            const adminUser = company.admin_user;
+        for (const chattool of company.chattools) {
+          if (chattool.tool_code === ChatToolCode.LINE && company.adminUser) {
+            const adminUser = company.adminUser;
             const chatToolUser = chattoolUsers.find(
-              (chattoolUser) =>
-                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
+              chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
             );
 
             if (chatToolUser) {
@@ -170,67 +159,64 @@ export default class RemindRepository {
               });
             }
           }
-        });
+        }
       }
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
       const notSetDueDateTasks = needRemindTasks.filter(
-        (task) =>
-          !task.deadline && task.todoUsers.length && task.reminded_count < Common.remindMaxCount
+        todo => todo.deadline && todo.users.length && todo.reminded_count < Common.remindMaxCount
       );
 
       // Send list task to each user
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-        userTodoMap.forEach((todos: ITodo[], userId: number) => {
-          company.chattools.forEach(async (chattool) => {
-            if (chattool.tool_code == ChatToolCode.LINE) {
+        for (const [_, todos] of userTodoMap) {
+          for (const chattool of company.chattools) {
+            if (chattool.tool_code === ChatToolCode.LINE) {
               const user = todos[0].user;
-
-              const chatToolUser = chattoolUsers.find(
-                (chattoolUser) =>
-                  chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == user.id
-              );
+              const chatToolUser = chattoolUsers.find(chattoolUser => {
+                return chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id;
+              });
 
               if (chatToolUser) {
                 await this.lineRepo.pushListTaskMessageToUser(
                   chattool,
                   { ...user, line_id: chatToolUser.auth_key },
-                  todos
+                  todos,
                 );
               }
             }
-          });
+          }
 
           // await this.updateRemindedCount(todos);
-        });
+        }
       }
 
       // 担当者未設定・期日設定済みの場合
       const notSetAssignTasks = needRemindTasks.filter(
         (task) =>
-          task.deadline && !task.todoUsers.length && task.reminded_count < Common.remindMaxCount
+          task.deadline && !task.users.length && task.reminded_count < Common.remindMaxCount,
       );
 
       if (notSetAssignTasks.length) {
-        company.chattools.forEach(async (chattool) => {
-          if (chattool.tool_code == ChatToolCode.LINE && company.admin_user) {
-            const adminUser = company.admin_user;
+        for (const chattool of company.chattools) {
+          if (chattool.tool_code === ChatToolCode.LINE && company.adminUser) {
+            const adminUser = company.adminUser;
             const chatToolUser = chattoolUsers.find(
               (chattoolUser) =>
-                chattoolUser.chattool_id == chattool.id && chattoolUser.user_id == adminUser.id
+                chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
             );
 
             if (chatToolUser) {
               await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
                 chattool,
                 { ...adminUser, line_id: chatToolUser.auth_key },
-                notSetAssignTasks
+                notSetAssignTasks,
               );
             }
           }
-        });
+        }
 
         // await this.updateRemindedCount(notSetAssignTasks);
       }
