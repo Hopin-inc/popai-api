@@ -1,44 +1,44 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
-import { TodoApp } from "./todoapp.entity";
+import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
+import BaseEntity from "./base.entity";
 import { User } from "./user.entity";
+import { TodoApp } from "./todoapp.entity";
 
-@Entity("todo_app_users")
-export class TodoAppUser {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
+@Entity('todo_app_users')
+export class TodoAppUser extends BaseEntity {
+  @PrimaryColumn()
   employee_id: number;
 
-  @Column()
+  @PrimaryColumn()
   todoapp_id: number;
 
-  @Column()
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   user_app_id: string;
 
-  @Column()
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   api_key: string;
 
-  @Column()
+  @Column({ type: "text", nullable: true, collation: "utf8mb4_unicode_ci" })
   api_token: string;
 
-  @Column()
+  @Column({ type: "text", nullable: true, collation: "utf8mb4_unicode_ci" })
   refresh_token: string;
 
-  @Column()
+  @Column({ type: "int", nullable: true })
   expires_in: number;
 
   @ManyToOne(
     () => User,
-    (user) => user.todoAppUsers
+    user => user.todoAppUsers,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
   )
   @JoinColumn({ name: "employee_id" })
   user: User;
 
   @ManyToOne(
     () => TodoApp,
-    (todoapp) => todoapp.todoappuser
+    todoApp => todoApp.todoAppUsers,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
   )
   @JoinColumn({ name: "todoapp_id" })
-  todoapp: TodoApp;
+  todoApp: TodoApp;
 }

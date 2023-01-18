@@ -1,4 +1,4 @@
-import TaskService from "./../services/task.service";
+import TaskService from "../services/task.service";
 import { Get, Route, Controller } from "tsoa";
 
 import { Container } from "typedi";

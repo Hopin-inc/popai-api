@@ -1,9 +1,10 @@
 export const Common = {
   day_remind: 1,
-  trello: "trello",
-  microsoft: "microsoft",
+  trello: 'trello',
+  microsoft: 'microsoft',
+  notion: "notion",
   completed: 100,
-  microsoftBaseUrl: "https://tasks.office.com/{tenant}/Home/Task",
+  microsoftBaseUrl: 'https://tasks.office.com/{tenant}/Home/Task',
   remindMaxCount: 2,
 };
 
@@ -35,23 +36,23 @@ export const RemindType = {
 };
 
 export const SenderType = {
-  FROM_USER: 1,
-  FROM_BOT: 0,
+  FROM_USER: true,
+  FROM_BOT: false,
 };
 
 export const ReplyStatus = {
-  REPLIED: 1,
-  NOT_REPLIED: 0,
+  REPLIED: true,
+  NOT_REPLIED: false,
 };
 
 export const OpenStatus = {
-  OPENNED: 1,
-  CLOSED: 0,
+  OPENNED: true,
+  CLOSED: false,
 };
 
 export const ChatToolCode = {
-  LINE: "line",
-  SLACK: "slack",
+  LINE: 'line',
+  SLACK: 'slack',
 };
 
 export const LineMessageQueueStatus = {
@@ -76,16 +77,16 @@ export const RemindUserJobResult = {
 };
 
 export const Colors: { [key: string]: string } = {
-  normal: "#F5F5F5",
-  warning: "#FBC02D",
-  alert: "#F44336",
-};
+  normal: '#F5F5F5',
+  warning: '#FBC02D',
+  alert: '#F44336',
+}
 
 export const ButtonStylesByColor: { [key: keyof typeof Colors]: "primary" | "secondary" | "link" } = {
-  normal: "secondary",
-  warning: "secondary",
-  alert: "primary",
-};
+  normal: 'secondary',
+  warning: 'secondary',
+  alert: 'primary',
+}
 
 export enum TodoStatus {
   DONE = "STATUS_DONE",
@@ -167,6 +168,7 @@ export const messageData: string[] = messageDataBefore.concat(messageDataAfter);
 export const MessageAssets = {
   CHECK: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671105268/angel_materials/check_dark_in0ogu.png",
   ALERT: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671104878/angel_materials/alert_danger_kbb622.png",
-};
+}
 
-export const REMIND_ME_COMMAND = "action_remind_me";
+export const REMIND_ME_COMMAND = 'action_remind_me';
+export const LINE_MAX_LABEL_LENGTH = 40;

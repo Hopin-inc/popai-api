@@ -1,20 +1,11 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  Unique,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToOne,
-  JoinColumn,
-} from "typeorm";
-import { ChatMessage } from "./message.entity";
-import { Todo } from "./todo.entity";
-import { User } from "./user.entity";
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, ManyToOne } from "typeorm";
+import { ChatMessage } from './message.entity';
+import { Todo } from './todo.entity';
+import { User } from './user.entity';
+import BaseEntity from "./base.entity";
 
-@Entity("line_message_queues")
-@Unique(["todo_id", "user_id", "status", "remind_date"])
-export class LineMessageQueue {
+@Entity('line_message_queues')
+export class LineMessageQueue extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -24,30 +15,33 @@ export class LineMessageQueue {
   @Column()
   user_id: number;
 
-  @Column()
+  @Column({ type: "tinyint", width: 1, default: 0 })
   status: number;
 
-  @Column()
+  @Column({ type: "date", nullable: true })
   remind_date: Date;
 
-  @Column()
+  @Column({ nullable: true })
   message_id: number;
 
-  @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
-
-  @OneToOne(() => User)
-  @JoinColumn({ name: "user_id" })
+  @ManyToOne(
+    () => User,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+  )
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @OneToOne(() => Todo)
-  @JoinColumn({ name: "todo_id" })
+  @ManyToOne(
+    () => Todo,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+  )
+  @JoinColumn({ name: 'todo_id' })
   todo: Todo;
 
-  @OneToOne(() => ChatMessage)
-  @JoinColumn({ name: "message_id" })
+  @OneToOne(
+    () => ChatMessage,
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+  )
+  @JoinColumn({ name: 'message_id' })
   message: ChatMessage;
 }

@@ -1,9 +1,9 @@
-import { ITodo, IUser, ITodoUser, ITodoUserUpdate } from "../../types";
+import { ITodo, ITodoUser, ITodoUserUpdate, IUser } from "../../types";
 import { Service } from "typedi";
 import { IsNull, Repository } from "typeorm";
-import { AppDataSource } from "../../config/dataSource";
+import { AppDataSource } from "../../config/data-source";
 import { Todo } from "../../entify/todo.entity";
-import { TodoUser } from "../../entify/todo.user.entity";
+import { TodoUser } from "../../entify/todouser.entity";
 import { toJapanDateTime } from "../../utils/common";
 
 @Service()
@@ -47,10 +47,9 @@ export default class TodoUserRepository {
   };
 
   saveTodoUsers = async (dataTodoUsers: ITodoUserUpdate[]): Promise<void> => {
-    //todo
     const todoUserDatas = [];
 
-    for (const dataTodoUser of dataTodoUsers) {
+    for await (const dataTodoUser of dataTodoUsers) {
       const todo: ITodo = await this.todoRepository.findOneBy({
         todoapp_reg_id: dataTodoUser.todoId,
       });
@@ -65,7 +64,6 @@ export default class TodoUserRepository {
 
           if (!todoUser) {
             const todoUserData = new TodoUser();
-            todoUserData.id = null;
             todoUserData.todo_id = todo.id;
             todoUserData.user_id = user.id;
             todoUserData.created_at = toJapanDateTime(new Date());

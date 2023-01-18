@@ -1,10 +1,10 @@
 import { ITodo, ITodoUpdate } from "../../types";
 import { Service } from "typedi";
 import { Repository } from "typeorm";
-import { AppDataSource } from "../../config/dataSource";
+import { AppDataSource } from "../../config/data-source";
 import logger from "../../logger/winston";
 import { LoggerError } from "../../exceptions";
-import { TodoUpdateHistory } from "../../entify/todoUpdateHistory.entity";
+import { TodoUpdateHistory } from "../../entify/todoupdatehistory.entity";
 import { Todo } from "../../entify/todo.entity";
 
 @Service()

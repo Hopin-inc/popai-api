@@ -134,7 +134,7 @@ export default class LineController extends Controller {
     // update status
     waitingReplyQueue.status = LineMessageQueueStatus.REPLIED;
     waitingReplyQueue.updated_at = toJapanDateTime(new Date());
-    const sectionId = waitingReplyQueue.todo.section_id;
+    const sectionId = waitingReplyQueue.todo.sections.length ? waitingReplyQueue.todo.sections[0].id : null;
     const todoAppId = waitingReplyQueue.todo.todoapp_id;
     const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
     const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
