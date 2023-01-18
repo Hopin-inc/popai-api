@@ -65,10 +65,10 @@ export default class TaskService {
               await this.trelloRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.microsoft:
-              await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              // await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.notion:
-              await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              // await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             default:
               break;
