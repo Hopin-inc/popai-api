@@ -4,7 +4,7 @@ import { Repository, FindOptionsWhere } from "typeorm";
 import { Company } from '../entify/company.entity';
 import MicrosoftRepository from '../repositories/microsoft.repository';
 import TrelloRepository from '../repositories/trello.repository';
-import { Common, RemindUserJobResult, RemindUserJobStatus } from '../const/common';
+import { ChatToolCode, Common, RemindUserJobResult, RemindUserJobStatus } from "../const/common";
 import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
 import RemindRepository from '../repositories/remind.repository';
@@ -95,18 +95,22 @@ export default class TaskService {
         relations: ['implementedChatTools.chattool', 'adminUser', 'companyConditions'],
       });
 
-      for (const company of companies) {
-        await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
-        await this.remindRepository.remindTaskForAdminCompany({ ...company, chattools: company.chatTools });
-      }
-      await this.remindRepository.remindTodayTaskForUser();
-
-      for (const company of companies) {  // TODO: なぜかcompany_id=2のみの個別処理があるので、排除する。
-        if (company.id === 2) {
-          // await this.slackRepository.remindTaskForAdminCompany(company); // TODO: companyの型が違うので、修正する。
-          // await this.slackRepository.remindTodayTaskForUser(company);  // TODO: companyの型が違うので、修正する。
+      const remindOperations = async (company: Company) => {
+        for (const chatTool of company.chatTools) {
+          switch (chatTool.tool_code) {
+            case ChatToolCode.LINE:
+              await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
+              await this.remindRepository.remindTaskForAdminCompany({ ...company, chattools: company.chatTools });
+              break;
+            case ChatToolCode.SLACK:
+              await this.slackRepository.remindTaskForAdminCompany(company);
+              await this.slackRepository.remindTodayTaskForUser(company);
+              break;
+          }
         }
-      }
+      };
+      await Promise.all(companies.map(company => remindOperations(company)));
+      await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);

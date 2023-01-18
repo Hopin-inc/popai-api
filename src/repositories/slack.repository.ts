@@ -4,7 +4,7 @@ import { LoggerError } from '../exceptions';
 import { Container, Service } from 'typedi';
 import { SlackMessageBuilder } from '../common/slack_message';
 import { Todo } from '../entify/todo.entity';
-import { IChatTool, IChatToolUser, ICompany, IRemindType, ITodo, ITodoSlack, IUser } from '../types';
+import { IChatTool, IChatToolUser, IRemindType, ITodo, ITodoSlack, IUser } from '../types';
 import { SlackBot } from '../config/slackbot';
 
 import { AppDataSource } from '../config/data-source';
@@ -33,6 +33,7 @@ import { SlackProfile } from '../entify/slack.profile';
 import { MessageAttachment } from '@slack/web-api';
 import { ChatToolUser } from '../entify/chattool.user.entity';
 import { Section } from '../entify/section.entity';
+import { Company } from "../entify/company.entity";
 
 @Service()
 export default class SlackRepository {
@@ -421,17 +422,16 @@ export default class SlackRepository {
     return await this.messageRepository.save(chatMessage);
   };
 
-  getSendChannel = async (company: ICompany): Promise<string> => {
+  getSendChannel = async (company: Company): Promise<string> => {
     const companyId = company.id;
-    const section = await this.sectionRepository
-      .createQueryBuilder('sections')
-      .where('sections.company_id = :companyId', { companyId })
-      .andWhere('sections.channel_id IS NOT NULL')
-      .getOne();
-    return section.channel_id;
+    const section = await this.sectionRepository.findOneBy({
+      company_id: companyId,
+      channel_id: Not(IsNull()),
+    });
+    return section?.channel_id;
   };
 
-  remindTaskForAdminCompany = async (company: ICompany): Promise<void> => {
+  remindTaskForAdminCompany = async (company: Company): Promise<void> => {
     if (!company.adminUser) {
       logger.error(new LoggerError(company.name + 'の管理者が設定していません。'));
     }
@@ -456,12 +456,11 @@ export default class SlackRepository {
           // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
           // Send to admin list task which not set duedate
           if (remindTasks.length) {
-            for (const chattool of company.chattools) {
+            for (const chattool of company.chatTools) {
               if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
                 const adminUser = company.adminUser;
                 const chatToolUser = chattoolUsers.find(
-                  (chattoolUser) =>
-                    chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
+                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
                 );
 
                 if (chatToolUser) {
@@ -478,7 +477,7 @@ export default class SlackRepository {
             // await this.updateRemindedCount(remindTasks);
           }
         } else {
-          for (const chattool of company.chattools) {
+          for (const chattool of company.chatTools) {
             if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chattoolUsers.find(
@@ -506,7 +505,7 @@ export default class SlackRepository {
           const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
           for (const [_, todos] of userTodoMap) {
-            for (const chattool of company.chattools) {
+            for (const chattool of company.chatTools) {
               if (chattool.tool_code === ChatToolCode.SLACK) {
                 const user = todos[0].user;
                 const chatToolUser = chattoolUsers.find(
@@ -533,7 +532,7 @@ export default class SlackRepository {
         );
 
         if (notSetAssignTasks.length) {
-          for (const chattool of company.chattools) {
+          for (const chattool of company.chatTools) {
             if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chattoolUsers.find(
@@ -616,7 +615,7 @@ export default class SlackRepository {
     return map;
   };
 
-  remindTodayTaskForUser = async (company: ICompany): Promise<void> => {
+  remindTodayTaskForUser = async (company: Company): Promise<void> => {
     const channelId = await this.getSendChannel(company);
     const chatToolUsers = await this.commonRepository.getChatToolUsers();
     const remindTasks: ITodo[] = await this.getTodayRemindTasks(company, chatToolUsers);
@@ -639,7 +638,7 @@ export default class SlackRepository {
     return await this.todoRepository.upsert(todoDatas, []);
   };
 
-  getTodayRemindTasks = async (company: ICompany, chatToolUsers: ChatToolUser[]): Promise<Todo[]> => {
+  getTodayRemindTasks = async (company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> => {
     const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
     const today = toJapanDateTime(new Date());
 
@@ -651,7 +650,7 @@ export default class SlackRepository {
 
       if (dayReminds.includes(dayDurations)) {
         for (const todoUser of todo.todoUsers) {
-          company.chattools.forEach(async (chattool) => {
+          company.chatTools.forEach(async (chattool) => {
             if (chattool.tool_code === ChatToolCode.SLACK) {
               const chatToolUser = chatToolUsers.find(
                 chattoolUser =>
@@ -669,7 +668,7 @@ export default class SlackRepository {
     return todayRemindTasks;
   };
 
-  getRemindTodoTask = async (company: ICompany, user?: User): Promise<Todo[]> => {
+  getRemindTodoTask = async (company: Company, user?: User): Promise<Todo[]> => {
     const today = toJapanDateTime(new Date());
     const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
 
