@@ -14,7 +14,6 @@ import {
   IRemindTask,
   ITrelloTask,
   ITodoSectionUpdate,
-  ITrelloMember,
   ITrelloList,
   ITrelloActivityLog,
 } from '../types';
@@ -97,17 +96,21 @@ export default class TrelloRepository {
           const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
           const cardTodos: ITrelloTask[] = await this.trelloRequest.getAllCardsFromBoard(section.board_id, trelloAuth);
           const archiveLists: ITrelloList[] = await this.trelloRequest.getArchiveListsFromBoard(section.board_id, trelloAuth);
-          const archiveListIds: string[] = [];
-          for (const list of archiveLists) {
-            archiveListIds.push(list.id);
-          }
-
+          const archiveListIds: string[] = archiveLists.map(list => list.id);
           const activityLogs: ITrelloActivityLog[] = await this.trelloRequest.getActivityLogFromBoard(section.board_id, trelloAuth);
           const createCards = activityLogs.filter(log => log.type === 'createCard');
 
-          await Promise.all(cardTodos.map(todoTask => {
-            return this.addTodoTask(todoTask, boardAdminuser, section, todoTasks, company, todoapp, todoAppUser, archiveListIds, createCards);
-          }));
+          await Promise.all(cardTodos.map(todoTask => this.addTodoTask(
+            todoTask,
+            boardAdminuser,
+            section,
+            todoTasks,
+            company,
+            todoapp,
+            todoAppUser,
+            archiveListIds,
+            createCards
+          )));
         } catch (err) {
           logger.error(new LoggerError(err.message));
         }
@@ -133,10 +136,8 @@ export default class TrelloRepository {
 
     if (archiveListIds.length) {
       for (const id of archiveListIds) {
-        if (todoTask.idList == id) {
+        if (todoTask.idList === id) {
           todoTask.closed = true;
-          console.log('isClosedCard');
-          console.log(todoTask.name);
         }
       }
     }
@@ -144,12 +145,7 @@ export default class TrelloRepository {
     const sameCard = createCards.find(card => card.data.card.id === todoTask.id);
     if (sameCard) {
       todoTask.idMemberCreator = sameCard.idMemberCreator;
-      if (!todoTask.idMemberCreator) {
-        console.log(todoTask.idMemberCreator);
-      }
       todoTask.createdAt = sameCard.date;
-      // console.log('createdAt');
-      // console.log(todoTask.createdAt);
     }
 
     const card: ITodoTask<ITrelloTask> = {
