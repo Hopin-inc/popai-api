@@ -236,7 +236,7 @@ export class SlackMessageBuilder {
         'type': 'section',
         'text': {
           'type': 'mrkdwn',
-          'text': '<@/' + adminUser.slack_id + '>お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭\n\n' + notAssignTodos.join('\n'),
+          'text': '<@' + adminUser.slack_id + '>お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭\n\n' + notAssignTodos.join('\n'),
         },
       }],
     };
