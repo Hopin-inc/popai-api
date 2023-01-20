@@ -238,7 +238,7 @@ export default class SlackController extends Controller {
       chatTool,
       user,
       reportMessage,
-      MessageTriggerType.ACTION,
+      MessageTriggerType.REPORT,
       channelId,
       threadId
     );
