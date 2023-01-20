@@ -159,6 +159,22 @@ export const replyMessagesAfter: ReplyMessage[] = [
   },
 ];
 
+export const relativeRemindDays = (remindDays: number): string => {
+  if (remindDays > 1) {
+    return `${ remindDays.toString() }日前`;
+  } else if (remindDays === 1) {
+    return '昨日';
+  } else if (remindDays === 0) {
+    return '今日';
+  } else if (remindDays === -1) {
+    return '明日';
+  } else if (remindDays === -2) {
+    return 'あさって';
+  } else {
+    return `${ (-remindDays).toString() }日後`;
+  }
+}
+
 export const replyMessages: ReplyMessage[] = replyMessagesBefore.concat(replyMessagesAfter);
 
 const messageDataBefore: string[] = replyMessagesBefore.map(message => message.status);

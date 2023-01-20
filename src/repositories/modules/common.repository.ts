@@ -141,7 +141,7 @@ export default class CommonRepository {
     return chatToolUser;
   };
 
-  getChatToolUserByLineId = async (authKey: string) => {
+  getChatToolUserByUserId = async (authKey: string) => {
     return await this.userRepository
       .createQueryBuilder('users')
       .innerJoin('chat_tool_users', 'r', 'users.id = r.user_id')

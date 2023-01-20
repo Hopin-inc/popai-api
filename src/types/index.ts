@@ -31,6 +31,7 @@ export type IUser = {
   id: number;
   name: string;
   line_id?: string;
+  slack_id?: string;
   companyCondition?: ICompanyCondition[];
   todoAppUsers?: ITodoAppUser[];
 };
@@ -40,6 +41,7 @@ export type ISection = {
   company_id: number | null;
   todoapp_id: number | null;
   board_id: string;
+  channel_id: string | null;
   boardAdminUser: IUser;
 };
 
@@ -125,6 +127,7 @@ export type IChatToolUser = {
 export type ITrelloTask = {
   id: string;
   name: string;
+  idList: string;
   closed: boolean;
   dueComplete: boolean;
   dateLastActivity: Date;
@@ -133,6 +136,8 @@ export type ITrelloTask = {
   shortUrl: string;
   url: string;
   idMembers: string[];
+  idMemberCreator?: string;
+  createdAt?: Date;
 };
 
 export type ITask = ITrelloTask | IMicrosoftTask | INotionTask;
@@ -229,6 +234,13 @@ export type ITodoLines = {
   todoQueueTask?: LineMessageQueue;
 };
 
+export type ITodoSlack = {
+  todo: ITodo;
+  remindDays: number;
+  chatTool: IChatTool;
+  user: IUser;
+};
+
 export type ITodoQueue = {
   todoId: string;
   userId: number;
@@ -238,6 +250,46 @@ export type ITodoRemind = {
   remindDays: number;
   todoTask: ITodo;
 };
+
+export type ISlackPostResponse = {
+  ok: boolean;
+  channel: string;
+  ts: string;
+}
+
+export type ISlackActionResponse = {
+  type: string;
+  user: ISlackUser;
+  container: ISlackContainer;
+  message: ISlackMessage;
+  response_url: string;
+  actions: ISlackActions;
+}
+
+export type ISlackUser = {
+  id: string;
+  username: string;
+  team_id: string;
+}
+
+export type ISlackContainer = {
+  type: string;
+  message_ts: string;
+  attachment_id: number;
+  channel_id: string;
+  is_ephemeral: boolean;
+  is_app_unfurl: boolean;
+}
+
+export type ISlackActions = {
+  action_id: string;
+  block_id: string;
+  action_ts: string;
+}
+
+export type ISlackMessage = {
+  text: string;
+}
 
 export type IColumnName = {
   label_assignee: string | null;
@@ -274,4 +326,42 @@ export type ISectionLabel = {
   name: string;
 }
 
-export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>
+export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;
+
+export type ITrelloList = {
+  id: string;
+  name: string;
+  closed: boolean;
+  idBoard: string;
+  pos: number;
+  subscribed: boolean;
+  softLimit: any;
+}
+
+export type ITrelloActivityLog = {
+  idMemberCreator: string;
+  data: {
+    card?: {
+      closed: boolean;
+      id: string;
+      name: string;
+      idShort: number;
+      shortLink: string;
+    };
+    old?: {
+      closed: boolean;
+    };
+    board?: {
+      id: string;
+      name: string;
+      shortLink: string;
+    };
+    list?: {
+      id: string;
+      name: string;
+    };
+  }
+  type: string;
+  date: Date;
+  [key: string]: any;
+}

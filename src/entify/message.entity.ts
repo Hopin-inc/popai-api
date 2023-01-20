@@ -23,11 +23,11 @@ export class ChatMessage {
 
   @Column({ nullable: true })
   user_id: number;
-
+  
   @Column({ nullable: true })
   chattool_id: number;
 
-  @Column({ type: "text", collation: "utf8mb4_unicode_ci" })
+  @Column({ type: "text", collation: "utf8mb4_unicode_ci", nullable: true })
   message_token: string;
 
   @Column({ type: "datetime", nullable: true, default: null })
@@ -62,6 +62,12 @@ export class ChatMessage {
   @Column({ nullable: true })
   remind_before_days: number;
 
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  channel_id: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  thread_id: string;
+  
   @ManyToOne(
     () => MessageType,
     { onDelete: "SET NULL", onUpdate: "RESTRICT" }

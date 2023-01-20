@@ -4,18 +4,19 @@ import { Repository, FindOptionsWhere } from "typeorm";
 import { Company } from '../entify/company.entity';
 import MicrosoftRepository from '../repositories/microsoft.repository';
 import TrelloRepository from '../repositories/trello.repository';
-import { Common, RemindUserJobResult, RemindUserJobStatus } from '../const/common';
+import { ChatToolCode, Common, RemindUserJobResult, RemindUserJobStatus } from "../const/common";
 import { Service, Container } from 'typedi';
 import logger from '../logger/winston';
 import RemindRepository from '../repositories/remind.repository';
 import LineQueueRepository from '../repositories/modules/lineQueue.repository';
+import SlackRepository from "../repositories/slack.repository";
 import CommonRepository from '../repositories/modules/common.repository';
 import NotionRepository from '../repositories/notion.repository';
 import { User } from '../entify/user.entity';
 import { ICompany, ITodoAppUser } from '../types';
 import { RemindUserJob } from '../entify/remind_user_job.entity';
 import { toJapanDateTime } from '../utils/common';
-import { Todo } from "../entify/todo.entity";
+import { Todo } from '../entify/todo.entity';
 
 @Service()
 export default class TaskService {
@@ -26,6 +27,7 @@ export default class TaskService {
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineQueueRepository;
   private commonRepository: CommonRepository;
+  private slackRepository: SlackRepository;
   private remindUserJobRepository: Repository<RemindUserJob>;
 
   constructor() {
@@ -36,6 +38,7 @@ export default class TaskService {
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineQueueRepository);
     this.commonRepository = Container.get(CommonRepository);
+    this.slackRepository = Container.get(SlackRepository);
     this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);
   }
 
@@ -45,7 +48,7 @@ export default class TaskService {
   syncTodoTasks = async (company: ICompany = null): Promise<any> => {
     try {
       // update old line queue
-      // await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await this.lineQueueRepository.updateStatusOfOldQueueTask();
 
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
@@ -62,10 +65,10 @@ export default class TaskService {
               await this.trelloRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.microsoft:
-              await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              // await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.notion:
-              await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              // await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             default:
               break;
@@ -88,18 +91,25 @@ export default class TaskService {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
-
       const companies = await this.companyRepository.find({
         relations: ['implementedChatTools.chattool', 'adminUser', 'companyConditions'],
       });
 
-      //remind task for adminn
-      for (const company of companies) {
-        await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
-        await this.remindRepository.remindTaskForAdminCompany({ ...company, chattools: company.chatTools });
-      }
-
-      //remind task for user by queue
+      const remindOperations = async (company: Company) => {
+        for (const chatTool of company.chatTools) {
+          switch (chatTool.tool_code) {
+            case ChatToolCode.LINE:
+              await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
+              await this.remindRepository.remindTaskForAdminCompany({ ...company, chattools: company.chatTools });
+              break;
+            case ChatToolCode.SLACK:
+              await this.slackRepository.remindTaskForAdminCompany(company);
+              await this.slackRepository.remindTodayTaskForUser(company);
+              break;
+          }
+        }
+      };
+      await Promise.all(companies.map(company => remindOperations(company)));
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -183,5 +193,5 @@ export default class TaskService {
         await this.microsoftRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
         return;
     }
-  }
+  };
 }

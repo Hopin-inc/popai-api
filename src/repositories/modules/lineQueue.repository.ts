@@ -1,16 +1,16 @@
-import Container, { Service } from "typedi";
-import { Repository } from "typeorm";
-import moment from "moment";
-import { AppDataSource } from "../../config/dataSource";
-import { LineMessageQueue } from "../../entify/lineMessageQueue";
-import { ChatToolCode, Common, LineMessageQueueStatus } from "../../const/common";
-import { diffDays, toJapanDateTime } from "../../utils/common";
-import { Todo } from "../../entify/todo.entity";
-import { ICompany } from "../../types";
-import { ChatToolUser } from "../../entify/chattool.user.entity";
-import CommonRepository from "./common.repository";
-import { Company } from "../../entify/company.entity";
-import { User } from "../../entify/user.entity";
+import Container, { Service } from 'typedi';
+import { Repository } from 'typeorm';
+import moment from 'moment';
+import { AppDataSource } from '../../config/data-source';
+import { LineMessageQueue } from '../../entify/line_message_queue.entity';
+import { ChatToolCode, Common, LineMessageQueueStatus, RemindType } from '../../const/common';
+import { diffDays, toJapanDateTime } from '../../utils/common';
+import { Todo } from '../../entify/todo.entity';
+import { ICompany } from '../../types';
+import { ChatToolUser } from '../../entify/chattool.user.entity';
+import CommonRepository from './common.repository';
+import { Company } from '../../entify/company.entity';
+import { User } from '../../entify/user.entity';
 
 @Service()
 export default class LineQueueRepository {
@@ -79,7 +79,7 @@ export default class LineQueueRepository {
                 lineQueueData.todo_id = todo.id;
                 lineQueueData.user_id = user.id;
                 lineQueueData.remind_date = moment(today)
-                  .startOf("day")
+                  .startOf('day')
                   .toDate();
                 lineQueueData.created_at = today;
 
@@ -110,29 +110,29 @@ export default class LineQueueRepository {
     });
 
     const minDate = moment(today)
-      .add(-maxValue, "days")
-      .startOf("day")
+      .add(-maxValue, 'days')
+      .startOf('day')
       .toDate();
 
     const maxDate = moment(today)
-      .add(-minValue + 1, "days")
-      .startOf("day")
+      .add(-minValue + 1, 'days')
+      .startOf('day')
       .toDate();
 
     const query = this.todoRepository
-      .createQueryBuilder("todos")
-      .leftJoinAndSelect("todos.todoUsers", "todo_users")
-      .leftJoinAndSelect("todo_users.user", "users")
-      .where("todos.is_done = :done", { done: false })
-      .andWhere("todos.is_closed = :closed", { closed: false })
-      .andWhere("todos.company_id = :company_id", { company_id: company.id })
-      .andWhere("todos.reminded_count < :reminded_count", { reminded_count: Common.remindMaxCount })
-      .andWhere("todos.deadline >= :min_date", { min_date: minDate })
-      .andWhere("todos.deadline <= :max_date", { max_date: maxDate })
-      .andWhere("todo_users.deleted_at IS NULL");
+      .createQueryBuilder('todos')
+      .leftJoinAndSelect('todos.todoUsers', 'todo_users')
+      .leftJoinAndSelect('todo_users.user', 'users')
+      .where('todos.is_done = :done', { done: false })
+      .andWhere('todos.is_closed = :closed', { closed: false })
+      .andWhere('todos.company_id = :company_id', { company_id: company.id })
+      .andWhere('todos.reminded_count < :reminded_count', { reminded_count: Common.remindMaxCount })
+      .andWhere('todos.deadline >= :min_date', { min_date: minDate })
+      .andWhere('todos.deadline <= :max_date', { max_date: maxDate })
+      .andWhere('todo_users.deleted_at IS NULL');
 
     if (user) {
-      query.andWhere("todo_users.user_id = :user_id", { user_id: user.id });
+      query.andWhere('todo_users.user_id = :user_id', { user_id: user.id });
     }
 
     return await query.getMany();
@@ -144,21 +144,21 @@ export default class LineQueueRepository {
         user_id: userId,
         status: LineMessageQueueStatus.WAITING_REPLY,
         remind_date: moment(toJapanDateTime(new Date()))
-          .startOf("day")
+          .startOf('day')
           .toDate(),
       },
-      relations: ["todo.todoUsers.user.todoAppUsers", "user", "message", "todo.todoapp"],
+      relations: ['todo.todoUsers.user.todoAppUsers', 'user', 'message', 'todo.todoapp'],
     });
   };
 
   getFirstQueueTaskForSendLine = async (userId: number): Promise<LineMessageQueue> => {
     return await this.linequeueRepository.findOne({
-      relations: ["todo", "user"],
+      relations: ['todo', 'user'],
       where: {
         user_id: userId,
         status: LineMessageQueueStatus.NOT_SEND,
         remind_date: moment(toJapanDateTime(new Date()))
-          .startOf("day")
+          .startOf('day')
           .toDate(),
       },
     });
@@ -178,54 +178,54 @@ export default class LineQueueRepository {
     //   .toDate();
 
     await this.linequeueRepository
-      .createQueryBuilder("line_message_queues")
+      .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: newStatus })
-      .where("status = :status", { status: currentStatus })
+      .where('status = :status', { status: currentStatus })
       // .andWhere('remind_date < :todayDate', { todayDate: todayDate })
       .execute();
   };
 
   updateStatusOldQueueTaskOfUser = async (userId: number): Promise<void> => {
     await this.linequeueRepository
-      .createQueryBuilder("line_message_queues")
+      .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: LineMessageQueueStatus.NOT_SEND_TIMEOUT })
-      .where("status = :status", { status: LineMessageQueueStatus.NOT_SEND })
-      .andWhere("user_id = :user_id", { user_id: userId })
+      .where('status = :status', { status: LineMessageQueueStatus.NOT_SEND })
+      .andWhere('user_id = :user_id', { user_id: userId })
       .execute();
 
     await this.linequeueRepository
-      .createQueryBuilder("line_message_queues")
+      .createQueryBuilder('line_message_queues')
       .update(LineMessageQueue)
       .set({ status: LineMessageQueueStatus.NOT_REPLY_TIMEOUT })
-      .where("status = :status", { status: LineMessageQueueStatus.WAITING_REPLY })
-      .andWhere("user_id = :user_id", { user_id: userId })
+      .where('status = :status', { status: LineMessageQueueStatus.WAITING_REPLY })
+      .andWhere('user_id = :user_id', { user_id: userId })
       .execute();
   };
 
   getTodayQueueTasks = async (user: User = null): Promise<Array<LineMessageQueue>> => {
     const todayDate = moment(toJapanDateTime(new Date()))
-      .startOf("day")
+      .startOf('day')
       .toDate();
 
     const query = this.linequeueRepository
-      .createQueryBuilder("line_message_queues")
+      .createQueryBuilder('line_message_queues')
       .innerJoinAndSelect(
-        "line_message_queues.todo",
-        "todos",
-        "line_message_queues.todo_id = todos.id AND todos.reminded_count < :count",
+        'line_message_queues.todo',
+        'todos',
+        'line_message_queues.todo_id = todos.id AND todos.reminded_count < :count',
         {
           count: Common.remindMaxCount,
         }
       )
-      .innerJoinAndSelect("line_message_queues.user", "users")
-      .where("status = :status", { status: LineMessageQueueStatus.NOT_SEND })
-      .andWhere("remind_date = :remind_date", { remind_date: todayDate })
-      .orderBy({ "line_message_queues.id": "ASC" });
+      .innerJoinAndSelect('line_message_queues.user', 'users')
+      .where('is_reminded = :is_reminded', { is_reminded: RemindType.NOT_REMIND })
+      .andWhere('remind_date = :remind_date', { remind_date: todayDate })
+      .orderBy({ 'line_message_queues.id': 'ASC' });
 
     if (user) {
-      query.andWhere("line_message_queues.user_id = :user_id", { user_id: user.id });
+      query.andWhere('line_message_queues.user_id = :user_id', { user_id: user.id });
     }
 
     return await query.getMany();
