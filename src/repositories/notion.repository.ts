@@ -75,7 +75,6 @@ export default class NotionRepository {
           await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, columnName, sections);
         }
       }
-      console.log(`[${ company.name } - ${ todoapp.name }] getCardBoards: ${ todoTasks.length }`);
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(dayReminds, todoTasks);

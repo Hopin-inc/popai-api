@@ -1,10 +1,10 @@
 export const Common = {
   day_remind: 1,
-  trello: 'trello',
-  microsoft: 'microsoft',
+  trello: "trello",
+  microsoft: "microsoft",
   notion: "notion",
   completed: 100,
-  microsoftBaseUrl: 'https://tasks.office.com/{tenant}/Home/Task',
+  microsoftBaseUrl: "https://tasks.office.com/{tenant}/Home/Task",
   remindMaxCount: 2,
 };
 
@@ -51,8 +51,8 @@ export const OpenStatus = {
 };
 
 export const ChatToolCode = {
-  LINE: 'line',
-  SLACK: 'slack',
+  LINE: "line",
+  SLACK: "slack",
 };
 
 export const LineMessageQueueStatus = {
@@ -70,6 +70,22 @@ export const RemindUserJobStatus = {
   ERROR: 99,
 };
 
+export const TodoHistoryProperty = {
+  DUE: 1,
+  ASSIGNEE: 2,
+  IS_DONE: 3,
+  IS_CLOSED: 4,
+  IS_DELAYED: 5,
+  IS_RECOVERED: 6,
+};
+
+export const TodoHistoryAction = {
+  CREATE: 1,
+  USER_CHANGE: 2,
+  SYSTEM_CHANGE: 3,
+  DELETE: 4,
+};
+
 export const RemindUserJobResult = {
   OK: 0,
   FAILED_HAS_PROCESSING_JOB: 1,
@@ -77,16 +93,16 @@ export const RemindUserJobResult = {
 };
 
 export const Colors: { [key: string]: string } = {
-  normal: '#F5F5F5',
-  warning: '#FBC02D',
-  alert: '#F44336',
-}
+  normal: "#F5F5F5",
+  warning: "#FBC02D",
+  alert: "#F44336",
+};
 
 export const ButtonStylesByColor: { [key: keyof typeof Colors]: "primary" | "secondary" | "link" } = {
-  normal: 'secondary',
-  warning: 'secondary',
-  alert: 'primary',
-}
+  normal: "secondary",
+  warning: "secondary",
+  alert: "primary",
+};
 
 export enum TodoStatus {
   DONE = "STATUS_DONE",
@@ -161,19 +177,19 @@ export const replyMessagesAfter: ReplyMessage[] = [
 
 export const relativeRemindDays = (remindDays: number): string => {
   if (remindDays > 1) {
-    return `${ remindDays.toString() }日前`;
+    return `${remindDays.toString()}日前`;
   } else if (remindDays === 1) {
-    return '昨日';
+    return "昨日";
   } else if (remindDays === 0) {
-    return '今日';
+    return "今日";
   } else if (remindDays === -1) {
-    return '明日';
+    return "明日";
   } else if (remindDays === -2) {
-    return 'あさって';
+    return "あさって";
   } else {
-    return `${ (-remindDays).toString() }日後`;
+    return `${(-remindDays).toString()}日後`;
   }
-}
+};
 
 export const replyMessages: ReplyMessage[] = replyMessagesBefore.concat(replyMessagesAfter);
 
@@ -184,7 +200,7 @@ export const messageData: string[] = messageDataBefore.concat(messageDataAfter);
 export const MessageAssets = {
   CHECK: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671105268/angel_materials/check_dark_in0ogu.png",
   ALERT: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671104878/angel_materials/alert_danger_kbb622.png",
-}
+};
 
-export const REMIND_ME_COMMAND = 'action_remind_me';
+export const REMIND_ME_COMMAND = "action_remind_me";
 export const LINE_MAX_LABEL_LENGTH = 40;
