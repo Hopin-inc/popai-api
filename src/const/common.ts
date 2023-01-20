@@ -21,10 +21,12 @@ export const MessageType = {
 };
 
 export const MessageTriggerType = {
-  BATCH: 1,
+  REMIND: 1,
   REPLY: 2,
   MANUAL: 3,
-  ACTION: 4,
+  RESPONSE: 4,
+  REPORT: 5,
+  PRAISE: 6
 };
 
 export const RemindType = {
