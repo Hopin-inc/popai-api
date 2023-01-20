@@ -60,7 +60,7 @@ export default class LineRepository {
       const chatMessage = await this.saveChatMessage(
         chattool,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         messageToken,
         user,
         remindTypes,
@@ -107,7 +107,7 @@ export default class LineRepository {
         console.log(messages);
       } else {
         for (const message of messages) {
-          await this.pushLineMessage(chattool, user, message, MessageTriggerType.ACTION);
+          await this.pushLineMessage(chattool, user, message, MessageTriggerType.REMIND);
         }
       }
 
@@ -130,7 +130,7 @@ export default class LineRepository {
         logger.error(new LoggerError(superiorUser.name + 'がLineIDが設定されていない。'));
       } else {
         const message = LineMessageBuilder.createStartReportToSuperiorMessage(superiorUser.name);
-        await this.pushLineMessage(chattool, superiorUser, message, MessageTriggerType.ACTION);
+        await this.pushLineMessage(chattool, superiorUser, message, MessageTriggerType.REPORT);
       }
 
       return;
@@ -169,7 +169,7 @@ export default class LineRepository {
         chattool,
         user,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         remindTypes
       );
     } catch (error) {
@@ -206,7 +206,7 @@ export default class LineRepository {
         chattool,
         user,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         remindTypes
       );
     } catch (error) {
@@ -243,7 +243,7 @@ export default class LineRepository {
         chattool,
         user,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         remindTypes
       );
     } catch (error) {
@@ -267,7 +267,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNoListTaskMessageToAdmin(user);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message, MessageTriggerType.BATCH);
+      return await this.pushLineMessage(chattool, user, message, MessageTriggerType.REMIND);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -404,7 +404,7 @@ export default class LineRepository {
       await LineBot.replyMessage(replyToken, message);
     }
 
-    return await this.saveChatMessage(chattool, message, MessageTriggerType.ACTION, replyToken, user);
+    return await this.saveChatMessage(chattool, message, MessageTriggerType.RESPONSE, replyToken, user);
   };
 
   pushTodoLine = async (todoLine: ITodoLines): Promise<ChatMessage> => {
