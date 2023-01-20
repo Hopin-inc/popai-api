@@ -31,6 +31,7 @@ export type IUser = {
   id: number;
   name: string;
   line_id?: string;
+  slack_id?: string;
   companyCondition?: ICompanyCondition[];
   todoAppUsers?: ITodoAppUser[];
 };
@@ -40,6 +41,7 @@ export type ISection = {
   company_id: number | null;
   todoapp_id: number | null;
   board_id: string;
+  channel_id: string | null;
   boardAdminUser: IUser;
 };
 
@@ -232,6 +234,13 @@ export type ITodoLines = {
   todoQueueTask?: LineMessageQueue;
 };
 
+export type ITodoSlack = {
+  todo: ITodo;
+  remindDays: number;
+  chatTool: IChatTool;
+  user: IUser;
+};
+
 export type ITodoQueue = {
   todoId: string;
   userId: number;
@@ -241,6 +250,46 @@ export type ITodoRemind = {
   remindDays: number;
   todoTask: ITodo;
 };
+
+export type ISlackPostResponse = {
+  ok: boolean;
+  channel: string;
+  ts: string;
+}
+
+export type ISlackActionResponse = {
+  type: string;
+  user: ISlackUser;
+  container: ISlackContainer;
+  message: ISlackMessage;
+  response_url: string;
+  actions: ISlackActions;
+}
+
+export type ISlackUser = {
+  id: string;
+  username: string;
+  team_id: string;
+}
+
+export type ISlackContainer = {
+  type: string;
+  message_ts: string;
+  attachment_id: number;
+  channel_id: string;
+  is_ephemeral: boolean;
+  is_app_unfurl: boolean;
+}
+
+export type ISlackActions = {
+  action_id: string;
+  block_id: string;
+  action_ts: string;
+}
+
+export type ISlackMessage = {
+  text: string;
+}
 
 export type IColumnName = {
   label_assignee: string | null;
@@ -277,7 +326,7 @@ export type ISectionLabel = {
   name: string;
 }
 
-export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>
+export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;
 
 export type ITrelloList = {
   id: string;

@@ -74,7 +74,7 @@ export default class LineRepository {
         remindDays
       );
 
-      if (process.env.ENV == 'LOCAL') {
+      if (process.env.ENV === 'LOCAL') {
         // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(messageForSend);
       } else {
@@ -102,7 +102,7 @@ export default class LineRepository {
       //1.期日に対するリマインド
       const messages = LineMessageBuilder.createStartRemindMessageToUser(user, todoLines);
 
-      if (process.env.ENV == 'LOCAL') {
+      if (process.env.ENV === 'LOCAL') {
         // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(messages);
       } else {
@@ -297,7 +297,7 @@ export default class LineRepository {
 
   getUserFromLineId = async (lineId: string): Promise<User> => {
     // Get user by line id
-    const users = await this.commonRepository.getChatToolUserByLineId(lineId);
+    const users = await this.commonRepository.getChatToolUserByUserId(lineId);
 
     if (!users.length) {
       return Promise.resolve(null);
@@ -308,7 +308,7 @@ export default class LineRepository {
 
   getSuperiorUsers = async (lineId: string): Promise<Array<User>> => {
     // Get user by line id
-    const users = await this.commonRepository.getChatToolUserByLineId(lineId);
+    const users = await this.commonRepository.getChatToolUserByUserId(lineId);
 
     if (!users.length) {
       return Promise.resolve([]);
@@ -323,10 +323,10 @@ export default class LineRepository {
       subordinate_user_id: In(userIds),
     });
 
-    if (superiorUserIds.length == 0) {
+    if (superiorUserIds.length === 0) {
       return Promise.resolve([]);
     }
-
+    
     return await this.userRepository
       .createQueryBuilder('users')
       .where('id IN (:...ids)', {
@@ -346,7 +346,7 @@ export default class LineRepository {
       })
       .getMany();
 
-    if (superiorUserIds.length == 0) {
+    if (superiorUserIds.length === 0) {
       return Promise.resolve([]);
     }
 
@@ -381,14 +381,14 @@ export default class LineRepository {
     messageTriggerId: number,
     remindTypes?: IRemindType
   ): Promise<any> => {
-    if (process.env.ENV == 'LOCAL') {
+    if (process.env.ENV === 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.pushMessage(user.line_id, message, false);
     }
 
     const linkToken = await LineBot.getLinkToken(user.line_id);
-
+    
     return await this.saveChatMessage(chattool, message, messageTriggerId, linkToken, user, remindTypes);
   };
 
@@ -398,7 +398,7 @@ export default class LineRepository {
     message: Message,
     user?: User
   ): Promise<any> => {
-    if (process.env.ENV == 'LOCAL') {
+    if (process.env.ENV === 'LOCAL') {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.replyMessage(replyToken, message);

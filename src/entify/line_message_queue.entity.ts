@@ -20,7 +20,7 @@ export class LineMessageQueue extends BaseEntity {
 
   @Column({ type: "date", nullable: true })
   remind_date: Date;
-
+  
   @Column({ nullable: true })
   message_id: number;
 

@@ -22,6 +22,9 @@ export class Section {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   board_id: string;
 
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  channel_id: string;
+
   @Column({ nullable: true })
   board_admin_user_id: number;
 
