@@ -2,17 +2,7 @@ import { Controller, Route } from "tsoa";
 import { User } from "../entify/user.entity";
 import SlackRepository from "../repositories/slack.repository";
 import Container from "typedi";
-import {
-  ChatToolCode,
-  MessageTriggerType,
-  MessageType,
-  OpenStatus,
-  ReplyStatus,
-  SenderType,
-  TodoStatus,
-} from "../const/common";
-import { ChatMessage } from "../entify/message.entity";
-import moment from "moment";
+import { ChatToolCode, MessageTriggerType, TodoStatus } from "../const/common";
 import logger from "../logger/winston";
 import { LoggerError } from "../exceptions";
 import { toJapanDateTime } from "../utils/common";
@@ -29,7 +19,7 @@ import { replyActions } from "../const/slack";
 
 @Route('slack')
 export default class SlackController extends Controller {
-  private SlackRepository: SlackRepository;
+  private slackRepository: SlackRepository;
   private chatToolRepository: Repository<ChatTool>;
   private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
@@ -37,14 +27,14 @@ export default class SlackController extends Controller {
 
   constructor() {
     super();
-    this.SlackRepository = Container.get(SlackRepository);
+    this.slackRepository = Container.get(SlackRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.chatToolRepository = AppDataSource.getRepository(ChatTool);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);
   }
 
-  async handleEvent(payload: any): Promise<any> {
+  async handleEvent(payload: any) { // TODO: Define type
     try {
       const chatTool = await this.chatToolRepository.findOneBy({
         tool_code: ChatToolCode.SLACK,
@@ -60,7 +50,7 @@ export default class SlackController extends Controller {
 
         const slackId = user.id;
         const rawRepliedMessage = actions[0].text.text.toLowerCase();
-        const slackUser = await this.SlackRepository.getUserFromSlackId(slackId);
+        const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
 
         const channelId = container.channel_id;
         const threadId = container.message_ts;
@@ -70,7 +60,7 @@ export default class SlackController extends Controller {
       } else {
         logger.error(new LoggerError('Unknown Response'));
       }
-      return;
+      return { message: 'slack webhook' };
     } catch (error) {
       console.error(error);
     }
@@ -98,7 +88,7 @@ private async replaceMessage(message: string) {
       return;
     }
 
-    const slackTodo = await this.SlackRepository.getSlackTodo(channelId, threadId);
+    const slackTodo = await this.slackRepository.getSlackTodo(channelId, threadId);
     console.dir(slackTodo, { depth: null });
 
     await SlackBot.chat.update({
@@ -146,46 +136,10 @@ private async replaceMessage(message: string) {
       await this.replyWithdrawnAction(chatTool, user, channelId, threadId);
     }
 
-    const superiorUsers = await this.SlackRepository.getSuperiorUsers(slackId);
+    const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);
     if (superiorUsers) {
       await Promise.all(superiorUsers.map(su => this.sendSuperiorMessage(chatTool, su, channelId, threadId)));
     }
-  }
-
-  /**
-   * Save chat message
-   * @returns
-   * @param chatTool
-   * @param todo
-   * @param userId
-   * @param threadId
-   * @param channelId
-   * @param messageContent
-   * @param messageTriggerId
-   */
-  private async saveChatMessage(
-    chatTool: ChatTool,
-    todo: Todo,
-    userId: number,
-    threadId: string,
-    channelId: string,
-    messageContent: string,
-    messageTriggerId: number,
-  ): Promise<ChatMessage> {
-    const chatMessage = new ChatMessage();
-    chatMessage.is_from_user = SenderType.FROM_USER;
-    chatMessage.chatTool_id = chatTool.id;
-    chatMessage.is_openned = OpenStatus.OPENNED;
-    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = messageTriggerId; // reply
-    chatMessage.message_type_id = MessageType.TEXT;
-    chatMessage.body = messageContent;
-    chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = toJapanDateTime(moment().utc().toDate());
-    chatMessage.user_id = userId;
-    chatMessage.thread_id = threadId;
-    chatMessage.channel_id = channelId;
-    return await this.SlackRepository.createMessage(chatMessage);
   }
 
   /**
@@ -203,7 +157,7 @@ private async replaceMessage(message: string) {
     threadId: string,
   ): Promise<void> {
     const replyMessage = SlackMessageBuilder.createReplyDoneMessage();
-    await this.SlackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
   }
 
   /**
@@ -221,7 +175,7 @@ private async replaceMessage(message: string) {
     threadId: string,
   ): Promise<void> {
     const replyMessage = SlackMessageBuilder.createReplyInProgressMessage();
-    await this.SlackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
   }
 
   /**
@@ -239,7 +193,7 @@ private async replaceMessage(message: string) {
     threadId: string,
   ): Promise<void> {
     const replyMessage = SlackMessageBuilder.createDelayReplyMessage();
-    await this.SlackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
   }
 
   /**
@@ -257,7 +211,7 @@ private async replaceMessage(message: string) {
     threadId: string,
   ): Promise<void> {
     const replyMessage = SlackMessageBuilder.createWithdrawnReplyMessage();
-    await this.SlackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
   }
 
   /**
@@ -284,7 +238,7 @@ private async replaceMessage(message: string) {
 
     const reportMessage = SlackMessageBuilder.createReportToSuperiorMessage(user.slack_id);
     console.log(reportMessage, channelId, threadId);
-    await this.SlackRepository.pushSlackMessage(
+    await this.slackRepository.pushSlackMessage(
       chatTool,
       user,
       reportMessage,

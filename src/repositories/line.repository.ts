@@ -434,7 +434,7 @@ export default class LineRepository {
 
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chatTool_id = chattool.id;
+    chatMessage.chattool_id = chattool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
     chatMessage.message_trigger_id = messageTriggerId; // batch

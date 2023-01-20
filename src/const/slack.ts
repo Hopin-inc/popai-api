@@ -3,7 +3,7 @@ import { TodoStatus } from "./common";
 type ReplyAction = {
   status: TodoStatus;
   text: string;
-  style: "default" | "primary" | "danger";
+  style?: "primary" | "danger";
 }
 
 export const replyActionsBefore: ReplyAction[] = [
@@ -20,12 +20,10 @@ export const replyActionsBefore: ReplyAction[] = [
   {
     status: TodoStatus.ONGOING,
     text: "順調です✨️",
-    style: "default",
   },
   {
     status: TodoStatus.NOT_YET,
     text: "あまり進んでいません😭",
-    style: "default",
   },
 ];
 
@@ -38,12 +36,10 @@ export const replyActionsAfter: ReplyAction[] = [
   {
     status: TodoStatus.WITHDRAWN,
     text: "撤退しました💧",
-    style: "default",
   },
   {
     status: TodoStatus.DELAYED,
-    text: "すみません、遅れております🙇‍♂️",
-    style: "default",
+    text: "すみません、遅れております🙇",
   },
 ];
 

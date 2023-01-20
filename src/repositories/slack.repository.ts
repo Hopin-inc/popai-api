@@ -1,19 +1,15 @@
-// noinspection DuplicatedCode
-
 import { LoggerError } from '../exceptions';
 import { Container, Service } from 'typedi';
 import { SlackMessageBuilder } from '../common/slack_message';
 import { Todo } from '../entify/todo.entity';
 import { IChatTool, IChatToolUser, IRemindType, ITodo, ITodoSlack, IUser } from '../types';
 import { SlackBot } from '../config/slackbot';
-
 import { AppDataSource } from '../config/data-source';
 import { ReportingLine } from '../entify/reporting_lines.entity';
 import { User } from '../entify/user.entity';
 import { In, IsNull, Not, Repository } from 'typeorm';
 import { ChatMessage } from '../entify/message.entity';
-import logger from './../logger/winston';
-
+import logger from '../logger/winston';
 import {
   ChatToolCode,
   Common,
@@ -24,12 +20,10 @@ import {
   ReplyStatus,
   SenderType,
 } from '../const/common';
-
 import moment from 'moment';
 import { diffDays, toJapanDateTime } from '../utils/common';
 import { ChatTool } from '../entify/chat_tool.entity';
 import CommonRepository from './modules/common.repository';
-import { SlackProfile } from '../entify/slack.profile';
 import { MessageAttachment } from '@slack/web-api';
 import { ChatToolUser } from '../entify/chattool.user.entity';
 import { Section } from '../entify/section.entity';
@@ -37,7 +31,6 @@ import { Company } from "../entify/company.entity";
 
 @Service()
 export default class SlackRepository {
-  private SlackProfileRepository: Repository<SlackProfile>;
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private todoRepository: Repository<Todo>;
@@ -47,7 +40,6 @@ export default class SlackRepository {
 
 
   constructor() {
-    this.SlackProfileRepository = AppDataSource.getRepository(SlackProfile);
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.todoRepository = AppDataSource.getRepository(Todo);
@@ -95,8 +87,6 @@ export default class SlackRepository {
         }
       }
     } catch (error) {
-      console.log('user', user);
-      console.log('todo', todo);
       logger.error(new LoggerError(error.message));
     }
   };
@@ -144,7 +134,6 @@ export default class SlackRepository {
     try {
       if (!user.slack_id) {
         logger.error(new LoggerError(user.name + 'がSlackIDが設定されていない。'));
-
         return;
       }
 
@@ -154,7 +143,6 @@ export default class SlackRepository {
       };
 
       const message = SlackMessageBuilder.createListTaskMessageToAdmin(user, todos);
-      // await this.saveChatMessage(user, todo, message);
       return await this.pushSlackMessage(
         chatTool,
         user,
@@ -261,7 +249,6 @@ export default class SlackRepository {
     try {
       if (!user.slack_id) {
         logger.error(new LoggerError(user.name + 'がSlackIDが設定されていない。'));
-
         return;
       }
 
@@ -378,7 +365,7 @@ export default class SlackRepository {
 
   getUserFromSlackId = async (slackId: string): Promise<User> => {
     const users = await this.commonRepository.getChatToolUserByUserId(slackId);
-    return !users.length ? users[0] : null;
+    return users.length ? users[0] : null;
   };
 
   pushTodoSlack = async (todoSlack: ITodoSlack, channelId: string): Promise<ChatMessage> => {
@@ -406,7 +393,7 @@ export default class SlackRepository {
     const remindDays = remindTypes?.remindDays ?? null;
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chatTool_id = chatTool.id;
+    chatMessage.chattool_id = chatTool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
     chatMessage.message_trigger_id = messageTriggerId; // batch
@@ -466,7 +453,7 @@ export default class SlackRepository {
                 if (chatToolUser) {
                   await this.pushListTaskMessageToAdmin(
                     chattool,
-                    { ...adminUser, line_id: chatToolUser.auth_key },
+                    { ...adminUser, slack_id: chatToolUser.auth_key },
                     remindTasks,
                     channelId,
                   );
@@ -488,7 +475,7 @@ export default class SlackRepository {
               if (chatToolUser) {
                 await this.pushNoListTaskMessageToAdmin(
                   chattool,
-                  { ...adminUser, line_id: chatToolUser.auth_key },
+                  { ...adminUser, slack_id: chatToolUser.auth_key },
                   channelId);
               }
             }

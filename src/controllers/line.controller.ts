@@ -52,12 +52,10 @@ export default class LineController extends Controller {
     this.taskService = Container.get(TaskService);
   }
 
-  public async handlerEvents(events: Array<WebhookEvent>): Promise<any> {
+  public async handlerEvents(events: Array<WebhookEvent>) {
     events.map(async (event) => await this.handleEvent(event));
 
-    return {
-      message: 'line webhook',
-    };
+    return { message: 'line webhook' };
   }
 
   /**
@@ -272,7 +270,7 @@ export default class LineController extends Controller {
   ): Promise<ChatMessage> {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_USER;
-    chatMessage.chatTool_id = chattool.id;
+    chatMessage.chattool_id = chattool.id;
     chatMessage.is_openned = OpenStatus.OPENNED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
     chatMessage.message_trigger_id = messageTriggerId; // reply
