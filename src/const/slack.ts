@@ -9,37 +9,37 @@ type ReplyAction = {
 export const replyActionsBefore: ReplyAction[] = [
   {
     status: TodoStatus.DONE,
-    text: "完了しております👍",
+    text: "完了しております:+1:",
     style: "primary",
   },
   {
     status: TodoStatus.WITHDRAWN,
-    text: "撤退しました💧",
+    text: "撤退しました:droplet:",
     style: "danger",
   },
   {
     status: TodoStatus.ONGOING,
-    text: "順調です✨️",
+    text: "順調です:sparkles:",
   },
   {
     status: TodoStatus.NOT_YET,
-    text: "あまり進んでいません😭",
+    text: "あまり進んでいません:sob:",
   },
 ];
 
 export const replyActionsAfter: ReplyAction[] = [
   {
     status: TodoStatus.DONE,
-    text: "完了しました👍",
+    text: "完了しました:+1:",
     style: "primary",
   },
   {
     status: TodoStatus.WITHDRAWN,
-    text: "撤退しました💧",
+    text: "撤退しました:droplet:",
   },
   {
     status: TodoStatus.DELAYED,
-    text: "すみません、遅れております🙇",
+    text: "すみません、遅れております:bow:",
   },
 ];
 

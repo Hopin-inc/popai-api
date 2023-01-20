@@ -47,16 +47,19 @@ export default class SlackController extends Controller {
 
       if (payload.type === 'block_actions') {
         const { user, container, actions } = payload;
+        if (!actions.length) {
+          return;
+        }
 
         const slackId = user.id;
-        const rawRepliedMessage = actions[0].text.text.toLowerCase();
+        const repliedMessage = actions[0].text.text.toLowerCase();
+        const status = actions[0].value;
         const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
 
         const channelId = container.channel_id;
         const threadId = container.message_ts;
 
-        const repliedMessage = await this.replaceMessage(rawRepliedMessage)
-        await this.handleReplyMessage(chatTool, slackUser, slackId, repliedMessage, channelId, threadId);
+        await this.handleReplyMessage(chatTool, slackUser, slackId, repliedMessage, status, channelId, threadId);
       } else {
         logger.error(new LoggerError('Unknown Response'));
       }
@@ -66,21 +69,12 @@ export default class SlackController extends Controller {
     }
   }
 
-private async replaceMessage(message: string) {
-  return message
-    .replace(':+1:', '👍')
-    .replace(':おじぎ_男性:', '🙇‍♂️')
-    .replace(':ピカピカ:', '✨')
-    .replace(':大泣き:', '😭')
-    .replace(':しずく:', '💧');
-}
-
-
   private async handleReplyMessage(
     chatTool: ChatTool,
     user: User,
     slackId: string,
     repliedMessage: string,
+    status: string,
     channelId: string,
     threadId: string,
   ) {
@@ -110,30 +104,32 @@ private async replaceMessage(message: string) {
       await this.taskService.updateTask(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
     }
 
-    await this.replyButtonClick(chatTool, slackId, user, repliedMessage, channelId, threadId);
+    await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
   }
 
   private async replyButtonClick(
     chatTool: ChatTool,
     slackId: string,
     user: User,
-    replyMessage: string,
+    status: string,
     channelId: string,
     threadId: string,
   ) {
     const actionMatchesStatus = (action: string, statuses: TodoStatus[]): boolean => {
-      const targetActions = replyActions.filter(a => statuses.includes(a.status)).map(a => a.text);
-      return targetActions.includes(action);
+      const targetActions = replyActions.filter(a => statuses.includes(a.status)).map(a => a.status);
+      return targetActions.includes(action as TodoStatus);  // TODO: Convert TodoStatus Enum -> Object literal
     }
 
-    if (actionMatchesStatus(replyMessage, [TodoStatus.DONE])) {
+    if (actionMatchesStatus(status, [TodoStatus.DONE])) {
       await this.replyDoneAction(chatTool, user, channelId, threadId);
-    } else if (actionMatchesStatus(replyMessage, [TodoStatus.ONGOING, TodoStatus.NOT_YET])) {
+    } else if (actionMatchesStatus(status, [TodoStatus.ONGOING, TodoStatus.NOT_YET])) {
       await this.replyInProgressAction(chatTool, user, channelId, threadId);
-    } else if (actionMatchesStatus(replyMessage, [TodoStatus.DELAYED])) {
+    } else if (actionMatchesStatus(status, [TodoStatus.DELAYED])) {
       await this.replyDelayAction(chatTool, user, channelId, threadId);
-    } else if (actionMatchesStatus(replyMessage, [TodoStatus.WITHDRAWN])) {
+    } else if (actionMatchesStatus(status, [TodoStatus.WITHDRAWN])) {
       await this.replyWithdrawnAction(chatTool, user, channelId, threadId);
+    } else {
+      console.error(`Status not found: ${status}`);
     }
 
     const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);

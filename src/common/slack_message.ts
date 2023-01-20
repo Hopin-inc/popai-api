@@ -61,7 +61,7 @@ export class SlackMessageBuilder {
         type: "section",
         text: {
           type: "plain_text",
-          text: "完了しているんですね😌\nお疲れさまでした！\n\n担当いただき、ありがとうございます😊",
+          text: "完了しているんですね:relieved:\nお疲れさまでした！\n\n担当いただき、ありがとうございます:blush:",
           emoji: true,
         },
       },
@@ -75,7 +75,7 @@ export class SlackMessageBuilder {
         type: "section",
         text: {
           type: "plain_text",
-          text: "承知しました👍",
+          text: "承知しました:+1:",
           emoji: true,
         },
       },
@@ -89,7 +89,7 @@ export class SlackMessageBuilder {
         type: "section",
         text: {
           type: "plain_text",
-          text: "承知しました😖\n引き続きよろしくお願いします💪",
+          text: "承知しました:confounded:\n引き続きよろしくお願いします:muscle:",
           emoji: true,
         },
       },
@@ -103,7 +103,7 @@ export class SlackMessageBuilder {
         type: "section",
         text: {
           type: "plain_text",
-          text: "そうなんですね😲\n承知しました💪",
+          text: "そうなんですね:open_mouth:\n承知しました:muscle:",
           emoji: true,
         },
       },
@@ -117,7 +117,7 @@ export class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${superiorUserId}>ご確認ください👀`,
+          text: `<@${superiorUserId}> ご確認ください:eyes:`,
         },
       },
     ];
@@ -139,112 +139,81 @@ export class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: { type: "mrkdwn", text: `<@${user.slack_id}>お疲れさまです🙌` },
+        text: { type: "mrkdwn", text: `<@${user.slack_id}> お疲れさまです:raised_hands:` },
       },
     ];
 
     groupMessageMap.forEach((onedayTasks, remindDays) => {
       const relativeDays = relativeRemindDays(remindDays);
+      const todoList = onedayTasks.map(todo => `:bookmark: <${todo.todo.todoapp_reg_url}|${todo.todo.name}>`);
       blocks.push({
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `${relativeDays}が期日のタスクが${onedayTasks.length}件あります。`,
+          text: `${relativeDays}が期日のタスクが${onedayTasks.length}件あります。\n\n` + todoList.join("\n"),
         },
-      });
-      onedayTasks.forEach(todoSlack => {
-        blocks.push({
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `🔖️ <${todoSlack.todo.todoapp_reg_url}|${todoSlack.todo.name}>`,
-          },
-        });
       });
     });
     return { blocks };
   }
 
   static createListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
+    const todoList = todos.map(todo => `:bookmark: <${todo.todoapp_reg_url}|${todo.name}>`);
     const blocks: KnownBlock[] = [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slack_id}>お疲れさまです🙌\n現在、次のタスクの担当者と期日が設定されていません😭`,
+          text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
+            + `現在、次のタスクの担当者と期日が設定されていません:sob:\n\n` 
+            + todoList.join("\n"),
         },
       },
-    ];
-
-    todos.forEach((todo) =>
-      blocks.push({
+      {
         type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `🔖️ <${todo.todoapp_reg_url}|${todo.name}>`,
-        },
-      }),
-    );
-
-    blocks.push({
-      type: "section",
-      text: { type: "mrkdwn", text: "ご確認をお願いします🙏" },
-    });
-
+        text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
+      },
+    ];
     return { blocks };
   }
 
   static createNotAssignListTaskMessageToAdmin(adminUser: IUser, todos: ITodo[]) {
-    const notAssignTodos = [];
-    todos.forEach((todo) =>
-      notAssignTodos.push(`🔖️ <${todo.todoapp_reg_url}|${todo.name}>`),
-    );
-
+    const todoList = todos.map(todo => `:bookmark: <${todo.todoapp_reg_url}|${todo.name}>`);
     const blocks: KnownBlock[] = [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slack_id}>お疲れさまです🙌\n現在、次のタスクの担当者が設定されていません😭\n\n`
-            + notAssignTodos.join("\n"),
+          text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
+            + `現在、次のタスクの担当者が設定されていません:sob:\n\n`
+            + todoList.join("\n"),
         },
       },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
+      },
     ];
-
-    blocks.push({
-      type: "section",
-      text: { type: "mrkdwn", text: "ご確認をお願いします🙏" },
-    });
-
     return { blocks };
   }
 
   static createListTaskMessageToUser(user: IUser, todos: ITodo[]) {
+    const todoList = todos.map(todo => `:bookmark: <${todo.todoapp_reg_url}|${todo.name}>`);
     const blocks: KnownBlock[] = [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${user.slack_id}>お疲れさまです🙌\n現在、次のタスクの期日が設定されていません😭`,
+          text: `<@${user.slack_id}> お疲れさまです:raised_hands:\n`
+            + `現在、次のタスクの期日が設定されていません:sob:\n\n`
+            + todoList.join("\n"),
         },
       },
-    ];
-
-    todos.forEach(todo =>
-      blocks.push({
+      {
         type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `🔖️ <${todo.todoapp_reg_url}|${todo.name}>`,
-        },
-      })
-    );
-
-    blocks.push({
-      type: "section",
-      text: { type: "mrkdwn", text: "ご確認をお願いします🙏" },
-    });
-
+        text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
+      }
+    ];
     return { blocks };
   }
 
@@ -254,7 +223,8 @@ export class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slack_id}>お疲れさまです🙌\n現在、担当者・期日が設定されていないタスクはありませんでした。`,
+          text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
+            + `現在、担当者・期日が設定されていないタスクはありませんでした。`,
         },
       },
     ];
