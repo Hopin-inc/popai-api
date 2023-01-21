@@ -16,6 +16,7 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
   IUser,
+  ITodoHistory,
 } from "../types";
 
 import { Container, Service } from "typedi";
@@ -33,6 +34,7 @@ import LineQueueRepository from "./modules/lineQueue.repository";
 import { Client } from "@notionhq/client";
 import TodoSectionRepository from "./modules/todo.section.repository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import TodoHistoryRepository from "./modules/todoHistory.repository";
 
 @Service()
 export default class NotionRepository {
@@ -40,6 +42,7 @@ export default class NotionRepository {
   private todoRepository: Repository<Todo>;
   private columnNameRepository: Repository<ColumnName>;
   private todoUpdateRepository: TodoUpdateRepository;
+  private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
@@ -50,6 +53,7 @@ export default class NotionRepository {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
+    this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.columnNameRepository = AppDataSource.getRepository(ColumnName);
     this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
@@ -78,7 +82,7 @@ export default class NotionRepository {
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(dayReminds, todoTasks);
-      console.log(`[${ company.name } - ${ todoapp.name }] filterUpdatePages: ${ dayReminds }`);
+      console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -214,6 +218,15 @@ export default class NotionRepository {
     }
   };
 
+  getCreatedAt = (pageInfo: PageObjectResponse): Date => {
+    try {
+      const createdAtStr = pageInfo.created_time;
+      return new Date(createdAtStr);
+    } catch (err) {
+      logger.error(new LoggerError(err.message));
+    }
+  };
+
   getUrl = (pageInfo: PageObjectResponse): string => {
     try {
       return pageInfo.url;
@@ -229,7 +242,7 @@ export default class NotionRepository {
     company: ICompany,
     todoapp: ITodoApp,
     columnName: IColumnName,
-    sections: ISection[]
+    sections: ISection[],
   ): Promise<void> => {
     if (!boardAdminUser?.todoAppUsers.length) return;
 
@@ -267,7 +280,7 @@ export default class NotionRepository {
     section: ISection,
     company: ICompany,
     todoapp: ITodoApp,
-    columnName: IColumnName
+    columnName: IColumnName,
   ): Promise<void> => {
     const pageInfo = await this.notionRequest.pages.retrieve({ page_id: pageId }) as PageObjectResponse;
     const pageProperty = pageInfo.properties;
@@ -285,6 +298,7 @@ export default class NotionRepository {
         is_done: this.getIsDone(columnName, pageProperty),
         created_by: this.getCreatedBy(pageInfo),
         created_by_id: null,
+        created_at: this.getCreatedAt(pageInfo),
         last_edited_at: this.getLastEditedAt(pageInfo),
         todoapp_reg_url: this.getUrl(pageInfo),
         dueReminder: null,
@@ -294,7 +308,7 @@ export default class NotionRepository {
       pageTodo.section_ids = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
       pageTodos.push(pageTodo);
     }
-  }
+  };
 
   addTodoTask = async (
     pageTodo: INotionTask,
@@ -302,7 +316,7 @@ export default class NotionRepository {
     company: ICompany,
     todoapp: ITodoApp,
     sections: ISection[],
-    todoAppUser: ITodoAppUser
+    todoAppUser: ITodoAppUser,
   ): Promise<void> => {
     const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.notion_user_id);
 
@@ -321,7 +335,7 @@ export default class NotionRepository {
     } else {
       todoTasks.push(page);
     }
-  }
+  };
 
   filterUpdatePages = async (dayReminds: number[], pageTodos: ITodoTask<INotionTask>[]): Promise<void> => {
     const cards: IRemindTask<INotionTask>[] = [];
@@ -350,16 +364,18 @@ export default class NotionRepository {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
+      const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
       const response = await this.todoRepository.upsert(dataTodos, []);
       if (response) {
         await Promise.all([
+          // this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
@@ -375,6 +391,7 @@ export default class NotionRepository {
     taskRemind: IRemindTask<INotionTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
+    dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> => {
@@ -392,7 +409,7 @@ export default class NotionRepository {
     todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
     todoData.todoapp_reg_url = todoTask.todoapp_reg_url;
     todoData.todoapp_reg_created_by = todoTask.created_by_id;
-    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.last_edited_at);
+    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.created_at);
     todoData.company_id = company.id;
     todoData.deadline = taskDeadLine;
     todoData.is_done = todoTask.is_done;
@@ -406,8 +423,17 @@ export default class NotionRepository {
     }
 
     if (sections.length) {
-      dataTodoSections.push({ todoId: todoTask.todoapp_reg_id, sections })
+      dataTodoSections.push({ todoId: todoTask.todoapp_reg_id, sections });
     }
+
+    dataTodoHistories.push({
+      todoId: todoTask.todoapp_reg_id,
+      deadline: todoTask.deadline,
+      user_id: users,
+      isDone: todoTask.is_done,
+      isClosed: todoTask.closed,
+      todoappRegUpdatedAt: todoTask.last_edited_at,
+    });
 
     //update deadline task
     if (taskDeadLine || todoData.is_done) {
