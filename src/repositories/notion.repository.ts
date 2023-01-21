@@ -360,7 +360,7 @@ export default class NotionRepository {
       const response = await this.todoRepository.upsert(dataTodos, []);
       if (response) {
         await Promise.all([
-          this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates),
+          this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
           // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
