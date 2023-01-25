@@ -8,7 +8,7 @@ import { ITodo, IUser } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 
 export default class SlackMessageBuilder {
-  static createRemindMessage(userName: string, todo: ITodo, remindDays: number) {
+  static createRemindMessage(user: IUser, todo: ITodo, remindDays: number) {
     const relativeDays = relativeRemindDays(remindDays);
     const actions = remindDays > 0 ? replyActionsAfter : replyActionsBefore;
     const blocks: KnownBlock[] = [
@@ -16,7 +16,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `${relativeDays}が期日の<${todo.todoapp_reg_url}|${todo.name}>の進捗はいかがですか？`,
+          text: `<@${user.slack_id}> ${relativeDays}が期日の<${todo.todoapp_reg_url}|${todo.name}>の進捗はいかがですか？`,
         },
       },
       {
@@ -114,13 +114,13 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  static createReportMessage(superiorUserId: string) {
+  static createReportMessage(superiorUser: IUser) {
     const blocks: KnownBlock[] = [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${superiorUserId}> ご確認ください:eyes:`,
+          text: `<@${superiorUser.slack_id}> ご確認ください:eyes:`,
         },
       },
     ];
@@ -168,7 +168,7 @@ export default class SlackMessageBuilder {
         text: {
           type: "mrkdwn",
           text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
-            + "現在、次のタスクの担当者と期日が設定されていません:sob:\n\n" 
+            + "現在、次のタスクの担当者と期日が設定されていません:sob:\n\n"
             + todoList.join("\n"),
         },
       },
@@ -215,7 +215,7 @@ export default class SlackMessageBuilder {
       {
         type: "section",
         text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
-      }
+      },
     ];
     return { blocks };
   }

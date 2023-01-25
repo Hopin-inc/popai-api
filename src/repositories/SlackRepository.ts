@@ -68,7 +68,7 @@ export default class SlackRepository {
 
       const remindTypes: IRemindType = { remindType: RemindType.REMIND_BY_DEADLINE, remindDays };
 
-      const message = SlackMessageBuilder.createRemindMessage(user.name, todo, remindDays);
+      const message = SlackMessageBuilder.createRemindMessage(user, todo, remindDays);
 
       if (process.env.ENV === "LOCAL") {
         console.log(message);
