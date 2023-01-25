@@ -235,7 +235,6 @@ export default class SlackController extends Controller {
     }
 
     const reportMessage = SlackMessageBuilder.createReportMessage(user.slack_id);
-    console.log(reportMessage, channelId, threadId);
     await this.slackRepository.pushSlackMessage(
       chatTool,
       user,

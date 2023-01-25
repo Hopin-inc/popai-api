@@ -298,9 +298,8 @@ export default class SlackRepository {
     });
 
     return await this.todoRepository.findOne({
-      where: {
-        id: message.todo_id,
-      }, relations: ["todoapp"],
+      where: { id: message.todo_id },
+      relations: ["todoapp", "company", "company.sections"],
     });
   };
 

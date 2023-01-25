@@ -452,7 +452,7 @@ export default class NotionRepository {
   ): Promise<void> => {
     try {
       const columnName = await this.columnNameRepository.findOneBy({
-        section: In(task.company.sections),
+        section_id: In(task.company.sections.map(section => section.id)),
       });
       const payload: UpdatePageParameters = {
         page_id: task.todoapp_reg_id,
