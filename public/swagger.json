@@ -17,42 +17,7 @@
 		"contact": {}
 	},
 	"openapi": "3.0.0",
-	"paths": {
-		"/tasks/update": {
-			"get": {
-				"operationId": "SyncTodoTask",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {}
-							}
-						}
-					}
-				},
-				"security": [],
-				"parameters": []
-			}
-		},
-		"/tasks/remind": {
-			"get": {
-				"operationId": "RemindTaskForCompany",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {}
-							}
-						}
-					}
-				},
-				"security": [],
-				"parameters": []
-			}
-		}
-	},
+	"paths": {},
 	"servers": [
 		{
 			"url": "/api"

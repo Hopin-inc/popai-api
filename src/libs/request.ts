@@ -1,6 +1,7 @@
 import fetch, { HeadersInit } from "node-fetch";
-import { LoggerError } from "../exceptions";
-import logger from "./../logger/winston";
+
+import { LoggerError } from "@/exceptions";
+import logger from "@/logger/winston";
 
 /**
  *  Calls the endpoint with authorization bearer token.

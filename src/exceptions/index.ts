@@ -1,4 +1,4 @@
-import { StatusCodes } from "../common/statusCodes";
+import { StatusCodes } from "@/common/StatusCodes";
 
 export class HttpException {
   constructor(message, statusCode?: StatusCodes) {

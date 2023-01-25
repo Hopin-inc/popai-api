@@ -1,14 +1,6 @@
 import "moment-timezone";
 import moment from "moment";
 
-export function truncate(str: string, max: number = 40): string {
-  if (str.length <= max) {
-    return str;
-  }
-
-  return str.substring(0, max - 3) + "...";
-}
-
 export function toJapanDateTime(utcDateString: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
   return new Date(
     moment
@@ -37,3 +29,19 @@ export function sliceByNumber<T>(array: T[], n: number): T[][] {
   const length = Math.ceil(array.length / n);
   return new Array(length).fill(null).map((_, i) => array.slice(i * n, (i + 1) * n));
 }
+
+export const relativeRemindDays = (remindDays: number): string => {
+  if (remindDays > 1) {
+    return `${ remindDays.toString() }日前`;
+  } else if (remindDays === 1) {
+    return "昨日";
+  } else if (remindDays === 0) {
+    return "今日";
+  } else if (remindDays === -1) {
+    return "明日";
+  } else if (remindDays === -2) {
+    return "あさって";
+  } else {
+    return `${ (-remindDays).toString() }日後`;
+  }
+};

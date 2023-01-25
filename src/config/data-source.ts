@@ -17,8 +17,8 @@ const databaseConfig: DataSourceOptions = {
   password: envString(process.env.DB_PASSWORD, ""),
   database: envString(process.env.DB_DATABASE, ""),
   entities: [
-    path.join(__dirname, "../entify/*.entity.{ts,js}"),
-    path.join(__dirname, "../entify/**/*.entity.{ts,js}"),
+    path.join(__dirname, "../entities/*.{ts,js}"),
+    path.join(__dirname, "../entities/**/*.{ts,js}"),
   ],
   migrations: [
     path.join(__dirname, "../database/migrations/*.{ts,js}"),
@@ -30,4 +30,5 @@ const databaseConfig: DataSourceOptions = {
 
 console.log("DB-HOST:" + envString(process.env.DB_HOST, ""));
 
-export const AppDataSource = new DataSource(databaseConfig);
+const AppDataSource = new DataSource(databaseConfig);
+export default AppDataSource;

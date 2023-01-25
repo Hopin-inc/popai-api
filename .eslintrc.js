@@ -27,7 +27,6 @@ module.exports = {
     semi: ["error", "always"],
     "semi-spacing": ["error", { "after": true, "before": false }],
     "semi-style": ["error", "last"],
-    "no-extra-semi": "error",
     "no-cond-assign": "off",
     "no-case-declarations": "off",
     "no-unexpected-multiline": "error",
@@ -72,5 +71,15 @@ module.exports = {
         },
       },
     ],
+  },
+  settings: {
+    "import/resolver": {
+      alias: {
+        map: [
+          ["@", "./src"],
+        ],
+        extensions: [".ts", ".js", ".json"],
+      },
+    },
   },
 };
