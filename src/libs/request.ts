@@ -1,6 +1,7 @@
-import fetch, { HeadersInit } from 'node-fetch';
-import { LoggerError } from '../exceptions';
-import logger from './../logger/winston';
+import fetch, { HeadersInit } from "node-fetch";
+
+import { LoggerError } from "@/exceptions";
+import logger from "@/logger/winston";
 
 /**
  *  Calls the endpoint with authorization bearer token.
@@ -29,18 +30,18 @@ export async function fetchApi<Req extends Record<string, any>, Res>(
   };
 
   if (accessToken) {
-    options.headers['Authorization'] = `Bearer ${accessToken}`;
+    options.headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
-  if ('GET' === method.toUpperCase()) {
-    options.headers['Content-Type'] = 'application/json';
+  if ("GET" === method.toUpperCase()) {
+    options.headers["Content-Type"] = "application/json";
     if (Object.keys(params).length)
-      url += (url.split('?')[1] ? '&' : '?') + new URLSearchParams(params).toString();
+      url += (url.split("?")[1] ? "&" : "?") + new URLSearchParams(params).toString();
   } else {
     if (isFormData) {
       options.body = params;
     } else {
-      options.headers['Content-Type'] = 'application/json';
+      options.headers["Content-Type"] = "application/json";
       options.body = JSON.stringify(params);
     }
   }

@@ -1,6 +1,9 @@
-import { ChatTool } from '../entify/chat_tool.entity';
-import { LineMessageQueue } from '../entify/line_message_queue.entity';
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import ChatTool from "@/entities/ChatTool";
+import LineMessageQueue from "@/entities/LineMessageQueue";
+
+import { ITrelloTask } from "@/types/trello";
+import { IMicrosoftTask } from "@/types/microsoft";
+import { INotionTask } from "@/types/notion";
 
 export type valueOf<T> = T[keyof T];
 
@@ -134,22 +137,6 @@ export type IChatToolUser = {
   chattool_id: number;
 };
 
-export type ITrelloTask = {
-  id: string;
-  name: string;
-  idList: string;
-  closed: boolean;
-  dueComplete: boolean;
-  dateLastActivity: Date;
-  due: Date;
-  dueReminder: number;
-  shortUrl: string;
-  url: string;
-  idMembers: string[];
-  idMemberCreator?: string;
-  createdAt?: Date;
-};
-
 export type ITask = ITrelloTask | IMicrosoftTask | INotionTask;
 
 export type ITodoTask<T extends ITask> = {
@@ -160,70 +147,6 @@ export type ITodoTask<T extends ITask> = {
   sections: ISection[];
   users?: IUser[];
 };
-
-export type ITrelloAuth = {
-  api_key: string;
-  api_token: string;
-};
-
-export type ITrelloMember = Record<string, any> & {
-  id: string;
-}
-
-export type IMicrosoftStatus = {
-  NOT_START: 'notStarted';
-  COMPLETED: 'completed';
-};
-
-export type IMicrosoftCreateBy = {
-  user: IMicrosoftMember;
-};
-
-export type IMicrosoftAssignedBy = IMicrosoftCreateBy;
-
-export type IMicrosoftAssign = {
-  assignedBy: IMicrosoftAssignedBy;
-};
-
-export type IMicrosoftTask = {
-  id: string;
-  title: string;
-  planId: string;
-  percentComplete: number;
-  createdDateTime: Date;
-  dueDateTime?: Date;
-  completedDateTime?: Date;
-  createdBy?: IMicrosoftCreateBy;
-  assignments: [IMicrosoftAssign];
-  userCreateBy?: number | null;
-};
-
-export type IMicrosoftRefresh = {
-  todoAppUser: ITodoAppUser;
-};
-
-export type IMicrosoftToken = {
-  token_type: string;
-  score: string;
-  expires_in: number;
-  access_token: string;
-  refresh_token: string;
-}
-
-export type IMicrosoftMember = Record<string, any> & {
-  id: string;
-}
-
-export type IMicrosoftErrorResponse = {
-  error: {
-    code: string;
-    message: string;
-    innerError: {
-      requestId: string;
-      date: string;
-    };
-  };
-}
 
 export type IRemindType = {
   remindType: number;
@@ -244,13 +167,6 @@ export type ITodoLines = {
   todoQueueTask?: LineMessageQueue;
 };
 
-export type ITodoSlack = {
-  todo: ITodo;
-  remindDays: number;
-  chatTool: IChatTool;
-  user: IUser;
-};
-
 export type ITodoQueue = {
   todoId: string;
   userId: number;
@@ -260,46 +176,6 @@ export type ITodoRemind = {
   remindDays: number;
   todoTask: ITodo;
 };
-
-export type ISlackPostResponse = {
-  ok: boolean;
-  channel: string;
-  ts: string;
-}
-
-export type ISlackActionResponse = {
-  type: string;
-  user: ISlackUser;
-  container: ISlackContainer;
-  message: ISlackMessage;
-  response_url: string;
-  actions: ISlackActions;
-}
-
-export type ISlackUser = {
-  id: string;
-  username: string;
-  team_id: string;
-}
-
-export type ISlackContainer = {
-  type: string;
-  message_ts: string;
-  attachment_id: number;
-  channel_id: string;
-  is_ephemeral: boolean;
-  is_app_unfurl: boolean;
-}
-
-export type ISlackActions = {
-  action_id: string;
-  block_id: string;
-  action_ts: string;
-}
-
-export type ISlackMessage = {
-  text: string;
-}
 
 export type IColumnName = {
   label_assignee: string | null;
@@ -313,66 +189,9 @@ export type IColumnName = {
   label_todo: string | null;
 }
 
-export type INotionTask = {
-  last_edited_at: Date;
-  created_at: Date;
-  created_by: string;
-  created_by_id: number;
-  closed: boolean;
-  deadline: Date;
-  dueReminder: number | null;
-  is_done: boolean;
-  name: string;
-  sections: string[];
-  section_ids: number[];
-  notion_user_id: string[];
-  todoapp_reg_id: string;
-  todoapp_reg_url: string;
-}
-
 export type ISectionLabel = {
   id: number;
   section_id: number;
   label_id: string;
   name: string;
-}
-
-export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;
-
-export type ITrelloList = {
-  id: string;
-  name: string;
-  closed: boolean;
-  idBoard: string;
-  pos: number;
-  subscribed: boolean;
-  softLimit: any;
-}
-
-export type ITrelloActivityLog = {
-  idMemberCreator: string;
-  data: {
-    card?: {
-      closed: boolean;
-      id: string;
-      name: string;
-      idShort: number;
-      shortLink: string;
-    };
-    old?: {
-      closed: boolean;
-    };
-    board?: {
-      id: string;
-      name: string;
-      shortLink: string;
-    };
-    list?: {
-      id: string;
-      name: string;
-    };
-  }
-  type: string;
-  date: Date;
-  [key: string]: any;
 }
