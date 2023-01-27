@@ -4,7 +4,7 @@ import { Todo } from "./todo.entity";
 import { User } from "./user.entity";
 
 @Entity("todo_histories")
-export class TodoHistoryEntity extends BaseEntity {
+export class TodoHistory extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

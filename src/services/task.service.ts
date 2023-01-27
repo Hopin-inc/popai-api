@@ -62,13 +62,13 @@ export default class TaskService {
           const companyWithChatTools = { ...company, chattools: company.chatTools }
           switch (todoapp.todo_app_code) {
             case Common.trello:
-              await this.trelloRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              // await this.trelloRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.microsoft:
               // await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             case Common.notion:
-              // await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
+              await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
               break;
             default:
               break;

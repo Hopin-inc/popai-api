@@ -71,12 +71,13 @@ export const RemindUserJobStatus = {
 };
 
 export const TodoHistoryProperty = {
-  DUE: 1,
-  ASSIGNEE: 2,
-  IS_DONE: 3,
-  IS_CLOSED: 4,
-  IS_DELAYED: 5,
-  IS_RECOVERED: 6,
+  NAME: 1,
+  DEADLINE: 2,
+  ASSIGNEE: 3,
+  IS_DONE: 4,
+  IS_CLOSED: 5,
+  IS_DELAYED: 6,
+  IS_RECOVERED: 7,
 };
 
 export const TodoHistoryAction = {

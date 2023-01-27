@@ -102,6 +102,16 @@ export type ITodoUpdate = {
   updateTime: Date;
 };
 
+export type IForTodoHistory = {
+  todoId: string;
+  name?: string;
+  deadline?: Date;
+  users?: IUser[];
+  isDone: boolean;
+  isClosed: boolean;
+  todoappRegUpdatedAt: Date;
+};
+
 export type ITodoUserUpdate = {
   todoId: string;
   users: IUser[];
@@ -305,6 +315,7 @@ export type IColumnName = {
 
 export type INotionTask = {
   last_edited_at: Date;
+  created_at: Date;
   created_by: string;
   created_by_id: number;
   closed: boolean;

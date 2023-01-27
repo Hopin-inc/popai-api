@@ -16,7 +16,7 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
   IUser,
-  ITodoHistory,
+  IForTodoHistory,
 } from "../types";
 
 import { Container, Service } from "typedi";
@@ -364,7 +364,7 @@ export default class NotionRepository {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
-      const dataTodoHistories: ITodoHistory[] = [];
+      const dataTodoHistories: IForTodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
@@ -375,7 +375,7 @@ export default class NotionRepository {
       const response = await this.todoRepository.upsert(dataTodos, []);
       if (response) {
         await Promise.all([
-          // this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
+          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
@@ -391,7 +391,7 @@ export default class NotionRepository {
     taskRemind: IRemindTask<INotionTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
-    dataTodoHistories: ITodoHistory[],
+    dataTodoHistories: IForTodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> => {
@@ -428,8 +428,9 @@ export default class NotionRepository {
 
     dataTodoHistories.push({
       todoId: todoTask.todoapp_reg_id,
+      name: todoTask.name,
       deadline: todoTask.deadline,
-      user_id: users,
+      users: users,
       isDone: todoTask.is_done,
       isClosed: todoTask.closed,
       todoappRegUpdatedAt: todoTask.last_edited_at,
