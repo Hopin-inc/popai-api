@@ -10,6 +10,7 @@ import TodoAppUser from "@/entities/TodoAppUser";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
+import TodoHistoryRepository from "@/repositories/modules/todoHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
@@ -501,7 +502,7 @@ export default class NotionRepository {
         newIsDone: task.is_done,
         updateTime: toJapanDateTime(new Date()),
       };
-      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate);
+      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

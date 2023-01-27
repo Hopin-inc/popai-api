@@ -1,10 +1,10 @@
 import { Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Column } from "typeorm";
-import BaseEntity from "./base.entity";
-import { Todo } from "./todo.entity";
-import { User } from "./user.entity";
+import BaseEntity from "./BaseEntity";
+import Todo from "./Todo";
+import User from "./User";
 
 @Entity("todo_histories")
-export class TodoHistory extends BaseEntity {
+export default class TodoHistory extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

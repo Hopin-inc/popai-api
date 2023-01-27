@@ -1,13 +1,16 @@
-import { ITodo, ITodoHistory, IUser } from "../../types";
 import { Service } from "typedi";
 import { Repository } from "typeorm";
-import { AppDataSource } from "../../config/data-source";
-import { TodoHistoryProperty, TodoHistoryAction } from "../../const/common";
-import logger from "../../logger/winston";
-import { LoggerError } from "../../exceptions";
-import { TodoHistory } from "../../entify/todohistory.entity";
-import { Todo } from "../../entify/todo.entity";
-import { diffDays, toJapanDateTime } from "../../utils/common";
+
+import Todo from "@/entities/Todo";
+import TodoHistory from "@/entities/TodoHistory";
+
+import AppDataSource from "@/config/data-source";
+import logger from "@/logger/winston";
+import { LoggerError } from "@/exceptions";
+import { ITodo, ITodoHistory, IUser } from "@/types";
+import { TodoHistoryProperty, TodoHistoryAction } from "@/consts/common";
+
+import { diffDays, toJapanDateTime } from "@/utils/common";
 
 @Service()
 export default class TodoHistoryRepository {
