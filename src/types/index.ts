@@ -102,7 +102,7 @@ export type ITodoUpdate = {
   updateTime: Date;
 };
 
-export type IForTodoHistory = {
+export type ITodoHistory = {
   todoId: string;
   name?: string;
   deadline?: Date;

@@ -1,6 +1,6 @@
-import { AppDataSource } from '../config/data-source';
-import { LoggerError } from '../exceptions';
-import { Repository } from 'typeorm';
+import { AppDataSource } from "../config/data-source";
+import { LoggerError } from "../exceptions";
+import { Repository } from "typeorm";
 import {
   ISection,
   ITodo,
@@ -16,25 +16,28 @@ import {
   ITodoSectionUpdate,
   ITrelloList,
   ITrelloActivityLog,
-} from '../types';
-import { Service, Container } from 'typedi';
-import { Todo } from '../entify/todo.entity';
-import { TodoAppUser } from '../entify/todoappuser.entity';
-import { toJapanDateTime, diffDays } from '../utils/common';
-import moment from 'moment';
-import logger from '../logger/winston';
-import TrelloRequest from '../libs/trello.request';
-import TodoUserRepository from './modules/todoUser.repository';
-import TodoUpdateRepository from './modules/todoUpdate.repository';
-import CommonRepository from './modules/common.repository';
-import LineQueueRepository from './modules/lineQueue.repository';
-import TodoSectionRepository from './modules/todo.section.repository';
+  ITodoHistory,
+} from "../types";
+import { Service, Container } from "typedi";
+import { Todo } from "../entify/todo.entity";
+import { TodoAppUser } from "../entify/todoappuser.entity";
+import { toJapanDateTime, diffDays } from "../utils/common";
+import moment from "moment";
+import logger from "../logger/winston";
+import TrelloRequest from "../libs/trello.request";
+import TodoUserRepository from "./modules/todoUser.repository";
+import TodoUpdateRepository from "./modules/todoUpdate.repository";
+import CommonRepository from "./modules/common.repository";
+import LineQueueRepository from "./modules/lineQueue.repository";
+import TodoSectionRepository from "./modules/todo.section.repository";
+import TodoHistoryRepository from "./modules/todoHistory.repository";
 
 @Service()
 export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateRepository;
+  private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
@@ -45,6 +48,7 @@ export default class TrelloRepository {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateRepository);
+    this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
@@ -98,7 +102,7 @@ export default class TrelloRepository {
           const archiveLists: ITrelloList[] = await this.trelloRequest.getArchiveListsFromBoard(section.board_id, trelloAuth);
           const archiveListIds: string[] = archiveLists.map(list => list.id);
           const activityLogs: ITrelloActivityLog[] = await this.trelloRequest.getActivityLogFromBoard(section.board_id, trelloAuth);
-          const createCards = activityLogs.filter(log => log.type === 'createCard');
+          const createCards = activityLogs.filter(log => log.type === "createCard");
 
           await Promise.all(cardTodos.map(todoTask => this.addTodoTask(
             todoTask,
@@ -109,7 +113,7 @@ export default class TrelloRepository {
             todoapp,
             todoAppUser,
             archiveListIds,
-            createCards
+            createCards,
           )));
         } catch (err) {
           logger.error(new LoggerError(err.message));
@@ -223,17 +227,19 @@ export default class TrelloRepository {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
+      const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
       const response = await this.todoRepository.upsert(dataTodos, []);
 
       if (response) {
         await Promise.all([
+          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
@@ -249,6 +255,7 @@ export default class TrelloRepository {
     taskRemind: IRemindTask<ITrelloTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
+    dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> => {
@@ -289,6 +296,16 @@ export default class TrelloRepository {
     if (sections.length) {
       dataTodoSections.push({ todoId: todoTask.id, sections });
     }
+
+    dataTodoHistories.push({
+      todoId: todoTask.id,
+      name: todoTask.name,
+      deadline: todoTask.due,
+      users: users,
+      isDone: todoTask.dueComplete,
+      isClosed: todoTask.closed,
+      todoappRegUpdatedAt: todoTask.dateLastActivity,
+    });
 
     if (users.length) {
       //set first update task

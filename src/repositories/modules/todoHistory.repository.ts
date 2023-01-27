@@ -1,4 +1,4 @@
-import { ITodo, IForTodoHistory, IUser } from "../../types";
+import { ITodo, ITodoHistory, IUser } from "../../types";
 import { Service } from "typedi";
 import { Repository } from "typeorm";
 import { AppDataSource } from "../../config/data-source";
@@ -19,7 +19,7 @@ export default class TodoHistoryRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
-  saveTodoHistories = async (todos: IForTodoHistory[]): Promise<void> => {
+  saveTodoHistories = async (todos: ITodoHistory[]): Promise<void> => {
     for (const todo of todos) {
       const todoOfDb: ITodo = await this.todoRepository.findOneBy({
         todoapp_reg_id: todo.todoId,
@@ -31,7 +31,7 @@ export default class TodoHistoryRepository {
     }
   };
 
-  saveTodoHistory = async (todoOfDb: ITodo, todo: IForTodoHistory) => {
+  saveTodoHistory = async (todoOfDb: ITodo, todo: ITodoHistory) => {
     const firstTodoHistory: TodoHistory = await this.todoHistoryRepository.findOneBy({
       todo_id: todoOfDb.id,
       property: TodoHistoryProperty.NAME,

@@ -16,7 +16,7 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
   IUser,
-  IForTodoHistory,
+  ITodoHistory,
 } from "../types";
 
 import { Container, Service } from "typedi";
@@ -364,7 +364,7 @@ export default class NotionRepository {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
-      const dataTodoHistories: IForTodoHistory[] = [];
+      const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
@@ -391,7 +391,7 @@ export default class NotionRepository {
     taskRemind: IRemindTask<INotionTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
-    dataTodoHistories: IForTodoHistory[],
+    dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> => {
