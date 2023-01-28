@@ -401,7 +401,7 @@ export default class LineController extends Controller {
       chattool,
       user,
       reportMessage,
-      MessageTriggerType.ACTION
+      MessageTriggerType.REPORT
     );
   }
 }

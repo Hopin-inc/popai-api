@@ -1,6 +1,3 @@
-export const Common = {
-  remindMaxCount: 2,
-};
 export const MAX_REMIND_COUNT = 2;
 
 export const MessageType = {
@@ -16,10 +13,12 @@ export const MessageType = {
 };
 
 export const MessageTriggerType = {
-  BATCH: 1,
+  REMIND: 1,
   REPLY: 2,
   MANUAL: 3,
-  ACTION: 4,
+  REPORT: 4,
+  PRAISE: 5,
+  RESPONSE: 6,
 };
 
 export const RemindType = {

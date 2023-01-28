@@ -82,7 +82,7 @@ export default class SlackRepository {
           return await this.saveChatMessage(
             chatTool,
             message,
-            MessageTriggerType.BATCH,
+            MessageTriggerType.REMIND,
             channelId,
             response.ts,
             user,
@@ -113,7 +113,7 @@ export default class SlackRepository {
         // console.log(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(message);
       } else {
-        await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.ACTION, channelId);
+        await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, channelId);
       }
 
       return;
@@ -152,7 +152,7 @@ export default class SlackRepository {
         chatTool,
         user,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         channelId,
         null,
         remindTypes,
@@ -193,7 +193,7 @@ export default class SlackRepository {
         chatTool,
         user,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         channelId,
         null,
         remindTypes,
@@ -233,7 +233,7 @@ export default class SlackRepository {
         chatTool,
         user,
         message,
-        MessageTriggerType.BATCH,
+        MessageTriggerType.REMIND,
         channelId,
         null,
         remindTypes,
@@ -258,7 +258,7 @@ export default class SlackRepository {
       }
 
       const message = SlackMessageBuilder.createNotifyNothingMessage(user);
-      return await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.BATCH, channelId);
+      return await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, channelId);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -362,7 +362,7 @@ export default class SlackRepository {
         blocks: message.blocks,
       });
       if (response.ok) {
-        return await this.saveChatMessage(chatTool, message, MessageTriggerType.ACTION, channelId, threadId, user);
+        return await this.saveChatMessage(chatTool, message, MessageTriggerType.RESPONSE, channelId, threadId, user);
       }
     }
   };
