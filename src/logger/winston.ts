@@ -1,12 +1,11 @@
-import winston from 'winston';
-import path from 'path';
+import winston from "winston";
 
 export default winston.createLogger({
   format: winston.format.combine(
     winston.format.splat(),
     // format log times
     winston.format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss',
+      format: "YYYY-MM-DD HH:mm:ss",
     }),
     // Add color
     winston.format.colorize(),
