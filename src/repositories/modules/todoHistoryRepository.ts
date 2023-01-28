@@ -28,7 +28,7 @@ export default class TodoHistoryRepository {
         todoapp_reg_id: todo.todoId,
       });
 
-      if (todoOfDb) {
+      if (todoOfDb.id) {
         await this.saveTodoHistory(todoOfDb, todo);
       }
     }
@@ -39,6 +39,15 @@ export default class TodoHistoryRepository {
       todo_id: todoOfDb.id,
       property: TodoHistoryProperty.NAME,
       action: TodoHistoryAction.CREATE,
+    });
+
+    const currentTodoStatus: TodoHistory = await this.todoHistoryRepository.findOne({
+      where: {
+        todo_id: todoOfDb.id,
+        property: TodoHistoryProperty.NAME,
+        action: TodoHistoryAction.CREATE,
+      },
+      order: { created_at: "DESC" },
     });
 
     try {
@@ -58,12 +67,14 @@ export default class TodoHistoryRepository {
           }
         } else {
           const daysDiff = diffDays(toJapanDateTime(todoOfDb.deadline), toJapanDateTime(new Date()));
-          if (daysDiff > 0 && !todo.isDone) {
-            await this.createTodoHistory(todoOfDb, TodoHistoryProperty.IS_DELAYED, TodoHistoryAction.SYSTEM_CHANGE, todo.todoappRegUpdatedAt);
-            if (todo.deadline != todoOfDb.deadline) {
+          if (daysDiff > 0) {
+            if (!todo.isDone && currentTodoStatus.property != TodoHistoryProperty.IS_DELAYED) {
+              await this.createTodoHistory(todoOfDb, TodoHistoryProperty.IS_DELAYED, TodoHistoryAction.SYSTEM_CHANGE, todo.todoappRegUpdatedAt);
+            }
+            if (todo.deadline != todoOfDb.deadline && currentTodoStatus.property != TodoHistoryProperty.IS_RECOVERED) {
               await this.createTodoHistory(todoOfDb, TodoHistoryProperty.IS_RECOVERED, TodoHistoryAction.SYSTEM_CHANGE, todo.todoappRegUpdatedAt);
             }
-            if (todo.isDone != todoOfDb.is_done && todo.isDone === true) {
+            if (todo.isDone && todo.isDone != todoOfDb.is_done && currentTodoStatus.property != TodoHistoryProperty.IS_RECOVERED) {
               await this.createTodoHistory(todoOfDb, TodoHistoryProperty.IS_RECOVERED, TodoHistoryAction.SYSTEM_CHANGE, todo.todoappRegUpdatedAt);
             }
           }
@@ -74,7 +85,7 @@ export default class TodoHistoryRepository {
               await this.createTodoHistory(todoOfDb, TodoHistoryProperty.DEADLINE, TodoHistoryAction.USER_CHANGE, todo.todoappRegUpdatedAt, todo.deadline, null, daysDiff);
             }
           }
-          if (user.id != todoOfDb.user.id) {
+          if (todoOfDb.user && user.id != todoOfDb.user.id) {
             await this.createTodoHistory(todoOfDb, TodoHistoryProperty.ASSIGNEE, TodoHistoryAction.USER_CHANGE, todo.todoappRegUpdatedAt, null, user);
           }
           if (todo.isDone != todoOfDb.is_done) {
