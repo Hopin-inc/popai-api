@@ -93,7 +93,7 @@ export default class NotionRepository {
     try {
       const todoProp = pageProperty[columnName.label_todo];
       if (todoProp.type === "title" && todoProp.title.length) {
-        return todoProp.title[0].plain_text;
+        return todoProp.title.map(t => t.plain_text ?? "").join("");
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -123,6 +123,9 @@ export default class NotionRepository {
       const labelProp = pageProperty[columnName.label_due];
       if (labelProp.type === "date" && labelProp.date) {
         const date = labelProp.date;
+        return new Date(date.end ? date.end : date.start);
+      } else if (labelProp.type === "formula" && labelProp.formula.type === "date" && labelProp.formula.date) {
+        const date = labelProp.formula.date;
         return new Date(date.end ? date.end : date.start);
       }
     } catch (err) {
@@ -164,6 +167,8 @@ export default class NotionRepository {
       const isDoneProp = pageProperty[columnName.label_is_done];
       if (isDoneProp.type === "checkbox") {
         return isDoneProp.checkbox;
+      } else if (isDoneProp.type === "formula" && isDoneProp.formula.type === "boolean") {
+        return isDoneProp.formula.boolean;
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -175,6 +180,8 @@ export default class NotionRepository {
       const isArchiveProp = pageProperty[columnName.label_is_archived];
       if (isArchiveProp.type === "checkbox") {
         return isArchiveProp.checkbox;
+      } else if (isArchiveProp.type === "formula" && isArchiveProp.formula.type === "boolean") {
+        return isArchiveProp.formula.boolean;
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
