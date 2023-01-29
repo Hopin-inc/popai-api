@@ -112,7 +112,7 @@ export default class SlackRepository {
         // console.log(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(message);
       } else {
-        await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, channelId);
+        await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, user.slack_id);
       }
 
       return;
