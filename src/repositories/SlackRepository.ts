@@ -43,7 +43,6 @@ export default class SlackRepository {
   private sectionRepository: Repository<Section>;
   private chattoolRepository: Repository<ChatTool>;
 
-
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
@@ -74,7 +73,7 @@ export default class SlackRepository {
         console.log(message);
       } else {
         const response = await SlackBot.chat.postMessage({
-          channel: channelId,
+          channel: user.slack_id,
           text: "お知らせ",
           blocks: message.blocks,
         });
@@ -83,7 +82,7 @@ export default class SlackRepository {
             chatTool,
             message,
             MessageTriggerType.REMIND,
-            channelId,
+            user.slack_id,
             response.ts,
             user,
             remindTypes,
