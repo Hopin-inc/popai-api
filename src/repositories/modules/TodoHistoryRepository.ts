@@ -89,10 +89,8 @@ export default class TodoHistoryRepository {
             await this.saveTodo(todoOfDb, TodoHistoryProperty.IS_CLOSED, TodoHistoryAction.USER_CHANGE, todo.todoappRegUpdatedAt);
           }
 
-          const isSameUser = todoOfDb.todoUsers.find(function(todoUser) {
-            return todoUser.user_id === user.id;
-          });
-          if (isSameUser && todoOfDb.user && user.id !== todoOfDb.user.id) {
+          const isSameUser = todoOfDb.todoUsers.map(todoUser => todoUser.user_id).includes(user.id);
+          if (isSameUser) {
             await this.saveTodo(todoOfDb, TodoHistoryProperty.ASSIGNEE, TodoHistoryAction.USER_CHANGE, todo.todoappRegUpdatedAt, null, user);
           }
         }
