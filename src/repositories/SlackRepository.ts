@@ -33,6 +33,7 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
+import Slack from "@/routes/slack";
 
 @Service()
 export default class SlackRepository {
@@ -72,8 +73,11 @@ export default class SlackRepository {
       if (process.env.ENV === "LOCAL") {
         console.log(message);
       } else {
+        const getDmId = await SlackBot.conversations.open({ users: user.slack_id });
+        const dmId = getDmId.channel.id;
+
         const response = await SlackBot.chat.postMessage({
-          channel: user.slack_id,
+          channel: dmId,
           text: "お知らせ",
           blocks: message.blocks,
         });
@@ -82,7 +86,7 @@ export default class SlackRepository {
             chatTool,
             message,
             MessageTriggerType.REMIND,
-            user.slack_id,
+            dmId,
             response.ts,
             user,
             remindTypes,
@@ -108,11 +112,14 @@ export default class SlackRepository {
       //1.期日に対するリマインド
       const message: MessageAttachment = SlackMessageBuilder.createBeforeRemindMessage(user, todoSlacks);
 
+      const getDmId = await SlackBot.conversations.open({ users: user.slack_id });
+      const dmId = getDmId.channel.id;
+
       if (process.env.ENV === "LOCAL") {
         // console.log(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(message);
       } else {
-        await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, user.slack_id);
+        await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, dmId);
       }
 
       return;
@@ -450,7 +457,7 @@ export default class SlackRepository {
               if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
                 const adminUser = company.adminUser;
                 const chatToolUser = chattoolUsers.find(
-                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
+                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
                 );
 
                 if (chatToolUser) {
@@ -487,7 +494,7 @@ export default class SlackRepository {
 
         // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
         const notSetDueDateTasks = needRemindTasks.filter(
-          task => !task.deadline && task.todoUsers.length && task.reminded_count < MAX_REMIND_COUNT
+          task => !task.deadline && task.todoUsers.length && task.reminded_count < MAX_REMIND_COUNT,
         );
 
         // Send list task to each user
@@ -499,7 +506,7 @@ export default class SlackRepository {
               if (chattool.tool_code === ChatToolCode.SLACK) {
                 const user = todos[0].user;
                 const chatToolUser = chattoolUsers.find(
-                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id
+                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id,
                 );
 
                 if (chatToolUser) {
@@ -518,7 +525,7 @@ export default class SlackRepository {
 
         // 担当者未設定・期日設定済みの場合
         const notSetAssignTasks = needRemindTasks.filter(
-          task => task.deadline && !task.todoUsers.length && task.reminded_count < MAX_REMIND_COUNT
+          task => task.deadline && !task.todoUsers.length && task.reminded_count < MAX_REMIND_COUNT,
         );
 
         if (notSetAssignTasks.length) {
@@ -526,7 +533,7 @@ export default class SlackRepository {
             if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chattoolUsers.find(
-                chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
+                chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
               );
 
               if (chatToolUser) {
@@ -577,7 +584,7 @@ export default class SlackRepository {
         const chatToolUser = chatToolUsers.find(
           chatToolUser => chatTool
             && chatToolUser.chattool_id === chatTool.id
-            && chatToolUser.user_id === todoUser.user_id
+            && chatToolUser.user_id === todoUser.user_id,
         );
 
         if (chatToolUser) {
