@@ -19,11 +19,14 @@ import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
 import { IUser } from "@/types";
+import Section from "@/entities/Section";
+import { KnownBlock, MessageAttachment } from "@slack/web-api";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
   private chatToolRepository: Repository<ChatTool>;
   private todoRepository: Repository<Todo>;
+  private sectionRepository: Repository<Section>;
   private commonRepository: CommonRepository;
   private taskService: TaskService;
 
@@ -33,6 +36,7 @@ export default class SlackController extends Controller {
     this.commonRepository = Container.get(CommonRepository);
     this.chatToolRepository = AppDataSource.getRepository(ChatTool);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.sectionRepository = AppDataSource.getRepository(Section);
     this.taskService = Container.get(TaskService);
   }
 
@@ -85,7 +89,6 @@ export default class SlackController extends Controller {
     }
 
     const slackTodo = await this.slackRepository.getSlackTodo(channelId, threadId);
-    console.dir(slackTodo, { depth: null });
 
     await SlackBot.chat.update({
       channel: channelId,
@@ -106,110 +109,13 @@ export default class SlackController extends Controller {
       await this.taskService.updateTask(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
     }
 
-    await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
-  }
-
-  private async replyButtonClick(
-    chatTool: ChatTool,
-    slackId: string,
-    user: User,
-    status: string,
-    channelId: string,
-    threadId: string,
-  ) {
-    const actionMatchesStatus = (action: string, statuses: TodoStatus[]): boolean => {
-      const targetActions = replyActions.filter(a => statuses.includes(a.status)).map(a => a.status);
-      return targetActions.includes(action as TodoStatus);  // TODO: Convert TodoStatus Enum -> Object literal
-    };
-
-    if (actionMatchesStatus(status, [TodoStatus.DONE])) {
-      await this.replyDoneAction(chatTool, user, channelId, threadId);
-    } else if (actionMatchesStatus(status, [TodoStatus.ONGOING, TodoStatus.NOT_YET])) {
-      await this.replyInProgressAction(chatTool, user, channelId, threadId);
-    } else if (actionMatchesStatus(status, [TodoStatus.DELAYED])) {
-      await this.replyDelayAction(chatTool, user, channelId, threadId);
-    } else if (actionMatchesStatus(status, [TodoStatus.WITHDRAWN])) {
-      await this.replyWithdrawnAction(chatTool, user, channelId, threadId);
-    } else {
-      console.error(`Status not found: ${status}`);
-    }
-
     const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);
-    if (superiorUsers) {
-      await Promise.all(superiorUsers.map(su => this.sendSuperiorMessage(chatTool, su, channelId, threadId)));
-    }
-  }
 
-  /**
-   *
-   * @param chatTool
-   * @param user
-   * @param channelId
-   * @param threadId
-   * @returns
-   */
-  private async replyDoneAction(
-    chatTool: ChatTool,
-    user: User,
-    channelId: string,
-    threadId: string,
-  ): Promise<void> {
-    const replyMessage = SlackMessageBuilder.createResponseToReplyDone();
-    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
-  }
+    const sendChannelId = "C04EJSBAX2S"; //TODO:sectionsTableから取得する
+    const shareMessage = SlackMessageBuilder.createShareMessage(slackId, slackTodo, repliedMessage);
+    await Promise.all(superiorUsers.map(su => this.sendSuperiorMessage(chatTool, su, sendChannelId, null, shareMessage)));
 
-  /**
-   *
-   * @param chatTool
-   * @param user
-   * @param channelId
-   * @param threadId
-   * @returns
-   */
-  private async replyInProgressAction( // TODO: channelIdとthreadIdでpostする
-    chatTool: ChatTool,
-    user: User,
-    channelId: string,
-    threadId: string,
-  ): Promise<void> {
-    const replyMessage = SlackMessageBuilder.createResponseToReplyInProgress();
-    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
-  }
-
-  /**
-   *
-   * @param chatTool
-   * @param user
-   * @param channelId
-   * @param threadId
-   * @returns
-   */
-  private async replyDelayAction( // TODO: channelIdとthreadIdでpostする
-    chatTool: ChatTool,
-    user: User,
-    channelId: string,
-    threadId: string,
-  ): Promise<void> {
-    const replyMessage = SlackMessageBuilder.createResponseToReplyDelayed();
-    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
-  }
-
-  /**
-   *
-   * @param chatTool
-   * @param user
-   * @param channelId
-   * @param threadId
-   * @returns
-   */
-  private async replyWithdrawnAction(
-    chatTool: ChatTool,
-    user: User,
-    channelId: string,
-    threadId: string,
-  ): Promise<void> {
-    const replyMessage = SlackMessageBuilder.createResponseToReplyWithdrawn();
-    await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+    // await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
   }
 
   /**
@@ -218,13 +124,15 @@ export default class SlackController extends Controller {
    * @param superiorUser
    * @param channelId
    * @param threadId
+   * @param shareMessage
    * @returns
    */
   private async sendSuperiorMessage(
     chatTool: ChatTool,
     superiorUser: IUser,
     channelId: string,
-    threadId: string,
+    threadId?: string,
+    shareMessage?: MessageAttachment,
   ): Promise<void> {
     const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chatTool.id);
     const user = { ...superiorUser, slack_id: chatToolUser?.auth_key };
@@ -234,14 +142,117 @@ export default class SlackController extends Controller {
       return;
     }
 
-    const reportMessage = SlackMessageBuilder.createReportMessage(user);
     await this.slackRepository.pushSlackMessage(
       chatTool,
       user,
-      reportMessage,
+      shareMessage,
       MessageTriggerType.REPORT,
       channelId,
-      threadId
+      threadId,
     );
   }
+
+  // private async replyButtonClick(
+  //   chatTool: ChatTool,
+  //   slackId: string,
+  //   user: User,
+  //   status: string,
+  //   channelId: string,
+  //   threadId: string,
+  // ) {
+  //   const actionMatchesStatus = (action: string, statuses: TodoStatus[]): boolean => {
+  //     const targetActions = replyActions.filter(a => statuses.includes(a.status)).map(a => a.status);
+  //     return targetActions.includes(action as TodoStatus);  // TODO: Convert TodoStatus Enum -> Object literal
+  //   };
+  //
+  //   if (actionMatchesStatus(status, [TodoStatus.DONE])) {
+  //     // await this.replyDoneAction(chatTool, user, channelId, threadId);
+  //   } else if (actionMatchesStatus(status, [TodoStatus.ONGOING, TodoStatus.NOT_YET])) {
+  //     // await this.replyInProgressAction(chatTool, user, channelId, threadId);
+  //   } else if (actionMatchesStatus(status, [TodoStatus.DELAYED])) {
+  //     // await this.replyDelayAction(chatTool, user, channelId, threadId);
+  //   } else if (actionMatchesStatus(status, [TodoStatus.WITHDRAWN])) {
+  //     // await this.replyWithdrawnAction(chatTool, user, channelId, threadId);
+  //   } else {
+  //     console.error(`Status not found: ${status}`);
+  //   }
+  //
+  //   const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);
+  //   const sendChannelId = "C04EJSBAX2S"; //TODO:sectionsTableから取得する
+  //   if (superiorUsers) {
+  //     await Promise.all(superiorUsers.map(su => this.sendSuperiorMessage(chatTool, su, sendChannelId)));
+  //   }
+  // }
+
+  // /**
+  //  *
+  //  * @param chatTool
+  //  * @param user
+  //  * @param channelId
+  //  * @param threadId
+  //  * @returns
+  //  */
+  // private async replyDoneAction(
+  //   chatTool: ChatTool,
+  //   user: User,
+  //   channelId: string,
+  //   threadId: string,
+  // ): Promise<void> {
+  //   const replyMessage = SlackMessageBuilder.createResponseToReplyDone();
+  //   await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+  // }
+  //
+  // /**
+  //  *
+  //  * @param chatTool
+  //  * @param user
+  //  * @param channelId
+  //  * @param threadId
+  //  * @returns
+  //  */
+  // private async replyInProgressAction(
+  //   chatTool: ChatTool,
+  //   user: User,
+  //   channelId: string,
+  //   threadId: string,
+  // ): Promise<void> {
+  //   const replyMessage = SlackMessageBuilder.createResponseToReplyInProgress();
+  //   await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+  // }
+  //
+  // /**
+  //  *
+  //  * @param chatTool
+  //  * @param user
+  //  * @param channelId
+  //  * @param threadId
+  //  * @returns
+  //  */
+  // private async replyDelayAction(
+  //   chatTool: ChatTool,
+  //   user: User,
+  //   channelId: string,
+  //   threadId: string,
+  // ): Promise<void> {
+  //   const replyMessage = SlackMessageBuilder.createResponseToReplyDelayed();
+  //   await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+  // }
+  //
+  // /**
+  //  *
+  //  * @param chatTool
+  //  * @param user
+  //  * @param channelId
+  //  * @param threadId
+  //  * @returns
+  //  */
+  // private async replyWithdrawnAction(
+  //   chatTool: ChatTool,
+  //   user: User,
+  //   channelId: string,
+  //   threadId: string,
+  // ): Promise<void> {
+  //   const replyMessage = SlackMessageBuilder.createResponseToReplyWithdrawn();
+  //   await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
+  // }
 }

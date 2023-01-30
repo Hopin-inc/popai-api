@@ -194,7 +194,6 @@ export default class SlackRepository {
       };
 
       const message = SlackMessageBuilder.createNotifyUnassignedMessage(user, todos);
-      // await this.saveChatMessage(user, todo, message);
       return await this.pushSlackMessage(
         chatTool,
         user,
@@ -345,6 +344,7 @@ export default class SlackRepository {
         text: "お知らせ",
         blocks: message.blocks,
       });
+      console.dir(response, { depth: null });
       if (response.ok) {
         return await this.saveChatMessage(chatTool, message, messageTriggerId, channelId, threadId, user);
       }

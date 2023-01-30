@@ -40,7 +40,7 @@ export const relativeRemindDays = (remindDays: number): string => {
   } else if (remindDays === -1) {
     return "明日";
   } else if (remindDays === -2) {
-    return "あさって";
+    return "明後日";
   } else {
     return `${ (-remindDays).toString() }日後`;
   }

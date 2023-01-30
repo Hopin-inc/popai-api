@@ -3,7 +3,7 @@ import { KnownBlock } from "@slack/web-api";
 import Todo from "@/entities/Todo";
 
 import { replyActionsAfter, replyActionsBefore } from "@/consts/slack";
-import { relativeRemindDays } from "@/utils/common";
+import { relativeRemindDays, toJapanDateTime } from "@/utils/common";
 import { ITodo, IUser } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 
@@ -16,7 +16,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${user.slack_id}> ${relativeDays}が期日の<${todo.todoapp_reg_url}|${todo.name}>の進捗はいかがですか？`,
+          text: `*${relativeDays}* までの<${todo.todoapp_reg_url}|${todo.name}>の進捗はいかがですか？`,
         },
       },
       {
@@ -40,88 +40,35 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<${todo.todoapp_reg_url}|${todo.name}>は${message}`,
+          text: `<${todo.todoapp_reg_url}|${todo.name}>は *${message}* で伝えました`,
         },
       },
+    ];
+    return { blocks };
+  }
+
+  static createShareMessage(userId: string, todo: Todo, message: string) {
+    const blocks: KnownBlock[] = [
       {
-        type: "context",
-        elements: [
+        type: "section",
+        fields: [
           {
-            type: "image",
-            image_url: "https://image.freepik.com/free-photo/red-drawing-pin_1156-445.jpg",
-            alt_text: "image",
+            type: "mrkdwn",
+            text: `*タスク:*\n<${todo.todoapp_reg_url}|${todo.name}>`,
           },
-          { type: "mrkdwn", text: `<@${userId}>が答えました` },
+          {
+            type: "mrkdwn",
+            text: `*期日:*\n${this.formatDate(todo.deadline)}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*進捗:*\n${message}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*回答者:*\n<@${userId}>`,
+          },
         ],
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyDone() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "完了しているんですね:relieved:\nお疲れさまでした！\n\n担当いただき、ありがとうございます:blush:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyInProgress() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "承知しました:+1:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyDelayed() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "承知しました:confounded:\n引き続きよろしくお願いします:muscle:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyWithdrawn() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "そうなんですね:open_mouth:\n承知しました:muscle:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createReportMessage(superiorUser: IUser) {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `<@${superiorUser.slack_id}> ご確認ください:eyes:`,
-        },
       },
     ];
     return { blocks };
@@ -142,21 +89,10 @@ export default class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: { type: "mrkdwn", text: `<@${user.slack_id}> お疲れさまです:raised_hands:` },
+        text: { type: "mrkdwn", text: "お疲れさまです:raised_hands:" },
       },
     ];
 
-    groupMessageMap.forEach((onedayTasks, remindDays) => {
-      const relativeDays = relativeRemindDays(remindDays);
-      const todoList = onedayTasks.map(todo => `:bookmark: <${todo.todo.todoapp_reg_url}|${todo.todo.name}>`);
-      blocks.push({
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `${relativeDays}が期日のタスクが${onedayTasks.length}件あります。\n\n` + todoList.join("\n"),
-        },
-      });
-    });
     return { blocks };
   }
 
@@ -236,5 +172,13 @@ export default class SlackMessageBuilder {
 
   static getTextContentFromMessage(message) {
     return message.blocks[0].text.text;
+  }
+
+  static formatDate(date: Date) {
+    const year = date.getFullYear();
+    const month = `0${date.getMonth() + 1}`.slice(-2);
+    const day = `0${date.getDate()}`.slice(-2);
+    const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+    return `${year}年${month}月${day}日(${dayOfWeek})`;
   }
 }
