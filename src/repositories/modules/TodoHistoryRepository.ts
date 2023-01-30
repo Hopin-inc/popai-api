@@ -90,7 +90,7 @@ export default class TodoHistoryRepository {
           }
 
           const isSameUser = todoOfDb.todoUsers.map(todoUser => todoUser.user_id).includes(user.id);
-          if (isSameUser) {
+          if (!isSameUser) {
             await this.saveTodo(todoOfDb, TodoHistoryProperty.ASSIGNEE, TodoHistoryAction.USER_CHANGE, todo.todoappRegUpdatedAt, null, user);
           }
         }
