@@ -3,7 +3,7 @@ import { KnownBlock } from "@slack/web-api";
 import Todo from "@/entities/Todo";
 
 import { replyActionsAfter, replyActionsBefore } from "@/consts/slack";
-import { relativeRemindDays, toJapanDateTime } from "@/utils/common";
+import { relativeRemindDays } from "@/utils/common";
 import { ITodo, IUser } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 
@@ -14,10 +14,15 @@ export default class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*${relativeDays}* までの<${todo.todoapp_reg_url}|${todo.name}>の進捗はいかがですか？`,
-        },
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*タスク:*\n<${todo.todoapp_reg_url}|${todo.name}>`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*期日:*\n${relativeDays}`,
+          }],
       },
       {
         type: "actions",
@@ -89,7 +94,7 @@ export default class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: { type: "mrkdwn", text: "お疲れさまです:raised_hands:" },
+        text: { type: "mrkdwn", text: "お仕事お疲れさまです:raised_hands:\n下記の進捗はいかがですか？" },
       },
     ];
 
@@ -170,8 +175,12 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  static getTextContentFromMessage(message) {
-    return message.blocks[0].text.text;
+  static getTextContentFromMessage(message) { //TODO:replyが記録できていない
+    if (message.blocks[0].fields) {
+      return message.blocks[0].fields.map(field => field.text).join("\n");
+    } else {
+      return message.actions[0].text.text;
+    }
   }
 
   static formatDate(date: Date) {

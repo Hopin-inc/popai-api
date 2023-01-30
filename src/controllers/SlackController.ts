@@ -113,7 +113,7 @@ export default class SlackController extends Controller {
 
     const sendChannelId = "C04EJSBAX2S"; //TODO:sectionsTableから取得する
     const shareMessage = SlackMessageBuilder.createShareMessage(slackId, slackTodo, repliedMessage);
-    await Promise.all(superiorUsers.map(su => this.sendSuperiorMessage(chatTool, su, sendChannelId, null, shareMessage)));
+    await Promise.all(superiorUsers.map(su => this.sendShareMessageToChannel(chatTool, su, sendChannelId, null, shareMessage)));
 
     // await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
   }
@@ -127,7 +127,7 @@ export default class SlackController extends Controller {
    * @param shareMessage
    * @returns
    */
-  private async sendSuperiorMessage(
+  private async sendShareMessageToChannel(
     chatTool: ChatTool,
     superiorUser: IUser,
     channelId: string,
@@ -201,7 +201,7 @@ export default class SlackController extends Controller {
   //   const replyMessage = SlackMessageBuilder.createResponseToReplyDone();
   //   await this.slackRepository.replyMessage(chatTool, replyMessage, channelId, threadId, user);
   // }
-  //
+
   // /**
   //  *
   //  * @param chatTool
