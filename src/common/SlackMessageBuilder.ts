@@ -184,10 +184,9 @@ export default class SlackMessageBuilder {
   }
 
   static formatDate(date: Date) {
-    const year = date.getFullYear();
     const month = `0${date.getMonth() + 1}`.slice(-2);
     const day = `0${date.getDate()}`.slice(-2);
     const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
-    return `${year}年${month}月${day}日(${dayOfWeek})`;
+    return `${month}月${day}日(${dayOfWeek})`;
   }
 }
