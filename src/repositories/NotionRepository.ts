@@ -10,7 +10,7 @@ import TodoAppUser from "@/entities/TodoAppUser";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import TodoHistoryRepository from "@/repositories/modules/todoHistoryRepository";
+import TodoHistoryRepository from "@/repositories/modules/TodoHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";

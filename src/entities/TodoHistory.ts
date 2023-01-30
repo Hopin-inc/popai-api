@@ -40,7 +40,7 @@ export default class TodoHistory extends BaseEntity {
   @ManyToOne(
     () => User,
     user => user.todoUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "user_id" })
   user: User;
