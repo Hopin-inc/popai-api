@@ -1,4 +1,4 @@
-import { KnownBlock } from "@slack/web-api";
+import { KnownBlock, MessageAttachment } from "@slack/web-api";
 
 import Todo from "@/entities/Todo";
 
@@ -175,12 +175,16 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  static getTextContentFromMessage(message) { //TODO:replyが記録できていない
-    if (message.blocks[0].fields) {
-      return message.blocks[0].fields.map(field => field.text).join("\n");
-    } else {
-      return message.actions[0].text.text;
+  static getTextContentFromMessage(message: MessageAttachment) { //TODO:replyが記録できていない
+    if (message.blocks && message.blocks.length) {
+      const blocks = message.blocks as KnownBlock[];
+      if (blocks[0].type === "section" && blocks[0].fields) {
+        return blocks[0].fields.map(field => field.text)?.join("\n") ?? "";
+      }
+    } else if (message.actions && message.actions.length && message.actions[0].text) {
+      return message.actions[0].text;
     }
+    return "";
   }
 
   static formatDate(date: Date) {
