@@ -285,7 +285,7 @@ export default class MicrosoftRepository {
 
       if (response) {
         await Promise.all([
-          this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates),
+          this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
           // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
@@ -412,7 +412,7 @@ export default class MicrosoftRepository {
         newIsDone: task.is_done,
         updateTime: toJapanDateTime(new Date()),
       };
-      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate);
+      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate)
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

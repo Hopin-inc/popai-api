@@ -105,6 +105,16 @@ export type ITodoUpdate = {
   updateTime: Date;
 };
 
+export type ITodoHistory = {
+  todoId: string;
+  name?: string;
+  deadline?: Date;
+  users?: IUser[];
+  isDone: boolean;
+  isClosed: boolean;
+  todoappRegUpdatedAt: Date;
+};
+
 export type ITodoUserUpdate = {
   todoId: string;
   users: IUser[];

@@ -19,7 +19,7 @@ export default class TodoUpdateHistoryRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
-  saveTodoHistories = async (dataTodoIDUpdates: ITodoUpdate[]): Promise<void> => {
+  saveTodoUpdateHistories = async (dataTodoIDUpdates: ITodoUpdate[]): Promise<void> => {
     if (dataTodoIDUpdates.length) {
       for (const dataUpdate of dataTodoIDUpdates) {
         const { todoId } = dataUpdate;
@@ -29,13 +29,13 @@ export default class TodoUpdateHistoryRepository {
         });
 
         if (todo) {
-          await this.saveTodoHistory(todo, dataUpdate);
+          await this.saveTodoUpdateHistory(todo, dataUpdate);
         }
       }
     }
   };
 
-  saveTodoHistory = async (todo: ITodo, dataUpdate: ITodoUpdate) => {
+  saveTodoUpdateHistory = async (todo: ITodo, dataUpdate: ITodoUpdate) => {
     try {
       const { dueTime, newDueTime, updateTime } = dataUpdate;
 

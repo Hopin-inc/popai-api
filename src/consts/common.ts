@@ -1,5 +1,22 @@
 export const MAX_REMIND_COUNT = 2;
 
+export const TodoHistoryProperty = {
+  NAME: 1,
+  DEADLINE: 2,
+  ASSIGNEE: 3,
+  IS_DONE: 4,
+  IS_CLOSED: 5,
+  IS_DELAYED: 6,
+  IS_RECOVERED: 7,
+};
+
+export const TodoHistoryAction = {
+  CREATE: 1,
+  USER_CHANGE: 2,
+  SYSTEM_CHANGE: 3,
+  DELETE: 4,
+};
+
 export const MessageType = {
   TEXT: 1,
   STICKER: 2,

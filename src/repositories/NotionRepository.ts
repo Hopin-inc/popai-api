@@ -10,6 +10,7 @@ import TodoAppUser from "@/entities/TodoAppUser";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
+import TodoHistoryRepository from "@/repositories/modules/TodoHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
@@ -31,6 +32,7 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
   IUser,
+  ITodoHistory
 } from "@/types";
 import { INotionProperty, INotionTask } from "@/types/notion";
 
@@ -40,6 +42,7 @@ export default class NotionRepository {
   private todoRepository: Repository<Todo>;
   private columnNameRepository: Repository<ColumnName>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
+  private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
@@ -50,6 +53,7 @@ export default class NotionRepository {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
+    this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.columnNameRepository = AppDataSource.getRepository(ColumnName);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
@@ -75,11 +79,10 @@ export default class NotionRepository {
           await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, columnName, sections);
         }
       }
-      console.log(`[${ company.name } - ${ todoapp.name }] getCardBoards: ${ todoTasks.length }`);
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(dayReminds, todoTasks);
-      console.log(`[${ company.name } - ${ todoapp.name }] filterUpdatePages: ${ dayReminds }`);
+      console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -222,6 +225,15 @@ export default class NotionRepository {
     }
   };
 
+  getCreatedAt = (pageInfo: PageObjectResponse): Date => {
+    try {
+      const createdAtStr = pageInfo.created_time;
+      return new Date(createdAtStr);
+    } catch (err) {
+      logger.error(new LoggerError(err.message));
+    }
+  };
+
   getUrl = (pageInfo: PageObjectResponse): string => {
     try {
       return pageInfo.url;
@@ -293,6 +305,7 @@ export default class NotionRepository {
         is_done: this.getIsDone(columnName, pageProperty),
         created_by: this.getCreatedBy(pageInfo),
         created_by_id: null,
+        created_at: this.getCreatedAt(pageInfo),
         last_edited_at: this.getLastEditedAt(pageInfo),
         todoapp_reg_url: this.getUrl(pageInfo),
         dueReminder: null,
@@ -358,17 +371,19 @@ export default class NotionRepository {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
+      const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
       const response = await this.todoRepository.upsert(dataTodos, []);
       if (response) {
         await Promise.all([
-          this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates),
+          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
+          this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
           // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
@@ -383,6 +398,7 @@ export default class NotionRepository {
     taskRemind: IRemindTask<INotionTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
+    dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> => {
@@ -400,7 +416,7 @@ export default class NotionRepository {
     todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
     todoData.todoapp_reg_url = todoTask.todoapp_reg_url;
     todoData.todoapp_reg_created_by = todoTask.created_by_id;
-    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.last_edited_at);
+    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.created_at);
     todoData.company_id = company.id;
     todoData.deadline = taskDeadLine;
     todoData.is_done = todoTask.is_done;
@@ -416,6 +432,16 @@ export default class NotionRepository {
     if (sections.length) {
       dataTodoSections.push({ todoId: todoTask.todoapp_reg_id, sections });
     }
+
+    dataTodoHistories.push({
+      todoId: todoTask.todoapp_reg_id,
+      name: todoTask.name,
+      deadline: todoTask.deadline,
+      users: users,
+      isDone: todoTask.is_done,
+      isClosed: todoTask.closed,
+      todoappRegUpdatedAt: todoTask.last_edited_at,
+    });
 
     //update deadline task
     if (taskDeadLine || todoData.is_done) {
@@ -483,7 +509,7 @@ export default class NotionRepository {
         newIsDone: task.is_done,
         updateTime: toJapanDateTime(new Date()),
       };
-      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate);
+      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

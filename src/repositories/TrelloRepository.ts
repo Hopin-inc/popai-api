@@ -7,6 +7,7 @@ import TodoAppUser from "@/entities/TodoAppUser";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
+import TodoHistoryRepository from "./modules/TodoHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
@@ -28,6 +29,7 @@ import {
   ITodoUpdate,
   IRemindTask,
   ITodoSectionUpdate,
+  ITodoHistory,
 } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 
@@ -36,6 +38,7 @@ export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
   private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
+  private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
@@ -46,6 +49,7 @@ export default class TrelloRepository {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
+    this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
@@ -224,18 +228,20 @@ export default class TrelloRepository {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
+      const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
       const response = await this.todoRepository.upsert(dataTodos, []);
 
       if (response) {
         await Promise.all([
-          this.todoUpdateRepository.saveTodoHistories(dataTodoUpdates),
+          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
+          this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
           // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
@@ -250,6 +256,7 @@ export default class TrelloRepository {
     taskRemind: IRemindTask<ITrelloTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
+    dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> => {
@@ -290,6 +297,16 @@ export default class TrelloRepository {
     if (sections.length) {
       dataTodoSections.push({ todoId: todoTask.id, sections });
     }
+
+    dataTodoHistories.push({
+      todoId: todoTask.id,
+      name: todoTask.name,
+      deadline: todoTask.due,
+      users: users,
+      isDone: todoTask.dueComplete,
+      isClosed: todoTask.closed,
+      todoappRegUpdatedAt: todoTask.dateLastActivity,
+    });
 
     if (users.length) {
       //set first update task
@@ -357,7 +374,7 @@ export default class TrelloRepository {
         newIsDone: task.is_done,
         updateTime: toJapanDateTime(new Date()),
       };
-      await this.todoUpdateRepository.saveTodoHistory(task, todoUpdate);
+      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
