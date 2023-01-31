@@ -33,7 +33,6 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import Slack from "@/routes/slack";
 
 @Service()
 export default class SlackRepository {
@@ -153,7 +152,8 @@ export default class SlackRepository {
         remindType: RemindType.REMIND_NOT_ASSIGN_DEADLINE,
       };
 
-      const message = SlackMessageBuilder.createNotifyUnsetMessage(user, todos);
+      const isNotDoneTodos = todos.filter(todo => todo.is_done !== true);
+      const message = SlackMessageBuilder.createNotifyUnsetMessage(user, isNotDoneTodos);
       return await this.pushSlackMessage(
         chatTool,
         user,
@@ -233,7 +233,8 @@ export default class SlackRepository {
         remindType: RemindType.REMIND_NOT_DEADLINE,
       };
 
-      const message = SlackMessageBuilder.createNotifyNoDeadlineMessage(user, todos);
+      const isNotDoneTodos = todos.filter(todo => todo.is_done !== true);
+      const message = SlackMessageBuilder.createNotifyNoDeadlineMessage(user, isNotDoneTodos);
       return await this.pushSlackMessage(
         chatTool,
         user,

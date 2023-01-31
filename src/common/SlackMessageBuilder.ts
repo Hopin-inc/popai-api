@@ -1,3 +1,6 @@
+import dayjs from "dayjs";
+import "dayjs/locale/ja";
+
 import { KnownBlock, MessageAttachment } from "@slack/web-api";
 
 import Todo from "@/entities/Todo";
@@ -53,6 +56,7 @@ export default class SlackMessageBuilder {
   }
 
   static createShareMessage(userId: string, todo: Todo, message: string) {
+    dayjs.locale("ja");
     const blocks: KnownBlock[] = [
       {
         type: "section",
@@ -63,7 +67,7 @@ export default class SlackMessageBuilder {
           },
           {
             type: "mrkdwn",
-            text: `*期日:*\n${this.formatDate(todo.deadline)}`,
+            text: `*期日:*\n${dayjs(todo.deadline).format("MM月DD日(ddd)")}`,
           },
           {
             type: "mrkdwn",
@@ -108,7 +112,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
+          text: "お疲れさまです:raised_hands:\n"
             + "現在、次のタスクの担当者と期日が設定されていません:sob:\n\n"
             + todoList.join("\n"),
         },
@@ -128,7 +132,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
+          text: "お疲れさまです:raised_hands:\n"
             + "現在、次のタスクの担当者が設定されていません:sob:\n\n"
             + todoList.join("\n"),
         },
@@ -167,7 +171,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slack_id}> お疲れさまです:raised_hands:\n`
+          text: "お疲れさまです:raised_hands:\n"
             + "現在、担当者・期日が設定されていないタスクはありませんでした。",
         },
       },
@@ -185,12 +189,5 @@ export default class SlackMessageBuilder {
       return message.actions[0].text;
     }
     return "";
-  }
-
-  static formatDate(date: Date) {
-    const month = `0${date.getMonth() + 1}`.slice(-2);
-    const day = `0${date.getDate()}`.slice(-2);
-    const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
-    return `${month}月${day}日(${dayOfWeek})`;
   }
 }

@@ -20,7 +20,7 @@ import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
 import { IUser } from "@/types";
 import Section from "@/entities/Section";
-import { KnownBlock, MessageAttachment } from "@slack/web-api";
+import { MessageAttachment } from "@slack/web-api";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
