@@ -7,6 +7,10 @@ import moment from "moment";
 import ColumnName from "@/entities/ColumnName";
 import Todo from "@/entities/Todo";
 import TodoAppUser from "@/entities/TodoAppUser";
+import TodoApp from "@/entities/TodoApp";
+import Company from "@/entities/Company";
+import Section from "@/entities/Section";
+import User from "@/entities/User";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
@@ -19,21 +23,7 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import {
-  IColumnName,
-  ICompany,
-  IRemindTask,
-  ISection,
-  ITodo,
-  ITodoApp,
-  ITodoAppUser,
-  ITodoSectionUpdate,
-  ITodoTask,
-  ITodoUpdate,
-  ITodoUserUpdate,
-  IUser,
-  ITodoHistory
-} from "@/types";
+import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate, ITodoHistory } from "@/types";
 import { INotionProperty, INotionTask } from "@/types/notion";
 
 @Service()
@@ -62,14 +52,14 @@ export default class NotionRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  syncTaskByUserBoards = async (company: ICompany, todoapp: ITodoApp): Promise<void> => {
+  public async syncTaskByUserBoards(company: Company, todoapp: TodoApp): Promise<void> {
     const companyId = company.id;
     const todoappId = todoapp.id;
     const sections = await this.commonRepository.getSections(companyId, todoappId);
     await this.getUserPageBoards(sections, company, todoapp);
-  };
+  }
 
-  getUserPageBoards = async (sections: ISection[], company: ICompany, todoapp: ITodoApp): Promise<void> => {
+  private async getUserPageBoards(sections: Section[], company: Company, todoapp: TodoApp): Promise<void> {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
 
@@ -81,18 +71,18 @@ export default class NotionRepository {
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
-      await this.filterUpdatePages(dayReminds, todoTasks);
+      await this.filterUpdatePages(todoTasks);
       console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getColumnName = async (section: ISection): Promise<IColumnName> => {
+  private async getColumnName(section: Section): Promise<ColumnName> {
     return await this.columnNameRepository.findOneBy({ section_id: section.id });
-  };
+  }
 
-  getTaskName = (columnName: IColumnName, pageProperty: INotionProperty): string => {
+  private getTaskName(columnName: ColumnName, pageProperty: INotionProperty): string {
     try {
       const todoProp = pageProperty[columnName.label_todo];
       if (todoProp.type === "title" && todoProp.title.length) {
@@ -102,9 +92,9 @@ export default class NotionRepository {
       logger.error(new LoggerError(err.message));
       return;
     }
-  };
+  }
 
-  getAssignee = (columnName: IColumnName, pageProperty: INotionProperty): string[] => {
+  private getAssignee(columnName: ColumnName, pageProperty: INotionProperty): string[] {
     try {
       const results: string[] = [];
       const assigneeProp = pageProperty[columnName.label_assignee];
@@ -119,9 +109,9 @@ export default class NotionRepository {
       logger.error(new LoggerError(err.message));
       return [];
     }
-  };
+  }
 
-  getDue = (columnName: IColumnName, pageProperty: INotionProperty): Date => {
+  private getDue(columnName: ColumnName, pageProperty: INotionProperty): Date {
     try {
       const labelProp = pageProperty[columnName.label_due];
       if (labelProp.type === "date" && labelProp.date) {
@@ -135,9 +125,9 @@ export default class NotionRepository {
       logger.error(new LoggerError(err.message));
       return;
     }
-  };
+  }
 
-  getNotionSections = (columnName: IColumnName, pageProperty: INotionProperty): string[] => {
+  private getNotionSections(columnName: ColumnName, pageProperty: INotionProperty): string[] {
     try {
       const sectionProp = pageProperty[columnName.label_section];
       if (sectionProp.type === "relation") {
@@ -147,9 +137,9 @@ export default class NotionRepository {
       logger.error(new LoggerError(err.message));
       return [];
     }
-  };
+  }
 
-  getNotionSectionIds = async (company: ICompany, todoApp: ITodoApp, labelIds: string[]): Promise<number[]> => {
+  private async getNotionSectionIds(company: Company, todoApp: TodoApp, labelIds: string[]): Promise<number[]> {
     const registeredSectionLabels = await this.commonRepository.getSectionLabels(company.id, todoApp.id);
     const registeredLabelRecords = registeredSectionLabels.map(sectionLabel => {
       return { sectionId: sectionLabel.section_id, labelId: sectionLabel.label_id };
@@ -162,10 +152,10 @@ export default class NotionRepository {
       }
     });
     return results;
-  };
+  }
 
 
-  getIsDone = (columnName: IColumnName, pageProperty: INotionProperty): boolean => {
+  private getIsDone(columnName: ColumnName, pageProperty: INotionProperty): boolean {
     try {
       const isDoneProp = pageProperty[columnName.label_is_done];
       if (isDoneProp.type === "checkbox") {
@@ -176,9 +166,9 @@ export default class NotionRepository {
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getIsArchive = (columnName: IColumnName, pageProperty: INotionProperty): boolean => {
+  private getIsArchive(columnName: ColumnName, pageProperty: INotionProperty): boolean {
     try {
       const isArchiveProp = pageProperty[columnName.label_is_archived];
       if (isArchiveProp.type === "checkbox") {
@@ -189,17 +179,17 @@ export default class NotionRepository {
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getCreatedBy = (pageInfo: PageObjectResponse): string => {
+  private getCreatedBy(pageInfo: PageObjectResponse): string {
     try {
       return pageInfo.created_by.id;
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getCreatedById = async (usersCompany: IUser[], todoappId: number, createdBy: string): Promise<number> => {
+  private async getCreatedById(usersCompany: User[], todoappId: number, createdBy: string): Promise<number> {
     const users = usersCompany.filter(user => {
       const registeredUserAppIds = user?.todoAppUsers
         .filter(todoAppUser => todoAppUser.todoapp_id === todoappId)
@@ -214,43 +204,43 @@ export default class NotionRepository {
     } else {
       return;
     }
-  };
+  }
 
-  getLastEditedAt = (pageInfo: PageObjectResponse): Date => {
+  private getLastEditedAt(pageInfo: PageObjectResponse): Date {
     try {
       const lastEditedAtStr = pageInfo.last_edited_time;
       return new Date(lastEditedAtStr);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getCreatedAt = (pageInfo: PageObjectResponse): Date => {
+  private getCreatedAt(pageInfo: PageObjectResponse): Date {
     try {
       const createdAtStr = pageInfo.created_time;
       return new Date(createdAtStr);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getUrl = (pageInfo: PageObjectResponse): string => {
+  private getUrl(pageInfo: PageObjectResponse): string {
     try {
       return pageInfo.url;
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
-  };
+  }
 
-  getCardBoards = async (
-    boardAdminUser: IUser,
-    section: ISection,
+  private async getCardBoards(
+    boardAdminUser: User,
+    section: Section,
     todoTasks: ITodoTask<INotionTask>[],
-    company: ICompany,
-    todoapp: ITodoApp,
-    columnName: IColumnName,
-    sections: ISection[]
-  ): Promise<void> => {
+    company: Company,
+    todoapp: TodoApp,
+    columnName: ColumnName,
+    sections: Section[]
+  ): Promise<void> {
     if (!boardAdminUser?.todoAppUsers.length) return;
 
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
@@ -269,7 +259,7 @@ export default class NotionRepository {
           const pageIds: string[] = pages.map(page => page.id);
           const pageTodos: INotionTask[] = [];
           await Promise.all(pageIds.map(pageId => {
-            return this.getPages(pageId, pageTodos, section, company, todoapp, columnName);
+            return this.getPages(pageId, pageTodos, company, todoapp, columnName);
           }));
           await Promise.all(pageTodos.map(pageTodo => {
             return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections, todoAppUser);
@@ -279,16 +269,15 @@ export default class NotionRepository {
         }
       }
     }
-  };
+  }
 
-  getPages = async (
+  private async getPages(
     pageId: string,
     pageTodos: INotionTask[],
-    section: ISection,
-    company: ICompany,
-    todoapp: ITodoApp,
-    columnName: IColumnName
-  ): Promise<void> => {
+    company: Company,
+    todoapp: TodoApp,
+    columnName: ColumnName
+  ): Promise<void> {
     const pageInfo = await this.notionRequest.pages.retrieve({ page_id: pageId }) as PageObjectResponse;
     const pageProperty = pageInfo.properties;
     if (pageProperty) {
@@ -315,16 +304,16 @@ export default class NotionRepository {
       pageTodo.section_ids = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
       pageTodos.push(pageTodo);
     }
-  };
+  }
 
-  addTodoTask = async (
+  private async addTodoTask(
     pageTodo: INotionTask,
     todoTasks: ITodoTask<INotionTask>[],
-    company: ICompany,
-    todoapp: ITodoApp,
-    sections: ISection[],
-    todoAppUser: ITodoAppUser
-  ): Promise<void> => {
+    company: Company,
+    todoapp: TodoApp,
+    sections: Section[],
+    todoAppUser: TodoAppUser
+  ): Promise<void> {
     const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.notion_user_id);
 
     const page: ITodoTask<INotionTask> = {
@@ -342,9 +331,9 @@ export default class NotionRepository {
     } else {
       todoTasks.push(page);
     }
-  };
+  }
 
-  filterUpdatePages = async (dayReminds: number[], pageTodos: ITodoTask<INotionTask>[]): Promise<void> => {
+  private async filterUpdatePages(pageTodos: ITodoTask<INotionTask>[]): Promise<void> {
     const cards: IRemindTask<INotionTask>[] = [];
 
     for (const pageTodo of pageTodos) {
@@ -364,9 +353,9 @@ export default class NotionRepository {
       });
     }
     await this.createTodo(cards);
-  };
+  }
 
-  createTodo = async (taskReminds: IRemindTask<INotionTask>[]): Promise<void> => {
+  private async createTodo(taskReminds: IRemindTask<INotionTask>[]): Promise<void> {
     try {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
@@ -392,20 +381,20 @@ export default class NotionRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  addDataTodo = async (
+  private async addDataTodo(
     taskRemind: IRemindTask<INotionTask>,
     dataTodos: Todo[],
     dataTodoUpdates: ITodoUpdate[],
     dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
-  ): Promise<void> => {
+  ): Promise<void> {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    const todo: ITodo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoapp_reg_id });
+    const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoapp_reg_id });
 
     const taskDeadLine = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
@@ -475,12 +464,12 @@ export default class NotionRepository {
         this.todoSectionRepository.updateTodoSection(todo, sections),
       ]);
     }
-  };
+  }
 
   updateTodo = async (
     id: string,
     task: Todo,
-    todoAppUser: ITodoAppUser,
+    todoAppUser: TodoAppUser,
     correctDelayedCount: boolean = false
   ): Promise<void> => {
     try {

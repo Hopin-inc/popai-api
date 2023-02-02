@@ -9,6 +9,7 @@ import TodoUser from "./TodoUser";
 import ChatTool from "./ChatTool";
 import Todo from "./Todo";
 import TodoApp from "./TodoApp";
+import { ChatToolCode } from "../consts/common";
 
 @Entity("users")
 export default class User extends BaseEntity {
@@ -43,6 +44,16 @@ export default class User extends BaseEntity {
   get chatTools(): ChatTool[] {
     const chattoolUsers = this.chattoolUsers;
     return chattoolUsers ? chattoolUsers.map(record => record.chattool) : [];
+  }
+
+  get lineId(): string | null {
+    const lineUser = this.chattoolUsers.find(record => record.chattool.tool_code === ChatToolCode.LINE);
+    return lineUser ? lineUser.auth_key : null;
+  }
+
+  get slackId(): string | null {
+    const slackUser = this.chattoolUsers.find(record => record.chattool.tool_code === ChatToolCode.SLACK);
+    return slackUser ? slackUser.auth_key : null;
   }
 
   @OneToMany(

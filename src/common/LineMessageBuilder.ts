@@ -1,5 +1,8 @@
 import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
 
+import Todo from "@/entities/Todo";
+import User from "@/entities/User";
+
 import { getDate, sliceByNumber, relativeRemindDays } from "@/utils/common";
 import {
   replyMessagesBefore,
@@ -9,10 +12,10 @@ import {
   MessageAssets,
   ButtonStylesByColor,
 } from "@/consts/line";
-import { ITodo, ITodoLines, IUser } from "@/types";
+import { ITodoLines } from "@/types";
 
 export default class LineMessageBuilder {
-  static createRemindMessage(messageToken: string, userName: string, todo: ITodo, remindDays: number) {
+  static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
     const relativeDays = relativeRemindDays(remindDays);
     const remindColor = LineMessageBuilder.getRemindColor(remindDays);
     const taskUrl = process.env.ENV === "local"
@@ -165,7 +168,7 @@ export default class LineMessageBuilder {
     return { type: "text", text };
   }
 
-  static createBeforeRemindMessage(user: IUser, todoLines: ITodoLines[], superior?: string) {
+  static createBeforeRemindMessage(user: User, todoLines: ITodoLines[], superior?: string) {
     const sortedTodoLines = todoLines.sort((a, b) => (a.remindDays < b.remindDays ? 1 : -1));
 
     const groupMessageMap = new Map<number, ITodoLines[]>();
@@ -244,7 +247,7 @@ export default class LineMessageBuilder {
     return messages;
   }
 
-  static createNotifyUnsetMessage(todos: ITodo[]): FlexMessage {
+  static createNotifyUnsetMessage(todos: Todo[]): FlexMessage {
     const message: FlexMessage = {
       type: "flex",
       altText: `現在、${ todos.length }件のタスクの担当者・期日が設定されていません😭`,
@@ -297,7 +300,7 @@ export default class LineMessageBuilder {
     return message;
   }
 
-  static createNotifyUnassignedMessage(todos: ITodo[]): FlexMessage {
+  static createNotifyUnassignedMessage(todos: Todo[]): FlexMessage {
     const message: FlexMessage = {
       type: "flex",
       altText: `現在、${ todos.length }件のタスクの担当者が設定されていません😭`,
@@ -350,7 +353,7 @@ export default class LineMessageBuilder {
     return message;
   }
 
-  static createNotifyNoDeadlineMessage(todos: ITodo[]): FlexMessage {
+  static createNotifyNoDeadlineMessage(todos: Todo[]): FlexMessage {
     const message: FlexMessage = {
       type: "flex",
       altText: `現在、${ todos.length }件のタスクの期日が設定されていません😭`,
@@ -403,7 +406,7 @@ export default class LineMessageBuilder {
     return message;
   }
 
-  static createNotifyNothingMessage(adminUser: IUser): TextMessage {
+  static createNotifyNothingMessage(adminUser: User): TextMessage {
     return {
       type: "text",
       text: `${ adminUser.name }さん\n`

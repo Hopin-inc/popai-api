@@ -8,12 +8,11 @@ import SectionLabel from "@/entities/SectionLabel";
 import Todo from "@/entities/Todo";
 import TodoUser from "@/entities/TodoUser";
 import User from "@/entities/User";
+import CompanyCondition from "@/entities/CompanyCondition";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { MAX_REMIND_COUNT } from "@/consts/common";
-import { ICompanyCondition, ISection, ISectionLabel, IUser } from "@/types";
 
 @Service()
 export default class CommonRepository {
@@ -33,7 +32,7 @@ export default class CommonRepository {
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
   }
 
-  getSections = async (companyId: number, todoappId: number): Promise<ISection[]> => {
+  public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
     return await this.sectionRepository
       .createQueryBuilder("sections")
       .innerJoinAndSelect(
@@ -52,9 +51,9 @@ export default class CommonRepository {
       .andWhere("sections.todoapp_id = :todoappId", { todoappId })
       .andWhere("sections.board_id IS NOT NULL")
       .getMany();
-  };
+  }
 
-  getSectionLabels = async (companyId: number, todoappId: number): Promise<ISectionLabel[]> => {
+  public async getSectionLabels(companyId: number, todoappId: number): Promise<SectionLabel[]> {
     return this.labelSectionRepository
       .createQueryBuilder("section_labels")
       .innerJoinAndSelect(
@@ -66,62 +65,35 @@ export default class CommonRepository {
       .andWhere("sections.todoapp_id = :todoappId", { todoappId })
       .andWhere("section_labels.label_id IS NOT NULL")
       .getMany();
-  };
+  }
 
-  getBoardAdminUser = async (sectionId: number): Promise<User> => {
+  public async getBoardAdminUser(sectionId: number): Promise<User> {
     const section = await this.sectionRepository.findOne({
       where: { id: sectionId },
       relations: ["boardAdminUser", "boardAdminUser.todoAppUsers"]
     });
     return section.boardAdminUser;
-  };
+  }
 
-  getUserTodoApps = async (
-    companyId: number,
-    todoappId: number,
-    hasAppUserId: boolean = true
-  ): Promise<IUser[]> => {
-    const query = this.userRepository
-      .createQueryBuilder("users")
-      .innerJoinAndSelect("users.todoAppUsers", "todo_app_users")
-      .leftJoinAndSelect("users.companyCondition", "m_company_conditions")
-      .where("users.company_id = :companyId", { companyId })
-      .andWhere("todo_app_users.todoapp_id = :todoappId", { todoappId });
-    if (hasAppUserId) {
-      query.andWhere("todo_app_users.user_app_id IS NOT NULL");
-    } else {
-      query.andWhere("todo_app_users.user_app_id IS NULL");
-    }
-
-    return await query.getMany();
-  };
-
-  getImplementTodoApp = async (companyId: number, todoappId: number) => {
+  public async getImplementTodoApp(companyId: number, todoappId: number): Promise<ImplementedTodoApp> {
     const implementTodoApp = await this.implementedTodoAppRepository.findOneBy({
       company_id: companyId,
       todoapp_id: todoappId,
     });
 
     if (!implementTodoApp) {
-      logger.error(
-        new LoggerError(
-          "implemented_todo_appsのデータ(company_id=" +
-            companyId +
-            " todoapp_id=" +
-            todoappId +
-            ")がありません。"
-        )
-      );
+      logger.error(new LoggerError(
+        `implemented_todo_appsのデータ(company_id=${ companyId }, todoapp_id=${ todoappId })がありません。`
+      ));
     }
-
     return implementTodoApp;
-  };
+  }
 
-  getChatToolUsers = async () => {
+  public async getChatToolUsers(): Promise<ChatToolUser[]> {
     return await this.chatToolUserRepository.find();
-  };
+  }
 
-  getChatToolUser = async (userId: number, chatToolId: number) => {
+  public async getChatToolUser(userId: number, chatToolId: number): Promise<ChatToolUser> {
     const chatToolUser = await this.chatToolUserRepository.findOneBy({
       user_id: userId,
       chattool_id: chatToolId,
@@ -129,21 +101,14 @@ export default class CommonRepository {
     });
 
     if (!chatToolUser) {
-      logger.error(
-        new LoggerError(
-          "chat_tool_usersのデータ(user_id=" +
-            userId +
-            " chattool_id=" +
-            chatToolId +
-            ")がありません。"
-        )
-      );
+      logger.error(new LoggerError(
+        `chat_tool_usersのデータ(user_id=${ userId }, chattool_id=${ chatToolId })がありません。`
+      ));
     }
-
     return chatToolUser;
-  };
+  }
 
-  getChatToolUserByUserId = async (authKey: string) => {
+  public async getChatToolUserByUserId(authKey: string): Promise<User[]> {
     return await this.userRepository
       .createQueryBuilder("users")
       .innerJoin("chat_tool_users", "r", "users.id = r.user_id")
@@ -155,38 +120,26 @@ export default class CommonRepository {
         { authKey }
       )
       .getMany();
-  };
+  }
 
-  getDayReminds = async (companyConditions: ICompanyCondition[]): Promise<number[]> => {
+  public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {
     return companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
-  };
+  }
 
-  getTodoDueDateAndAssignedTasks = async (companyId: number): Promise<Array<Todo>> => {
-    return await this.todoRepository
-      .createQueryBuilder("todos")
-      .innerJoinAndSelect("todos.todoUsers", "todo_users")
-      .innerJoinAndSelect("todo_users.user", "users")
-      .where("todos.company_id = :companyId", { companyId })
-      .andWhere("todos.is_done =:done", { done: false })
-      .andWhere("todos.is_closed =:closed", { closed: false })
-      .andWhere("todos.deadline IS NOT NULL")
-      .andWhere("todos.reminded_count < :count", {
-        count: MAX_REMIND_COUNT,
-      })
-      .getMany();
-  };
-
-  getNotsetDueDateOrNotAssignTasks = async (companyId: number): Promise<Array<Todo>> => {
+  public async getNoDeadlineOrUnassignedTodos(companyId: number): Promise<Todo[]> {
     const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
       `not exists (${builder.getQuery()})`;
     return await this.todoRepository
       .createQueryBuilder("todos")
       .leftJoinAndSelect("todos.todoUsers", "todo_users")
       .leftJoinAndSelect("todo_users.user", "users")
+      .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
+      .leftJoinAndSelect("chat_tool_users.chattool", "chat_tool")
       .where("todos.company_id = :companyId", { companyId })
       .andWhere("todos.is_closed =:closed", { closed: false })
+      .andWhere("todos.is_done =:done", { done: false })
       .andWhere(
         new Brackets((qb) => {
           qb.where("todos.deadline IS NULL").orWhere(
@@ -207,5 +160,5 @@ export default class CommonRepository {
       //   })
       // )
       .getMany();
-  };
+  }
 }

@@ -13,7 +13,6 @@ import CommonRepository from "./CommonRepository";
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } from "@/consts/common";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
-import { ICompany } from "@/types";
 
 @Service()
 export default class LineMessageQueueRepository {
@@ -27,7 +26,7 @@ export default class LineMessageQueueRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  updateStatusOfOldQueueTask = async (): Promise<void> => {
+  public async updateStatusOfOldQueueTask(): Promise<void> {
     await this.updateStatusOldQueueTask(
       LineMessageQueueStatus.WAITING,
       LineMessageQueueStatus.TIMEOUT_NOT_SENT
@@ -37,28 +36,27 @@ export default class LineMessageQueueRepository {
       LineMessageQueueStatus.UNREPLIED,
       LineMessageQueueStatus.TIMEOUT_NO_REPLY
     );
-  };
+  }
 
-  createTodayQueueTask = async (company: Company, chattoolUsers: ChatToolUser[]): Promise<any> => {
-    const companyWithChattools = { ...company, chattools: company.chatTools };
-    const todos: Todo[] = await this.getRemindTodoTask(companyWithChattools);
-    await this.createLineQueueMessage(companyWithChattools, chattoolUsers, todos);
-  };
+  public async createTodayQueueTask(company: Company, chattoolUsers: ChatToolUser[]): Promise<any> {
+    const todos: Todo[] = await this.getTodosToRemind(company);
+    await this.createLineQueueMessage(company, chattoolUsers, todos);
+  }
 
-  createTodayQueueTaskForUser = async (
+  public async createTodayQueueTaskForUser (
     chattoolUsers: ChatToolUser[],
     user: User,
-    company: ICompany
-  ): Promise<any> => {
-    const todos: Todo[] = await this.getRemindTodoTask(company, user);
+    company: Company
+  ): Promise<any> {
+    const todos: Todo[] = await this.getTodosToRemind(company, user);
     await this.createLineQueueMessage(company, chattoolUsers, todos);
-  };
+  }
 
-  createLineQueueMessage = async (
-    company: ICompany,
+  private async createLineQueueMessage(
+    company: Company,
     chattoolUsers: ChatToolUser[],
     todos: Todo[]
-  ): Promise<void> => {
+  ): Promise<void> {
     const dayReminds: number[] = await this.commonRepository.getDayReminds(
       company.companyConditions
     );
@@ -71,19 +69,17 @@ export default class LineMessageQueueRepository {
 
       if (dayReminds.includes(dayDurations)) {
         for (const user of todo.users) {
-          company.chattools.forEach(async chattool => {
-            if (chattool.tool_code === ChatToolCode.LINE) {
+          company.chatTools.forEach(async chatTool => {
+            if (chatTool.tool_code === ChatToolCode.LINE) {
               const chatToolUser = chattoolUsers.find(
-                chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id
+                chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === user.id
               );
 
               if (chatToolUser) {
                 const lineQueueData = new LineMessageQueue();
                 lineQueueData.todo_id = todo.id;
                 lineQueueData.user_id = user.id;
-                lineQueueData.remind_date = moment(today)
-                  .startOf("day")
-                  .toDate();
+                lineQueueData.remind_date = moment(today).startOf("day").toDate();
                 dataLineQueues.push(lineQueueData);
               }
             }
@@ -95,13 +91,11 @@ export default class LineMessageQueueRepository {
     if (dataLineQueues.length) {
       await this.lineQueueRepository.upsert(dataLineQueues, []);
     }
-  };
+  }
 
-  getRemindTodoTask = async (company: ICompany, user?: User): Promise<Todo[]> => {
+  private async getTodosToRemind(company: Company, user?: User): Promise<Todo[]> {
     const today = toJapanDateTime(new Date());
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(
-      company.companyConditions
-    );
+    const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
 
     const minValue = dayReminds.reduce(function(prev, curr) {
       return prev < curr ? prev : curr;
@@ -110,17 +104,10 @@ export default class LineMessageQueueRepository {
       return prev > curr ? prev : curr;
     });
 
-    const minDate = moment(today)
-      .add(-maxValue, "days")
-      .startOf("day")
-      .toDate();
+    const minDate = moment(today).add(-maxValue, "days").startOf("day").toDate();
+    const maxDate = moment(today).add(-minValue + 1, "days").startOf("day").toDate();
 
-    const maxDate = moment(today)
-      .add(-minValue + 1, "days")
-      .startOf("day")
-      .toDate();
-
-    const query = this.todoRepository
+    let query = this.todoRepository
       .createQueryBuilder("todos")
       .leftJoinAndSelect("todos.todoUsers", "todo_users")
       .leftJoinAndSelect("todo_users.user", "users")
@@ -133,26 +120,24 @@ export default class LineMessageQueueRepository {
       .andWhere("todo_users.deleted_at IS NULL");
 
     if (user) {
-      query.andWhere("todo_users.user_id = :user_id", { user_id: user.id });
+      query = query.andWhere("todo_users.user_id = :user_id", { user_id: user.id });
     }
 
     return await query.getMany();
-  };
+  }
 
-  fetchLineMessageQueue = async (userId: number): Promise<LineMessageQueue> => {
+  public async fetchLineMessageQueue(userId: number): Promise<LineMessageQueue> {
     return await this.lineQueueRepository.findOne({
       where: {
         user_id: userId,
         status: LineMessageQueueStatus.UNREPLIED,
-        remind_date: moment(toJapanDateTime(new Date()))
-          .startOf("day")
-          .toDate(),
+        remind_date: moment(toJapanDateTime(new Date())).startOf("day").toDate(),
       },
       relations: ["todo.todoUsers.user.todoAppUsers", "user", "message", "todo.todoapp"],
     });
-  };
+  }
 
-  getFirstQueueTaskForSendLine = async (userId: number): Promise<LineMessageQueue> => {
+  public async getFirstQueueTaskForSendLine(userId: number): Promise<LineMessageQueue> {
     return await this.lineQueueRepository.findOne({
       relations: ["todo", "user"],
       where: {
@@ -163,20 +148,18 @@ export default class LineMessageQueueRepository {
           .toDate(),
       },
     });
-  };
+  }
 
-  saveQueue = async (queue: LineMessageQueue) => {
+  public async saveQueue(queue: LineMessageQueue) {
     return await this.lineQueueRepository.save(queue);
-  };
+  }
 
-  insertOrUpdate = async (lineQueueDatas: LineMessageQueue[]) => {
+  public async insertOrUpdate(lineQueueDatas: LineMessageQueue[]) {
     return await this.lineQueueRepository.upsert(lineQueueDatas, []);
-  };
+  }
 
-  updateStatusOldQueueTask = async (currentStatus: number, newStatus: number): Promise<void> => {
-    // consts todayDate = moment(toJapanDateTime(new Date()))
-    //   .startOf('day')
-    //   .toDate();
+  public async updateStatusOldQueueTask(currentStatus: number, newStatus: number): Promise<void> {
+    // const todayDate = moment(toJapanDateTime(new Date())).startOf('day').toDate();
 
     await this.lineQueueRepository
       .createQueryBuilder("line_message_queues")
@@ -185,9 +168,9 @@ export default class LineMessageQueueRepository {
       .where("status = :status", { status: currentStatus })
       // .andWhere('remind_date < :todayDate', { todayDate: todayDate })
       .execute();
-  };
+  }
 
-  updateStatusOldQueueTaskOfUser = async (userId: number): Promise<void> => {
+  public async updateStatusOldQueueTaskOfUser(userId: number): Promise<void> {
     await this.lineQueueRepository
       .createQueryBuilder("line_message_queues")
       .update(LineMessageQueue)
@@ -203,22 +186,18 @@ export default class LineMessageQueueRepository {
       .where("status = :status", { status: LineMessageQueueStatus.UNREPLIED })
       .andWhere("user_id = :user_id", { user_id: userId })
       .execute();
-  };
+  }
 
-  getTodayQueueTasks = async (user: User = null): Promise<Array<LineMessageQueue>> => {
-    const todayDate = moment(toJapanDateTime(new Date()))
-      .startOf("day")
-      .toDate();
+  public async getTodayQueueTasks(user: User = null): Promise<Array<LineMessageQueue>> {
+    const todayDate = moment(toJapanDateTime(new Date())).startOf("day").toDate();
 
-    const query = this.lineQueueRepository
+    let query = this.lineQueueRepository
       .createQueryBuilder("line_message_queues")
       .innerJoinAndSelect(
         "line_message_queues.todo",
         "todos",
         "line_message_queues.todo_id = todos.id AND todos.reminded_count < :count",
-        {
-          count: MAX_REMIND_COUNT,
-        }
+        { count: MAX_REMIND_COUNT }
       )
       .innerJoinAndSelect("line_message_queues.user", "users")
       .where("is_reminded = :is_reminded", { is_reminded: RemindType.NOT_REMIND })
@@ -226,9 +205,9 @@ export default class LineMessageQueueRepository {
       .orderBy({ "line_message_queues.id": "ASC" });
 
     if (user) {
-      query.andWhere("line_message_queues.user_id = :user_id", { user_id: user.id });
+      query = query.andWhere("line_message_queues.user_id = :user_id", { user_id: user.id });
     }
 
     return await query.getMany();
-  };
+  }
 }

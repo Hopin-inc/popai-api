@@ -20,7 +20,7 @@ import logger from "@/logger/winston";
 import { toJapanDateTime } from "@/utils/common";
 import { MessageTriggerType, MessageType, OpenStatus, RemindType, ReplyStatus, SenderType } from "@/consts/common";
 
-import { IChatTool, IRemindType, ITodo, ITodoLines, IUser } from "@/types";
+import { IRemindType, ITodoLines } from "@/types";
 
 @Service()
 export default class LineRepository {
@@ -38,14 +38,14 @@ export default class LineRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  pushMessageRemind = async (
-    chattool: IChatTool,
-    user: IUser,
-    todo: ITodo,
+  public async pushMessageRemind(
+    chatTool: ChatTool,
+    user: User,
+    todo: Todo,
     remindDays: number
-  ): Promise<ChatMessage> => {
+  ): Promise<ChatMessage> {
     try {
-      if (!user.line_id) {
+      if (!user.lineId) {
         logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
         return;
       }
@@ -56,10 +56,10 @@ export default class LineRepository {
         remindDays: remindDays,
       };
 
-      const messageToken = await LineBot.getLinkToken(user.line_id);
+      const messageToken = await LineBot.getLinkToken(user.lineId);
       const message = LineMessageBuilder.createRemindMessage(messageToken, user.name, todo, remindDays);
       const chatMessage = await this.saveChatMessage(
-        chattool,
+        chatTool,
         message,
         MessageTriggerType.REMIND,
         messageToken,
@@ -79,7 +79,7 @@ export default class LineRepository {
         // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
         console.log(messageForSend);
       } else {
-        await LineBot.pushMessage(user.line_id, messageForSend, false);
+        await LineBot.pushMessage(user.lineId, messageForSend, false);
       }
 
       return chatMessage;
@@ -88,14 +88,14 @@ export default class LineRepository {
       console.log("todo", todo);
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  pushMessageStartRemindToUser = async (todoLines: ITodoLines[]): Promise<any> => {
+  public async pushMessageStartRemindToUser(todoLines: ITodoLines[]): Promise<any> {
     try {
       const user = todoLines[0].user;
-      const chattool = todoLines[0].chattool;
+      const chatTool = todoLines[0].chattool;
 
-      if (!user.line_id) {
+      if (!user.lineId) {
         logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
         return;
       }
@@ -108,54 +108,40 @@ export default class LineRepository {
         console.log(messages);
       } else {
         for (const message of messages) {
-          await this.pushLineMessage(chattool, user, message, MessageTriggerType.REMIND);
+          await this.pushLineMessage(chatTool, user, message, MessageTriggerType.REMIND);
         }
       }
-
-      return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  pushStartReportToSuperior = async (chattool: ChatTool, superiorUser: IUser): Promise<any> => {
+  public async pushStartReportToSuperior(chatTool: ChatTool, superiorUser: User): Promise<any> {
     try {
-      // if (!user.line_id) {
-      //   logger.error(new LoggerError(user.name + 'がLineIDが設定されていない。'));
-      //   return;
-      // }
-
-      // consts superiorUsers = await this.getSuperiorUsers(user.line_id);
-
-      if (!superiorUser.line_id) {
+      if (!superiorUser.lineId) {
         logger.error(new LoggerError(superiorUser.name + "がLineIDが設定されていない。"));
       } else {
         const message = LineMessageBuilder.createBeforeReportMessage(superiorUser.name);
-        await this.pushLineMessage(chattool, superiorUser, message, MessageTriggerType.REPORT);
+        await this.pushLineMessage(chatTool, superiorUser, message, MessageTriggerType.REPORT);
       }
 
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
-   * @param chattool
+   * @param chatTool
    * @param user
    * @param todos
    * @returns
    */
-  pushListTaskMessageToAdmin = async (
-    chattool: ChatTool,
-    user: IUser,
-    todos: ITodo[]
-  ): Promise<any> => {
+  public async pushListTaskMessageToAdmin(chatTool: ChatTool, user: User, todos: Todo[]): Promise<any> {
     try {
-      if (!user.line_id) {
+      if (!user.lineId) {
         logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
-
         return;
       }
 
@@ -167,7 +153,7 @@ export default class LineRepository {
       const message = LineMessageBuilder.createNotifyUnsetMessage(todos);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
-        chattool,
+        chatTool,
         user,
         message,
         MessageTriggerType.REMIND,
@@ -176,22 +162,18 @@ export default class LineRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
-   * @param chattool
+   * @param chatTool
    * @param user
    * @param todos
    * @returns
    */
-  pushNotAssignListTaskMessageToAdmin = async (
-    chattool: ChatTool,
-    user: IUser,
-    todos: ITodo[]
-  ): Promise<any> => {
+  public async pushNotAssignListTaskMessageToAdmin(chatTool: ChatTool, user: User, todos: Todo[]): Promise<any> {
     try {
-      if (!user.line_id) {
+      if (!user.lineId) {
         logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
         return;
       }
@@ -204,7 +186,7 @@ export default class LineRepository {
       const message = LineMessageBuilder.createNotifyUnassignedMessage(todos);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
-        chattool,
+        chatTool,
         user,
         message,
         MessageTriggerType.REMIND,
@@ -213,22 +195,18 @@ export default class LineRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで担当者に送られること
-   * @param chattool
+   * @param chatTool
    * @param user
    * @param todos
    * @returns
    */
-  pushListTaskMessageToUser = async (
-    chattool: ChatTool,
-    user: IUser,
-    todos: ITodo[]
-  ): Promise<any> => {
+  public async pushListTaskMessageToUser(chatTool: ChatTool, user: User, todos: Todo[]): Promise<any> {
     try {
-      if (!user.line_id) {
+      if (!user.lineId) {
         logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
         return;
       }
@@ -241,7 +219,7 @@ export default class LineRepository {
       const message = LineMessageBuilder.createNotifyNoDeadlineMessage(todos);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
-        chattool,
+        chatTool,
         user,
         message,
         MessageTriggerType.REMIND,
@@ -250,17 +228,17 @@ export default class LineRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスクがない旨のメッセージが管理者に送られること
-   * @param chattool
+   * @param chatTool
    * @param user
    * @returns
    */
-  pushNoListTaskMessageToAdmin = async (chattool: ChatTool, user: IUser): Promise<any> => {
+  public async pushNoListTaskMessageToAdmin(chatTool: ChatTool, user: User): Promise<any> {
     try {
-      if (!user.line_id) {
+      if (!user.lineId) {
         logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
 
         return;
@@ -268,13 +246,13 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNotifyNothingMessage(user);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chattool, user, message, MessageTriggerType.REMIND);
+      return await this.pushLineMessage(chatTool, user, message, MessageTriggerType.REMIND);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  createLineProfile = async (lineProfile: Profile): Promise<LineProfile> => {
+  public async createLineProfile(lineProfile: Profile): Promise<LineProfile> {
     try {
       const findResult = await this.lineProfileRepository.findOneBy({
         line_id: lineProfile.userId,
@@ -294,9 +272,9 @@ export default class LineRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  getUserFromLineId = async (lineId: string): Promise<User> => {
+  public async getUserFromLineId(lineId: string): Promise<User> {
     // Get user by line id
     const users = await this.commonRepository.getChatToolUserByUserId(lineId);
 
@@ -305,9 +283,9 @@ export default class LineRepository {
     }
 
     return users[0];
-  };
+  }
 
-  getSuperiorUsers = async (lineId: string): Promise<Array<User>> => {
+  public async getSuperiorUsers(lineId: string): Promise<User[]> {
     // Get user by line id
     const users = await this.commonRepository.getChatToolUserByUserId(lineId);
 
@@ -316,8 +294,6 @@ export default class LineRepository {
     }
 
     const userIds: number[] = users.map((user) => user.id).filter(Number);
-
-    // Get supervisords
 
     const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
     const superiorUserIds = await reportingLineRepository.findBy({
@@ -334,99 +310,68 @@ export default class LineRepository {
         ids: superiorUserIds.map(superiorUserId => superiorUserId.superior_user_id),
       })
       .getMany();
-  };
+  }
 
-  getSuperiorOfUsers = async (userIds: number[]): Promise<Array<User>> => {
-    if (!userIds.length) return [];
-
-    const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
-    const superiorUserIds = await reportingLineRepository
-      .createQueryBuilder("reporting_lines")
-      .where("subordinate_user_id IN (:...ids)", {
-        ids: userIds,
-      })
-      .getMany();
-
-    if (superiorUserIds.length === 0) {
-      return Promise.resolve([]);
-    }
-
-    const userIdList = superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id);
-
-    return await this.userRepository
-      .createQueryBuilder("users")
-      .where("id IN (:...ids)", { ids: userIdList })
-      .getMany();
-  };
-
-  createMessage = async (chatMessage: ChatMessage): Promise<ChatMessage> => {
+  public async createMessage(chatMessage: ChatMessage): Promise<ChatMessage> {
     try {
       return await this.messageRepository.save(chatMessage);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  findMessageById = async (id: number): Promise<ChatMessage> => {
+  public async findMessageById(id: number): Promise<ChatMessage> {
     try {
       return await this.messageRepository.findOneBy({ id });
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  pushLineMessage = async (
-    chattool: IChatTool,
-    user: IUser,
+  public async pushLineMessage(
+    chatTool: ChatTool,
+    user: User,
     message: Message,
     messageTriggerId: number,
     remindTypes?: IRemindType
-  ): Promise<any> => {
+  ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
-      await LineBot.pushMessage(user.line_id, message, false);
+      await LineBot.pushMessage(user.lineId, message, false);
     }
+    const linkToken = await LineBot.getLinkToken(user.lineId);
+    return await this.saveChatMessage(chatTool, message, messageTriggerId, linkToken, user, remindTypes);
+  }
 
-    const linkToken = await LineBot.getLinkToken(user.line_id);
-    
-    return await this.saveChatMessage(chattool, message, messageTriggerId, linkToken, user, remindTypes);
-  };
-
-  replyMessage = async (
-    chattool: ChatTool,
+  public async replyMessage(
+    chatTool: ChatTool,
     replyToken: string,
     message: Message,
     user?: User
-  ): Promise<any> => {
+  ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
       await LineBot.replyMessage(replyToken, message);
     }
+    return await this.saveChatMessage(chatTool, message, MessageTriggerType.RESPONSE, replyToken, user);
+  }
 
-    return await this.saveChatMessage(chattool, message, MessageTriggerType.RESPONSE, replyToken, user);
-  };
-
-  pushTodoLine = async (todoLine: ITodoLines): Promise<ChatMessage> => {
+  public async pushTodoLine(todoLine: ITodoLines): Promise<ChatMessage> {
     const { todo, chattool, user, remindDays } = todoLine;
-    return await this.pushMessageRemind(
-      chattool,
-      user,
-      { ...todo, assigned_user_id: user.id },
-      remindDays
-    );
-  };
+    return await this.pushMessageRemind(chattool, user, todo, remindDays);
+  }
 
-  saveChatMessage = async (
-    chattool: IChatTool,
+  public async saveChatMessage(
+    chatTool: ChatTool,
     message: Message,
     messageTriggerId: number,
     messageToken: string,
-    user?: IUser,
+    user?: User,
     remindTypes?: IRemindType,
-    todo?: ITodo
-  ): Promise<ChatMessage> => {
+    todo?: Todo
+  ): Promise<ChatMessage> {
     const { remindType, remindDays } = {
       remindType: RemindType.NOT_REMIND,
       remindDays: null,
@@ -435,7 +380,7 @@ export default class LineRepository {
 
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chattool_id = chattool.id;
+    chatMessage.chattool_id = chatTool.id;
     chatMessage.is_opened = OpenStatus.OPENED;
     chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
     chatMessage.message_trigger_id = messageTriggerId; // batch
@@ -450,5 +395,5 @@ export default class LineRepository {
     chatMessage.remind_before_days = remindDays;
 
     return await this.messageRepository.save(chatMessage);
-  };
+  }
 }

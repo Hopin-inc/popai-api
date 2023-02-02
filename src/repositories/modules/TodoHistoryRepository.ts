@@ -3,11 +3,12 @@ import { Repository } from "typeorm";
 
 import Todo from "@/entities/Todo";
 import TodoHistory from "@/entities/TodoHistory";
+import User from "@/entities/User";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { ITodo, ITodoHistory, IUser } from "@/types";
+import { ITodoHistory } from "@/types";
 import { TodoHistoryProperty, TodoHistoryAction } from "@/consts/common";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
@@ -22,18 +23,19 @@ export default class TodoHistoryRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
-  saveTodoHistories = async (todos: ITodoHistory[]): Promise<void> => {
+  public async saveTodoHistories(todos: ITodoHistory[]): Promise<void> {
     await Promise.all(todos.map(async todo => {
-      const todoOfDb: ITodo = await this.todoRepository.findOneBy({
-        todoapp_reg_id: todo.todoId,
+      const todoOfDb: Todo = await this.todoRepository.findOne({
+        where: { todoapp_reg_id: todo.todoId },
+        relations: ["todoUsers.user"],
       });
       if (todoOfDb.id) {
         await this.saveTodoHistory(todoOfDb, todo);
       }
     }));
-  };
+  }
 
-  saveTodoHistory = async (todoOfDb: ITodo, todo: ITodoHistory) => {
+  private async saveTodoHistory(todoOfDb: Todo, todo: ITodoHistory) {
     const firstTodoHistory: TodoHistory = await this.todoHistoryRepository.findOneBy({
       todo_id: todoOfDb.id,
       property: TodoHistoryProperty.NAME,
@@ -41,9 +43,7 @@ export default class TodoHistoryRepository {
     });
 
     const currentTodoStatus: TodoHistory = await this.todoHistoryRepository.findOne({
-      where: {
-        todo_id: todoOfDb.id,
-      },
+      where: { todo_id: todoOfDb.id },
       order: { created_at: "DESC" },
     });
 
@@ -98,16 +98,16 @@ export default class TodoHistoryRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  saveTodo = async (
-    todoOfDb: ITodo,
+  public async saveTodo(
+    todoOfDb: Todo,
     property: number,
     action: number,
     updatedAt: Date,
     deadline?: Date,
-    assignee?: IUser,
-    daysDiff?: number) => {
+    assignee?: User,
+    daysDiff?: number) {
     const todoHistory = new TodoHistory();
 
     todoHistory.todo_id = todoOfDb.id;
@@ -122,5 +122,5 @@ export default class TodoHistoryRepository {
     }
 
     await this.todoHistoryRepository.save(todoHistory);
-  };
+  }
 }

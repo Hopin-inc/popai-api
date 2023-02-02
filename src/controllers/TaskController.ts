@@ -11,18 +11,20 @@ export default class TaskController extends Controller {
     this.taskService = Container.get(TaskService);
   }
 
-  public async syncTodoTask(): Promise<any> {
-    console.log("TaskController#syncTodoTask - START");
-    await this.taskService.syncTodoTasks();
-    console.log("TaskController#syncTodoTask - END");
+  public async syncTodos(): Promise<any> {
+    console.log("TaskController#syncTodos - START");
+    await this.taskService.syncTodos();
+    console.log("TaskController#syncTodos - END");
     return;
   }
 
-  public async remindTaskForCompany(): Promise<any> {
-    console.log("TaskController#remindTaskForCompany - START");
-    await this.taskService.remindTaskForCompany();
-    console.log("TaskController#remindTaskForCompany - END");
+  public async remind(): Promise<any> {
+    console.log("TaskController#remind - START");
+    await this.taskService.remind();
+    console.log("TaskController#remind - END");
 
     return;
   }
+
+  public async;
 }

@@ -18,7 +18,6 @@ import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
-import { IUser } from "@/types";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -103,7 +102,7 @@ export default class SlackController extends Controller {
     if (doneActions.includes(repliedMessage)) {
       slackTodo.is_done = true;
       const correctDelayedCount = slackTodo.deadline < toJapanDateTime(new Date());
-      await this.taskService.updateTask(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
+      await this.taskService.update(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
     }
 
     await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
@@ -222,22 +221,19 @@ export default class SlackController extends Controller {
    */
   private async sendSuperiorMessage(
     chatTool: ChatTool,
-    superiorUser: IUser,
+    superiorUser: User,
     channelId: string,
     threadId: string,
   ): Promise<void> {
-    const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chatTool.id);
-    const user = { ...superiorUser, slack_id: chatToolUser?.auth_key };
-
-    if (!chatToolUser?.auth_key) {
-      logger.error(new LoggerError(user.name + "さんのSLACK IDが設定されていません。"));
+    if (!superiorUser.slackId) {
+      logger.error(new LoggerError(superiorUser.name + "さんのSLACK IDが設定されていません。"));
       return;
     }
 
-    const reportMessage = SlackMessageBuilder.createReportMessage(user);
+    const reportMessage = SlackMessageBuilder.createReportMessage(superiorUser);
     await this.slackRepository.pushSlackMessage(
       chatTool,
-      user,
+      superiorUser,
       reportMessage,
       MessageTriggerType.REPORT,
       channelId,

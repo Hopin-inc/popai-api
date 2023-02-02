@@ -5,8 +5,6 @@ import moment from "moment";
 
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import Todo from "@/entities/Todo";
-import { IChatTool, IChatToolUser, IRemindType, ITodo, IUser } from "@/types";
-import { ITodoSlack } from "@/types/slack";
 
 import ChatTool from "@/entities/ChatTool";
 import ChatToolUser from "@/entities/ChatToolUser";
@@ -17,7 +15,6 @@ import Section from "@/entities/Section";
 import User from "@/entities/User";
 
 import CommonRepository from "./modules/CommonRepository";
-
 import logger from "@/logger/winston";
 import {
   ChatToolCode,
@@ -33,6 +30,8 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
+import { IRemindType } from "@/types";
+import { ITodoSlack } from "@/types/slack";
 
 @Service()
 export default class SlackRepository {
@@ -53,15 +52,15 @@ export default class SlackRepository {
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
-  pushMessageRemind = async (
-    chatTool: IChatTool,
-    user: IUser,
-    todo: ITodo,
+  public async pushMessageRemind(
+    chatTool: ChatTool,
+    user: User,
+    todo: Todo,
     remindDays: number,
     channelId: string,
-  ): Promise<ChatMessage> => {
+  ): Promise<ChatMessage> {
     try {
-      if (!user.slack_id) {
+      if (!user.slackId) {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
@@ -94,14 +93,14 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  pushMessageStartRemindToUser = async (todoSlacks: ITodoSlack[], channelId: string): Promise<any> => {
+  private async pushMessageStartRemindToUser(todoSlacks: ITodoSlack[], channelId: string): Promise<any> {
     try {
       const user = todoSlacks[0].user;
       const chatTool = todoSlacks[0].chatTool;
 
-      if (!user.slack_id) {
+      if (!user.slackId) {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
@@ -120,7 +119,7 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
@@ -130,14 +129,14 @@ export default class SlackRepository {
    * @param channelId
    * @returns
    */
-  pushListTaskMessageToAdmin = async (
+  public async pushListTaskMessageToAdmin(
     chatTool: ChatTool,
-    user: IUser,
-    todos: ITodo[],
+    user: User,
+    todos: Todo[],
     channelId: string,
-  ): Promise<any> => {
+  ): Promise<any> {
     try {
-      if (!user.slack_id) {
+      if (!user.slackId) {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
@@ -160,7 +159,7 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
@@ -170,14 +169,14 @@ export default class SlackRepository {
    * @param channelId
    * @returns
    */
-  pushNotAssignListTaskMessageToAdmin = async (
+  private async pushNotAssignListTaskMessageToAdmin(
     chatTool: ChatTool,
-    user: IUser,
-    todos: ITodo[],
+    user: User,
+    todos: Todo[],
     channelId: string,
-  ): Promise<any> => {
+  ): Promise<any> {
     try {
-      if (!user.slack_id) {
+      if (!user.slackId) {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
@@ -201,7 +200,7 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスク一覧が1つのメッセージで担当者に送られること
@@ -211,14 +210,14 @@ export default class SlackRepository {
    * @param channelId
    * @returns
    */
-  pushListTaskMessageToUser = async (
+  private async pushListTaskMessageToUser(
     chatTool: ChatTool,
-    user: IUser,
-    todos: ITodo[],
+    user: User,
+    todos: Todo[],
     channelId: string,
-  ): Promise<any> => {
+  ): Promise<any> {
     try {
-      if (!user.slack_id) {
+      if (!user.slackId) {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
@@ -241,7 +240,7 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
   /**
    * 期日未設定のタスクがない旨のメッセージが管理者に送られること
@@ -250,9 +249,9 @@ export default class SlackRepository {
    * @param channelId
    * @returns
    */
-  pushNoListTaskMessageToAdmin = async (chatTool: ChatTool, user: IUser, channelId: string): Promise<any> => {
+  private async pushNoListTaskMessageToAdmin(chatTool: ChatTool, user: User, channelId: string): Promise<any> {
     try {
-      if (!user.slack_id) {
+      if (!user.slackId) {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
@@ -262,9 +261,9 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  getSuperiorUsers = async (slackId: string): Promise<User[]> => {
+  public async getSuperiorUsers(slackId: string): Promise<User[]> {
     const users = await this.commonRepository.getChatToolUserByUserId(slackId);
 
     if (!users.length) {
@@ -288,9 +287,9 @@ export default class SlackRepository {
         ids: superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id),
       })
       .getMany();
-  };
+  }
 
-  getSlackTodo = async (channelId: string, threadId: string): Promise<Todo> => {
+  public async getSlackTodo(channelId: string, threadId: string): Promise<Todo> {
     const message = await this.messageRepository.findOneBy({
       channel_id: channelId,
       thread_id: threadId,
@@ -301,17 +300,17 @@ export default class SlackRepository {
       where: { id: message.todo_id },
       relations: ["todoapp", "company", "company.sections"],
     });
-  };
+  }
 
-  createMessage = async (chatMessage: ChatMessage): Promise<ChatMessage> => {
+  public async createMessage (chatMessage: ChatMessage): Promise<ChatMessage> {
     try {
       return await this.messageRepository.save(chatMessage);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  findMessageById = async (id: number): Promise<ChatMessage> => {
+  public async findMessageById(id: number): Promise<ChatMessage> {
     try {
       return await this.messageRepository.findOneBy({
         id: id,
@@ -319,17 +318,17 @@ export default class SlackRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 
-  pushSlackMessage = async (
-    chatTool: IChatTool,
-    user: IUser,
+  public async pushSlackMessage(
+    chatTool: ChatTool,
+    user: User,
     message: MessageAttachment,
     messageTriggerId: number,
     channelId: string,
     threadId?: string,
     _remindTypes?: IRemindType,
-  ): Promise<ChatMessage> => {
+  ): Promise<ChatMessage> {
     if (process.env.ENV === "LOCAL") {
       console.log(SlackMessageBuilder.getTextContentFromMessage(message));
     } else {
@@ -343,15 +342,15 @@ export default class SlackRepository {
         return await this.saveChatMessage(chatTool, message, messageTriggerId, channelId, threadId, user);
       }
     }
-  };
+  }
 
-  replyMessage = async (
+  public async replyMessage(
     chatTool: ChatTool,
     message: MessageAttachment,
     channelId: string,
     threadId: string,
     user?: User,
-  ): Promise<any> => {
+  ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(SlackMessageBuilder.getTextContentFromMessage(message));
     } else {
@@ -365,34 +364,28 @@ export default class SlackRepository {
         return await this.saveChatMessage(chatTool, message, MessageTriggerType.RESPONSE, channelId, threadId, user);
       }
     }
-  };
+  }
 
-  getUserFromSlackId = async (slackId: string): Promise<User> => {
+  public async getUserFromSlackId(slackId: string): Promise<User> {
     const users = await this.commonRepository.getChatToolUserByUserId(slackId);
     return users.length ? users[0] : null;
-  };
+  }
 
-  pushTodoSlack = async (todoSlack: ITodoSlack, channelId: string): Promise<ChatMessage> => {
+  private async pushTodoSlack(todoSlack: ITodoSlack, channelId: string): Promise<ChatMessage> {
     const { todo, chatTool, user, remindDays } = todoSlack;
-    return await this.pushMessageRemind(
-      chatTool,
-      user,
-      { ...todo, assigned_user_id: user.id },
-      remindDays,
-      channelId,
-    );
-  };
+    return await this.pushMessageRemind(chatTool, user, todo, remindDays, channelId);
+  }
 
-  saveChatMessage = async (
-    chatTool: IChatTool,
+  private async saveChatMessage(
+    chatTool: ChatTool,
     message: MessageAttachment,
     messageTriggerId: number,
     channelId: string,
     threadId: string,
-    user?: IUser,
+    user?: User,
     remindTypes?: IRemindType,
-    todo?: ITodo,
-  ): Promise<ChatMessage> => {
+    todo?: Todo,
+  ): Promise<ChatMessage> {
     const remindType = remindTypes?.remindType ?? RemindType.NOT_REMIND;
     const remindDays = remindTypes?.remindDays ?? null;
     const chatMessage = new ChatMessage();
@@ -411,18 +404,18 @@ export default class SlackRepository {
     chatMessage.remind_type = remindType;
     chatMessage.remind_before_days = remindDays;
     return await this.messageRepository.save(chatMessage);
-  };
+  }
 
-  getSendChannel = async (company: Company): Promise<string> => {
+  private async getSendChannel(company: Company): Promise<string> {
     const companyId = company.id;
     const section = await this.sectionRepository.findOneBy({
       company_id: companyId,
       channel_id: Not(IsNull()),
     });
     return section?.channel_id;
-  };
+  }
 
-  remindTaskForAdminCompany = async (company: Company): Promise<void> => {
+  public async remindTaskForAdminCompany(company: Company): Promise<void> {
     if (!company.adminUser) {
       logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
     }
@@ -430,7 +423,7 @@ export default class SlackRepository {
 
     if (channelId) {
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
-      const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(company.id);
+      const needRemindTasks = await this.commonRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
       // 期日未設定のタスクがない旨のメッセージが管理者に送られること
       if (needRemindTasks.length) {
@@ -455,12 +448,7 @@ export default class SlackRepository {
                 );
 
                 if (chatToolUser) {
-                  await this.pushListTaskMessageToAdmin(
-                    chattool,
-                    { ...adminUser, slack_id: chatToolUser.auth_key },
-                    remindTasks,
-                    channelId,
-                  );
+                  await this.pushListTaskMessageToAdmin(chattool, adminUser, remindTasks, channelId);
                 }
               }
             }
@@ -477,10 +465,7 @@ export default class SlackRepository {
               );
 
               if (chatToolUser) {
-                await this.pushNoListTaskMessageToAdmin(
-                  chattool,
-                  { ...adminUser, slack_id: chatToolUser.auth_key },
-                  channelId);
+                await this.pushNoListTaskMessageToAdmin(chattool, adminUser, channelId);
               }
             }
           }
@@ -495,21 +480,16 @@ export default class SlackRepository {
         if (notSetDueDateTasks.length) {
           const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-          for (const [_, todos] of userTodoMap) {
+          for (const [userId, todos] of userTodoMap) {
             for (const chattool of company.chatTools) {
               if (chattool.tool_code === ChatToolCode.SLACK) {
-                const user = todos[0].user;
+                const user = todos[0].users.find(user => user.id === userId);
                 const chatToolUser = chattoolUsers.find(
-                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id
+                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === userId
                 );
 
                 if (chatToolUser) {
-                  await this.pushListTaskMessageToUser(
-                    chattool,
-                    { ...user, slack_id: chatToolUser.auth_key },
-                    todos,
-                    channelId,
-                  );
+                  await this.pushListTaskMessageToUser(chattool, user, todos, channelId);
                 }
               }
             }
@@ -531,12 +511,7 @@ export default class SlackRepository {
               );
 
               if (chatToolUser) {
-                await this.pushNotAssignListTaskMessageToAdmin(
-                  chattool,
-                  { ...adminUser, slack_id: chatToolUser.auth_key },
-                  notSetAssignTasks,
-                  channelId,
-                );
+                await this.pushNotAssignListTaskMessageToAdmin(chattool, adminUser, notSetAssignTasks, channelId);
               }
             }
           }
@@ -547,29 +522,29 @@ export default class SlackRepository {
     } else {
       console.log("NOT channelId");
     }
-  };
+  }
 
-  mapUserTaskList = (todos: ITodo[]): Map<number, ITodo[]> => {
-    const map = new Map<number, ITodo[]>();
+  private mapUserTaskList(todos: Todo[]): Map<number, Todo[]> {
+    const map = new Map<number, Todo[]>();
 
     todos.forEach(todo => {
       for (const todoUser of todo.todoUsers) {
         if (map.has(todoUser.user.id)) {
-          map.get(todoUser.user.id).push({ ...todo, user: todoUser.user });
+          map.get(todoUser.user.id).push(todo);
         } else {
-          map.set(todoUser.user.id, [{ ...todo, user: todoUser.user }]);
+          map.set(todoUser.user.id, [todo]);
         }
       }
     });
 
     return map;
-  };
+  }
 
-  mapUserRemindTaskList = (
-    remindTasks: ITodo[],
-    chatTool: IChatTool,
-    chatToolUsers: IChatToolUser[],
-  ): Map<number, ITodoSlack[]> => {
+  private mapUserRemindTaskList(
+    remindTasks: Todo[],
+    chatTool: ChatTool,
+    chatToolUsers: ChatToolUser[],
+  ): Map<number, ITodoSlack[]> {
     const map = new Map<number, ITodoSlack[]>();
 
     for (const remindTask of remindTasks) {
@@ -585,7 +560,7 @@ export default class SlackRepository {
           if (map.has(todoUser.user_id)) {
             map.get(todoUser.user_id).push({
               todo: remindTask,
-              user: { ...todoUser.user, slack_id: chatToolUser.auth_key },
+              user: todoUser.user,
               chatTool,
               remindDays,
             });
@@ -593,7 +568,7 @@ export default class SlackRepository {
             map.set(todoUser.user_id, [
               {
                 todo: remindTask,
-                user: { ...todoUser.user, slack_id: chatToolUser.auth_key },
+                user: todoUser.user,
                 chatTool,
                 remindDays,
               },
@@ -604,12 +579,12 @@ export default class SlackRepository {
     }
 
     return map;
-  };
+  }
 
-  remindTodayTaskForUser = async (company: Company): Promise<void> => {
+  public async remindTodayTaskForUser(company: Company): Promise<void> {
     const channelId = await this.getSendChannel(company);
     const chatToolUsers = await this.commonRepository.getChatToolUsers();
-    const remindTasks: ITodo[] = await this.getTodayRemindTasks(company, chatToolUsers);
+    const remindTasks: Todo[] = await this.getTodayRemindTasks(company, chatToolUsers);
     const chatTool = await this.chattoolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
     const userTodoMap = this.mapUserRemindTaskList(remindTasks, chatTool, chatToolUsers);
 
@@ -620,16 +595,16 @@ export default class SlackRepository {
     const todos = Array.from(userTodoMap.values());
     await Promise.all(todos.map(todo => remindPerTodo(todo)));
     await this.updateRemindedCount(remindTasks);
-  };
+  }
 
-  updateRemindedCount = async (todos: ITodo[]): Promise<any> => {
-    const todoDatas = todos.map<ITodo>(todo => {
+  private async updateRemindedCount(todos: Todo[]): Promise<any> {
+    const todoDatas = todos.map(todo => {
       return { ...todo, reminded_count: todo.reminded_count + 1 };
     });
     return await this.todoRepository.upsert(todoDatas, []);
-  };
+  }
 
-  getTodayRemindTasks = async (company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> => {
+  private async getTodayRemindTasks(company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> {
     const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
     const today = toJapanDateTime(new Date());
 
@@ -657,9 +632,9 @@ export default class SlackRepository {
       }
     });
     return todayRemindTasks;
-  };
+  }
 
-  getRemindTodoTask = async (company: Company, user?: User): Promise<Todo[]> => {
+  private async getRemindTodoTask(company: Company, user?: User): Promise<Todo[]> {
     const today = toJapanDateTime(new Date());
     const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
 
@@ -697,5 +672,5 @@ export default class SlackRepository {
     }
 
     return await query.getMany();
-  };
+  }
 }

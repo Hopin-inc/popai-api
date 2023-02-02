@@ -5,6 +5,7 @@ import Company from "@/entities/Company";
 import RemindUserJob from "@/entities/RemindUserJob";
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
+import TodoAppUser from "@/entities/TodoAppUser";
 
 import MicrosoftRepository from "@/repositories/MicrosoftRepository";
 import TrelloRepository from "@/repositories/TrelloRepository";
@@ -16,15 +17,15 @@ import NotionRepository from "@/repositories/NotionRepository";
 
 import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { ICompany, ITodoAppUser } from "@/types";
 import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
+import TodoApp from "@/entities/TodoApp";
 
 @Service()
 export default class TaskService {
-  private trelloRepo: TrelloRepository;
-  private microsoftRepo: MicrosoftRepository;
-  private notionRepo: NotionRepository;
+  private trelloRepository: TrelloRepository;
+  private microsoftRepository: MicrosoftRepository;
+  private notionRepository: NotionRepository;
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -33,9 +34,9 @@ export default class TaskService {
   private remindUserJobRepository: Repository<RemindUserJob>;
 
   constructor() {
-    this.trelloRepo = Container.get(TrelloRepository);
-    this.microsoftRepo = Container.get(MicrosoftRepository);
-    this.notionRepo = Container.get(NotionRepository);
+    this.trelloRepository = Container.get(TrelloRepository);
+    this.microsoftRepository = Container.get(MicrosoftRepository);
+    this.notionRepository = Container.get(NotionRepository);
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
@@ -45,9 +46,9 @@ export default class TaskService {
   }
 
   /**
-   * Update todo task
+   * Update todos
    */
-  syncTodoTasks = async (company: ICompany = null): Promise<any> => {
+  public async syncTodos(company: Company = null): Promise<any> {
     try {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
@@ -55,45 +56,50 @@ export default class TaskService {
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
       const companies = await this.companyRepository.find({
-        relations: ["implementedTodoApps.todoApp", "implementedChatTools.chattool", "adminUser", "companyConditions", "users.todoAppUsers"],
+        relations: [
+          "implementedTodoApps.todoApp",
+          "implementedChatTools.chattool",
+          "adminUser",
+          "companyConditions",
+          "users.todoAppUsers"
+        ],
         where,
       });
 
-      for (const company of companies) {
-        for (const todoapp of company.todoApps) {
-          const companyWithChatTools = { ...company, chattools: company.chatTools };
-          switch (todoapp.todo_app_code) {
-            case TodoAppCode.TRELLO:
-              await this.trelloRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
-              break;
-            case TodoAppCode.MICROSOFT:
-              await this.microsoftRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
-              break;
-            case TodoAppCode.NOTION:
-              await this.notionRepo.syncTaskByUserBoards(companyWithChatTools, todoapp);
-              break;
-            default:
-              break;
-          }
+      const syncOperations = (company: Company, todoApp: TodoApp) => {
+        switch (todoApp.todo_app_code) {
+          case TodoAppCode.TRELLO:
+            return this.trelloRepository.syncTaskByUserBoards(company, todoApp);
+          case TodoAppCode.MICROSOFT:
+            return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
+          case TodoAppCode.NOTION:
+            return this.notionRepository.syncTaskByUserBoards(company, todoApp);
+          default:
+            return;
         }
-      }
+      };
+      const companyTodoApps: [Company, TodoApp][] = [];
+      companies.forEach(company => {
+        company.todoApps.forEach(todoApp => companyTodoApps.push([company, todoApp]));
+      });
+      await Promise.all(companyTodoApps.map(([company, todoApp]) => syncOperations(company, todoApp)));
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }
-  };
+  }
 
   /**
-   * Remind todo task
+   * Remind todos
    */
-  remindTaskForCompany = async (): Promise<any> => {
+  public async remind(): Promise<any> {
     try {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
       const companies = await this.companyRepository.find({
-        relations: ["implementedChatTools.chattool", "adminUser", "companyConditions"],
+        relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
       });
 
       const remindOperations = async (company: Company) => {
@@ -101,7 +107,7 @@ export default class TaskService {
           switch (chatTool.tool_code) {
             case ChatToolCode.LINE:
               await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
-              await this.remindRepository.remindTaskForAdminCompany({ ...company, chattools: company.chatTools });
+              await this.remindRepository.remindTaskForAdminCompany(company);
               break;
             case ChatToolCode.SLACK:
               await this.slackRepository.remindTaskForAdminCompany(company);
@@ -116,12 +122,12 @@ export default class TaskService {
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }
-  };
+  }
 
   /**
-   * Remind todo task
+   * Remind todos
    */
-  remindTaskForDemoUser = async (user: User): Promise<number> => {
+  public async remindForDemoUser(user: User): Promise<number> {
     try {
       console.log("remindTaskForDemoUser - START");
 
@@ -150,15 +156,14 @@ export default class TaskService {
       }
 
       // sync task for company of the user
-      const companyWithChatTools = { ...userCompany, chattools: userCompany.chatTools };
-      await this.syncTodoTasks(companyWithChatTools);
+      await this.syncTodos(userCompany);
 
       // update old line queue
       await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
 
       // create queue for user
-      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, companyWithChatTools);
+      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
 
       //remind task for user by queue
       await this.remindRepository.remindTodayTaskForUser(user);
@@ -181,19 +186,24 @@ export default class TaskService {
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }
-  };
+  }
 
-  updateTask = async (todoappRegId: string, task: Todo, todoAppUser: ITodoAppUser, correctDelayedCount: boolean = false) => {
-    switch (task.todoapp.todo_app_code) {
+  public async update(
+    todoappRegId: string,
+    todo: Todo,
+    todoAppUser: TodoAppUser,
+    correctDelayedCount: boolean = false
+  ) {
+    switch (todo.todoapp.todo_app_code) {
       case TodoAppCode.TRELLO:
-        await this.trelloRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
+        await this.trelloRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
       case TodoAppCode.MICROSOFT:
-        await this.microsoftRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
+        await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
       case TodoAppCode.NOTION:
-        await this.notionRepo.updateTodo(todoappRegId, task, todoAppUser, correctDelayedCount);
+        await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
     }
-  };
+  }
 }
