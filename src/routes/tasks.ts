@@ -19,7 +19,7 @@ router.get("/remind", async (req, res) => {
   try {
     // update before remind
     const controller = new TaskController();
-    // await controller.syncTodos();
+    await controller.syncTodos();
 
     // remind
     const response = await controller.remind();
