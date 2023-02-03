@@ -1,4 +1,4 @@
-import { ITodoAppUser } from "@/types/index";
+import TodoAppUser from "@/entities/TodoAppUser";
 
 export type IMicrosoftCreateBy = {
   user: IMicrosoftMember;
@@ -24,7 +24,7 @@ export type IMicrosoftTask = {
 };
 
 export type IMicrosoftRefresh = {
-  todoAppUser: ITodoAppUser;
+  todoAppUser: TodoAppUser;
 };
 
 export type IMicrosoftToken = {

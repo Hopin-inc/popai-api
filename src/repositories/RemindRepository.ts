@@ -5,6 +5,8 @@ import ChatTool from "@/entities/ChatTool";
 import LineMessageQueue from "@/entities/LineMessageQueue";
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
+import ChatToolUser from "@/entities/ChatToolUser";
+import Company from "@/entities/Company";
 
 import LineRepository from "./LineRepository";
 import CommonRepository from "./modules/CommonRepository";
@@ -15,26 +17,26 @@ import logger from "@/logger/winston";
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts/common";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import { IChatTool, IChatToolUser, ICompany, ITodo, ITodoLines } from "@/types";
+import { ITodoLines } from "@/types";
 
 @Service()
 export default class RemindRepository {
-  private lineRepo: LineRepository;
+  private lineRepository: LineRepository;
   private commonRepository: CommonRepository;
   private todoRepository: Repository<Todo>;
   private lineQueueRepository: LineMessageQueueRepository;
   private chattoolRepository: Repository<ChatTool>;
 
   constructor() {
-    this.lineRepo = Container.get(LineRepository);
+    this.lineRepository = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
-  remindTodayTaskForUser = async (user: User = null): Promise<void> => {
-    const remindTasks: ITodo[] = [];
+  public async remindTodayTaskForUser(user: User = null): Promise<void> {
+    const remindTasks: Todo[] = [];
     const todoQueueTasks: LineMessageQueue[] = [];
 
     const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks(user);
@@ -51,38 +53,38 @@ export default class RemindRepository {
     );
 
     for await (const [_, todoLines] of userTodoQueueMap) {
-      await this.lineRepo.pushMessageStartRemindToUser(todoLines);
+      await this.lineRepository.pushMessageStartRemindToUser(todoLines);
 
       //push first line
       const todoLine = todoLines[0];
-      const chatMessage = await this.lineRepo.pushTodoLine(todoLine);
+      const chatMessage = await this.lineRepository.pushTodoLine(todoLine);
       todoQueueTasks.push({ ...todoLine.todoQueueTask, message_id: chatMessage?.id });
       remindTasks.push(todoLine.todo);
     }
 
     await this.updateStatusLineMessageQueue(todoQueueTasks);
     await this.updateRemindedCount(remindTasks);
-  };
+  }
 
-  mapUserQueueTaskList = (
+  private mapUserQueueTaskList(
     todoAllTodayQueueTasks: LineMessageQueue[],
-    chattool: IChatTool,
-    chattoolUsers: IChatToolUser[]
-  ): Map<number, ITodoLines[]> => {
+    chatTool: ChatTool,
+    chatToolUsers: ChatToolUser[]
+  ): Map<number, ITodoLines[]> {
     const map = new Map<number, ITodoLines[]>();
 
     for (const lineQueues of todoAllTodayQueueTasks) {
       const remindDays = diffDays(lineQueues.todo.deadline, toJapanDateTime(new Date()));
-      const chatToolUser = chattoolUsers.find(chattoolUser =>
-        chattool && chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === lineQueues.user.id
+      const chatToolUser = chatToolUsers.find(chatToolUser =>
+        chatTool && chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === lineQueues.user.id
       );
 
       if (chatToolUser) {
         if (map.has(lineQueues.user_id)) {
           map.get(lineQueues.user_id).push({
             todo: lineQueues.todo,
-            user: { ...lineQueues.user, line_id: chatToolUser.auth_key },
-            chattool: chattool,
+            user: lineQueues.user,
+            chattool: chatTool,
             remindDays: remindDays,
             todoQueueTask: lineQueues,
           });
@@ -90,8 +92,8 @@ export default class RemindRepository {
           map.set(lineQueues.user_id, [
             {
               todo: lineQueues.todo,
-              user: { ...lineQueues.user, line_id: chatToolUser.auth_key },
-              chattool: chattool,
+              user: lineQueues.user,
+              chattool: chatTool,
               remindDays: remindDays,
               todoQueueTask: lineQueues,
             },
@@ -101,20 +103,20 @@ export default class RemindRepository {
     }
 
     return map;
-  };
+  }
 
   /**
    * remind task for admin company
    *
    * @param company
    */
-  remindTaskForAdminCompany = async (company: ICompany): Promise<void> => {
+  public async remindTaskForAdminCompany(company: Company): Promise<void> {
     if (!company.adminUser) {
       logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
     }
 
-    const chattoolUsers = await this.commonRepository.getChatToolUsers();
-    const needRemindTasks = await this.commonRepository.getNotsetDueDateOrNotAssignTasks(company.id);
+    const chatToolUsers = await this.commonRepository.getChatToolUsers();
+    const needRemindTasks = await this.commonRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
     // 期日未設定のタスクがない旨のメッセージが管理者に送られること
     if (needRemindTasks.length) {
@@ -128,19 +130,15 @@ export default class RemindRepository {
         // 期日未設定のタスク一覧が1つのメッセージで管理者に送られること
         // Send to admin list task which not set duedate
         if (remindTasks.length) {
-          for (const chattool of company.chattools) {
-            if (chattool.tool_code === ChatToolCode.LINE && company.adminUser) {
+          for (const chatTool of company.chatTools) {
+            if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
               const adminUser = company.adminUser;
-              const chatToolUser = chattoolUsers.find(
-                chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
+              const chatToolUser = chatToolUsers.find(
+                chatToolUser => chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === adminUser.id
               );
 
               if (chatToolUser) {
-                await this.lineRepo.pushListTaskMessageToAdmin(
-                  chattool,
-                  { ...adminUser, line_id: chatToolUser.auth_key },
-                  remindTasks,
-                );
+                await this.lineRepository.pushListTaskMessageToAdmin(chatTool, adminUser, remindTasks);
               }
             }
           }
@@ -148,18 +146,15 @@ export default class RemindRepository {
           // await this.updateRemindedCount(remindTasks);
         }
       } else {
-        for (const chattool of company.chattools) {
-          if (chattool.tool_code === ChatToolCode.LINE && company.adminUser) {
+        for (const chatTool of company.chatTools) {
+          if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
             const adminUser = company.adminUser;
-            const chatToolUser = chattoolUsers.find(
-              chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id
+            const chatToolUser = chatToolUsers.find(
+              chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === adminUser.id
             );
 
             if (chatToolUser) {
-              await this.lineRepo.pushNoListTaskMessageToAdmin(chattool, {
-                ...adminUser,
-                line_id: chatToolUser.auth_key,
-              });
+              await this.lineRepository.pushNoListTaskMessageToAdmin(chatTool, adminUser);
             }
           }
         }
@@ -174,20 +169,16 @@ export default class RemindRepository {
       if (notSetDueDateTasks.length) {
         const userTodoMap = this.mapUserTaskList(notSetDueDateTasks);
 
-        for (const [_, todos] of userTodoMap) {
-          for (const chattool of company.chattools) {
-            if (chattool.tool_code === ChatToolCode.LINE) {
-              const user = todos[0].user;
-              const chatToolUser = chattoolUsers.find(chattoolUser => {
-                return chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === user.id;
+        for (const [user_id, todos] of userTodoMap) {
+          for (const chatTool of company.chatTools) {
+            if (chatTool.tool_code === ChatToolCode.LINE) {
+              const user = todos[0].users.find(user => user.id === user_id);
+              const chatToolUser = chatToolUsers.find(chattoolUser => {
+                return chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === user_id;
               });
 
               if (chatToolUser) {
-                await this.lineRepo.pushListTaskMessageToUser(
-                  chattool,
-                  { ...user, line_id: chatToolUser.auth_key },
-                  todos,
-                );
+                await this.lineRepository.pushListTaskMessageToUser(chatTool, user, todos);
               }
             }
           }
@@ -203,18 +194,18 @@ export default class RemindRepository {
       );
 
       if (notSetAssignTasks.length) {
-        for (const chattool of company.chattools) {
-          if (chattool.tool_code === ChatToolCode.LINE && company.adminUser) {
+        for (const chatTool of company.chatTools) {
+          if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
             const adminUser = company.adminUser;
-            const chatToolUser = chattoolUsers.find(
+            const chatToolUser = chatToolUsers.find(
               (chattoolUser) =>
-                chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
+                chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === adminUser.id,
             );
 
             if (chatToolUser) {
-              await this.lineRepo.pushNotAssignListTaskMessageToAdmin(
-                chattool,
-                { ...adminUser, line_id: chatToolUser.auth_key },
+              await this.lineRepository.pushNotAssignListTaskMessageToAdmin(
+                chatTool,
+                adminUser,
                 notSetAssignTasks,
               );
             }
@@ -224,25 +215,25 @@ export default class RemindRepository {
         // await this.updateRemindedCount(notSetAssignTasks);
       }
     }
-  };
+  }
 
-  mapUserTaskList = (todos: ITodo[]): Map<number, ITodo[]> => {
-    const map = new Map<number, ITodo[]>();
+  private mapUserTaskList(todos: Todo[]): Map<number, Todo[]> {
+    const map = new Map<number, Todo[]>();
 
     todos.forEach((todo) => {
       for (const todoUser of todo.todoUsers) {
         if (map.has(todoUser.user.id)) {
-          map.get(todoUser.user.id).push({ ...todo, user: todoUser.user });
+          map.get(todoUser.user.id).push(todo);
         } else {
-          map.set(todoUser.user.id, [{ ...todo, user: todoUser.user }]);
+          map.set(todoUser.user.id, [todo]);
         }
       }
     });
 
     return map;
-  };
+  }
 
-  updateStatusLineMessageQueue = async (todoQueueTasks: LineMessageQueue[]): Promise<any> => {
+  private async updateStatusLineMessageQueue(todoQueueTasks: LineMessageQueue[]): Promise<any> {
     const lineQueueDatas = todoQueueTasks.map((lineQueue) => {
       return {
         ...lineQueue,
@@ -254,14 +245,12 @@ export default class RemindRepository {
     if (lineQueueDatas.length) {
       return await this.lineQueueRepository.insertOrUpdate(lineQueueDatas);
     }
-  };
+  }
 
-  updateRemindedCount = async (todos: ITodo[]): Promise<any> => {
-    const todoDatas = todos.map((todo) => {
+  private async updateRemindedCount(todos: Todo[]): Promise<any> {
+    const todoData = todos.map((todo) => {
       const dayDurations = diffDays(todo.deadline, toJapanDateTime(new Date()));
 
-      // reminded_count をカウントアップするのを「期日後のリマインドを送ったとき」のみに限定していただくことは可能でしょうか？
-      // 他の箇所（期日前のリマインドを送ったときなど）で reminded_count をカウントアップする処理は、コメントアウトする形で残しておいていただけますと幸いです。
       if (dayDurations > 0) {
         todo.reminded_count = todo.reminded_count + 1;
       }
@@ -269,8 +258,8 @@ export default class RemindRepository {
       return todo;
     });
 
-    if (todoDatas.length) {
-      return await this.todoRepository.upsert(todoDatas, []);
+    if (todoData.length) {
+      return await this.todoRepository.upsert(todoData, []);
     }
-  };
+  }
 }

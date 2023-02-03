@@ -31,7 +31,6 @@ import AppDataSource from "@/config/data-source";
 import LineBot from "@/config/line-bot";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
-import { ITodo, IUser } from "@/types";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
@@ -80,7 +79,7 @@ export default class LineController extends Controller {
             // get user from lineId
             if (user) {
               await this.replyProcessingJob(chattool, user, event.replyToken);
-              await this.taskService.remindTaskForDemoUser(user);
+              await this.taskService.remindForDemoUser(user);
             } else {
               console.error("Line ID :" + lineId + "のアカウントが登録されていません。");
             }
@@ -131,7 +130,7 @@ export default class LineController extends Controller {
       lineMessageQueue.todo.is_done = true;
       const todo = lineMessageQueue.todo;
       const correctDelayedCount = todo.deadline < lineMessageQueue.remind_date;
-      await this.taskService.updateTask(todo.todoapp_reg_id, todo, todoAppAdminUser, correctDelayedCount);
+      await this.taskService.update(todo.todoapp_reg_id, todo, todoAppAdminUser, correctDelayedCount);
     }
     await this.lineQueueRepository.saveQueue(lineMessageQueue);
     await this.updateRepliedFlag(lineMessageQueue.message_id);
@@ -153,12 +152,7 @@ export default class LineController extends Controller {
       const todo = nextQueue.todo;
       const dayDurations = diffDays(nextQueue.todo.deadline, toJapanDateTime(new Date()));
 
-      const chatMessage = await this.lineRepository.pushMessageRemind(
-        chattool,
-        { ...user, line_id: lineId },
-        todo,
-        dayDurations
-      );
+      const chatMessage = await this.lineRepository.pushMessageRemind(chattool, user, todo, dayDurations);
 
       // change status
       nextQueue.status = LineMessageQueueStatus.UNREPLIED;
@@ -168,7 +162,7 @@ export default class LineController extends Controller {
       // reminded_count をカウントアップするのを「期日後のリマインドを送ったとき」のみに限定していただくことは可能でしょうか？
       // 他の箇所（期日前のリマインドを送ったときなど）で reminded_count をカウントアップする処理は、コメントアウトする形で残しておいていただけますと幸いです。
       if (dayDurations > 0) {
-        todo.reminded_count = todo.reminded_count + 1;
+        todo.reminded_count += 1;
       }
 
       await this.todoRepository.save(todo);
@@ -373,21 +367,18 @@ export default class LineController extends Controller {
    */
   private async sendSuperiorMessage(
     chattool: ChatTool,
-    superiorUser: IUser,
+    superiorUser: User,
     userName: string,
-    todo: ITodo,
+    todo: Todo,
     remindDays: number,
     reportContent: string
   ): Promise<MessageAPIResponseBase> {
-    const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chattool.id);
-    const user = { ...superiorUser, line_id: chatToolUser?.auth_key };
-
-    if (!chatToolUser?.auth_key) {
-      logger.error(new LoggerError(user.name + "さんのLINE IDが設定されていません。"));
+    if (!superiorUser.lineId) {
+      logger.error(new LoggerError(superiorUser.name + "さんのLINE IDが設定されていません。"));
       return;
     }
 
-    await this.lineRepository.pushStartReportToSuperior(chattool, user);
+    await this.lineRepository.pushStartReportToSuperior(chattool, superiorUser);
 
     const reportMessage: FlexMessage = LineMessageBuilder.createReportMessage(
       userName,
@@ -399,7 +390,7 @@ export default class LineController extends Controller {
     );
     return await this.lineRepository.pushLineMessage(
       chattool,
-      user,
+      superiorUser,
       reportMessage,
       MessageTriggerType.REPORT
     );

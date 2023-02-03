@@ -6,7 +6,8 @@ import TodoSection from "@/entities/TodoSection";
 
 import { toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
-import { ITodo, ISection, ITodoSection, ITodoSectionUpdate } from "@/types";
+import { ITodoSectionUpdate } from "@/types";
+import Section from "@/entities/Section";
 
 @Service()
 export default class TodoSectionRepository {
@@ -18,8 +19,8 @@ export default class TodoSectionRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
-  updateTodoSection = async (todo: ITodo, sections: ISection[]): Promise<void> => {
-    const todoSections: ITodoSection[] = await this.todoSectionRepository.findBy({
+  public async updateTodoSection(todo: Todo, sections: Section[]): Promise<void> {
+    const todoSections: TodoSection[] = await this.todoSectionRepository.findBy({
       todo_id: todo.id,
       deleted_at: IsNull(),
     });
@@ -32,7 +33,7 @@ export default class TodoSectionRepository {
       .concat(sectionIds.filter((x) => !todoSectionIds.includes(x)));
 
     if (differenceSectionIds.length) {
-      const deletedTodoSections: ITodoSection[] = todoSections
+      const deletedTodoSections: TodoSection[] = todoSections
         .filter(function(obj) {
           return differenceSectionIds.includes(obj.section_id);
         })
@@ -46,19 +47,19 @@ export default class TodoSectionRepository {
         await this.todoSectionRepository.upsert(deletedTodoSections, []);
       }
     }
-  };
+  }
 
-  saveTodoSections = async (dataTodoSections: ITodoSectionUpdate[]): Promise<void> => {
+  public async saveTodoSections(dataTodoSections: ITodoSectionUpdate[]): Promise<void> {
     const todoSectionData: TodoSection[] = [];
 
     for (const dataTodoSection of dataTodoSections) {
-      const todo: ITodo = await this.todoRepository.findOneBy({
+      const todo: Todo = await this.todoRepository.findOneBy({
         todoapp_reg_id: dataTodoSection.todoId,
       });
 
       if (todo) {
         for (const section of dataTodoSection.sections) {
-          const todoSection: ITodoSection = await this.todoSectionRepository.findOneBy({
+          const todoSection: TodoSection = await this.todoSectionRepository.findOneBy({
             todo_id: todo.id,
             section_id: section.id,
             deleted_at: IsNull(),
@@ -75,5 +76,5 @@ export default class TodoSectionRepository {
     }
 
     await this.todoSectionRepository.save(todoSectionData);
-  };
+  }
 }

@@ -7,7 +7,7 @@ import TodoUpdateHistory from "@/entities/TodoUpdateHistory";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { ITodo, ITodoUpdate } from "@/types";
+import { ITodoUpdate } from "@/types";
 
 @Service()
 export default class TodoUpdateHistoryRepository {
@@ -19,23 +19,23 @@ export default class TodoUpdateHistoryRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
-  saveTodoHistories = async (dataTodoIDUpdates: ITodoUpdate[]): Promise<void> => {
+  public async saveTodoUpdateHistories(dataTodoIDUpdates: ITodoUpdate[]): Promise<void> {
     if (dataTodoIDUpdates.length) {
       for (const dataUpdate of dataTodoIDUpdates) {
         const { todoId } = dataUpdate;
 
-        const todo: ITodo = await this.todoRepository.findOneBy({
+        const todo: Todo = await this.todoRepository.findOneBy({
           todoapp_reg_id: todoId,
         });
 
         if (todo) {
-          await this.saveTodoHistory(todo, dataUpdate);
+          await this.saveTodoUpdateHistory(todo, dataUpdate);
         }
       }
     }
-  };
+  }
 
-  saveTodoHistory = async (todo: ITodo, dataUpdate: ITodoUpdate) => {
+  public async saveTodoUpdateHistory(todo: Todo, dataUpdate: ITodoUpdate) {
     try {
       const { dueTime, newDueTime, updateTime } = dataUpdate;
 
@@ -50,5 +50,5 @@ export default class TodoUpdateHistoryRepository {
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
-  };
+  }
 }

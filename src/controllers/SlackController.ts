@@ -5,6 +5,7 @@ import { Repository } from "typeorm";
 import ChatTool from "@/entities/ChatTool";
 import User from "@/entities/User";
 import Todo from "@/entities/Todo";
+import Section from "@/entities/Section";
 
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import SlackRepository from "@/repositories/SlackRepository";
@@ -18,9 +19,6 @@ import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
-import { IUser } from "@/types";
-import Section from "@/entities/Section";
-import { MessageAttachment } from "@slack/web-api";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -106,7 +104,7 @@ export default class SlackController extends Controller {
     if (doneActions.includes(repliedMessage)) {
       slackTodo.is_done = true;
       const correctDelayedCount = slackTodo.deadline < toJapanDateTime(new Date());
-      await this.taskService.updateTask(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
+      await this.taskService.update(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
     }
 
     const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);
@@ -129,16 +127,13 @@ export default class SlackController extends Controller {
    */
   private async sendShareMessageToChannel(
     chatTool: ChatTool,
-    superiorUser: IUser,
+    superiorUser: User,
     channelId: string,
     threadId?: string,
     shareMessage?: MessageAttachment,
   ): Promise<void> {
-    const chatToolUser = await this.commonRepository.getChatToolUser(superiorUser.id, chatTool.id);
-    const user = { ...superiorUser, slack_id: chatToolUser?.auth_key };
-
-    if (!chatToolUser?.auth_key) {
-      logger.error(new LoggerError(user.name + "さんのSLACK IDが設定されていません。"));
+    if (!superiorUser.slackId) {
+      logger.error(new LoggerError(superiorUser.name + "さんのSLACK IDが設定されていません。"));
       return;
     }
 

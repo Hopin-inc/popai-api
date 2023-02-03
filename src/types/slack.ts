@@ -1,8 +1,10 @@
-import { IChatTool, ITodo, IUser } from "@/types/index";
+import Todo from "@/entities/Todo";
+import ChatTool from "@/entities/ChatTool";
+import User from "@/entities/User";
 
 export type ITodoSlack = {
-  todo: ITodo;
+  todo: Todo;
   remindDays: number;
-  chatTool: IChatTool;
-  user: IUser;
+  chatTool: ChatTool;
+  user: User;
 };
