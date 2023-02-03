@@ -1,4 +1,4 @@
-import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
+import { Action, FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
 
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
@@ -18,12 +18,15 @@ export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
     const relativeDays = relativeRemindDays(remindDays);
     const remindColor = LineMessageBuilder.getRemindColor(remindDays);
+    const altText = remindDays < 0
+      ? `「${ todo.name }」の期日は${ relativeDays }です。`
+      : `「${ todo.name }」の進捗はいかがですか？`;
     const taskUrl = process.env.ENV === "local"
       ? todo.todoapp_reg_url
       : `${ process.env.HOST }/api/message/redirect/${ todo.id }/${ messageToken }`;
     const message: FlexMessage = {
       type: "flex",
-      altText: `「${ todo.name }」の進捗はいかがですか？`,
+      altText,
       contents: {
         type: "bubble",
         body: {
@@ -36,11 +39,7 @@ export default class LineMessageBuilder {
               weight: "bold",
               size: "xl",
               wrap: true,
-              action: {
-                type: "uri",
-                label: "action",
-                uri: taskUrl,
-              },
+              action: { type: "uri", label: "action", uri: taskUrl },
             },
             {
               type: "box",
@@ -81,41 +80,34 @@ export default class LineMessageBuilder {
       },
     };
 
+    const generateAction = (button: ReplyMessage): Action => {
+      return button.type === "postback"
+        ? { type: button.type, label: button.label, data: button.status, displayText: button.displayText }
+        : { type: button.type, label: button.label, uri: todo.todoapp_reg_url };
+    };
     const buttons: ReplyMessage[] = remindDays > 0 ? replyMessagesAfter : replyMessagesBefore;
-    buttons.filter(b => b.primary).forEach(button => (message.contents as FlexBubble).footer?.contents.push({
-      type: "button",
-      style: ButtonStylesByColor[button.color],
-      height: "md",
-      action: {
-        type: "postback",
-        label: button.label,
-        data: button.status,
-        displayText: button.displayText,
-      },
-      color: Colors[button.color],
-    }));
-    const secondaryButtonContents: FlexBox[] = [];
-    sliceByNumber(buttons.filter(b => !b.primary), 2).forEach(row => {
-      const content: FlexBox = {
-        type: "box",
-        layout: "horizontal",
-        contents: [],
-        spacing: "md",
-      };
-      row.forEach(button => content.contents.push({
+    buttons
+      .filter(b => b.primary)
+      .forEach(button => (message.contents as FlexBubble).footer?.contents.push({
         type: "button",
         style: ButtonStylesByColor[button.color],
         height: "md",
-        action: {
-          type: "postback",
-          label: button.label,
-          data: button.status,
-          displayText: button.displayText,
-        },
+        action: generateAction(button),
         color: Colors[button.color],
       }));
-      secondaryButtonContents.push(content);
-    });
+    const secondaryButtonContents: FlexBox[] = [];
+    sliceByNumber(buttons.filter(b => !b.primary), 2)
+      .forEach(row => {
+        const content: FlexBox = { type: "box", layout: "horizontal", contents: [], spacing: "md" };
+        row.forEach(button => content.contents.push({
+          type: "button",
+          style: ButtonStylesByColor[button.color],
+          height: "md",
+          action: generateAction(button),
+          color: Colors[button.color],
+        }));
+        secondaryButtonContents.push(content);
+      });
     (message.contents as FlexBubble).footer?.contents.push(...secondaryButtonContents);
     return message;
   }
