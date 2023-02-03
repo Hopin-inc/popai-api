@@ -22,7 +22,13 @@ export default class TaskController extends Controller {
     console.log("TaskController#remind - START");
     await this.taskService.remind();
     console.log("TaskController#remind - END");
+    return;
+  }
 
+  public async notifyOnUpdate(): Promise<any> {
+    console.log("TaskController#notifyOnUpdate - START");
+    await this.taskService.notifyOnUpdate();
+    console.log("TaskController#notifyOnUpdate - END");
     return;
   }
 

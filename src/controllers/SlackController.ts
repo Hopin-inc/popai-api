@@ -9,7 +9,7 @@ import Todo from "@/entities/Todo";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import SlackRepository from "@/repositories/SlackRepository";
 
-import { ChatToolCode, MessageTriggerType, TodoStatus } from "@/consts/common";
+import { ChatToolCode, MessageTriggerType, TodoHistoryAction, TodoStatus } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { toJapanDateTime } from "@/utils/common";
@@ -18,6 +18,7 @@ import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
+import { valueOf } from "@/types";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -239,5 +240,25 @@ export default class SlackController extends Controller {
       channelId,
       threadId
     );
+  }
+
+  public notifyOnCompleted(todo: Todo, code: valueOf<typeof ChatToolCode>) {
+    return;
+  }
+
+  public notifyOnAssigneeUpdated(
+    todo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    code: valueOf<typeof ChatToolCode>
+  ) {
+    return;
+  }
+
+  public notifyOnDeadlineUpdated(
+    todo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    code: valueOf<typeof ChatToolCode>
+  ) {
+    return;
   }
 }

@@ -188,6 +188,10 @@ export default class TaskService {
     }
   }
 
+  public async notifyOnUpdate() {
+
+  }
+
   public async update(
     todoappRegId: string,
     todo: Todo,

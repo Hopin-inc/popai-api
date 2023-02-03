@@ -358,17 +358,17 @@ export default class NotionRepository {
   private async createTodo(taskReminds: IRemindTask<INotionTask>[]): Promise<void> {
     try {
       if (!taskReminds.length) return;
-      const dataTodos: Todo[] = [];
+      const todos: Todo[] = [];
       const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, todos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
-      const response = await this.todoRepository.upsert(dataTodos, []);
+      const response = await this.todoRepository.upsert(todos, []);
       if (response) {
         await Promise.all([
           this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
@@ -446,11 +446,7 @@ export default class NotionRepository {
         });
       }
 
-      if (
-        !todoData.is_done &&
-        taskRemind.delayedCount > 0 &&
-        (isDeadlineChanged || !todoData.delayed_count)
-      ) {
+      if (!todoData.is_done && taskRemind.delayedCount > 0 && (isDeadlineChanged || !todoData.delayed_count)) {
         todoData.delayed_count = todoData.delayed_count + 1;
       }
     }
