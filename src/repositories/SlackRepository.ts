@@ -56,7 +56,7 @@ export default class SlackRepository {
     user: User,
     todo: Todo,
     remindDays: number,
-    channelId: string,
+    _channelId: string,
   ): Promise<ChatMessage> {
     try {
       if (!user.slackId) {
@@ -71,7 +71,7 @@ export default class SlackRepository {
       if (process.env.ENV === "LOCAL") {
         console.log(message);
       } else {
-        const getDmId = await SlackBot.conversations.open({ users: user.slack_id });
+        const getDmId = await SlackBot.conversations.open({ users: user.slackId });
         const dmId = getDmId.channel.id;
 
         const response = await SlackBot.chat.postMessage({
@@ -97,7 +97,7 @@ export default class SlackRepository {
     }
   }
 
-  private async pushMessageStartRemindToUser(todoSlacks: ITodoSlack[], channelId: string): Promise<any> {
+  private async pushMessageStartRemindToUser(todoSlacks: ITodoSlack[]): Promise<any> {
     try {
       const user = todoSlacks[0].user;
       const chatTool = todoSlacks[0].chatTool;
@@ -110,7 +110,7 @@ export default class SlackRepository {
       //1.期日に対するリマインド
       const message: MessageAttachment = SlackMessageBuilder.createBeforeRemindMessage(user, todoSlacks);
 
-      const getDmId = await SlackBot.conversations.open({ users: user.slack_id });
+      const getDmId = await SlackBot.conversations.open({ users: user.slackId });
       const dmId = getDmId.channel.id;
 
       if (process.env.ENV === "LOCAL") {
@@ -262,7 +262,7 @@ export default class SlackRepository {
         return;
       }
 
-      const message = SlackMessageBuilder.createNotifyNothingMessage(user);
+      const message = SlackMessageBuilder.createNotifyNothingMessage();
       return await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, channelId);
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -595,7 +595,7 @@ export default class SlackRepository {
     const userTodoMap = this.mapUserRemindTaskList(remindTasks, chatTool, chatToolUsers);
 
     const remindPerTodo = async (todoSlacks: ITodoSlack[]): Promise<void> => {
-      await this.pushMessageStartRemindToUser(todoSlacks, channelId);
+      await this.pushMessageStartRemindToUser(todoSlacks);
       await Promise.all(todoSlacks.map(todo => this.pushTodoSlack(todo, channelId)));
     };
     const todos = Array.from(userTodoMap.values());

@@ -19,6 +19,7 @@ import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
+import { MessageAttachment } from "@slack/web-api";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -78,7 +79,7 @@ export default class SlackController extends Controller {
     user: User,
     slackId: string,
     repliedMessage: string,
-    status: string,
+    _status: string,
     channelId: string,
     threadId: string,
   ) {
@@ -139,7 +140,7 @@ export default class SlackController extends Controller {
 
     await this.slackRepository.pushSlackMessage(
       chatTool,
-      user,
+      superiorUser,
       shareMessage,
       MessageTriggerType.REPORT,
       channelId,

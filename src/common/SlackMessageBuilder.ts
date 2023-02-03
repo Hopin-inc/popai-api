@@ -166,7 +166,7 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  static createNotifyNothingMessage(adminUser: User) {
+  static createNotifyNothingMessage() {
     const blocks: KnownBlock[] = [
       {
         type: "section",
