@@ -84,9 +84,9 @@ export default class NotionRepository {
 
   private getTaskName(columnName: ColumnName, pageProperty: INotionProperty): string {
     try {
-      const todoProp = pageProperty[columnName.label_todo];
-      if (todoProp.type === "title" && todoProp.title.length) {
-        return todoProp.title.map(t => t.plain_text ?? "").join("");
+      const prop = pageProperty[columnName.label_todo];
+      if (prop && prop.type === "title" && prop.title.length) {
+        return prop.title.map(t => t.plain_text ?? "").join("");
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -97,9 +97,9 @@ export default class NotionRepository {
   private getAssignee(columnName: ColumnName, pageProperty: INotionProperty): string[] {
     try {
       const results: string[] = [];
-      const assigneeProp = pageProperty[columnName.label_assignee];
-      if (assigneeProp.type === "people") {
-        const assignees = assigneeProp.people;
+      const prop = pageProperty[columnName.label_assignee];
+      if (prop && prop.type === "people") {
+        const assignees = prop.people;
         assignees.forEach(assignee => {
           results.push(assignee.id);
         });
@@ -113,13 +113,15 @@ export default class NotionRepository {
 
   private getDue(columnName: ColumnName, pageProperty: INotionProperty): Date {
     try {
-      const labelProp = pageProperty[columnName.label_due];
-      if (labelProp.type === "date" && labelProp.date) {
-        const date = labelProp.date;
-        return new Date(date.end ? date.end : date.start);
-      } else if (labelProp.type === "formula" && labelProp.formula.type === "date" && labelProp.formula.date) {
-        const date = labelProp.formula.date;
-        return new Date(date.end ? date.end : date.start);
+      const prop = pageProperty[columnName.label_due];
+      if (prop) {
+        if (prop.type === "date" && prop.date) {
+          const date = prop.date;
+          return new Date(date.end ? date.end : date.start);
+        } else if (prop.type === "formula" && prop.formula.type === "date" && prop.formula.date) {
+          const date = prop.formula.date;
+          return new Date(date.end ? date.end : date.start);
+        }
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -129,9 +131,9 @@ export default class NotionRepository {
 
   private getNotionSections(columnName: ColumnName, pageProperty: INotionProperty): string[] {
     try {
-      const sectionProp = pageProperty[columnName.label_section];
-      if (sectionProp.type === "relation") {
-        return sectionProp.relation.map(section => section.id);
+      const prop = pageProperty[columnName.label_section];
+      if (prop && prop.type === "relation") {
+        return prop.relation.map(section => section.id);
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -157,11 +159,13 @@ export default class NotionRepository {
 
   private getIsDone(columnName: ColumnName, pageProperty: INotionProperty): boolean {
     try {
-      const isDoneProp = pageProperty[columnName.label_is_done];
-      if (isDoneProp.type === "checkbox") {
-        return isDoneProp.checkbox;
-      } else if (isDoneProp.type === "formula" && isDoneProp.formula.type === "boolean") {
-        return isDoneProp.formula.boolean;
+      const prop = pageProperty[columnName.label_is_done];
+      if (prop) {
+        if (prop.type === "checkbox") {
+          return prop.checkbox;
+        } else if (prop.type === "formula" && prop.formula.type === "boolean") {
+          return prop.formula.boolean;
+        }
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -170,11 +174,13 @@ export default class NotionRepository {
 
   private getIsArchive(columnName: ColumnName, pageProperty: INotionProperty): boolean {
     try {
-      const isArchiveProp = pageProperty[columnName.label_is_archived];
-      if (isArchiveProp.type === "checkbox") {
-        return isArchiveProp.checkbox;
-      } else if (isArchiveProp.type === "formula" && isArchiveProp.formula.type === "boolean") {
-        return isArchiveProp.formula.boolean;
+      const prop = pageProperty[columnName.label_is_archived];
+      if (prop) {
+        if (prop.type === "checkbox") {
+          return prop.checkbox;
+        } else if (prop.type === "formula" && prop.formula.type === "boolean") {
+          return prop.formula.boolean;
+        }
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
