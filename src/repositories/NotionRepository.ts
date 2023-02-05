@@ -52,14 +52,19 @@ export default class NotionRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  public async syncTaskByUserBoards(company: Company, todoapp: TodoApp): Promise<void> {
+  public async syncTaskByUserBoards(company: Company, todoapp: TodoApp, notify: boolean = false): Promise<void> {
     const companyId = company.id;
     const todoappId = todoapp.id;
     const sections = await this.commonRepository.getSections(companyId, todoappId);
-    await this.getUserPageBoards(sections, company, todoapp);
+    await this.getUserPageBoards(sections, company, todoapp, notify);
   }
 
-  private async getUserPageBoards(sections: Section[], company: Company, todoapp: TodoApp): Promise<void> {
+  private async getUserPageBoards(
+    sections: Section[],
+    company: Company,
+    todoapp: TodoApp,
+    notify: boolean = false
+  ): Promise<void> {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
 
@@ -71,7 +76,7 @@ export default class NotionRepository {
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
-      await this.filterUpdatePages(todoTasks);
+      await this.filterUpdatePages(todoTasks, notify);
       console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -333,7 +338,7 @@ export default class NotionRepository {
     }
   }
 
-  private async filterUpdatePages(pageTodos: ITodoTask<INotionTask>[]): Promise<void> {
+  private async filterUpdatePages(pageTodos: ITodoTask<INotionTask>[], notify: boolean = false): Promise<void> {
     const cards: IRemindTask<INotionTask>[] = [];
 
     for (const pageTodo of pageTodos) {
@@ -352,10 +357,10 @@ export default class NotionRepository {
         delayedCount: delayedCount,
       });
     }
-    await this.createTodo(cards);
+    await this.createTodo(cards, notify);
   }
 
-  private async createTodo(taskReminds: IRemindTask<INotionTask>[]): Promise<void> {
+  private async createTodo(taskReminds: IRemindTask<INotionTask>[], notify: boolean = false): Promise<void> {
     try {
       if (!taskReminds.length) return;
       const todos: Todo[] = [];
@@ -371,7 +376,7 @@ export default class NotionRepository {
       const response = await this.todoRepository.upsert(todos, []);
       if (response) {
         await Promise.all([
-          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
+          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories, notify),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),

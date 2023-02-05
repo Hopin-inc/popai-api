@@ -48,7 +48,7 @@ export default class TaskService {
   /**
    * Update todos
    */
-  public async syncTodos(company: Company = null): Promise<any> {
+  public async syncTodos(company: Company = null, notify: boolean = false): Promise<any> {
     try {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
@@ -69,11 +69,11 @@ export default class TaskService {
       const syncOperations = (company: Company, todoApp: TodoApp) => {
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
-            return this.trelloRepository.syncTaskByUserBoards(company, todoApp);
-          case TodoAppCode.MICROSOFT:
+            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
+          case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
             return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
           case TodoAppCode.NOTION:
-            return this.notionRepository.syncTaskByUserBoards(company, todoApp);
+            return this.notionRepository.syncTaskByUserBoards(company, todoApp, notify);
           default:
             return;
         }
@@ -186,10 +186,6 @@ export default class TaskService {
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }
-  }
-
-  public async notifyOnUpdate() {
-
   }
 
   public async update(

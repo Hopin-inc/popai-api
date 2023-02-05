@@ -24,13 +24,13 @@ import {
   OpenStatus,
   RemindType,
   ReplyStatus,
-  SenderType,
+  SenderType, TodoHistoryAction,
 } from "@/consts/common";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import { IRemindType } from "@/types";
+import { IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 
 @Service()
@@ -672,5 +672,38 @@ export default class SlackRepository {
     }
 
     return await query.getMany();
+  }
+
+  public async notifyOnCompleted(todo: Todo, chatTool: ChatTool) {
+    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(todo);
+    await Promise.all(todo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      todo.users.length ? todo.users[0] : null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
+  }
+
+  public async notifyOnAssigneeUpdated(todo: Todo,  action: valueOf<typeof TodoHistoryAction>, chatTool: ChatTool) {
+    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(todo, action);
+    await Promise.all(todo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      todo.users.length ? todo.users[0] : null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
+  }
+
+  public async notifyOnDeadlineUpdated(todo: Todo, action: valueOf<typeof TodoHistoryAction>, chatTool: ChatTool) {
+    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(todo, action);
+    await Promise.all(todo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      todo.users.length ? todo.users[0] : null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
   }
 }

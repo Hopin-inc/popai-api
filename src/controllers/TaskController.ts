@@ -27,10 +27,8 @@ export default class TaskController extends Controller {
 
   public async notifyOnUpdate(): Promise<any> {
     console.log("TaskController#notifyOnUpdate - START");
-    await this.taskService.notifyOnUpdate();
+    await this.taskService.syncTodos(null, true);
     console.log("TaskController#notifyOnUpdate - END");
     return;
   }
-
-  public async;
 }

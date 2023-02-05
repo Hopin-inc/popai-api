@@ -1,11 +1,14 @@
 import { KnownBlock, MessageAttachment } from "@slack/web-api";
+import dayjs from "dayjs";
 
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
 
 import { replyActionsAfter, replyActionsBefore } from "@/consts/slack";
-import { relativeRemindDays } from "@/utils/common";
+import { diffDays, getDate, relativeRemindDays } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
+import { valueOf } from "@/types";
+import { TodoHistoryAction } from "@/consts/common";
 
 export default class SlackMessageBuilder {
   static createRemindMessage(user: User, todo: Todo, remindDays: number) {
@@ -235,29 +238,82 @@ export default class SlackMessageBuilder {
   }
 
   static createNotifyOnCompletedMessage(todo: Todo) {
-    const assignees = todo.users?.length ? todo.users.map(user => user.name).join("、") : "未設定";
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: "タスクを完了しました！" },
-      }
-    ];
+    const blocks: KnownBlock[] = [{
+      type: "section",
+      text: { type: "mrkdwn", text: "タスクを完了しました！" },
+    }];
     const attachmentBlocks: KnownBlock[] = [
       {
         type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*`
-        },
+        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
       },
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*担当者:*\n${ assignees }}` },
-          { type: "mrkdwn", text: `*期日:*\n` },
-        ]
+          { type: "mrkdwn", text: `*担当者:*\n${ this.getAssigneesText(todo.users) }` },
+          { type: "mrkdwn", text: `*期日:*\n${ this.getDeadlineText(todo.deadline) }` },
+        ],
       }
     ];
+    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
+    return { blocks, attachments };
+  }
+
+  static createNotifyOnAssigneeUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>) {
+    const message = action === TodoHistoryAction.CREATE ? "タスクの担当者が設定されました！"
+      : action === TodoHistoryAction.DELETE ? "タスクの担当者が削除されました。" : "タスクの担当者が変更されました！";
+    const blocks: KnownBlock[] = [{
+      type: "section",
+      text: { type: "mrkdwn", text: message },
+    }];
+    const attachmentBlocks: KnownBlock[] = [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
+      },
+      {
+        type: "section",
+        fields: [
+          { type: "mrkdwn", text: `*担当者:*\n*${ this.getAssigneesText(todo.users) }*` },
+          { type: "mrkdwn", text: `*期日:*\n${ this.getDeadlineText(todo.deadline) }` },
+        ],
+      }
+    ];
+    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
+    return { blocks, attachments };
+  }
+
+  static createNotifyOnDeadlineUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>) {
+    const message = action === TodoHistoryAction.CREATE ? "タスクの期日が設定されました！"
+      : action === TodoHistoryAction.DELETE ? "タスクの期日が削除されました。" : "タスクの期日が変更されました！";
+    const blocks: KnownBlock[] = [{
+      type: "section",
+      text: { type: "mrkdwn", text: message },
+    }];
+    const attachmentBlocks: KnownBlock[] = [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
+      },
+      {
+        type: "section",
+        fields: [
+          { type: "mrkdwn", text: `*担当者:*\n${ this.getAssigneesText(todo.users) }` },
+          { type: "mrkdwn", text: `*期日:*\n*${ this.getDeadlineText(todo.deadline) }*` },
+        ],
+      }
+    ];
+    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
+    return { blocks, attachments };
+  }
+
+  private static getAssigneesText(assignees: User[]): string {
+    return assignees?.length ? assignees.map(user => user.name).join("、") : "未設定";
+  }
+
+  private static getDeadlineText(deadline: Date): string {
+    const remindDays = deadline ? diffDays(deadline, dayjs().toDate()) : null;
+    return deadline ? `${ relativeRemindDays(remindDays) } (${ getDate(deadline) })` : "未設定";
   }
 
   static getTextContentFromMessage(message) {

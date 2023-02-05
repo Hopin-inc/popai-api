@@ -36,6 +36,7 @@ export const MessageTriggerType = {
   REPORT: 4,
   PRAISE: 5,
   RESPONSE: 6,
+  NOTIFY: 7,
 };
 
 export const RemindType = {
