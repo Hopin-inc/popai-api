@@ -1,4 +1,4 @@
-import { Brackets, In, IsNull, Not, Repository, SelectQueryBuilder } from "typeorm";
+import { Between, Brackets, In, IsNull, LessThan, Not, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "typedi";
 
 import ImplementedTodoApp from "@/entities/ImplementedTodoApp";
@@ -193,7 +193,7 @@ export default class CommonRepository {
     const targetTodoIds = targetHistories.map(history => history.todo_id);
     const todos = await this.todoRepository.find({
       where: { id: In(targetTodoIds) },
-      relations: ["histories"],
+      relations: ["histories", "todoUsers.user"],
     });
     return todos.filter(todo => {
       if (todo.histories) {
@@ -207,11 +207,30 @@ export default class CommonRepository {
     });
   }
 
-  private async getTodosDelayed(_company: Company): Promise<Todo[]> {
-    return [];  // TODO
+  private async getTodosDelayed(company: Company): Promise<Todo[]> {
+    const startOfToday = dayjs().startOf("d").toDate();
+    return await this.todoRepository.find({
+      where: {
+        company_id: company.id,
+        deadline: LessThan(startOfToday),
+        is_closed: false,
+        is_done: false,
+      },
+      relations: ["todoUsers.user"],
+    });
   }
 
-  private async getTodosOngoing(_company: Company): Promise<Todo[]> {
-    return [];  // TODO
+  private async getTodosOngoing(company: Company): Promise<Todo[]> {
+    const startOfToday = dayjs().startOf("d").toDate();
+    const endOfToday = dayjs().endOf("d").toDate();
+    return await this.todoRepository.find({
+      where: {
+        company_id: company.id,
+        deadline: Between(startOfToday, endOfToday),
+        is_closed: false,
+        is_done: false,
+      },
+      relations: ["todoUsers.user"],
+    });
   }
 }
