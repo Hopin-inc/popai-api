@@ -1,11 +1,14 @@
 import { Between, Brackets, In, IsNull, LessThan, Not, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "typedi";
+import dayjs from "dayjs";
 
 import ImplementedTodoApp from "@/entities/ImplementedTodoApp";
+import Company from "@/entities/Company";
 import ChatToolUser from "@/entities/ChatToolUser";
 import Section from "@/entities/Section";
 import SectionLabel from "@/entities/SectionLabel";
 import Todo from "@/entities/Todo";
+import TodoHistory from "@/entities/TodoHistory";
 import TodoUser from "@/entities/TodoUser";
 import User from "@/entities/User";
 import CompanyCondition from "@/entities/CompanyCondition";
@@ -13,11 +16,8 @@ import CompanyCondition from "@/entities/CompanyCondition";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import Company from "@/entities/Company";
 import { IDailyReportItems } from "@/types";
-import TodoHistory from "@/entities/TodoHistory";
-import dayjs from "dayjs";
-import { TodoHistoryProperty as Property, TodoHistoryAction as Action } from "@/consts/common";
+import { TodoHistoryProperty as Property, TodoHistoryAction as Action, NOT_UPDATED_DAYS } from "@/consts/common";
 
 @Service()
 export default class CommonRepository {
@@ -193,7 +193,7 @@ export default class CommonRepository {
     const targetTodoIds = targetHistories.map(history => history.todo_id);
     const todos = await this.todoRepository.find({
       where: { id: In(targetTodoIds) },
-      relations: ["histories", "todoUsers.user"],
+      relations: ["histories", "todoUsers.user", "todoSections.section"],
     });
     return todos.filter(todo => {
       if (todo.histories) {
@@ -216,7 +216,7 @@ export default class CommonRepository {
         is_closed: false,
         is_done: false,
       },
-      relations: ["todoUsers.user"],
+      relations: ["todoUsers.user", "todoSections.section"],
     });
   }
 
@@ -230,7 +230,20 @@ export default class CommonRepository {
         is_closed: false,
         is_done: false,
       },
-      relations: ["todoUsers.user"],
+      relations: ["todoUsers.user", "todoSections.section"],
+    });
+  }
+
+  public async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
+    const thresholdDate = dayjs().subtract(NOT_UPDATED_DAYS, "d").startOf("d").toDate();
+    return await this.todoRepository.find({
+      where: {
+        company_id: company.id,
+        updated_at: LessThan(thresholdDate),
+        is_done: false,
+        is_closed: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section"],
     });
   }
 }

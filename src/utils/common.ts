@@ -51,8 +51,8 @@ export const relativeRemindDays = (remindDays: number): string => {
 
 export const getProcessTime = (t: [number, number]): number => t[0] + t[1] * 1e-9;
 
-export const getItemRandomly = <T>(arr: T[]): T => arr[randomInt(arr.length)];
+export const getItemRandomly = <T>(arr: T[]): T => arr?.length ? arr[randomInt(arr.length)] : null;
 
 export const randomInt = (max: number, min: number = 0): number => Math.floor(Math.random() * (max - min) + min);
 
-export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
+// export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];

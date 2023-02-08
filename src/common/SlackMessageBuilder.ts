@@ -10,7 +10,8 @@ import { replyActionsAfter, replyActionsBefore } from "@/consts/slack";
 import { diffDays, getDate, relativeRemindDays } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
-import { TodoHistoryAction } from "@/consts/common";
+import { NOT_UPDATED_DAYS, TodoHistoryAction } from "@/consts/common";
+import Section from "@/entities/Section";
 
 dayjs.locale("ja");
 
@@ -286,10 +287,11 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createDailyReportByUser(items: IDailyReportItems, user: User) {
-    const filterTodosByUser = (todos: Todo[], user: User): Todo[] => todos.filter(
-      todo => todo.users.map(u => u.id).includes(user.id)
-    );
+  public static createDailyReportByUser(items: IDailyReportItems, sections: Section[], user: User) {
+    const filterTodosByUser = (todos: Todo[], user: User): Todo[] => todos.filter(todo => {
+      return todo.sections.some(section => sections.some(s => s.id === section.id))
+        && todo.users.some(u => u.id === user.id);
+    });
     const todosCompletedYesterday = filterTodosByUser(items.completedYesterday, user);
     const todosDelayed = filterTodosByUser(items.delayed, user);
     const todosOngoing = filterTodosByUser(items.ongoing, user);
@@ -340,6 +342,24 @@ export default class SlackMessageBuilder {
           type: "mrkdwn",
           text: `*今日が期日のタスク*\n${ listTodos(todosOngoing) }`,
         },
+      },
+    ];
+    return { blocks };
+  }
+
+  public static createSuggestNotUpdatedTodoMessage(todo: Todo, user: User) {
+    const blocks: KnownBlock[] = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `${ NOT_UPDATED_DAYS }日以上更新されていないタスクを見つけました。\n`
+            + `<@${ user.slackId }> 対応をお願いします。`,
+        },
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `:bookmark: <${ todo.todoapp_reg_url }|${ todo.name }>` },
       },
     ];
     return { blocks };

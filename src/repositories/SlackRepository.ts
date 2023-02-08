@@ -4,7 +4,6 @@ import { Block, KnownBlock, MessageAttachment } from "@slack/web-api";
 import moment from "moment";
 
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
-import Todo from "@/entities/Todo";
 
 import ChatTool from "@/entities/ChatTool";
 import ChatToolUser from "@/entities/ChatToolUser";
@@ -12,6 +11,7 @@ import Company from "@/entities/Company";
 import ChatMessage from "@/entities/ChatMessage";
 import ReportingLine from "@/entities/ReportingLine";
 import Section from "@/entities/Section";
+import Todo from "@/entities/Todo";
 import User from "@/entities/User";
 
 import CommonRepository from "./modules/CommonRepository";
@@ -26,7 +26,7 @@ import {
   ReplyStatus,
   SenderType, TodoHistoryAction,
 } from "@/consts/common";
-import { diffDays, getItemRandomly, getUniqueArray, toJapanDateTime } from "@/utils/common";
+import { diffDays, getItemRandomly, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
@@ -52,28 +52,94 @@ export default class SlackRepository {
   }
 
   public async sendDailyReport(company: Company) {
-    const channels = getUniqueArray(company.sections.map(section => section.channel_id));
+    const channelSectionsMap: Map<string, Section[]> = new Map();
+    company.sections.forEach(section => {
+      const channelId = section.channel_id;
+      if (channelSectionsMap.has(section.channel_id)) {
+        channelSectionsMap.get(channelId).push(section);
+      } else {
+        channelSectionsMap.set(channelId, [section]);
+      }
+    });
     const users = company.users.filter(u => u.chatTools.map(c => c.tool_code).includes(ChatToolCode.SLACK));
-    const dailyReportTodos = await this.commonRepository.getDailyReportItems(company);
+    const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
+      this.commonRepository.getDailyReportItems(company),
+      this.commonRepository.getNotUpdatedTodos(company),
+    ]);
 
-    await Promise.all(channels.map(async channel => {
-      const ts = await this.mentionFacilitator(company, users, channel);
-      await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, user, channel, ts)));
-    }));
+    const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
+    channelSectionsMap.forEach((sections, channel) => {
+      operations.push(this.sendDailyReportForChannel(
+        dailyReportTodos,
+        notUpdatedTodos,
+        company,
+        sections,
+        users,
+        channel
+      ));
+    });
+    await Promise.all(operations);
   }
 
-  private async mentionFacilitator(company: Company, users: User[], channel: string): Promise<string> {
+  private async sendDailyReportForChannel(
+    dailyReportTodos: IDailyReportItems,
+    notUpdatedTodos: Todo[],
+    company: Company,
+    sections: Section[],
+    users: User[],
+    channel: string
+  ) {
+    const ts = await this.mentionFacilitator(company, sections, users, channel);
+    await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
+    await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
+  }
+
+  private async mentionFacilitator(
+    company: Company,
+    _sections: Section[], // TODO: メンション対象のusersをsectionsに属する人のみにする
+    users: User[],
+    channel: string
+  ): Promise<string> {
     const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
     const facilitator = getItemRandomly(users);
-    const message = SlackMessageBuilder.createStartDailyReportMessage(facilitator);
-    const { ts } = await this.pushSlackMessage(chatTool, facilitator, message, MessageTriggerType.REPORT, channel);
-    return ts;
+    if (facilitator) {
+      const message = SlackMessageBuilder.createStartDailyReportMessage(facilitator);
+      const { ts } = await this.pushSlackMessage(chatTool, facilitator, message, MessageTriggerType.REPORT, channel);
+      return ts;
+    } else {
+      return null;
+    }
   }
 
-  private async reportByUser(items: IDailyReportItems, company: Company, user: User, channel: string, ts: string) {
+  private async reportByUser(
+    items: IDailyReportItems,
+    company: Company,
+    sections: Section[],
+    user: User,
+    channel: string,
+    ts: string
+  ) {
     const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-    const message = SlackMessageBuilder.createDailyReportByUser(items, user);
+    const message = SlackMessageBuilder.createDailyReportByUser(items, sections, user);
     await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REPORT, channel, ts);
+  }
+
+  private async suggestNotUpdatedTodo(
+    todos: Todo[],
+    company: Company,
+    sections: Section[],
+    users: User[],
+    channel: string
+  ) {
+    const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+    const targetTodo = getItemRandomly(todos.filter(
+      todo => todo.sections.some(section => sections.some(s => s.id === section.id)))
+    );
+    const targetUser = getItemRandomly(users);
+    if (targetTodo && targetUser) {
+      const message = SlackMessageBuilder.createSuggestNotUpdatedTodoMessage(targetTodo, targetUser);
+      await this.pushSlackMessage(chatTool, targetUser, message, MessageTriggerType.REPORT, channel);
+    }
   }
 
   public async pushMessageRemind(
