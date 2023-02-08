@@ -7,8 +7,9 @@ const router = express();
 
 router.get("/update", async (req, res) => {
   try {
+    const notify = !!req.query.notify;
     const controller = new TaskController();
-    const response = await controller.syncTodos();
+    const response = await controller.syncTodos(notify);
     ApiResponse.successRes(res, response);
   } catch (err) {
     ApiResponse.errRes(res, err.message, err.status);
@@ -17,11 +18,8 @@ router.get("/update", async (req, res) => {
 
 router.get("/remind", async (req, res) => {
   try {
-    // update before remind
     const controller = new TaskController();
     await controller.syncTodos();
-
-    // remind
     const response = await controller.remind();
     ApiResponse.successRes(res, response);
   } catch (err) {

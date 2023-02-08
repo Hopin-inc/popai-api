@@ -15,10 +15,13 @@ export function replaceString(str: string, search: string, replace: string): str
 }
 
 export function diffDays(startDate: Date, endDate: Date) {
-  const startDay = moment(startDate).startOf("day");
-  const endDay = moment(endDate).startOf("day");
-
-  return endDay.diff(startDay, "days");
+  if (startDate && endDate) {
+    const startDay = moment(startDate).startOf("day");
+    const endDay = moment(endDate).startOf("day");
+    return endDay.diff(startDay, "days");
+  } else {
+    return null;
+  }
 }
 
 export function getDate(date: Date, format = "YYYY/MM/DD") {
@@ -45,3 +48,5 @@ export const relativeRemindDays = (remindDays: number): string => {
     return `${ (-remindDays).toString() }日後`;
   }
 };
+
+export const getProcessTime = (t: [number, number]): number => t[0] + t[1] * 1e-9;

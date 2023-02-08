@@ -1,6 +1,6 @@
 import { Container, Service } from "typedi";
 import { In, IsNull, Not, Repository } from "typeorm";
-import { MessageAttachment } from "@slack/web-api";
+import { Block, KnownBlock, MessageAttachment } from "@slack/web-api";
 import moment from "moment";
 
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
@@ -24,13 +24,13 @@ import {
   OpenStatus,
   RemindType,
   ReplyStatus,
-  SenderType,
+  SenderType, TodoHistoryAction,
 } from "@/consts/common";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import { IRemindType } from "@/types";
+import { IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 
 @Service()
@@ -108,7 +108,7 @@ export default class SlackRepository {
       }
 
       //1.期日に対するリマインド
-      const message: MessageAttachment = SlackMessageBuilder.createBeforeRemindMessage(user, todoSlacks);
+      const message = SlackMessageBuilder.createBeforeRemindMessage(user, todoSlacks);
 
       const getDmId = await SlackBot.conversations.open({ users: user.slackId });
       const dmId = getDmId.channel.id;
@@ -329,7 +329,7 @@ export default class SlackRepository {
   public async pushSlackMessage(
     chatTool: ChatTool,
     user: User,
-    message: MessageAttachment,
+    message: { blocks: (Block | KnownBlock)[], attachments?: MessageAttachment[] },
     messageTriggerId: number,
     channelId: string,
     threadId?: string,
@@ -343,6 +343,7 @@ export default class SlackRepository {
         thread_ts: threadId,
         text: "お知らせ",
         blocks: message.blocks,
+        attachments: message.attachments,
       });
       if (response.ok) {
         return await this.saveChatMessage(chatTool, message, messageTriggerId, channelId, threadId, user);
@@ -678,5 +679,48 @@ export default class SlackRepository {
     }
 
     return await query.getMany();
+  }
+
+  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool) {
+    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
+  }
+
+  public async notifyOnAssigneeUpdated(
+    savedTodo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    assignees: User[],
+    chatTool: ChatTool
+  ) {
+    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
+  }
+
+  public async notifyOnDeadlineUpdated(
+    savedTodo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    deadline: Date,
+    chatTool: ChatTool
+  ) {
+    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
   }
 }
