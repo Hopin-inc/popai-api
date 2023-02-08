@@ -19,7 +19,7 @@ import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
 import { replyActions } from "@/consts/slack";
-import { MessageAttachment } from "@slack/web-api";
+import { Block, KnownBlock } from "@slack/web-api";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -131,7 +131,7 @@ export default class SlackController extends Controller {
     superiorUser: User,
     channelId: string,
     threadId?: string,
-    shareMessage?: MessageAttachment,
+    shareMessage?: { blocks: (Block | KnownBlock)[] },
   ): Promise<void> {
     if (!superiorUser.slackId) {
       logger.error(new LoggerError(superiorUser.name + "さんのSLACK IDが設定されていません。"));
