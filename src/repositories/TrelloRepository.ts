@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 import moment from "moment";
 import { Service, Container } from "typedi";
 
@@ -223,11 +223,19 @@ export default class TrelloRepository {
         return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
+      const savedTodos: Todo[] = await this.todoRepository.find({
+        where: { deleted_at: IsNull() },
+        relations: [
+          "todoUsers.user.chattoolUsers",
+          "company.implementedChatTools.chattool",
+          "todoSections.section",
+        ],
+      });
       const response = await this.todoRepository.upsert(dataTodos, []);
 
       if (response) {
         await Promise.all([
-          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories, notify),
+          this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),

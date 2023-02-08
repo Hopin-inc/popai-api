@@ -1,20 +1,26 @@
 export const MAX_REMIND_COUNT = 2;
 
 export const TodoHistoryProperty = {
+  // CREATE | MODIFIED | ------
   NAME: 1,
+  // CREATE | MODIFIED | DELETE
   DEADLINE: 2,
+  // CREATE | -------- | DELETE
   ASSIGNEE: 3,
+  // CREATE | -------- | DELETE
   IS_DONE: 4,
+  // CREATE | -------- | DELETE
   IS_CLOSED: 5,
+  // CREATE | -------- | DELETE
   IS_DELAYED: 6,
+  // CREATE | -------- | DELETE
   IS_RECOVERED: 7,
 };
 
 export const TodoHistoryAction = {
   CREATE: 1,
-  USER_CHANGE: 2,
-  SYSTEM_CHANGE: 3,
-  DELETE: 4,
+  MODIFIED: 2,
+  DELETE: 3,
 };
 
 export const MessageType = {

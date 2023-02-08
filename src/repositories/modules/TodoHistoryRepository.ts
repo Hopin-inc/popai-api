@@ -12,8 +12,10 @@ import { LoggerError } from "@/exceptions";
 import { ITodoHistory, valueOf } from "@/types";
 import { TodoHistoryProperty as Property, TodoHistoryAction as Action, ChatToolCode } from "@/consts/common";
 
-import { diffDays, toJapanDateTime } from "@/utils/common";
+import { diffDays } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
+
+type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
 export default class TodoHistoryRepository {
@@ -27,82 +29,94 @@ export default class TodoHistoryRepository {
     this.slackRepository = Container.get(SlackRepository);
   }
 
-  public async saveTodoHistories(todos: ITodoHistory[], notify: boolean = false): Promise<void> {
+  public async saveTodoHistories(savedTodos: Todo[], todos: ITodoHistory[], notify: boolean = false): Promise<void> {
     await Promise.all(todos.map(async todo => {
-      const savedTodo: Todo = await this.todoRepository.findOne({
-        where: { todoapp_reg_id: todo.todoId },
-        relations: ["todoUsers.user.chattoolUsers", "company.implementedChatTools.chattool"],
-      });
-      if (savedTodo.id) {
-        await this.saveTodoHistory(savedTodo, todo, notify);
-      }
+      const savedTodo = savedTodos.find(t => t.todoapp_reg_id === todo.todoId);
+      await this.saveTodoHistory(savedTodo, todo, notify);
     }));
   }
 
   private async saveTodoHistory(savedTodo: Todo, history: ITodoHistory, notify: boolean = false) {
     try {
-      const firstTodoHistory: TodoHistory = await this.todoHistoryRepository.findOneBy({
+      const todoHistoryExists = await this.todoHistoryRepository.countBy({
         todo_id: savedTodo.id,
         property: Property.NAME,
         action: Action.CREATE,
-      });
-      const currentTodoStatus: TodoHistory = await this.todoHistoryRepository.findOne({
-        where: { todo_id: savedTodo.id },
-        order: { created_at: "DESC" },
-      });
-      const { deadline, isDone, isClosed } = history;
-      const createdAt = savedTodo.todoapp_reg_created_at;
-      const assignees = history.users || [];
-      const argsList: Parameters<typeof this.saveTodo>[] = [];
-      if (!firstTodoHistory) {  // 初回登録時
-        argsList.push([savedTodo, Property.NAME, Action.CREATE, createdAt, null, notify]);
-        assignees.forEach(assignee => {
-          argsList.push([savedTodo, Property.ASSIGNEE, Action.CREATE, createdAt, { assignee }, notify]);
+      }) > 0;
+      const { users, deadline, isDone, isClosed } = history;
+      const assignees = users.filter(user => !user.deleted_at) || [];
+      const isDelayed = savedTodo.deadline ? diffDays(savedTodo.deadline, new Date()) > 0 : null;
+      const daysDiff = savedTodo.deadline && deadline ? diffDays(savedTodo.deadline, deadline) : null;
+      const argsList: [valueOf<typeof Property>, valueOf<typeof Action>, Info | null][] = [];
+      if (!todoHistoryExists) {  // If no data in db
+        argsList.push([Property.NAME, Action.CREATE, null]);
+        assignees?.forEach(assignee => {
+          argsList.push([Property.ASSIGNEE, Action.CREATE, { assignee }]);
         });
         if (deadline) {
-          argsList.push([savedTodo, Property.DEADLINE, Action.CREATE, createdAt, { deadline }, notify]);
+          argsList.push([Property.DEADLINE, Action.CREATE, { deadline }]);
+          if (isDelayed && !isDone && !isClosed) {
+            argsList.push([Property.IS_DELAYED, Action.CREATE, null]);
+          }
         }
         if (isDone) {
-          argsList.push([savedTodo, Property.IS_DONE, Action.CREATE, createdAt, null, notify]);
+          argsList.push([Property.IS_DONE, Action.CREATE, null]);
         }
         if (isClosed) {
-          argsList.push([savedTodo, Property.IS_CLOSED, Action.CREATE, createdAt, null, notify]);
+          argsList.push([Property.IS_CLOSED, Action.CREATE, null]);
         }
       } else {
-        const daysDiff = diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(new Date()));
-        if (daysDiff > 0) {
-          if (!isDone && currentTodoStatus.property !== Property.IS_DELAYED) {
-            argsList.push([savedTodo, Property.IS_DELAYED, Action.SYSTEM_CHANGE, createdAt, null, notify]);
-          }
-          if (savedTodo.deadline !== deadline && currentTodoStatus.property !== Property.IS_RECOVERED) {
-            argsList.push([savedTodo, Property.IS_RECOVERED, Action.SYSTEM_CHANGE, createdAt, null, notify]);
-          }
-          if (savedTodo.is_done && isDone && currentTodoStatus.property !== Property.IS_RECOVERED) {
-            argsList.push([savedTodo, Property.IS_RECOVERED, Action.SYSTEM_CHANGE, createdAt, null, notify]);
+        const [latestDelayedHistory, latestRecoveredHistory] = await Promise.all([
+          this.todoHistoryRepository.findOne({
+            where: { todo_id: savedTodo.id, property: Property.IS_DELAYED },
+            order: { created_at: "DESC" },
+          }),
+          this.todoHistoryRepository.findOne({
+            where: { todo_id: savedTodo.id, property: Property.IS_RECOVERED },
+            order: { created_at: "DESC" },
+          }),
+        ]);
+        if ((savedTodo.deadline || deadline) && daysDiff !== 0) {  // On deadline changed
+          const action = !savedTodo.deadline ? Action.CREATE
+            : !deadline ? Action.DELETE : Action.MODIFIED;
+          argsList.push([Property.DEADLINE, action, { deadline, daysDiff }]);
+          if (latestRecoveredHistory && latestRecoveredHistory.action === Action.CREATE) {
+            argsList.push([Property.IS_RECOVERED, Action.DELETE, null]);
           }
         }
-
-        if (savedTodo.deadline !== deadline) {
-          const daysDiff = diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(history.deadline));
-          if (daysDiff !== 0) {
-            argsList.push([savedTodo, Property.DEADLINE, Action.USER_CHANGE, createdAt, { deadline, daysDiff }, notify]);
-          }
-        }
-        if (savedTodo.is_done !== isDone) {
-          argsList.push([savedTodo, Property.IS_DONE, Action.USER_CHANGE, createdAt, null, notify]);
-        }
-        if (savedTodo.is_closed !== isClosed) {
-          argsList.push([savedTodo, Property.IS_CLOSED, Action.USER_CHANGE, createdAt, null, notify]);
-        }
-
-        assignees.forEach(assignee => {
-          const isSameUser = savedTodo.todoUsers.map(todoUser => todoUser.user_id).includes(assignee.id);
-          if (!isSameUser) {
-            argsList.push([savedTodo, Property.ASSIGNEE, Action.USER_CHANGE, createdAt, { assignee }, notify]);
+        assignees?.forEach(assignee => {
+          if (!savedTodo.users.some(u => u.id === assignee.id)) {  // On new assignee added
+            argsList.push([Property.ASSIGNEE, Action.CREATE, { assignee }]);
           }
         });
+        savedTodo.users.forEach(assignee => {
+          if (!assignees?.length || !assignees?.some(u => u.id === assignee.id)) { // On assignee removed
+            argsList.push([Property.ASSIGNEE, Action.DELETE, { assignee }]);
+          }
+        });
+        if (savedTodo.is_done !== isDone) { // On marked as done
+          argsList.push([Property.IS_DONE, isDone ? Action.CREATE : Action.DELETE, null]);
+        }
+        if (savedTodo.is_closed !== isClosed) { // On marked as closed
+          argsList.push([Property.IS_CLOSED, isClosed ? Action.CREATE : Action.DELETE, null]);
+        }
+        if (isDelayed) {  // When ddl is before today
+          if (!isDone && latestDelayedHistory && latestDelayedHistory.action !== Action.CREATE) {
+            argsList.push([Property.IS_DELAYED, Action.CREATE, null]);
+          }
+        } else {  // When ddl is exactly or after today
+          if (latestDelayedHistory && latestDelayedHistory.action !== Action.DELETE) {
+            argsList.push([Property.IS_DELAYED, Action.DELETE, null]);
+          }
+          if (latestRecoveredHistory && latestRecoveredHistory.action !== Action.DELETE) {
+            argsList.push([Property.IS_RECOVERED, Action.DELETE, null]);
+          }
+        }
       }
-      await Promise.all(argsList.map(args => this.saveTodo(...args)));
+      // console.log(argsList, assignees.map(a => a.id), isDelayed, daysDiff);
+      await Promise.all(argsList.map(([property, action, info]) => {
+        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notify);
+      }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -110,10 +124,11 @@ export default class TodoHistoryRepository {
 
   public async saveTodo(
     savedTodo: Todo,
+    assignees: User[],
     property: valueOf<typeof Property>,
     action: valueOf<typeof Action>,
     updatedAt: Date,
-    info: { deadline?: Date, assignee?: User, daysDiff?: number } | null,
+    info: Info | null,
     notify?: boolean
   ) {
     const todoHistory = new TodoHistory();
@@ -121,8 +136,8 @@ export default class TodoHistoryRepository {
     todoHistory.property = property;
     todoHistory.action = action;
     todoHistory.todoapp_reg_updated_at = updatedAt;
-    todoHistory.deadline = info?.deadline;
-    todoHistory.days_diff = info?.daysDiff;
+    todoHistory.deadline = info?.deadline ?? null;
+    todoHistory.days_diff = info?.daysDiff ?? null;
 
     if (info?.assignee) {
       todoHistory.user_id = info?.assignee.id;
@@ -132,13 +147,15 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(
-        chatTool => this.notifyOnUpdate(savedTodo, property, action, chatTool)
+        chatTool => this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool)
       ));
     }
   }
 
   private async notifyOnUpdate(
-    todo: Todo,
+    savedTodo: Todo,
+    assignees: User[],
+    deadline: Date,
     property: valueOf<typeof Property>,
     action: valueOf<typeof Action>,
     chatTool: ChatTool
@@ -149,7 +166,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCompleted(todo, chatTool);
+          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool);
           break;
       }
     } else if (property === Property.ASSIGNEE) {  // 担当者
@@ -157,7 +174,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnAssigneeUpdated(todo, action, chatTool);
+          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool);
           break;
       }
     } else if (property === Property.DEADLINE) {  // 期日
@@ -165,7 +182,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnDeadlineUpdated(todo, action, chatTool);
+          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool);
           break;
       }
     }

@@ -1,4 +1,4 @@
-import { In, Repository } from "typeorm";
+import { In, IsNull, Repository } from "typeorm";
 import { Client } from "@notionhq/client";
 import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
@@ -373,10 +373,18 @@ export default class NotionRepository {
         return this.addDataTodo(taskRemind, todos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
+      const savedTodos: Todo[] = await this.todoRepository.find({
+        where: { deleted_at: IsNull() },
+        relations: [
+          "todoUsers.user.chattoolUsers",
+          "company.implementedChatTools.chattool",
+          "todoSections.section",
+        ],
+      });
       const response = await this.todoRepository.upsert(todos, []);
       if (response) {
         await Promise.all([
-          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories, notify),
+          this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
@@ -398,13 +406,11 @@ export default class NotionRepository {
   ): Promise<void> {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
-
     const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoapp_reg_id });
-
-    const taskDeadLine = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
+    const deadline = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
     const todoData = new Todo();
-    todoData.id = todo?.id || null;
+    todoData.id = todo?.id ?? null;
     todoData.name = todoTask.name;
     todoData.todoapp_id = todoapp.id;
     todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
@@ -412,12 +418,12 @@ export default class NotionRepository {
     todoData.todoapp_reg_created_by = todoTask.created_by_id;
     todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.created_at);
     todoData.company_id = company.id;
-    todoData.deadline = taskDeadLine;
+    todoData.deadline = deadline;
     todoData.is_done = todoTask.is_done;
-    todoData.is_reminded = !!todoTask.dueReminder;
+    todoData.is_reminded = todo?.is_reminded ?? false;
     todoData.is_closed = todoTask.closed;
-    todoData.delayed_count = todo?.delayed_count || 0;
-    todoData.reminded_count = todo?.reminded_count || 0;
+    todoData.delayed_count = todo?.delayed_count ?? 0;
+    todoData.reminded_count = todo?.reminded_count ?? 0;
 
     if (users.length) {
       dataTodoUsers.push({ todoId: todoTask.todoapp_reg_id, users });
@@ -438,15 +444,15 @@ export default class NotionRepository {
     });
 
     //update deadline task
-    if (taskDeadLine || todoData.is_done) {
-      const isDeadlineChanged = !moment(taskDeadLine).isSame(todo?.deadline);
+    if (deadline || todoData.is_done) {
+      const isDeadlineChanged = !moment(deadline).isSame(todo?.deadline);
       const isDoneChanged = todo?.is_done !== todoData.is_done;
 
       if (isDeadlineChanged || isDoneChanged) {
         dataTodoUpdates.push({
           todoId: todoTask.todoapp_reg_id,
           dueTime: todo?.deadline,
-          newDueTime: taskDeadLine,
+          newDueTime: deadline,
           updateTime: toJapanDateTime(todoTask.last_edited_at),
         });
       }

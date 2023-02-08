@@ -1,6 +1,6 @@
 import { Container, Service } from "typedi";
 import { In, IsNull, Not, Repository } from "typeorm";
-import { MessageAttachment } from "@slack/web-api";
+import { Block, KnownBlock, MessageAttachment } from "@slack/web-api";
 import moment from "moment";
 
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
@@ -106,7 +106,7 @@ export default class SlackRepository {
       }
 
       //1.期日に対するリマインド
-      const message: MessageAttachment = SlackMessageBuilder.createBeforeRemindMessage(user, todoSlacks);
+      const message = SlackMessageBuilder.createBeforeRemindMessage(user, todoSlacks);
 
       if (process.env.ENV === "LOCAL") {
         // console.log(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
@@ -323,7 +323,7 @@ export default class SlackRepository {
   public async pushSlackMessage(
     chatTool: ChatTool,
     user: User,
-    message: MessageAttachment,
+    message: { blocks: (Block | KnownBlock)[], attachments?: MessageAttachment[] },
     messageTriggerId: number,
     channelId: string,
     threadId?: string,
@@ -337,6 +337,7 @@ export default class SlackRepository {
         thread_ts: threadId,
         text: "お知らせ",
         blocks: message.blocks,
+        attachments: message.attachments,
       });
       if (response.ok) {
         return await this.saveChatMessage(chatTool, message, messageTriggerId, channelId, threadId, user);
@@ -674,33 +675,43 @@ export default class SlackRepository {
     return await query.getMany();
   }
 
-  public async notifyOnCompleted(todo: Todo, chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(todo);
-    await Promise.all(todo.sections.map(section => this.pushSlackMessage(
+  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool) {
+    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
-      todo.users.length ? todo.users[0] : null,
+      null,
       message,
       MessageTriggerType.NOTIFY,
       section.channel_id
     )));
   }
 
-  public async notifyOnAssigneeUpdated(todo: Todo,  action: valueOf<typeof TodoHistoryAction>, chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(todo, action);
-    await Promise.all(todo.sections.map(section => this.pushSlackMessage(
+  public async notifyOnAssigneeUpdated(
+    savedTodo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    assignees: User[],
+    chatTool: ChatTool
+  ) {
+    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
-      todo.users.length ? todo.users[0] : null,
+      null,
       message,
       MessageTriggerType.NOTIFY,
       section.channel_id
     )));
   }
 
-  public async notifyOnDeadlineUpdated(todo: Todo, action: valueOf<typeof TodoHistoryAction>, chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(todo, action);
-    await Promise.all(todo.sections.map(section => this.pushSlackMessage(
+  public async notifyOnDeadlineUpdated(
+    savedTodo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    deadline: Date,
+    chatTool: ChatTool
+  ) {
+    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
-      todo.users.length ? todo.users[0] : null,
+      null,
       message,
       MessageTriggerType.NOTIFY,
       section.channel_id

@@ -66,7 +66,7 @@ export default class TaskService {
         where,
       });
 
-      const syncOperations = (company: Company, todoApp: TodoApp) => {
+      const syncOperations = (company: Company, todoApp: TodoApp, notify) => {
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
             return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
@@ -82,7 +82,9 @@ export default class TaskService {
       companies.forEach(company => {
         company.todoApps.forEach(todoApp => companyTodoApps.push([company, todoApp]));
       });
-      await Promise.all(companyTodoApps.map(([company, todoApp]) => syncOperations(company, todoApp)));
+      await Promise.all(companyTodoApps.map(
+        ([company, todoApp]) => syncOperations(company, todoApp, notify))
+      );
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -129,8 +131,6 @@ export default class TaskService {
    */
   public async remindForDemoUser(user: User): Promise<number> {
     try {
-      console.log("remindTaskForDemoUser - START");
-
       const processingJobs = await this.remindUserJobRepository.findBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
@@ -178,8 +178,6 @@ export default class TaskService {
         processingJob.status = RemindUserJobStatus.DONE;
         await this.remindUserJobRepository.save(processingJob);
       }
-
-      console.log("remindTaskForDemoUser - END");
 
       return RemindUserJobResult.OK;
     } catch (error) {

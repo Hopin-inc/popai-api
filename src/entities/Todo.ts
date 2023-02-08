@@ -82,7 +82,7 @@ export default class Todo extends BaseEntity {
 
   get users(): User[] {
     const todoUsers = this.todoUsers;
-    return todoUsers ? todoUsers.map(record => record.user) : [];
+    return todoUsers ? todoUsers.filter(tu => tu.deleted_at === null).map(tu => tu.user) : [];
   }
 
   @OneToMany(

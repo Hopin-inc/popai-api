@@ -259,7 +259,11 @@ export default class SlackMessageBuilder {
     return { blocks, attachments };
   }
 
-  static createNotifyOnAssigneeUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>) {
+  static createNotifyOnAssigneeUpdatedMessage(
+    todo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    assignees: User[]
+  ) {
     const message = action === TodoHistoryAction.CREATE ? "タスクの担当者が設定されました！"
       : action === TodoHistoryAction.DELETE ? "タスクの担当者が削除されました。" : "タスクの担当者が変更されました！";
     const blocks: KnownBlock[] = [{
@@ -274,7 +278,10 @@ export default class SlackMessageBuilder {
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*担当者:*\n*${ this.getAssigneesText(todo.users) }*` },
+          {
+            type: "mrkdwn",
+            text: `*担当者:*\n~${ this.getAssigneesText(todo.users) }~\n→ *${ this.getAssigneesText(assignees) }*`,
+          },
           { type: "mrkdwn", text: `*期日:*\n${ this.getDeadlineText(todo.deadline) }` },
         ],
       }
@@ -283,7 +290,7 @@ export default class SlackMessageBuilder {
     return { blocks, attachments };
   }
 
-  static createNotifyOnDeadlineUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>) {
+  static createNotifyOnDeadlineUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>, deadline: Date) {
     const message = action === TodoHistoryAction.CREATE ? "タスクの期日が設定されました！"
       : action === TodoHistoryAction.DELETE ? "タスクの期日が削除されました。" : "タスクの期日が変更されました！";
     const blocks: KnownBlock[] = [{
@@ -299,7 +306,10 @@ export default class SlackMessageBuilder {
         type: "section",
         fields: [
           { type: "mrkdwn", text: `*担当者:*\n${ this.getAssigneesText(todo.users) }` },
-          { type: "mrkdwn", text: `*期日:*\n*${ this.getDeadlineText(todo.deadline) }*` },
+          {
+            type: "mrkdwn",
+            text: `*期日:*\n~${ this.getDeadlineText(todo.deadline) }~\n→ *${ this.getDeadlineText(deadline) }*`,
+          },
         ],
       }
     ];
