@@ -126,6 +126,39 @@ export default class TaskService {
     }
   }
 
+  public async sendDailyReport(): Promise<any> {
+    try {
+      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      const companies = await this.companyRepository.find({
+        relations: [
+          "users.chattoolUsers.chattool",
+          "sections",
+          "implementedChatTools.chattool",
+          "adminUser.chattoolUsers.chattool",
+          "companyConditions",
+        ],
+      });
+      const remindOperations = async (company: Company) => {
+        for (const chatTool of company.chatTools) {
+          switch (chatTool.tool_code) {
+            case ChatToolCode.LINE:
+              break;
+            case ChatToolCode.SLACK:
+              await this.slackRepository.sendDailyReport(company);
+              break;
+            default:
+              break;
+          }
+        }
+      };
+      await Promise.all(companies.map(company => remindOperations(company)));
+    } catch (error) {
+      console.log(error);
+      logger.error(new LoggerError(error.message));
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   /**
    * Remind todos
    */

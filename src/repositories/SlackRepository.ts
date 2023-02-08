@@ -26,11 +26,11 @@ import {
   ReplyStatus,
   SenderType, TodoHistoryAction,
 } from "@/consts/common";
-import { diffDays, toJapanDateTime } from "@/utils/common";
+import { diffDays, getItemRandomly, getUniqueArray, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import { IRemindType, valueOf } from "@/types";
+import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 
 @Service()
@@ -49,6 +49,30 @@ export default class SlackRepository {
     this.commonRepository = Container.get(CommonRepository);
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
+  }
+
+  public async sendDailyReport(company: Company) {
+    const channels = getUniqueArray(company.sections.map(section => section.channel_id));
+    const users = company.users.filter(u => u.chatTools.map(c => c.tool_code).includes(ChatToolCode.SLACK));
+    const dailyReportTodos = await this.commonRepository.getDailyReportItems(company);
+
+    await Promise.all(channels.map(async channel => {
+      const { thread_id: threadId } = await this.mentionFacilitator(company, users, channel);
+      await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, user, channel, threadId)));
+    }));
+  }
+
+  private async mentionFacilitator(company: Company, users: User[], channel: string): Promise<ChatMessage> {
+    const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+    const facilitator = getItemRandomly(users);
+    const message = SlackMessageBuilder.createStartDailyReportMessage(facilitator);
+    return await this.pushSlackMessage(chatTool, facilitator, message, MessageTriggerType.REPORT, channel);
+  }
+
+  private async reportByUser(items: IDailyReportItems, company: Company, user: User, channel: string, ts: string) {
+    const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+    const message = SlackMessageBuilder.createDailyReportByUser(items, user);
+    return await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REPORT, channel, ts);
   }
 
   public async pushMessageRemind(

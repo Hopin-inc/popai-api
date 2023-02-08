@@ -30,4 +30,12 @@ export default class TaskController extends Controller {
     console.log(`TaskController#remind - END - ${ getProcessTime(end) }`);
     return;
   }
+
+  public async sendDailyReport(): Promise<any> {
+    console.log("TaskController#sendDailyReport - START");
+    const start = process.hrtime();
+    await this.taskService.sendDailyReport();
+    const end = process.hrtime(start);
+    console.log(`TaskController#sendDailyReport - END - ${ getProcessTime(end) }`);
+  }
 }

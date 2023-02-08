@@ -1,4 +1,4 @@
-import { Brackets, IsNull, Not, Repository, SelectQueryBuilder } from "typeorm";
+import { Brackets, In, IsNull, Not, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "typedi";
 
 import ImplementedTodoApp from "@/entities/ImplementedTodoApp";
@@ -13,6 +13,11 @@ import CompanyCondition from "@/entities/CompanyCondition";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
+import Company from "@/entities/Company";
+import { IDailyReportItems } from "@/types";
+import TodoHistory from "@/entities/TodoHistory";
+import dayjs from "dayjs";
+import { TodoHistoryProperty as Property, TodoHistoryAction as Action } from "@/consts/common";
 
 @Service()
 export default class CommonRepository {
@@ -22,6 +27,7 @@ export default class CommonRepository {
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
   private todoRepository: Repository<Todo>;
+  private todoHistoryRepository: Repository<TodoHistory>;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -30,6 +36,7 @@ export default class CommonRepository {
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
+    this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -160,5 +167,51 @@ export default class CommonRepository {
       //   })
       // )
       .getMany();
+  }
+
+  public async getDailyReportItems(company: Company): Promise<IDailyReportItems> {
+    const [completedYesterday, delayed, ongoing] = await Promise.all([
+      this.getTodosCompletedYesterday(company),
+      this.getTodosDelayed(company),
+      this.getTodosOngoing(company),
+    ]);
+    return { completedYesterday, delayed, ongoing };
+  }
+
+  private async getTodosCompletedYesterday(company: Company): Promise<Todo[]> {
+    const yesterday = dayjs().subtract(1, "d");
+    const targetHistories = await this.todoHistoryRepository.createQueryBuilder("history")
+      .innerJoinAndSelect("history.todo", "todo")
+      .where("todo.company_id = :companyId", { companyId: company.id })
+      .andWhere(
+        "history.created_at BETWEEN :start AND :end",
+        { start: yesterday.startOf("d").toDate(), end: yesterday.endOf("d").toDate() }
+      )
+      .andWhere("history.property = :property", { property: Property.IS_DONE })
+      .andWhere("history.action = :action", { action: Action.CREATE })
+      .getMany();
+    const targetTodoIds = targetHistories.map(history => history.todo_id);
+    const todos = await this.todoRepository.find({
+      where: { id: In(targetTodoIds) },
+      relations: ["histories"],
+    });
+    return todos.filter(todo => {
+      if (todo.histories) {
+        const histories = todo.histories
+          .filter(h => h.property === Property.IS_DONE)
+          .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
+        return histories && histories.length && histories.pop().action === Action.CREATE;
+      } else {
+        return false;
+      }
+    });
+  }
+
+  private async getTodosDelayed(_company: Company): Promise<Todo[]> {
+    return [];  // TODO
+  }
+
+  private async getTodosOngoing(_company: Company): Promise<Todo[]> {
+    return [];  // TODO
   }
 }
