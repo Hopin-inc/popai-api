@@ -1,5 +1,7 @@
-import { KnownBlock, MessageAttachment } from "@slack/web-api";
 import dayjs from "dayjs";
+import "dayjs/locale/ja";
+
+import { KnownBlock, MessageAttachment } from "@slack/web-api";
 
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
@@ -17,10 +19,16 @@ export default class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `<@${user.slackId}> ${relativeDays}が期日の<${todo.todoapp_reg_url}|${todo.name}>の進捗はいかがですか？`,
-        },
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*タスク:*\n<${todo.todoapp_reg_url}|${todo.name}>`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*期日:*\n${relativeDays}`,
+          }
+        ],
       },
       {
         type: "actions",
@@ -43,88 +51,36 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<${todo.todoapp_reg_url}|${todo.name}>は${message}`,
+          text: `<${todo.todoapp_reg_url}|${todo.name}>は *${message}* で伝えました`,
         },
       },
+    ];
+    return { blocks };
+  }
+
+  static createShareMessage(userId: string, todo: Todo, message: string) {
+    dayjs.locale("ja");
+    const blocks: KnownBlock[] = [
       {
-        type: "context",
-        elements: [
+        type: "section",
+        fields: [
           {
-            type: "image",
-            image_url: "https://image.freepik.com/free-photo/red-drawing-pin_1156-445.jpg",
-            alt_text: "image",
+            type: "mrkdwn",
+            text: `*タスク:*\n<${todo.todoapp_reg_url}|${todo.name}>`,
           },
-          { type: "mrkdwn", text: `<@${userId}>が答えました` },
+          {
+            type: "mrkdwn",
+            text: `*期日:*\n${dayjs(todo.deadline).format("MM月DD日(ddd)")}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*進捗:*\n${message}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*回答者:*\n<@${userId}>`,
+          },
         ],
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyDone() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "完了しているんですね:relieved:\nお疲れさまでした！\n\n担当いただき、ありがとうございます:blush:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyInProgress() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "承知しました:+1:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyDelayed() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "承知しました:confounded:\n引き続きよろしくお願いします:muscle:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createResponseToReplyWithdrawn() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "plain_text",
-          text: "そうなんですね:open_mouth:\n承知しました:muscle:",
-          emoji: true,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  static createReportMessage(superiorUser: User) {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `<@${superiorUser.slackId}> ご確認ください:eyes:`,
-        },
       },
     ];
     return { blocks };
@@ -145,21 +101,10 @@ export default class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: { type: "mrkdwn", text: `<@${user.slackId}> お疲れさまです:raised_hands:` },
+        text: { type: "mrkdwn", text: "お仕事お疲れさまです:raised_hands:\n下記の進捗はいかがですか？" },
       },
     ];
 
-    groupMessageMap.forEach((onedayTasks, remindDays) => {
-      const relativeDays = relativeRemindDays(remindDays);
-      const todoList = onedayTasks.map(todo => `:bookmark: <${todo.todo.todoapp_reg_url}|${todo.todo.name}>`);
-      blocks.push({
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `${relativeDays}が期日のタスクが${onedayTasks.length}件あります。\n\n` + todoList.join("\n"),
-        },
-      });
-    });
     return { blocks };
   }
 
@@ -170,7 +115,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slackId}> お疲れさまです:raised_hands:\n`
+          text: "お疲れさまです:raised_hands:\n"
             + "現在、次のタスクの担当者と期日が設定されていません:sob:\n\n"
             + todoList.join("\n"),
         },
@@ -190,7 +135,7 @@ export default class SlackMessageBuilder {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slackId}> お疲れさまです:raised_hands:\n`
+          text: "お疲れさまです:raised_hands:\n"
             + "現在、次のタスクの担当者が設定されていません:sob:\n\n"
             + todoList.join("\n"),
         },
@@ -223,13 +168,13 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  static createNotifyNothingMessage(adminUser: User) {
+  static createNotifyNothingMessage() {
     const blocks: KnownBlock[] = [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `<@${adminUser.slackId}> お疲れさまです:raised_hands:\n`
+          text: "お疲れさまです:raised_hands:\n"
             + "現在、担当者・期日が設定されていないタスクはありませんでした。",
         },
       },
@@ -326,7 +271,15 @@ export default class SlackMessageBuilder {
     return deadline ? `${ relativeRemindDays(remindDays) } (${ getDate(deadline) })` : "未設定";
   }
 
-  static getTextContentFromMessage(message) {
-    return message.blocks[0].text.text;
+  static getTextContentFromMessage(message: MessageAttachment) { //TODO:replyが記録できていない
+    if (message.blocks && message.blocks.length) {
+      const blocks = message.blocks as KnownBlock[];
+      if (blocks[0].type === "section" && blocks[0].fields) {
+        return blocks[0].fields.map(field => field.text)?.join("\n") ?? "";
+      }
+    } else if (message.actions && message.actions.length && message.actions[0].text) {
+      return message.actions[0].text;
+    }
+    return "";
   }
 }
