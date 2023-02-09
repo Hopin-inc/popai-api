@@ -12,7 +12,7 @@ import { LoggerError } from "@/exceptions";
 import { ITodoHistory, valueOf } from "@/types";
 import { TodoHistoryProperty as Property, TodoHistoryAction as Action, ChatToolCode } from "@/consts/common";
 
-import { diffDays } from "@/utils/common";
+import { diffDays, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
@@ -47,8 +47,12 @@ export default class TodoHistoryRepository {
       }) > 0;
       const { users, deadline, isDone, isClosed } = history;
       const assignees = users.filter(user => !user.deleted_at) || [];
-      const isDelayed = savedTodo.deadline ? diffDays(savedTodo.deadline, new Date()) > 0 : null;
-      const daysDiff = savedTodo.deadline && deadline ? diffDays(savedTodo.deadline, deadline) : null;
+      const isDelayed = savedTodo.deadline
+        ? diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(new Date())) > 0
+        : null;
+      const daysDiff = savedTodo.deadline && deadline
+        ? diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(deadline))
+        : null;
       const argsList: [valueOf<typeof Property>, valueOf<typeof Action>, Info | null][] = [];
       if (!todoHistoryExists) {  // If no data in db
         argsList.push([Property.NAME, Action.CREATE, null]);

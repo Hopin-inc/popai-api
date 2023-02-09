@@ -1,13 +1,8 @@
 import "moment-timezone";
 import moment from "moment";
 
-export function toJapanDateTime(utcDateString: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
-  return new Date(
-    moment
-      .utc(utcDateString)
-      .tz("Asia/Tokyo")
-      .format(format)
-  );
+export function toJapanDateTime(date: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
+  return date ? new Date(moment.utc(date).tz("Asia/Tokyo").format(format)) : null;
 }
 
 export function replaceString(str: string, search: string, replace: string): string {

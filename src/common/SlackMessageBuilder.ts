@@ -7,7 +7,7 @@ import Todo from "@/entities/Todo";
 import User from "@/entities/User";
 
 import { replyActionsAfter, replyActionsBefore } from "@/consts/slack";
-import { diffDays, getDate, relativeRemindDays } from "@/utils/common";
+import { diffDays, getDate, relativeRemindDays, toJapanDateTime } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, TodoHistoryAction } from "@/consts/common";
@@ -269,7 +269,7 @@ export default class SlackMessageBuilder {
   }
 
   private static getDeadlineText(deadline: Date): string {
-    const remindDays = deadline ? diffDays(deadline, dayjs().toDate()) : null;
+    const remindDays = deadline ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date)) : null;
     return deadline ? `${relativeRemindDays(remindDays)} (${getDate(deadline)})` : "未設定";
   }
 

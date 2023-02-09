@@ -150,7 +150,7 @@ export default class LineController extends Controller {
 
     if (nextQueue && nextQueue.todo) {
       const todo = nextQueue.todo;
-      const dayDurations = diffDays(nextQueue.todo.deadline, toJapanDateTime(new Date()));
+      const dayDurations = diffDays(toJapanDateTime(nextQueue.todo.deadline), toJapanDateTime(new Date()));
 
       const chatMessage = await this.lineRepository.pushMessageRemind(chattool, user, todo, dayDurations);
 

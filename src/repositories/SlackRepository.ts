@@ -648,7 +648,7 @@ export default class SlackRepository {
     const map = new Map<number, ITodoSlack[]>();
 
     for (const remindTask of remindTasks) {
-      const remindDays = diffDays(remindTask.deadline, toJapanDateTime(new Date()));
+      const remindDays = diffDays(toJapanDateTime(remindTask.deadline), toJapanDateTime(new Date()));
       for (const todoUser of remindTask.todoUsers) {
         const chatToolUser = chatToolUsers.find(
           chatToolUser => chatTool
@@ -706,13 +706,12 @@ export default class SlackRepository {
 
   private async getTodayRemindTasks(company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> {
     const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
-    const today = toJapanDateTime(new Date());
 
     const todayRemindTasks: Todo[] = [];
 
     const todos: Todo[] = await this.getRemindTodoTask(company);
-    todos.forEach((todo) => {
-      const dayDurations = diffDays(todo.deadline, today);
+    todos.forEach(todo => {
+      const dayDurations = todo.deadline ? diffDays(toJapanDateTime(todo.deadline), toJapanDateTime(new Date())) : null;
 
       if (dayReminds.includes(dayDurations)) {
         for (const todoUser of todo.todoUsers) {
