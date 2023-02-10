@@ -773,6 +773,17 @@ export default class SlackRepository {
     return await query.getMany();
   }
 
+  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool) {
+    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id
+    )));
+  }
+
   public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool) {
     const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(

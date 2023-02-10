@@ -59,7 +59,7 @@ export default class TodoUserRepository {
           deleted_at: IsNull(),
         });
         dataTodoUser.users.forEach(user => {
-          if (savedTodoUsers.some(tu => tu.user_id === user.id)) {
+          if (!savedTodoUsers.some(tu => tu.user_id === user.id)) {
             const todoUser = new TodoUser();
             todoUser.todo_id = todo.id;
             todoUser.user_id = user.id;

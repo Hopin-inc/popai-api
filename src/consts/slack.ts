@@ -6,6 +6,13 @@ type ReplyAction = {
   style?: "primary" | "danger";
 }
 
+export const Icons = {
+  CREATED: ":sparkles:",
+  DONE: ":white_check_mark:",
+  ASSIGNEE: ":busts_in_silhouette:",
+  DEADLINE: ":calendar:"
+};
+
 export const replyActionsBefore: ReplyAction[] = [
   {
     status: TodoStatus.DONE,

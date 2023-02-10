@@ -12,7 +12,7 @@ import { LoggerError } from "@/exceptions";
 import { ITodoHistory, valueOf } from "@/types";
 import { TodoHistoryProperty as Property, TodoHistoryAction as Action, ChatToolCode } from "@/consts/common";
 
-import { diffDays, toJapanDateTime } from "@/utils/common";
+import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
@@ -53,23 +53,29 @@ export default class TodoHistoryRepository {
       const daysDiff = savedTodo.deadline && deadline
         ? diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(deadline))
         : null;
-      const argsList: [valueOf<typeof Property>, valueOf<typeof Action>, Info | null][] = [];
+      type Args = [
+        valueOf<typeof Property>,
+        valueOf<typeof Action>,
+        Info | null,    // New assignees & deadline
+        boolean,        // Send notification?
+      ];
+      const argsList: Args[] = [];
       if (!todoHistoryExists) {  // If no data in db
-        argsList.push([Property.NAME, Action.CREATE, null]);
+        argsList.push([Property.NAME, Action.CREATE, null, notify]);
         assignees?.forEach(assignee => {
-          argsList.push([Property.ASSIGNEE, Action.CREATE, { assignee }]);
+          argsList.push([Property.ASSIGNEE, Action.CREATE, { assignee }, false]);
         });
         if (deadline) {
-          argsList.push([Property.DEADLINE, Action.CREATE, { deadline }]);
+          argsList.push([Property.DEADLINE, Action.CREATE, { deadline }, false]);
           if (isDelayed && !isDone && !isClosed) {
-            argsList.push([Property.IS_DELAYED, Action.CREATE, null]);
+            argsList.push([Property.IS_DELAYED, Action.CREATE, null, false]);
           }
         }
         if (isDone) {
-          argsList.push([Property.IS_DONE, Action.CREATE, null]);
+          argsList.push([Property.IS_DONE, Action.CREATE, null, notify]);
         }
         if (isClosed) {
-          argsList.push([Property.IS_CLOSED, Action.CREATE, null]);
+          argsList.push([Property.IS_CLOSED, Action.CREATE, null, notify]);
         }
       } else {
         const [latestDelayedHistory, latestRecoveredHistory] = await Promise.all([
@@ -85,43 +91,40 @@ export default class TodoHistoryRepository {
         if ((savedTodo.deadline || deadline) && daysDiff !== 0) {  // On deadline changed
           const action = !savedTodo.deadline ? Action.CREATE
             : !deadline ? Action.DELETE : Action.MODIFIED;
-          argsList.push([Property.DEADLINE, action, { deadline, daysDiff }]);
+          argsList.push([Property.DEADLINE, action, { deadline, daysDiff }, notify]);
           if (latestRecoveredHistory && latestRecoveredHistory.action === Action.CREATE) {
-            argsList.push([Property.IS_RECOVERED, Action.DELETE, null]);
+            argsList.push([Property.IS_RECOVERED, Action.DELETE, null, notify]);
           }
         }
-        assignees?.forEach(assignee => {
-          if (!savedTodo.users.some(u => u.id === assignee.id)) {  // On new assignee added
-            argsList.push([Property.ASSIGNEE, Action.CREATE, { assignee }]);
-          }
+        // FIXME: 担当者の変更が複数同時に行われた場合に、変更数分通知されてしまう。
+        const [deletedAssignees, addedAssignees] = extractDifferences(savedTodo.users, assignees, "id");
+        addedAssignees.forEach(assignee => {
+          argsList.push([Property.ASSIGNEE, Action.CREATE, { assignee }, notify]);
         });
-        savedTodo.users.forEach(assignee => {
-          if (!assignees?.length || !assignees?.some(u => u.id === assignee.id)) { // On assignee removed
-            argsList.push([Property.ASSIGNEE, Action.DELETE, { assignee }]);
-          }
+        deletedAssignees.forEach(assignee => {
+          argsList.push([Property.ASSIGNEE, Action.DELETE, { assignee }, notify]);
         });
         if (savedTodo.is_done !== isDone) { // On marked as done
-          argsList.push([Property.IS_DONE, isDone ? Action.CREATE : Action.DELETE, null]);
+          argsList.push([Property.IS_DONE, isDone ? Action.CREATE : Action.DELETE, null, notify]);
         }
         if (savedTodo.is_closed !== isClosed) { // On marked as closed
-          argsList.push([Property.IS_CLOSED, isClosed ? Action.CREATE : Action.DELETE, null]);
+          argsList.push([Property.IS_CLOSED, isClosed ? Action.CREATE : Action.DELETE, null, notify]);
         }
         if (isDelayed) {  // When ddl is before today
           if (!isDone && latestDelayedHistory && latestDelayedHistory.action !== Action.CREATE) {
-            argsList.push([Property.IS_DELAYED, Action.CREATE, null]);
+            argsList.push([Property.IS_DELAYED, Action.CREATE, null, notify]);
           }
         } else {  // When ddl is exactly or after today
           if (latestDelayedHistory && latestDelayedHistory.action !== Action.DELETE) {
-            argsList.push([Property.IS_DELAYED, Action.DELETE, null]);
+            argsList.push([Property.IS_DELAYED, Action.DELETE, null, notify]);
           }
           if (latestRecoveredHistory && latestRecoveredHistory.action !== Action.DELETE) {
-            argsList.push([Property.IS_RECOVERED, Action.DELETE, null]);
+            argsList.push([Property.IS_RECOVERED, Action.DELETE, null, notify]);
           }
         }
       }
-      // console.log(argsList, assignees.map(a => a.id), isDelayed, daysDiff);
-      await Promise.all(argsList.map(([property, action, info]) => {
-        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notify);
+      await Promise.all(argsList.map(([property, action, info, notification]) => {
+        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification);
       }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -135,7 +138,7 @@ export default class TodoHistoryRepository {
     action: valueOf<typeof Action>,
     updatedAt: Date,
     info: Info | null,
-    notify?: boolean
+    notify?: boolean,
   ) {
     const todoHistory = new TodoHistory();
     todoHistory.todo_id = savedTodo.id;
@@ -167,7 +170,15 @@ export default class TodoHistoryRepository {
     chatTool: ChatTool
   ) {
     const code = chatTool.tool_code;
-    if (property === Property.IS_DONE && action === Action.CREATE) {  // 完了
+    if (property === Property.NAME && action === Action.CREATE) { // 新規追加
+      switch (code) {
+        case ChatToolCode.LINE:
+          break;
+        case ChatToolCode.SLACK:
+          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool);
+          break;
+      }
+    } else if (property === Property.IS_DONE && action === Action.CREATE) {  // 完了
       switch (code) {
         case ChatToolCode.LINE:
           break;

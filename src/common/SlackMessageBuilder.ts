@@ -6,7 +6,7 @@ import { KnownBlock, MessageAttachment } from "@slack/web-api";
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
 
-import { replyActionsAfter, replyActionsBefore } from "@/consts/slack";
+import { Icons, replyActionsAfter, replyActionsBefore } from "@/consts/slack";
 import { diffDays, getDate, relativeRemindDays, toJapanDateTime } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
@@ -184,26 +184,43 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
+  static createNotifyOnCreatedMessage(todo: Todo, assignees: User[]) {
+    const blocks: KnownBlock[] = [{
+      type: "section",
+      text: { type: "mrkdwn", text: `${Icons.CREATED} タスクが追加されました。` },
+    }];
+    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo, assignees)];
+    return { blocks, attachments };
+  }
+
   static createNotifyOnCompletedMessage(todo: Todo) {
     const blocks: KnownBlock[] = [{
       type: "section",
-      text: { type: "mrkdwn", text: "タスクを完了しました！" },
+      text: { type: "mrkdwn", text: `${Icons.DONE} タスクを完了しました。` },
     }];
-    const attachmentBlocks: KnownBlock[] = [
+    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo)];
+    return { blocks, attachments };
+  }
+
+  private static createTodoAttachment(
+    todo: Todo,
+    assignees: User[] = todo.users,
+    color: string = "good"
+  ): MessageAttachment {
+    const blocks: KnownBlock[] = [
       {
         type: "section",
         text: { type: "mrkdwn", text: `*<${todo.todoapp_reg_url}|${todo.name}>*` },
       },
       {
-        type: "section",
-        fields: [
-          { type: "mrkdwn", text: `*担当者:*\n${this.getAssigneesText(todo.users)}` },
-          { type: "mrkdwn", text: `*期日:*\n${this.getDeadlineText(todo.deadline)}` },
-        ],
+        type: "context",
+        elements: [
+          { type: "mrkdwn", text: `${Icons.ASSIGNEE} ${this.getAssigneesText(assignees)}` },
+          { type: "mrkdwn", text: `${Icons.DEADLINE} ${this.getDeadlineText(todo.deadline)}` },
+        ]
       },
     ];
-    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
-    return { blocks, attachments };
+    return { blocks, color };
   }
 
   static createNotifyOnAssigneeUpdatedMessage(
@@ -211,8 +228,9 @@ export default class SlackMessageBuilder {
     action: valueOf<typeof TodoHistoryAction>,
     assignees: User[],
   ) {
-    const message = action === TodoHistoryAction.CREATE ? "タスクの担当者が設定されました！"
-      : action === TodoHistoryAction.DELETE ? "タスクの担当者が削除されました。" : "タスクの担当者が変更されました！";
+    const message = action === TodoHistoryAction.CREATE ? `${Icons.ASSIGNEE} 担当者が設定されました。`
+      : action === TodoHistoryAction.DELETE ? `${Icons.ASSIGNEE} 担当者が削除されました。`
+        : `${Icons.ASSIGNEE} 担当者が変更されました。`;
     const blocks: KnownBlock[] = [{
       type: "section",
       text: { type: "mrkdwn", text: message },
@@ -224,13 +242,10 @@ export default class SlackMessageBuilder {
       },
       {
         type: "section",
-        fields: [
-          {
-            type: "mrkdwn",
-            text: `*担当者:*\n~${this.getAssigneesText(todo.users)}~\n→ *${this.getAssigneesText(assignees)}*`,
-          },
-          { type: "mrkdwn", text: `*期日:*\n${this.getDeadlineText(todo.deadline)}` },
-        ],
+        text: {
+          type: "mrkdwn",
+          text: `~${this.getAssigneesText(todo.users)}~ → *${this.getAssigneesText(assignees)}*`,
+        },
       },
     ];
     const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
@@ -238,8 +253,9 @@ export default class SlackMessageBuilder {
   }
 
   static createNotifyOnDeadlineUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>, deadline: Date) {
-    const message = action === TodoHistoryAction.CREATE ? "タスクの期日が設定されました！"
-      : action === TodoHistoryAction.DELETE ? "タスクの期日が削除されました。" : "タスクの期日が変更されました！";
+    const message = action === TodoHistoryAction.CREATE ? `${Icons.DEADLINE} 期日が設定されました。`
+      : action === TodoHistoryAction.DELETE ? `${Icons.DEADLINE} 期日が削除されました。`
+        : `${Icons.DEADLINE} 期日が変更されました。`;
     const blocks: KnownBlock[] = [{
       type: "section",
       text: { type: "mrkdwn", text: message },
@@ -251,13 +267,10 @@ export default class SlackMessageBuilder {
       },
       {
         type: "section",
-        fields: [
-          { type: "mrkdwn", text: `:busts_in_silhouette: *担当者:*\n${this.getAssigneesText(todo.users)}` },
-          {
-            type: "mrkdwn",
-            text: `:calendar: *期日:*\n~${this.getDeadlineText(todo.deadline)}~\n→ *${this.getDeadlineText(deadline)}*`,
-          },
-        ],
+        text: {
+          type: "mrkdwn",
+          text: `~${this.getDeadlineText(todo.deadline)}~ → *${this.getDeadlineText(deadline)}*`,
+        },
       },
     ];
     const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
@@ -265,7 +278,7 @@ export default class SlackMessageBuilder {
   }
 
   private static getAssigneesText(assignees: User[]): string {
-    return assignees?.length ? assignees.map(user => user.name).join("、") : "未設定";
+    return assignees?.length ? assignees.map(user => user.name).join(", ") : "未設定";
   }
 
   private static getDeadlineText(deadline: Date): string {
