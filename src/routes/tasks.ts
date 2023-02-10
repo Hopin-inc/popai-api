@@ -27,4 +27,14 @@ router.get("/remind", async (req, res) => {
   }
 });
 
+router.get("/daily", async (req, res) => {
+  try {
+    const controller = new TaskController();
+    const response = await controller.sendDailyReport();
+    ApiResponse.successRes(res, response);
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
 export default router;

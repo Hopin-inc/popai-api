@@ -1,13 +1,9 @@
 import "moment-timezone";
 import moment from "moment";
+import * as process from "process";
 
-export function toJapanDateTime(utcDateString: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
-  return new Date(
-    moment
-      .utc(utcDateString)
-      .tz("Asia/Tokyo")
-      .format(format)
-  );
+export function toJapanDateTime(date: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
+  return date ? new Date(moment.utc(date).tz("Asia/Tokyo").format(format)) : null;
 }
 
 export function replaceString(str: string, search: string, replace: string): string {
@@ -49,4 +45,21 @@ export const relativeRemindDays = (remindDays: number): string => {
   }
 };
 
-export const getProcessTime = (t: [number, number]): number => t[0] + t[1] * 1e-9;
+export const getProcessTime = (t: ReturnType<typeof process.hrtime>): number => t[0] + t[1] * 1e-9;
+
+export const getItemRandomly = <T>(arr: T[]): T => arr?.length ? arr[randomInt(arr.length)] : null;
+
+export const randomInt = (max: number, min: number = 0): number => Math.floor(Math.random() * (max - min) + min);
+
+// export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
+
+export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: keyof T): [T[], T[]] => {
+  return [
+    extractMembersOfANotInB(arrA, arrB, key),
+    extractMembersOfANotInB(arrB, arrA, key)
+  ];
+};
+
+export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], key: keyof T): T[] => {
+  return arrA?.filter(a => !arrB.some(b => a[key] === b[key])) ?? [];
+};

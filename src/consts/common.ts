@@ -1,5 +1,7 @@
 export const MAX_REMIND_COUNT = 2;
 
+export const NOT_UPDATED_DAYS = 5;
+
 export const TodoHistoryProperty = {
   // CREATE | MODIFIED | ------
   NAME: 1,

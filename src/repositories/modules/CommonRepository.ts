@@ -1,11 +1,14 @@
-import { Brackets, IsNull, Not, Repository, SelectQueryBuilder } from "typeorm";
+import { Between, Brackets, In, IsNull, LessThan, Not, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "typedi";
+import dayjs from "dayjs";
 
 import ImplementedTodoApp from "@/entities/ImplementedTodoApp";
+import Company from "@/entities/Company";
 import ChatToolUser from "@/entities/ChatToolUser";
 import Section from "@/entities/Section";
 import SectionLabel from "@/entities/SectionLabel";
 import Todo from "@/entities/Todo";
+import TodoHistory from "@/entities/TodoHistory";
 import TodoUser from "@/entities/TodoUser";
 import User from "@/entities/User";
 import CompanyCondition from "@/entities/CompanyCondition";
@@ -13,6 +16,8 @@ import CompanyCondition from "@/entities/CompanyCondition";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
+import { IDailyReportItems } from "@/types";
+import { TodoHistoryProperty as Property, TodoHistoryAction as Action, NOT_UPDATED_DAYS } from "@/consts/common";
 
 @Service()
 export default class CommonRepository {
@@ -22,6 +27,7 @@ export default class CommonRepository {
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
   private todoRepository: Repository<Todo>;
+  private todoHistoryRepository: Repository<TodoHistory>;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -30,6 +36,7 @@ export default class CommonRepository {
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
+    this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -160,5 +167,83 @@ export default class CommonRepository {
       //   })
       // )
       .getMany();
+  }
+
+  public async getDailyReportItems(company: Company): Promise<IDailyReportItems> {
+    const [completedYesterday, delayed, ongoing] = await Promise.all([
+      this.getTodosCompletedYesterday(company),
+      this.getTodosDelayed(company),
+      this.getTodosOngoing(company),
+    ]);
+    return { completedYesterday, delayed, ongoing };
+  }
+
+  private async getTodosCompletedYesterday(company: Company): Promise<Todo[]> {
+    const yesterday = dayjs().subtract(1, "d");
+    const targetHistories = await this.todoHistoryRepository.createQueryBuilder("history")
+      .innerJoinAndSelect("history.todo", "todo")
+      .where("todo.company_id = :companyId", { companyId: company.id })
+      .andWhere(
+        "history.created_at BETWEEN :start AND :end",
+        { start: yesterday.startOf("d").toDate(), end: yesterday.endOf("d").toDate() }
+      )
+      .andWhere("history.property = :property", { property: Property.IS_DONE })
+      .andWhere("history.action = :action", { action: Action.CREATE })
+      .getMany();
+    const targetTodoIds = targetHistories.map(history => history.todo_id);
+    const todos = await this.todoRepository.find({
+      where: { id: In(targetTodoIds) },
+      relations: ["histories", "todoUsers.user", "todoSections.section"],
+    });
+    return todos.filter(todo => {
+      if (todo.histories) {
+        const histories = todo.histories
+          .filter(h => h.property === Property.IS_DONE)
+          .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
+        return histories && histories.length && histories.pop().action === Action.CREATE;
+      } else {
+        return false;
+      }
+    });
+  }
+
+  private async getTodosDelayed(company: Company): Promise<Todo[]> {
+    const startOfToday = dayjs().startOf("d").toDate();
+    return await this.todoRepository.find({
+      where: {
+        company_id: company.id,
+        deadline: LessThan(startOfToday),
+        is_closed: false,
+        is_done: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section"],
+    });
+  }
+
+  private async getTodosOngoing(company: Company): Promise<Todo[]> {
+    const startOfToday = dayjs().startOf("d").toDate();
+    const endOfToday = dayjs().endOf("d").toDate();
+    return await this.todoRepository.find({
+      where: {
+        company_id: company.id,
+        deadline: Between(startOfToday, endOfToday),
+        is_closed: false,
+        is_done: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section"],
+    });
+  }
+
+  public async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
+    const thresholdDate = dayjs().subtract(NOT_UPDATED_DAYS, "d").startOf("d").toDate();
+    return await this.todoRepository.find({
+      where: {
+        company_id: company.id,
+        updated_at: LessThan(thresholdDate),
+        is_done: false,
+        is_closed: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section"],
+    });
   }
 }

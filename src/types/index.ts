@@ -70,3 +70,9 @@ export type ITodoLines = {
   user: User;
   todoQueueTask?: LineMessageQueue;
 };
+
+export type IDailyReportItems = {
+  completedYesterday: Todo[];
+  delayed: Todo[];
+  ongoing: Todo[];
+};

@@ -65,7 +65,7 @@ export default class LineMessageQueueRepository {
     const dataLineQueues: LineMessageQueue[] = [];
 
     todos.forEach((todo) => {
-      const dayDurations = diffDays(todo.deadline, today);
+      const dayDurations = diffDays(toJapanDateTime(todo.deadline), today);
 
       if (dayReminds.includes(dayDurations)) {
         for (const user of todo.users) {

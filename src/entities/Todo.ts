@@ -8,6 +8,7 @@ import TodoUser from "./TodoUser";
 import TodoSection from "./TodoSection";
 import User from "./User";
 import Section from "./Section";
+import TodoHistory from "@/entities/TodoHistory";
 
 @Entity("todos")
 export default class Todo extends BaseEntity {
@@ -96,6 +97,13 @@ export default class Todo extends BaseEntity {
     const todoSections = this.todoSections;
     return todoSections ? todoSections.map(record => record.section) : [];
   }
+
+  @OneToMany(
+    () => TodoHistory,
+    history => history.todo,
+    { cascade: false }
+  )
+  histories: TodoHistory[];
 
   @OneToMany(
     () => TodoUpdateHistory,
