@@ -52,33 +52,37 @@ export default class SlackRepository {
   }
 
   public async sendDailyReport(company: Company) {
-    const channelSectionsMap: Map<string, Section[]> = new Map();
-    company.sections.forEach(section => {
-      const channelId = section.channel_id;
-      if (channelSectionsMap.has(section.channel_id)) {
-        channelSectionsMap.get(channelId).push(section);
-      } else {
-        channelSectionsMap.set(channelId, [section]);
-      }
-    });
-    const users = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
-    const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-      this.commonRepository.getDailyReportItems(company),
-      this.commonRepository.getNotUpdatedTodos(company),
-    ]);
+    try {
+      const channelSectionsMap: Map<string, Section[]> = new Map();
+      company.sections.forEach(section => {
+        const channelId = section.channel_id;
+        if (channelSectionsMap.has(section.channel_id)) {
+          channelSectionsMap.get(channelId).push(section);
+        } else {
+          channelSectionsMap.set(channelId, [section]);
+        }
+      });
+      const users = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
+      const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
+        this.commonRepository.getDailyReportItems(company),
+        this.commonRepository.getNotUpdatedTodos(company),
+      ]);
 
-    const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
-    channelSectionsMap.forEach((sections, channel) => {
-      operations.push(this.sendDailyReportForChannel(
-        dailyReportTodos,
-        notUpdatedTodos,
-        company,
-        sections,
-        users,
-        channel
-      ));
-    });
-    await Promise.all(operations);
+      const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
+      channelSectionsMap.forEach((sections, channel) => {
+        operations.push(this.sendDailyReportForChannel(
+          dailyReportTodos,
+          notUpdatedTodos,
+          company,
+          sections,
+          users,
+          channel,
+        ));
+      });
+      await Promise.all(operations);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
   }
 
   private async sendDailyReportForChannel(
