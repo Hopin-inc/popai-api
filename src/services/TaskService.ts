@@ -85,6 +85,7 @@ export default class TaskService {
       await Promise.all(companyTodoApps.map(([company, todoApp]) => syncOperations(company, todoApp)));
       return;
     } catch (error) {
+      console.error(error);
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }

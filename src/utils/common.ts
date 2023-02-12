@@ -45,3 +45,9 @@ export const relativeRemindDays = (remindDays: number): string => {
     return `${ (-remindDays).toString() }日後`;
   }
 };
+
+export const concatArrays = <T>(...arrays: T[][]): T[] => {
+  const result: T[] = [];
+  arrays.forEach(arr => result.concat(arr));
+  return result;
+};

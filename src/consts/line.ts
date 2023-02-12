@@ -1,4 +1,5 @@
 import { TodoStatus } from "./common";
+import { concatArrays } from "@/utils/common";
 
 export const Colors: { [key: string]: string } = {
   normal: "#F5F5F5",
@@ -12,74 +13,59 @@ export const ButtonStylesByColor: { [key: keyof typeof Colors]: "primary" | "sec
   alert: "primary",
 };
 
-export type ReplyMessage = {
-  status: TodoStatus,
+export type ReplyMessage<T extends ReplyMessageTypes = ReplyMessageTypes> = T & {
   label: string,
-  displayText: string,
   primary: boolean,
   color: keyof typeof Colors,
 };
 
+type ReplyMessageTypes = ReplyMessagePostback | ReplyMessageUri;
+
+export type ReplyMessagePostback = {
+  type: "postback",
+  status: TodoStatus,
+  displayText: string,
+}
+
+export type ReplyMessageUri = {
+  type: "uri",
+}
+
 export const replyMessagesBefore: ReplyMessage[] = [
   {
-    status: TodoStatus.ONGOING,
-    label: "順調です✨️",
-    displayText: "順調です✨️",
+    type: "uri",
+    label: "期日を変更する",
     primary: true,
     color: "normal",
-  },
-  {
-    status: TodoStatus.NOT_YET,
-    label: "あまり進んでいません😭",
-    displayText: "あまり進んでいません😭",
-    primary: true,
-    color: "normal",
-  },
-  {
-    status: TodoStatus.DONE,
-    label: "完了👍",
-    displayText: "完了しております👍",
-    primary: false,
-    color: "normal",
-  },
-  {
-    status: TodoStatus.WITHDRAWN,
-    label: "撤退しました",
-    displayText: "撤退しました💧",
-    primary: false,
-    color: "alert",
   },
 ];
 
 export const replyMessagesAfter: ReplyMessage[] = [
   {
+    type: "postback",
     status: TodoStatus.DONE,
-    label: "完了しました👍",
+    label: "完了",
     displayText: "完了しました👍",
     primary: true,
     color: "normal",
   },
   {
-    status: TodoStatus.DELAYED,
-    label: "遅れております🙇‍♂️",
-    displayText: "すみません、遅れております🙇‍♂️",
+    type: "uri",
+    label: "期日を変更する",
     primary: true,
     color: "normal",
-  },
-  {
-    status: TodoStatus.WITHDRAWN,
-    label: "撤退しました💧",
-    displayText: "撤退しました💧",
-    primary: true,
-    color: "alert",
   },
 ];
 
 export const replyMessages: ReplyMessage[] = replyMessagesBefore.concat(replyMessagesAfter);
 
-const messageDataBefore: string[] = replyMessagesBefore.map(message => message.status);
-const messageDataAfter: string[] = replyMessagesAfter.map(message => message.status);
-export const messageData: string[] = messageDataBefore.concat(messageDataAfter);
+const pickStatus = (messages: ReplyMessage[]): string[] => {
+  return messages
+    .filter(message => message.type === "postback")
+    .map((message: ReplyMessage<ReplyMessagePostback>) => message.status);
+};
+
+export const messageData: string[] = pickStatus(concatArrays(replyMessagesBefore, replyMessagesAfter));
 
 export const MessageAssets = {
   CHECK: "https://res.cloudinary.com/dbs5e9jve/image/upload/v1671105268/angel_materials/check_dark_in0ogu.png",

@@ -30,7 +30,7 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
 import LineBot from "@/config/line-bot";
 import TaskService from "@/services/TaskService";
-import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
+import { messageData, REMIND_ME_COMMAND, ReplyMessage, ReplyMessagePostback, replyMessages } from "@/consts/line";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
@@ -84,7 +84,10 @@ export default class LineController extends Controller {
               console.error("Line ID :" + lineId + "のアカウントが登録されていません。");
             }
           } else if (messageData.includes(event.postback.data)) {
-            const messageContent = replyMessages.find(message => message.status === event.postback.data)?.displayText;
+            const message = replyMessages.find(message => {
+              return message.type === "postback" && message.status === event.postback.data;
+            }) as ReplyMessage<ReplyMessagePostback>;
+            const messageContent = message?.displayText;
             await this.handleReplyMessage(chattool, user, lineId, messageContent, event.replyToken);
           }
           return;
@@ -125,7 +128,9 @@ export default class LineController extends Controller {
     const todoAppId = lineMessageQueue.todo.todoapp_id;
     const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
     const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
-    const doneMessages = replyMessages.filter(m => m.status === TodoStatus.DONE).map(m => m.displayText);
+    const doneMessages = (replyMessages
+      .filter(m => m.type === "postback" && m.status === TodoStatus.DONE) as ReplyMessage<ReplyMessagePostback>[])
+      .map(m => m.displayText);
     if (doneMessages.includes(repliedMessage)) {
       lineMessageQueue.todo.is_done = true;
       const todo = lineMessageQueue.todo;
@@ -215,7 +220,9 @@ export default class LineController extends Controller {
     superior?: string
   ) {
     const messageMatchesStatus = (message: string, statuses: TodoStatus[]): boolean => {
-      const targetMessages = replyMessages.filter(m => statuses.includes(m.status)).map(m => m.displayText);
+      const targetMessages = (replyMessages
+        .filter(m => m.type === "postback" && statuses.includes(m.status)) as ReplyMessage<ReplyMessagePostback>[])
+        .map(m => m.displayText);
       return targetMessages.includes(message);
     };
 
