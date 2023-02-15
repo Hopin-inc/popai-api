@@ -9,6 +9,7 @@ import TodoUser from "./TodoUser";
 import ChatTool from "./ChatTool";
 import Todo from "./Todo";
 import TodoApp from "./TodoApp";
+import Prospect from "./Prospect";
 import { ChatToolCode } from "../consts/common";
 
 @Entity("users")
@@ -81,4 +82,11 @@ export default class User extends BaseEntity {
     const todoUsers = this.todoUsers;
     return todoUsers ? todoUsers.map(record => record.todo) : [];
   }
+
+  @OneToMany(
+    () => Prospect,
+    prospect => prospect.user,
+    { cascade: false }
+  )
+  prospects: Prospect[];
 }

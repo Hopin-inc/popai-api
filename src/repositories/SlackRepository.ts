@@ -32,6 +32,7 @@ import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
+import Prospect from "@/entities/Prospect";
 
 @Service()
 export default class SlackRepository {
@@ -41,6 +42,7 @@ export default class SlackRepository {
   private commonRepository: CommonRepository;
   private sectionRepository: Repository<Section>;
   private chattoolRepository: Repository<ChatTool>;
+  private prospectRepository: Repository<Prospect>;
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
@@ -49,6 +51,7 @@ export default class SlackRepository {
     this.commonRepository = Container.get(CommonRepository);
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
+    this.prospectRepository = AppDataSource.getRepository(Prospect);
   }
 
   public async sendDailyReport(company: Company) {
@@ -156,37 +159,37 @@ export default class SlackRepository {
         logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
         return;
       }
-
-      const remindTypes: IRemindType = { remindType: RemindType.REMIND_BY_DEADLINE, remindDays };
-
       const message = SlackMessageBuilder.createRemindMessage(user, todo, remindDays);
-
       if (process.env.ENV === "LOCAL") {
         console.log(message);
       } else {
-        const getDmId = await SlackBot.conversations.open({ users: user.slackId });
-        const dmId = getDmId.channel.id;
-
-        const response = await SlackBot.chat.postMessage({
-          channel: dmId,
-          text: "お知らせ",
-          blocks: message.blocks,
-        });
-        if (response.ok) {
-          return await this.saveChatMessage(
-            chatTool,
-            message,
-            MessageTriggerType.REMIND,
-            dmId,
-            response.ts,
-            user,
-            remindTypes,
-            todo,
-          );
-        }
+        await this.sendDirectMessage(chatTool, user, message, todo);
       }
     } catch (error) {
       logger.error(new LoggerError(error.message));
+    }
+  }
+
+  private async sendDirectMessage(chatTool: ChatTool, user: User, message: MessageAttachment, todo?: Todo) {
+    const response = await SlackBot.conversations.open({ users: user.slackId });
+    const conversationId = response?.channel?.id;
+
+    const result = await SlackBot.chat.postMessage({
+      channel: conversationId,
+      text: "お知らせ",
+      blocks: message.blocks,
+    });
+    if (result.ok) {
+      return await this.saveChatMessage(
+        chatTool,
+        message,
+        MessageTriggerType.REMIND,
+        conversationId,
+        result.ts,
+        user,
+        undefined,
+        todo,
+      );
     }
   }
 
@@ -829,5 +832,22 @@ export default class SlackRepository {
       MessageTriggerType.NOTIFY,
       section.channel_id
     )));
+  }
+
+  public async askProspects(company: Company) {
+    const chatTool = company.chatTools.find(chatTool => chatTool.tool_code === ChatToolCode.SLACK);
+    const askedProspects: Prospect[] = [];
+    if (chatTool) {
+      const todos = await this.commonRepository.getActiveTodos(company);
+      await Promise.all(todos.map(async todo => {
+        const message = SlackMessageBuilder.createAskProspectMessage(todo);
+        await Promise.all(todo.users.map(async user => {
+          await this.sendDirectMessage(chatTool, user, message, todo);
+          const prospect = new Prospect(todo.id, user.id, company.id);
+          askedProspects.push(prospect);
+        }));
+      }));
+    }
+    await this.prospectRepository.upsert(askedProspects, []);
   }
 }

@@ -15,7 +15,7 @@ import SlackRepository from "@/repositories/SlackRepository";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
-import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
+import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
@@ -152,6 +152,28 @@ export default class TaskService {
         }
       };
       await Promise.all(companies.map(company => remindOperations(company)));
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  public async askProspects(): Promise<any> {
+    try {
+      const timings = await this.commonRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
+      await Promise.all(timings.map(async t => {
+        const { company } = t;
+        for (const chatTool of company.chatTools) {
+          switch (chatTool.tool_code) {
+            case ChatToolCode.SLACK:
+              await this.slackRepository.askProspects(company);
+              break;
+            case ChatToolCode.LINE:
+            default:
+              break;
+          }
+        }
+      }));
     } catch (error) {
       console.log(error);
       logger.error(new LoggerError(error.message));

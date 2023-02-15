@@ -6,8 +6,8 @@ import { KnownBlock, MessageAttachment } from "@slack/web-api";
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
 
-import { Icons, replyActionsAfter, replyActionsBefore } from "@/consts/slack";
-import { diffDays, getDate, relativeRemindDays, toJapanDateTime } from "@/utils/common";
+import { Icons, PROSPECT_PREFIX, prospects, replyActionsAfter, replyActionsBefore, SEPARATOR } from "@/consts/slack";
+import { diffDays, formatDatetime, relativeRemindDays, toJapanDateTime } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, TodoHistoryAction } from "@/consts/common";
@@ -283,7 +283,7 @@ export default class SlackMessageBuilder {
 
   private static getDeadlineText(deadline: Date): string {
     const remindDays = deadline ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date)) : null;
-    return deadline ? `${relativeRemindDays(remindDays)} (${getDate(deadline)})` : "未設定";
+    return deadline ? `${relativeRemindDays(remindDays)} (${formatDatetime(deadline)})` : "未設定";
   }
 
   public static createStartDailyReportMessage() {
@@ -365,7 +365,32 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  static getTextContentFromMessage(message: MessageAttachment) { //TODO:replyが記録できていない
+  public static createAskProspectMessage(todo: Todo) {
+    const blocks: KnownBlock[] = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `<${ todo.todoapp_reg_url }|${ todo.name }>は期日に間に合いそうですか？\n`
+            + `\`期日\` ${ this.getDeadlineText(todo.deadline) }`,
+        },
+      },
+      {
+        type: "actions",
+        elements: prospects.map(prospect => {
+          return {
+            type: "button",
+            text: { type: "plain_text", emoji: true, text: prospect.text },
+            value: PROSPECT_PREFIX + SEPARATOR + prospect.value,
+          };
+        }),
+      },
+    ];
+    return { blocks };
+  }
+
+  // TODO: SlackRepositoryへ移管する
+  static getTextContentFromMessage(message: MessageAttachment) { // TODO:replyが記録できていない
     if (message.blocks && message.blocks.length) {
       const blocks = message.blocks as KnownBlock[];
       if (blocks[0].type === "section" && blocks[0].fields) {

@@ -3,7 +3,7 @@ import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage }
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
 
-import { getDate, sliceByNumber, relativeRemindDays } from "@/utils/common";
+import { formatDatetime, sliceByNumber, relativeRemindDays } from "@/utils/common";
 import {
   replyMessagesBefore,
   replyMessagesAfter,
@@ -62,7 +62,7 @@ export default class LineMessageBuilder {
                       flex: 5,
                       contents: [
                         { type: "span", text: relativeDays, weight: "bold", color: remindColor },
-                        { type: "span", text: `(${ getDate(todo.deadline) })`, size: "sm" },
+                        { type: "span", text: `(${ formatDatetime(todo.deadline) })`, size: "sm" },
                       ],
                     },
                   ],
@@ -462,7 +462,7 @@ export default class LineMessageBuilder {
                       flex: 4,
                       contents: [
                         { type: "span", text: relativeDays, weight: "bold", color: this.getRemindColor(remindDays) },
-                        { type: "span", text: `(${ getDate(deadline) })`, size: "sm" },
+                        { type: "span", text: `(${ formatDatetime(deadline) })`, size: "sm" },
                       ],
                     },
                   ],

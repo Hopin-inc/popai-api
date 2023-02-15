@@ -38,4 +38,12 @@ export default class TaskController extends Controller {
     const end = process.hrtime(start);
     console.log(`TaskController#sendDailyReport - END - ${ getProcessTime(end) }`);
   }
+
+  public async askProspects(): Promise<any> {
+    console.log("TaskController#askProspects - START");
+    const start = process.hrtime();
+    await this.taskService.askProspects();
+    const end = process.hrtime(start);
+    console.log(`TaskController#askProspects - END - ${ getProcessTime(end) }`);
+  }
 }

@@ -16,8 +16,15 @@ import CompanyCondition from "@/entities/CompanyCondition";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { IDailyReportItems } from "@/types";
-import { TodoHistoryProperty as Property, TodoHistoryAction as Action, NOT_UPDATED_DAYS } from "@/consts/common";
+import { IDailyReportItems, valueOf } from "@/types";
+import {
+  TodoHistoryProperty as Property,
+  TodoHistoryAction as Action,
+  NOT_UPDATED_DAYS,
+  EventType
+} from "@/consts/common";
+import EventTiming from "@/entities/EventTiming";
+import { roundMinutes } from "@/utils/common";
 
 @Service()
 export default class CommonRepository {
@@ -28,6 +35,7 @@ export default class CommonRepository {
   private chatToolUserRepository: Repository<ChatToolUser>;
   private todoRepository: Repository<Todo>;
   private todoHistoryRepository: Repository<TodoHistory>;
+  private eventTimingRepository: Repository<EventTiming>;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -37,6 +45,7 @@ export default class CommonRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
+    this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -244,6 +253,29 @@ export default class CommonRepository {
         is_closed: false,
       },
       relations: ["todoUsers.user", "todoSections.section"],
+    });
+  }
+
+  public async getEventTargetCompanies(significance: number, event: valueOf<typeof EventType>): Promise<EventTiming[]> {
+    const executedTimeRounded = roundMinutes(new Date(), significance, "floor");
+    const time = dayjs(executedTimeRounded).format("HH:mm:ss");
+    const day = dayjs().day();
+    const timings = await this.eventTimingRepository.find({
+      where: { time, event },
+      relations: [
+        "company.sections",
+        "company.users.chattoolUsers.chattool",
+        "company.implementedChatTools.chattool",
+        "company.adminUser.chattoolUsers.chattool",
+      ],
+    });
+    return timings.filter(t => t.days_of_week.includes(day));
+  }
+
+  public async getActiveTodos(company: Company): Promise<Todo[]> {
+    return await this.todoRepository.find({
+      where: { company_id: company.id, is_done: false, is_closed: false, deleted_at: IsNull() },
+      relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],
     });
   }
 }

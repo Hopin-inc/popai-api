@@ -18,7 +18,7 @@ import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
-import { replyActions } from "@/consts/slack";
+import { PROSPECT_PREFIX, replyActions, SEPARATOR } from "@/consts/slack";
 import { Block, KnownBlock } from "@slack/web-api";
 
 export default class SlackController extends Controller {
@@ -58,13 +58,13 @@ export default class SlackController extends Controller {
 
         const slackId = user.id;
         const repliedMessage = actions[0].text.text.toLowerCase();
-        const status = actions[0].value;
+        const value = actions[0].value;
         const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
 
         const channelId = container.channel_id;
         const threadId = container.message_ts;
 
-        await this.handleReplyMessage(chatTool, slackUser, slackId, repliedMessage, status, channelId, threadId);
+        await this.handleReplyMessage(chatTool, slackUser, slackId, repliedMessage, value, channelId, threadId);
       } else {
         logger.error(new LoggerError("Unknown Response"));
       }
@@ -79,7 +79,7 @@ export default class SlackController extends Controller {
     user: User,
     slackId: string,
     repliedMessage: string,
-    _status: string,
+    actionValue: string,
     channelId: string,
     threadId: string,
   ) {
@@ -87,6 +87,26 @@ export default class SlackController extends Controller {
       return;
     }
 
+    const [value, ...identifiers] = actionValue.split(SEPARATOR).reverse();
+    const identifier = identifiers ? identifiers.join(SEPARATOR) : "";
+
+    switch (identifier) {
+      case PROSPECT_PREFIX:
+        await this.respondToProspect(chatTool, user, slackId, parseInt(value));
+        break;
+      default:
+        await this.respondToRemindReply(chatTool, slackId, repliedMessage, channelId, threadId);
+        break;
+    }
+  }
+
+  private async respondToRemindReply(
+    chatTool: ChatTool,
+    slackId: string,
+    repliedMessage: string,
+    channelId: string,
+    threadId: string,
+  ) {
     const slackTodo = await this.slackRepository.getSlackTodo(channelId, threadId);
 
     await SlackBot.chat.update({
@@ -110,11 +130,17 @@ export default class SlackController extends Controller {
 
     const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);
 
-    const sendChannelId = "C04EJSBAX2S"; //TODO:sectionsTableから取得する
+    const sendChannelId = sections.length ? sections[0].channel_id : null; //TODO: 複数sectionにまたがる場合に対応する
     const shareMessage = SlackMessageBuilder.createShareMessage(slackId, slackTodo, repliedMessage);
-    await Promise.all(superiorUsers.map(su => this.sendShareMessageToChannel(chatTool, su, sendChannelId, null, shareMessage)));
+    await Promise.all(superiorUsers.map(
+      su => this.sendShareMessageToChannel(chatTool, su, sendChannelId, null, shareMessage)
+    ));
 
     // await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
+  }
+
+  private async respondToProspect(chatTool: ChatTool, user: User, slackId: string, value: number) {
+
   }
 
   /**

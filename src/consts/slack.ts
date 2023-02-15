@@ -1,10 +1,15 @@
-import { TodoStatus } from "./common";
+import { ProspectLevel, ReliefAction, TodoStatus } from "./common";
 
 type ReplyAction = {
   status: TodoStatus;
   text: string;
   style?: "primary" | "danger";
-}
+};
+
+type ActionItem = {
+  text: string;
+  value: number;
+};
 
 export const Icons = {
   CREATED: ":sparkles:",
@@ -51,3 +56,21 @@ export const replyActionsAfter: ReplyAction[] = [
 ];
 
 export const replyActions: ReplyAction[] = replyActionsBefore.concat(replyActionsAfter);
+
+export const prospects: ActionItem[] = [
+  { text: ":sunny: 特に問題はない", value: ProspectLevel.VERY_GOOD },
+  { text: ":mostly_sunny: 順調", value: ProspectLevel.GOOD },
+  { text: ":partly_sunny: どちらとも言えない", value: ProspectLevel.NEUTRAL },
+  { text: ":rain_cloud: 少し不安", value: ProspectLevel.BAD },
+  { text: ":umbrella_with_rain_drops: 全然ダメ", value: ProspectLevel.VERY_BAD },
+];
+
+export const reliefActions: ActionItem[] = [
+  { text: "作業手順", value: ReliefAction.SUBTASKS },
+  { text: "担当者", value: ReliefAction.ASSIGNEES },
+  { text: "期日", value: ReliefAction.DEADLINE },
+  { text: "目的", value: ReliefAction.PURPOSE },
+];
+
+export const PROSPECT_PREFIX = "PROSPECT";
+export const SEPARATOR = "__";

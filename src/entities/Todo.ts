@@ -8,7 +8,8 @@ import TodoUser from "./TodoUser";
 import TodoSection from "./TodoSection";
 import User from "./User";
 import Section from "./Section";
-import TodoHistory from "@/entities/TodoHistory";
+import TodoHistory from "./TodoHistory";
+import Prospect from "./Prospect";
 
 @Entity("todos")
 export default class Todo extends BaseEntity {
@@ -111,4 +112,11 @@ export default class Todo extends BaseEntity {
     { cascade: false }
   )
   updateHistories: TodoUpdateHistory[];
+
+  @OneToMany(
+    () => Prospect,
+    prospect => prospect.todo,
+    { cascade: false }
+  )
+  prospects: Prospect[];
 }
