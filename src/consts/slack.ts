@@ -73,4 +73,5 @@ export const reliefActions: ActionItem[] = [
 ];
 
 export const PROSPECT_PREFIX = "PROSPECT";
+export const RELIEF_ACTION_PREFIX = "RELIEF_ACTION";
 export const SEPARATOR = "__";

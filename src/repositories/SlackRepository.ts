@@ -397,11 +397,14 @@ export default class SlackRepository {
       thread_id: threadId,
       todo_id: Not(IsNull()),
     });
-
-    return await this.todoRepository.findOne({
-      where: { id: message.todo_id },
-      relations: ["todoapp", "company", "company.sections"],
-    });
+    if (message) {
+      return await this.todoRepository.findOne({
+        where: { id: message.todo_id },
+        relations: ["todoapp", "company", "company.sections"],
+      });
+    } else {
+      return null;
+    }
   }
 
   public async createMessage (chatMessage: ChatMessage): Promise<ChatMessage> {
@@ -842,12 +845,44 @@ export default class SlackRepository {
       await Promise.all(todos.map(async todo => {
         const message = SlackMessageBuilder.createAskProspectMessage(todo);
         await Promise.all(todo.users.map(async user => {
-          await this.sendDirectMessage(chatTool, user, message, todo);
-          const prospect = new Prospect(todo.id, user.id, company.id);
+          const { thread_id: ts } = await this.sendDirectMessage(chatTool, user, message, todo);
+          const prospect = new Prospect(todo.id, user.id, company.id, ts);
           askedProspects.push(prospect);
         }));
       }));
     }
     await this.prospectRepository.upsert(askedProspects, []);
+  }
+
+  public async respondToProspect(
+    chatTool: ChatTool,
+    user: User,
+    slackId: string,
+    prospect: number,
+    channelId: string,
+    threadId: string,
+  ) {
+    const todo = await this.getSlackTodo(channelId, threadId);
+    const where = { todo_id: todo.id, slack_ts: threadId };
+    await this.prospectRepository.update(where, { prospect });
+    const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(todo, prospect);
+    await SlackBot.chat.update({ channel: channelId, ts: threadId, blocks });
+  }
+
+  public async respondToReliefAction(
+    chatTool: ChatTool,
+    user: User,
+    slackId: string,
+    action: number,
+    channelId: string,
+    threadId: string,
+  ) {
+    const todo = await this.getSlackTodo(channelId, threadId);
+    const where = { todo_id: todo.id, slack_ts: threadId };
+    console.log(where);
+    const { prospect } = await this.prospectRepository.findOneBy(where);
+    await this.prospectRepository.update(where, { action });
+    const { blocks } = SlackMessageBuilder.createMessageAfterReliefAction(todo, prospect, action);
+    await SlackBot.chat.update({ channel: channelId, ts: threadId, blocks });
   }
 }

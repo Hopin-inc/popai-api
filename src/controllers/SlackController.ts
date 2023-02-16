@@ -18,7 +18,7 @@ import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
-import { PROSPECT_PREFIX, replyActions, SEPARATOR } from "@/consts/slack";
+import { PROSPECT_PREFIX, RELIEF_ACTION_PREFIX, replyActions, SEPARATOR } from "@/consts/slack";
 import { Block, KnownBlock } from "@slack/web-api";
 
 export default class SlackController extends Controller {
@@ -92,7 +92,10 @@ export default class SlackController extends Controller {
 
     switch (identifier) {
       case PROSPECT_PREFIX:
-        await this.respondToProspect(chatTool, user, slackId, parseInt(value));
+        await this.slackRepository.respondToProspect(chatTool, user, slackId, parseInt(value), channelId, threadId);
+        break;
+      case RELIEF_ACTION_PREFIX:
+        await this.slackRepository.respondToReliefAction(chatTool, user, slackId, parseInt(value), channelId, threadId);
         break;
       default:
         await this.respondToRemindReply(chatTool, slackId, repliedMessage, channelId, threadId);
@@ -137,10 +140,6 @@ export default class SlackController extends Controller {
     ));
 
     // await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);
-  }
-
-  private async respondToProspect(chatTool: ChatTool, user: User, slackId: string, value: number) {
-
   }
 
   /**
