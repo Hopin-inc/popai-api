@@ -24,8 +24,14 @@ export default class Prospect extends BaseEntity {
   @Column({ type: "tinyint", width: 1, nullable: true })
   prospect: number;
 
+  @Column({ type: "datetime", nullable: true })
+  prospect_responded_at: Date;
+
   @Column({ type: "tinyint", width: 1, nullable: true })
   action: number;
+
+  @Column({ type: "datetime", nullable: true })
+  action_responded_at: Date;
 
   @ManyToOne(
     () => Todo,

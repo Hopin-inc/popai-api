@@ -864,7 +864,7 @@ export default class SlackRepository {
   ) {
     const todo = await this.getSlackTodo(channelId, threadId);
     const where = { todo_id: todo.id, slack_ts: threadId };
-    await this.prospectRepository.update(where, { prospect });
+    await this.prospectRepository.update(where, { prospect, prospect_responded_at: new Date() });
     const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(todo, prospect);
     await SlackBot.chat.update({ channel: channelId, ts: threadId, blocks });
   }
@@ -881,7 +881,7 @@ export default class SlackRepository {
     const where = { todo_id: todo.id, slack_ts: threadId };
     console.log(where);
     const { prospect } = await this.prospectRepository.findOneBy(where);
-    await this.prospectRepository.update(where, { action });
+    await this.prospectRepository.update(where, { action, action_responded_at: new Date() });
     const { blocks } = SlackMessageBuilder.createMessageAfterReliefAction(todo, prospect, action);
     await SlackBot.chat.update({ channel: channelId, ts: threadId, blocks });
   }
