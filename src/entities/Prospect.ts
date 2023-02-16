@@ -19,7 +19,13 @@ export default class Prospect extends BaseEntity {
   company_id: number;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  slack_channel_id: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   slack_ts: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  slack_view_id: string;
 
   @Column({ type: "tinyint", width: 1, nullable: true })
   prospect: number;
@@ -32,6 +38,12 @@ export default class Prospect extends BaseEntity {
 
   @Column({ type: "datetime", nullable: true })
   action_responded_at: Date;
+
+  @Column({ type: "text", collation: "utf8mb4_unicode_ci", nullable: true })
+  comment: string;
+
+  @Column({ type: "datetime", nullable: true })
+  comment_responded_at: Date;
 
   @ManyToOne(
     () => Todo,
@@ -56,13 +68,16 @@ export default class Prospect extends BaseEntity {
   @JoinColumn({ name: "company_id" })
   company: Company;
 
-  constructor(todoId: number, userId: number, companyId: number, slackTs?: string) {
+  constructor(todoId: number, userId: number, companyId: number, slackTs?: string, slackChannelId?: string) {
     super();
     this.todo_id = todoId;
     this.user_id = userId;
     this.company_id = companyId;
     if (slackTs) {
       this.slack_ts = slackTs;
+    }
+    if (slackChannelId) {
+      this.slack_channel_id = slackChannelId;
     }
   }
 }

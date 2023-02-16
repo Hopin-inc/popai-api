@@ -18,8 +18,9 @@ import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
-import { PROSPECT_PREFIX, RELIEF_ACTION_PREFIX, replyActions, SEPARATOR } from "@/consts/slack";
+import { ReliefCommentModalItems, replyActions, SEPARATOR, SlackActionLabel, SlackModalLabel } from "@/consts/slack";
 import { Block, KnownBlock } from "@slack/web-api";
+import { SlackInteractionPayload, SlackView } from "@/types/slack";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -39,7 +40,7 @@ export default class SlackController extends Controller {
     this.taskService = Container.get(TaskService);
   }
 
-  async handleEvent(payload: any) { // TODO: Define type
+  async handleEvent(payload: SlackInteractionPayload): Promise<[any, (...args) => unknown | undefined]> {
     try {
       const chatTool = await this.chatToolRepository.findOneBy({
         tool_code: ChatToolCode.SLACK,
@@ -51,7 +52,7 @@ export default class SlackController extends Controller {
       }
 
       if (payload.type === "block_actions") {
-        const { user, container, actions } = payload;
+        const { user, container, actions, trigger_id: triggerId } = payload;
         if (!actions.length) {
           return;
         }
@@ -61,20 +62,27 @@ export default class SlackController extends Controller {
         const value = actions[0].value;
         const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
 
+        // @ts-ignore // FIXME
         const channelId = container.channel_id;
+        // @ts-ignore // FIXME
         const threadId = container.message_ts;
 
-        await this.handleReplyMessage(chatTool, slackUser, slackId, repliedMessage, value, channelId, threadId);
+        return [
+          await this.handleBlockActions(chatTool, slackUser, slackId, repliedMessage, value, channelId, threadId, triggerId),
+          undefined,
+        ];
+      } else if (payload.type === "view_submission") {
+        const { view } = payload;
+        return await this.handleViewSubmissions(view);
       } else {
         logger.error(new LoggerError("Unknown Response"));
       }
-      return { message: "slack webhook" };
     } catch (error) {
       console.error(error);
     }
   }
 
-  private async handleReplyMessage(
+  private async handleBlockActions(
     chatTool: ChatTool,
     user: User,
     slackId: string,
@@ -82,24 +90,61 @@ export default class SlackController extends Controller {
     actionValue: string,
     channelId: string,
     threadId: string,
+    triggerId: string,
   ) {
     if (!user) {
       return;
     }
-
-    const [value, ...identifiers] = actionValue.split(SEPARATOR).reverse();
-    const identifier = identifiers ? identifiers.join(SEPARATOR) : "";
-
+    const [identifier, value] = actionValue.split(SEPARATOR);
+    console.log(actionValue, identifier, value);
     switch (identifier) {
-      case PROSPECT_PREFIX:
+      case SlackActionLabel.PROSPECT:
         await this.slackRepository.respondToProspect(chatTool, user, slackId, parseInt(value), channelId, threadId);
         break;
-      case RELIEF_ACTION_PREFIX:
+      case SlackActionLabel.RELIEF_ACTION:
         await this.slackRepository.respondToReliefAction(chatTool, user, slackId, parseInt(value), channelId, threadId);
+        break;
+      case SlackActionLabel.OPEN_RELIEF_COMMENT_MODAL:
+        await this.slackRepository.openReliefCommentModal(channelId, threadId, triggerId);
         break;
       default:
         await this.respondToRemindReply(chatTool, slackId, repliedMessage, channelId, threadId);
         break;
+    }
+  }
+
+  private async handleViewSubmissions(view: SlackView): Promise<[any, (...args) => unknown | undefined]> {
+    if (view.type === "modal") {
+      switch (view.callback_id) {
+        case SlackModalLabel.RELIEF_COMMENT:
+          const comment = this.getInputValue<string>(
+            view,
+            ReliefCommentModalItems.COMMENT,
+            ReliefCommentModalItems.COMMENT,
+            "value"
+          );
+          const prospect = await this.slackRepository.receiveReliefComment(view.id, comment);
+          return [undefined, () => this.slackRepository.shareReliefComment(view.id, comment, prospect)];
+        default:
+          break;
+      }
+    }
+  }
+
+  private getInputValue<T>(view: SlackView, blockId: string, actionId: string, key: string = "value"): T {
+    const values = view?.state?.values;
+    if (!values) {
+      return null;
+    }
+    const targetBlocks = values[blockId];
+    if (!targetBlocks) {
+      return null;
+    }
+    const targetInput = targetBlocks[actionId];
+    if (!targetInput) {
+      return null;
+    } else {
+      return targetInput[key] as T;
     }
   }
 

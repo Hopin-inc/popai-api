@@ -11,8 +11,11 @@ router.post("/webhook", async function(req, res) {
     }
     const controller = new SlackController();
     const payload = JSON.parse(req.body.payload);
-    const response = await controller.handleEvent(payload);
-    ApiResponse.successRes(res, response);
+    const [response, funcAfterResponse] = await controller.handleEvent(payload);
+    ApiResponse.successRawRes(res, response);
+    if (funcAfterResponse) {
+      await funcAfterResponse();
+    }
   } catch (err) {
     ApiResponse.errRes(res, err.message, err.status);
   }

@@ -129,4 +129,5 @@ export const ReliefAction = {
   ASSIGNEES: 2,
   DEADLINE: 3,
   PURPOSE: 4,
+  OUTPUT: 5,
 };

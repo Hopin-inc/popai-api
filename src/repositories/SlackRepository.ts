@@ -26,13 +26,14 @@ import {
   ReplyStatus,
   SenderType, TodoHistoryAction,
 } from "@/consts/common";
-import { diffDays, getItemRandomly, toJapanDateTime } from "@/utils/common";
+import { diffDays, getItemRandomly, getUniqueArray, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 import Prospect from "@/entities/Prospect";
+import { reliefActions, SlackModalLabel } from "@/consts/slack";
 
 @Service()
 export default class SlackRepository {
@@ -375,20 +376,18 @@ export default class SlackRepository {
     const userIds: number[] = users.map((user) => user.id).filter(Number);
 
     const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
-    const superiorUserIds = await reportingLineRepository.findBy({
+    const reportingLines = await reportingLineRepository.findBy({
       subordinate_user_id: In(userIds),
     });
 
-    if (!superiorUserIds.length) {
+    if (!reportingLines.length) {
       return Promise.resolve([]);
     }
 
-    return await this.userRepository
-      .createQueryBuilder("users")
-      .where("id IN (:...ids)", {
-        ids: superiorUserIds.map((superiorUserId) => superiorUserId.superior_user_id),
-      })
-      .getMany();
+    return await this.userRepository.find({
+      where: { id: In(reportingLines.map(record => record.superior_user_id)) },
+      relations: ["chattoolUsers.chattool"],
+    });
   }
 
   public async getSlackTodo(channelId: string, threadId: string): Promise<Todo> {
@@ -845,8 +844,8 @@ export default class SlackRepository {
       await Promise.all(todos.map(async todo => {
         const message = SlackMessageBuilder.createAskProspectMessage(todo);
         await Promise.all(todo.users.map(async user => {
-          const { thread_id: ts } = await this.sendDirectMessage(chatTool, user, message, todo);
-          const prospect = new Prospect(todo.id, user.id, company.id, ts);
+          const { thread_id: ts, channel_id: channelId } = await this.sendDirectMessage(chatTool, user, message, todo);
+          const prospect = new Prospect(todo.id, user.id, company.id, ts, channelId);
           askedProspects.push(prospect);
         }));
       }));
@@ -879,10 +878,89 @@ export default class SlackRepository {
   ) {
     const todo = await this.getSlackTodo(channelId, threadId);
     const where = { todo_id: todo.id, slack_ts: threadId };
-    console.log(where);
     const { prospect } = await this.prospectRepository.findOneBy(where);
     await this.prospectRepository.update(where, { action, action_responded_at: new Date() });
-    const { blocks } = SlackMessageBuilder.createMessageAfterReliefAction(todo, prospect, action);
+    const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(todo, prospect, action);
     await SlackBot.chat.update({ channel: channelId, ts: threadId, blocks });
+  }
+
+  public async openReliefCommentModal(channelId: string, threadId: string, triggerId: string) {
+    const where = { slack_channel_id: channelId, slack_ts: threadId };
+    const { action } = await this.prospectRepository.findOneBy(where);
+    const targetAction = reliefActions.find(a => a.value === action);
+    const blocks = SlackMessageBuilder.createReliefCommentModal();
+    const viewId = await this.openModal(
+      triggerId,
+      `${ targetAction.text }について相談する`,
+      "送信する",
+      "キャンセル",
+      blocks,
+      SlackModalLabel.RELIEF_COMMENT,
+    );
+    await this.prospectRepository.update(where, { slack_view_id: viewId });
+  }
+
+  public async receiveReliefComment(viewId: string, comment: string) {
+    const prospectRecord = await this.prospectRepository.findOneBy({ slack_view_id: viewId });
+    await this.prospectRepository.update(prospectRecord.id, { comment, comment_responded_at: new Date() });
+    return prospectRecord;
+  }
+
+  public async shareReliefComment(viewId: string, comment: string, prospectRecord: Prospect) {
+    const { prospect, action, slack_channel_id: channel, slack_ts: ts } = prospectRecord;
+    const [todo, user] = await Promise.all([
+      this.todoRepository.findOne({
+        where: { id: prospectRecord.todo_id },
+        relations: [
+          "company.implementedChatTools.chattool",
+          "todoSections.section"
+        ],
+      }),
+      this.userRepository.findOne({
+        where: { id: prospectRecord.user_id },
+        relations: ["chattoolUsers.chattool"],
+      }),
+    ]);
+    const { blocks: editedMsg } = SlackMessageBuilder.createThanksForCommentMessage(todo, prospect, action, comment);
+    const chatTool = todo.company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+    const sharedChannels = getUniqueArray(todo.sections.map(section => section.channel_id));
+    const slackProfile = await SlackBot.users.profile.get({ user: user.slackId });
+    if (chatTool && slackProfile?.ok) {
+      const iconUrl = slackProfile.profile.image_48;
+      const shareMsg = SlackMessageBuilder.createShareReliefMessage(todo, user, prospect, action, comment, iconUrl);
+      const [_, superiorUsers, ...pushedMessages] = await Promise.all([
+        SlackBot.chat.update({ channel, ts, text: todo.name, blocks: editedMsg }),
+        this.getSuperiorUsers(user.slackId),
+        ...sharedChannels.map(ch => this.pushSlackMessage(chatTool, user, shareMsg, MessageTriggerType.REPORT, ch)),
+      ]);
+      const promptMsg = SlackMessageBuilder.createPromptDiscussionMessage(superiorUsers);
+      await Promise.all(pushedMessages.map(m => {
+        this.pushSlackMessage(chatTool, null, promptMsg, MessageTriggerType.REPORT, m.channel, m.ts);
+      }));
+    }
+  }
+
+  private async openModal(
+    triggerId: string,
+    title: string,
+    submit: string,
+    close: string,
+    blocks: KnownBlock[],
+    callbackId: string,
+  ) {
+    const { ok, view } = await SlackBot.views.open({
+      trigger_id: triggerId,
+      view: {
+        type: "modal",
+        title: { type: "plain_text", emoji: true, text: title },
+        submit: { type: "plain_text", emoji: true, text: submit },
+        close: { type: "plain_text", emoji: true, text: close },
+        blocks,
+        callback_id: callbackId,
+      },
+    });
+    if (ok && view) {
+      return view.id;
+    }
   }
 }

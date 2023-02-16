@@ -52,7 +52,7 @@ export const getItemRandomly = <T>(arr: T[]): T => arr?.length ? arr[randomInt(a
 
 export const randomInt = (max: number, min: number = 0): number => Math.floor(Math.random() * (max - min) + min);
 
-// export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
+export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
 
 export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: keyof T): [T[], T[]] => {
   return [

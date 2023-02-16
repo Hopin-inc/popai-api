@@ -6,6 +6,10 @@ type ReplyAction = {
   style?: "primary" | "danger";
 };
 
+type ActionItemWithEmoji = ActionItem & {
+  emoji: string;
+}
+
 type ActionItem = {
   text: string;
   value: number;
@@ -57,21 +61,31 @@ export const replyActionsAfter: ReplyAction[] = [
 
 export const replyActions: ReplyAction[] = replyActionsBefore.concat(replyActionsAfter);
 
-export const prospects: ActionItem[] = [
-  { text: ":sunny: 特に問題はない", value: ProspectLevel.VERY_GOOD },
-  { text: ":mostly_sunny: 順調", value: ProspectLevel.GOOD },
-  { text: ":partly_sunny: どちらとも言えない", value: ProspectLevel.NEUTRAL },
-  { text: ":rain_cloud: 少し不安", value: ProspectLevel.BAD },
-  { text: ":umbrella_with_rain_drops: 全然ダメ", value: ProspectLevel.VERY_BAD },
+export const prospects: ActionItemWithEmoji[] = [
+  { text: "特に問題はない", value: ProspectLevel.VERY_GOOD, emoji: ":sunny:" },
+  { text: "まあまあ順調", value: ProspectLevel.GOOD, emoji: ":mostly_sunny:" },
+  { text: "どちらとも言えない", value: ProspectLevel.NEUTRAL, emoji: ":partly_sunny:" },
+  { text: "少し不安", value: ProspectLevel.BAD, emoji: ":rain_cloud:" },
+  { text: "全然ダメ", value: ProspectLevel.VERY_BAD, emoji: ":umbrella_with_rain_drops:" },
 ];
 
 export const reliefActions: ActionItem[] = [
   { text: "作業手順", value: ReliefAction.SUBTASKS },
+  { text: "成果物", value: ReliefAction.OUTPUT },
   { text: "担当者", value: ReliefAction.ASSIGNEES },
   { text: "期日", value: ReliefAction.DEADLINE },
   { text: "目的", value: ReliefAction.PURPOSE },
 ];
 
-export const PROSPECT_PREFIX = "PROSPECT";
-export const RELIEF_ACTION_PREFIX = "RELIEF_ACTION";
+export const SlackActionLabel = {
+  PROSPECT: "PROSPECT",
+  RELIEF_ACTION: "RELIEF_ACTION",
+  OPEN_RELIEF_COMMENT_MODAL: "OPEN_RELIEF_COMMENT",
+};
 export const SEPARATOR = "__";
+export const SlackModalLabel = {
+  RELIEF_COMMENT: "SUBMIT_RELIEF_COMMENT"
+};
+export const ReliefCommentModalItems = {
+  COMMENT: "COMMENT",
+};
