@@ -67,12 +67,10 @@ export default class SlackController extends Controller {
 
         const slackId = user.id;
         const repliedMessage = actions[0].text.text.toLowerCase();
-        const { value, action_id: actionId } = actions[0];
+        const { action_id: actionId } = actions[0];
         const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
 
-        // @ts-ignore // FIXME
         const channelId = container.channel_id;
-        // @ts-ignore // FIXME
         const threadId = container.message_ts;
 
         return [
