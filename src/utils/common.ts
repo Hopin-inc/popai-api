@@ -1,5 +1,6 @@
 import "moment-timezone";
 import moment from "moment";
+import dayjs from "dayjs";
 import * as process from "process";
 
 export function toJapanDateTime(date: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
@@ -20,8 +21,8 @@ export function diffDays(startDate: Date, endDate: Date) {
   }
 }
 
-export function getDate(date: Date, format = "YYYY/MM/DD") {
-  return moment(date).format(format);
+export function formatDatetime(date: Date, format = "YYYY/MM/DD") {
+  return dayjs(date).format(format);
 }
 
 export function sliceByNumber<T>(array: T[], n: number): T[][] {
@@ -51,7 +52,7 @@ export const getItemRandomly = <T>(arr: T[]): T => arr?.length ? arr[randomInt(a
 
 export const randomInt = (max: number, min: number = 0): number => Math.floor(Math.random() * (max - min) + min);
 
-// export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
+export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
 
 export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: keyof T): [T[], T[]] => {
   return [
@@ -62,4 +63,54 @@ export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: 
 
 export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], key: keyof T): T[] => {
   return arrA?.filter(a => !arrB.some(b => a[key] === b[key])) ?? [];
+};
+
+export const roundMinutes = (dt: Date, significance: number, method?: "floor" | "ceil" | "round"): Date => {
+  const time = dayjs(dt);
+  const newMinutes = (t: typeof time, s: typeof significance, m: typeof method) => {
+    const minutes = t.minute();
+    switch (m) {
+      case "floor":
+        return Math.floor(minutes / s) * s;
+      case "ceil":
+        return Math.ceil(minutes / s) * s;
+      case "round":
+      default:
+        return Math.round(minutes / s) * s;
+    }
+  };
+  return time.set("m", newMinutes(time, significance, method)).set("s", 0).set("ms", 0).toDate();
+};
+
+export const Sorter = {
+  byDate: <T extends object>(key: keyof T, desc: boolean = false) => {
+    return (a: T, b: T): number => {
+      const dateA = dayjs(a[key] as Date);
+      const dateB = dayjs(b[key] as Date);
+      if (!desc) {
+        return dateA.isAfter(dateB) ? 1 : dateA.isBefore(dateB) ? -1 : 0;
+      } else {
+        return dateB.isAfter(dateA) ? 1 : dateB.isBefore(dateA) ? -1 : 0;
+      }
+    };
+  }
+};
+
+export const truncate = (str: string, max: number, countHalfAs: number = 1, countFullAs: number = 1): string => {
+  let chars = 0;
+  let truncatedStr = "";
+  for (let i = 0; i < str.length; i++) {
+    const character = str.charCodeAt(i);
+    if (character >= 0x0 && character <= 0x7f) {
+      chars += countHalfAs;
+    } else {
+      chars += countFullAs;
+    }
+    if (chars >= max) {
+      return truncatedStr + "…";
+    } else {
+      truncatedStr += str[i];
+    }
+  }
+  return truncatedStr;
 };

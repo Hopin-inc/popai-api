@@ -45,6 +45,7 @@ export const MessageTriggerType = {
   PRAISE: 5,
   RESPONSE: 6,
   NOTIFY: 7,
+  DAILY_REPORT: 8,
 };
 
 export const RemindType = {
@@ -109,3 +110,25 @@ export enum TodoStatus {
   NOT_YET = "STATUS_NOT_YET",
   WITHDRAWN = "STATUS_WITHDRAWN",
 }
+
+export const EventType = {
+  NOTIFY_ON_UPDATE: 1,
+  DAILY_REPORT: 2,
+  ASK_PROSPECTS: 3,
+};
+
+export const ProspectLevel = {
+  VERY_GOOD: 5,
+  GOOD: 4,
+  NEUTRAL: 3,
+  BAD: 2,
+  VERY_BAD: 1,
+};
+
+export const ReliefAction = {
+  SUBTASKS: 1,
+  ASSIGNEES: 2,
+  DEADLINE: 3,
+  PURPOSE: 4,
+  OUTPUT: 5,
+};
