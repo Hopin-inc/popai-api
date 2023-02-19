@@ -1,4 +1,14 @@
-import { Between, Brackets, In, IsNull, LessThan, Not, Repository, SelectQueryBuilder } from "typeorm";
+import {
+  Between,
+  Brackets,
+  FindOptionsWhere,
+  In,
+  IsNull,
+  LessThan,
+  Not,
+  Repository,
+  SelectQueryBuilder,
+} from "typeorm";
 import { Service } from "typedi";
 import dayjs from "dayjs";
 
@@ -21,10 +31,11 @@ import {
   TodoHistoryProperty as Property,
   TodoHistoryAction as Action,
   NOT_UPDATED_DAYS,
-  EventType
+  EventType,
 } from "@/consts/common";
 import EventTiming from "@/entities/EventTiming";
 import { roundMinutes } from "@/utils/common";
+import DailyReport from "@/entities/DailyReport";
 
 @Service()
 export default class CommonRepository {
@@ -36,6 +47,7 @@ export default class CommonRepository {
   private todoRepository: Repository<Todo>;
   private todoHistoryRepository: Repository<TodoHistory>;
   private eventTimingRepository: Repository<EventTiming>;
+  private dailyReportRepository: Repository<DailyReport>;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -46,6 +58,7 @@ export default class CommonRepository {
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
+    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -55,13 +68,13 @@ export default class CommonRepository {
         "sections.boardAdminUser",
         "users",
         "sections.board_admin_user_id = users.id AND users.company_id = :companyId",
-        { companyId }
+        { companyId },
       )
       .innerJoinAndSelect(
         "users.todoAppUsers",
         "todo_app_users",
         "users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId",
-        { todoappId }
+        { todoappId },
       )
       .where("sections.company_id = :companyId", { companyId })
       .andWhere("sections.todoapp_id = :todoappId", { todoappId })
@@ -75,7 +88,7 @@ export default class CommonRepository {
       .innerJoinAndSelect(
         "section_labels.section",
         "sections",
-        "section_labels.section_id = sections.id"
+        "section_labels.section_id = sections.id",
       )
       .where("sections.company_id = :companyId", { companyId })
       .andWhere("sections.todoapp_id = :todoappId", { todoappId })
@@ -86,7 +99,7 @@ export default class CommonRepository {
   public async getBoardAdminUser(sectionId: number): Promise<User> {
     const section = await this.sectionRepository.findOne({
       where: { id: sectionId },
-      relations: ["boardAdminUser", "boardAdminUser.todoAppUsers"]
+      relations: ["boardAdminUser", "boardAdminUser.todoAppUsers"],
     });
     return section.boardAdminUser;
   }
@@ -99,7 +112,7 @@ export default class CommonRepository {
 
     if (!implementTodoApp) {
       logger.error(new LoggerError(
-        `implemented_todo_appsのデータ(company_id=${ companyId }, todoapp_id=${ todoappId })がありません。`
+        `implemented_todo_appsのデータ(company_id=${companyId}, todoapp_id=${todoappId})がありません。`,
       ));
     }
     return implementTodoApp;
@@ -118,24 +131,31 @@ export default class CommonRepository {
 
     if (!chatToolUser) {
       logger.error(new LoggerError(
-        `chat_tool_usersのデータ(user_id=${ userId }, chattool_id=${ chatToolId })がありません。`
+        `chat_tool_usersのデータ(user_id=${userId}, chattool_id=${chatToolId})がありません。`,
       ));
     }
     return chatToolUser;
   }
 
-  public async getChatToolUserByUserId(authKey: string): Promise<User[]> {
-    return await this.userRepository
-      .createQueryBuilder("users")
-      .innerJoin("chat_tool_users", "r", "users.id = r.user_id")
-      .innerJoinAndMapMany(
-        "users.chattools",
-        "m_chat_tools",
-        "c",
-        "c.id = r.chattool_id AND r.auth_key = :authKey",
-        { authKey }
-      )
-      .getMany();
+  public async getChatToolUserByUserId(
+    authKey: string,
+    relations: string[] = ["chattoolUsers.chattool", "company.implementedChatTools.chattool"],
+  ): Promise<User[]> {
+    return await this.userRepository.find({
+      where: { chattoolUsers: { auth_key: authKey } },
+      relations,
+    });
+    // return await this.userRepository
+    //   .createQueryBuilder("users")
+    //   .innerJoinAndSelect("chat_tool_users", "r", "users.id = r.user_id")
+    //   .innerJoinAndMapMany(
+    //     "users.chattools",
+    //     "m_chat_tools",
+    //     "c",
+    //     "c.id = r.chattool_id AND r.auth_key = :authKey",
+    //     { authKey },
+    //   )
+    //   .getMany();
   }
 
   public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {
@@ -163,10 +183,10 @@ export default class CommonRepository {
               AppDataSource.getRepository(TodoUser)
                 .createQueryBuilder("todo_users")
                 .where("todo_users.todo_id = todos.id")
-                .andWhere("todo_users.user_id IS NOT NULL")
-            )
+                .andWhere("todo_users.user_id IS NOT NULL"),
+            ),
           );
-        })
+        }),
       )
       // .andWhere(
       //   new Brackets((qb) => {
@@ -194,7 +214,7 @@ export default class CommonRepository {
       .where("todo.company_id = :companyId", { companyId: company.id })
       .andWhere(
         "history.created_at BETWEEN :start AND :end",
-        { start: yesterday.startOf("d").toDate(), end: yesterday.endOf("d").toDate() }
+        { start: yesterday.startOf("d").toDate(), end: yesterday.endOf("d").toDate() },
       )
       .andWhere("history.property = :property", { property: Property.IS_DONE })
       .andWhere("history.action = :action", { action: Action.CREATE })
@@ -209,7 +229,7 @@ export default class CommonRepository {
         const histories = todo.histories
           .filter(h => h.property === Property.IS_DONE)
           .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
-        return histories && histories.length && histories.pop().action === Action.CREATE;
+        return histories && histories.length && histories.slice(-1)[0].action === Action.CREATE;
       } else {
         return false;
       }
@@ -272,10 +292,49 @@ export default class CommonRepository {
     return timings.filter(t => t.days_of_week.includes(day));
   }
 
-  public async getActiveTodos(company: Company): Promise<Todo[]> {
+  public async getActiveTodos(company: Company, user?: User): Promise<Todo[]> {
+    const filterByUser: FindOptionsWhere<Todo> = user ? { todoUsers: { user_id: user.id } } : {};
+    const startDate = dayjs().startOf("day").toDate();
+    const endDate = dayjs().endOf("day").toDate();
     return await this.todoRepository.find({
-      where: { company_id: company.id, is_done: false, is_closed: false, deleted_at: IsNull() },
+      where: {
+        company_id: company.id,
+        deadline: Between(startDate, endDate),
+        is_done: false,
+        is_closed: false,
+        deleted_at: IsNull(),
+        ...filterByUser,
+      },
       relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],
     });
+  }
+
+  public async getDailyReportsToday(
+    company?: Company,
+    user?: User,
+    date: Date = new Date(),
+    sections?: Section[]
+  ): Promise<DailyReport[]> {
+    const start = dayjs(date).startOf("day").toDate();
+    const end = dayjs(date).endOf("day").toDate();
+    const findByCompany: FindOptionsWhere<DailyReport> = company ? { company_id: company.id } : {};
+    const findByUser: FindOptionsWhere<DailyReport> = user ? { user_id: user.id } : {};
+    const where: FindOptionsWhere<DailyReport> = {
+      ...findByCompany,
+      ...findByUser,
+      created_at: Between(start, end),
+    };
+    const dailyReports = await this.dailyReportRepository.find({ where, relations: ["user"] });
+    if (sections) {
+      dailyReports.filter(report => sections.some(section => report.section_ids.includes(section.id)));
+    }
+    return dailyReports;
+  }
+
+  public async getTodosByIds(
+    ids: number[],
+    relations: string[] = ["todoUsers.user", "todoSections.section", "prospects"],
+  ): Promise<Todo[]> {
+    return await this.todoRepository.find({ where: { id: In(ids) }, relations });
   }
 }

@@ -18,7 +18,7 @@ export type SlackInteractionPayload = {
 type BlockActionsPayload = {
   type: "block_actions";
   api_app_id: string;
-  container: MessageAttachmentContainer | ViewContainer;
+  container: MessageContainer | ViewContainer;
   token: string;
   trigger_id: string;
   channel: SlackChannel;
@@ -53,8 +53,8 @@ type SlackUser = {
   team_id: string;
 };
 
-type MessageAttachmentContainer = {
-  type: "message_attachment";
+type MessageContainer = {
+  type: "message";
   message_ts: string;
   attachment_id: number;
   channel_id: string;

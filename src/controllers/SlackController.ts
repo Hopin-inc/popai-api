@@ -18,9 +18,17 @@ import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
-import { ReliefCommentModalItems, replyActions, SEPARATOR, SlackActionLabel, SlackModalLabel } from "@/consts/slack";
+import {
+  AskPlanModalItems,
+  ReliefCommentModalItems,
+  replyActions,
+  SEPARATOR,
+  SlackActionLabel,
+  SlackModalLabel,
+} from "@/consts/slack";
 import { Block, KnownBlock } from "@slack/web-api";
 import { SlackInteractionPayload, SlackView } from "@/types/slack";
+import { PlainTextOption } from "@slack/types";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -59,7 +67,7 @@ export default class SlackController extends Controller {
 
         const slackId = user.id;
         const repliedMessage = actions[0].text.text.toLowerCase();
-        const value = actions[0].value;
+        const { value, action_id: actionId } = actions[0];
         const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
 
         // @ts-ignore // FIXME
@@ -68,12 +76,13 @@ export default class SlackController extends Controller {
         const threadId = container.message_ts;
 
         return [
-          await this.handleBlockActions(chatTool, slackUser, slackId, repliedMessage, value, channelId, threadId, triggerId),
+          await this.handleBlockActions(chatTool, slackUser, slackId, repliedMessage, channelId, threadId, triggerId, actionId),
           undefined,
         ];
       } else if (payload.type === "view_submission") {
-        const { view } = payload;
-        return await this.handleViewSubmissions(view);
+        const { user, view } = payload;
+        const slackUser = await this.slackRepository.getUserFromSlackId(user.id);
+        return await this.handleViewSubmissions(slackUser, view);
       } else {
         logger.error(new LoggerError("Unknown Response"));
       }
@@ -87,16 +96,15 @@ export default class SlackController extends Controller {
     user: User,
     slackId: string,
     repliedMessage: string,
-    actionValue: string,
     channelId: string,
     threadId: string,
     triggerId: string,
+    actionId: string,
   ) {
     if (!user) {
       return;
     }
-    const [identifier, value] = actionValue.split(SEPARATOR);
-    console.log(actionValue, identifier, value);
+    const [identifier, value] = actionId.split(SEPARATOR);
     switch (identifier) {
       case SlackActionLabel.PROSPECT:
         await this.slackRepository.respondToProspect(chatTool, user, slackId, parseInt(value), channelId, threadId);
@@ -107,13 +115,16 @@ export default class SlackController extends Controller {
       case SlackActionLabel.OPEN_RELIEF_COMMENT_MODAL:
         await this.slackRepository.openReliefCommentModal(channelId, threadId, triggerId);
         break;
+      case SlackActionLabel.OPEN_PLAN_MODAL:
+        await this.slackRepository.openPlanModal(user, channelId, triggerId, actionId);
+        break;
       default:
         await this.respondToRemindReply(chatTool, slackId, repliedMessage, channelId, threadId);
         break;
     }
   }
 
-  private async handleViewSubmissions(view: SlackView): Promise<[any, (...args) => unknown | undefined]> {
+  private async handleViewSubmissions(user: User, view: SlackView): Promise<[any, (...args) => unknown | undefined]> {
     if (view.type === "modal") {
       switch (view.callback_id) {
         case SlackModalLabel.RELIEF_COMMENT:
@@ -121,10 +132,27 @@ export default class SlackController extends Controller {
             view,
             ReliefCommentModalItems.COMMENT,
             ReliefCommentModalItems.COMMENT,
-            "value"
           );
           const prospect = await this.slackRepository.receiveReliefComment(view.id, comment);
-          return [undefined, () => this.slackRepository.shareReliefComment(view.id, comment, prospect)];
+          return [
+            undefined,
+            async () => await this.slackRepository.shareReliefCommentAndUpdateDailyReport(view.id, comment, prospect)
+          ];
+        case SlackModalLabel.PLAN:
+          const selectedOptions = this.getInputValue<PlainTextOption[]>(
+            view,
+            AskPlanModalItems.TODOS,
+            AskPlanModalItems.TODOS,
+            "selected_options"
+          );
+          const todoIds = selectedOptions.map(option => parseInt(option.value));
+          return [
+            undefined,
+            async () => {
+              const todos = await this.commonRepository.getTodosByIds(todoIds);
+              await this.slackRepository.askProspects(user.company, { user, todos });
+            }
+          ];
         default:
           break;
       }

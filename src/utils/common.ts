@@ -81,3 +81,36 @@ export const roundMinutes = (dt: Date, significance: number, method?: "floor" | 
   };
   return time.set("m", newMinutes(time, significance, method)).set("s", 0).set("ms", 0).toDate();
 };
+
+export const Sorter = {
+  byDate: <T extends object>(key: keyof T, desc: boolean = false) => {
+    return (a: T, b: T): number => {
+      const dateA = dayjs(a[key] as Date);
+      const dateB = dayjs(b[key] as Date);
+      if (!desc) {
+        return dateA.isAfter(dateB) ? 1 : dateA.isBefore(dateB) ? -1 : 0;
+      } else {
+        return dateB.isAfter(dateA) ? 1 : dateB.isBefore(dateA) ? -1 : 0;
+      }
+    };
+  }
+};
+
+export const truncate = (str: string, max: number, countHalfAs: number = 1, countFullAs: number = 1): string => {
+  let chars = 0;
+  let truncatedStr = "";
+  for (let i = 0; i < str.length; i++) {
+    const character = str.charCodeAt(i);
+    if (character >= 0x0 && character <= 0x7f) {
+      chars += countHalfAs;
+    } else {
+      chars += countFullAs;
+    }
+    if (chars >= max) {
+      return truncatedStr + "…";
+    } else {
+      truncatedStr += str[i];
+    }
+  }
+  return truncatedStr;
+};

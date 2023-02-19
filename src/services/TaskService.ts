@@ -162,11 +162,15 @@ export default class TaskService {
     try {
       const timings = await this.commonRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
       await Promise.all(timings.map(async t => {
-        const { company } = t;
+        const { company, ask_plan: askPlan, ask_plan_milestone: milestone } = t;
         for (const chatTool of company.chatTools) {
           switch (chatTool.tool_code) {
             case ChatToolCode.SLACK:
-              await this.slackRepository.askProspects(company);
+              if (askPlan) {
+                await this.slackRepository.askPlans(company, milestone);
+              } else {
+                await this.slackRepository.askProspects(company);
+              }
               break;
             case ChatToolCode.LINE:
             default:
@@ -175,7 +179,6 @@ export default class TaskService {
         }
       }));
     } catch (error) {
-      console.log(error);
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }

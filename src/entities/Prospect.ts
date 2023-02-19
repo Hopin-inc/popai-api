@@ -19,31 +19,31 @@ export default class Prospect extends BaseEntity {
   company_id: number;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  slack_channel_id: string;
+  slack_channel_id?: string;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  slack_ts: string;
+  slack_ts?: string;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  slack_view_id: string;
+  slack_view_id?: string;
 
   @Column({ type: "tinyint", width: 1, nullable: true })
-  prospect: number;
+  prospect?: number;
 
   @Column({ type: "datetime", nullable: true })
-  prospect_responded_at: Date;
+  prospect_responded_at?: Date;
 
   @Column({ type: "tinyint", width: 1, nullable: true })
-  action: number;
+  action?: number;
 
   @Column({ type: "datetime", nullable: true })
-  action_responded_at: Date;
+  action_responded_at?: Date;
 
   @Column({ type: "text", collation: "utf8mb4_unicode_ci", nullable: true })
-  comment: string;
+  comment?: string;
 
   @Column({ type: "datetime", nullable: true })
-  comment_responded_at: Date;
+  comment_responded_at?: Date;
 
   @ManyToOne(
     () => Todo,

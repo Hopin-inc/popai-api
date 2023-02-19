@@ -22,6 +22,9 @@ export default class EventTiming extends BaseEntity {
   @Column({ nullable: true })
   ask_plan: boolean;
 
+  @Column({ type: "time", nullable: true })
+  ask_plan_milestone: string;
+
   @ManyToOne(
     () => Company,
     company => company.eventTimings,

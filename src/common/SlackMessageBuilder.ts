@@ -1,26 +1,26 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-
 import { Button, KnownBlock, MessageAttachment } from "@slack/web-api";
 
 import Todo from "@/entities/Todo";
 import User from "@/entities/User";
+import Section from "@/entities/Section";
+import DailyReport from "@/entities/DailyReport";
 
 import {
+  AskPlanModalItems, DEFAULT_BULLET,
   Icons,
   prospects,
   reliefActions, ReliefCommentModalItems,
   replyActionsAfter,
-  replyActionsBefore,
-  SEPARATOR,
+  replyActionsBefore, SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
-import { diffDays, formatDatetime, relativeRemindDays, toJapanDateTime } from "@/utils/common";
+import { diffDays, formatDatetime, relativeRemindDays, Sorter, toJapanDateTime, truncate } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
-import Section from "@/entities/Section";
-
+import { PlainTextOption } from "@slack/types";
 dayjs.locale("ja");
 
 export default class SlackMessageBuilder {
@@ -317,19 +317,46 @@ export default class SlackMessageBuilder {
     const todosCompletedYesterday = filterTodosByUser(items.completedYesterday, user);
     const todosDelayed = filterTodosByUser(items.delayed, user);
     const todosOngoing = filterTodosByUser(items.ongoing, user);
+    const blocks = this.getDailyReportBlocks(user, iconUrl, todosCompletedYesterday, todosDelayed, todosOngoing);
+    return { blocks };
+  }
 
-    const listTodos = (todos: Todo[], warning: boolean = false): string => {
+  public static createDailyReportWithProspect(dailyReport: DailyReport, items: IDailyReportItems, iconUrl: string) {
+    const { completedYesterday, delayed, ongoing } = items;
+    const blocks = this.getDailyReportBlocks(dailyReport.user, iconUrl, completedYesterday, delayed, ongoing, true);
+    return { blocks };
+  }
+
+  private static getDailyReportBlocks(
+    user: User,
+    iconUrl: string,
+    todosCompletedYesterday: Todo[],
+    todosDelayed: Todo[],
+    todosOngoing: Todo[],
+    displayProspects: boolean = false,
+  ): KnownBlock[] {
+    const listTodos = (todos: Todo[], showProspects: boolean = false, warning: boolean = false): string => {
       if (todos.length) {
-        const bullet = warning ? ":warning: " : "   •  ";
-        return todos.map(todo => `${ bullet }<${ todo.todoapp_reg_url }|${ todo.name }>`).join("\n");
+        return todos.map(todo => {
+          let bullet = DEFAULT_BULLET;
+          if (todo.latestProspect && todo.latestProspect?.prospect) {
+            const prospect = todo.latestProspect?.prospect;
+            bullet = showProspects && prospect
+              ? prospects.find(p => p.value === prospect)?.emoji ?? DEFAULT_BULLET
+              : DEFAULT_BULLET;
+          }
+          const warningEmoji = warning ? ":warning:" : "";
+          const truncatedTodoName = truncate(todo.name, 48, 1, 2);
+          return `${bullet} <${todo.todoapp_reg_url}|${truncatedTodoName}> ${warningEmoji}`;
+        }).join("\n");
       }
     };
     const noTodoMessage = "`ありません`";
     const todoListYesterday = todosCompletedYesterday.length ? listTodos(todosCompletedYesterday) : noTodoMessage;
     const todoListToday = todosDelayed.length + todosOngoing.length === 0 ? noTodoMessage
-      : todosOngoing.length === 0 ? listTodos(todosDelayed, true)
-        : todosDelayed.length === 0 ? listTodos(todosOngoing)
-          : listTodos(todosDelayed, true) + "\n" + listTodos(todosOngoing);
+      : todosOngoing.length === 0 ? listTodos(todosDelayed, displayProspects, true)
+        : todosDelayed.length === 0 ? listTodos(todosOngoing, displayProspects)
+          : listTodos(todosDelayed, displayProspects, true) + "\n" + listTodos(todosOngoing, displayProspects);
     const blocks: KnownBlock[] = [
       {
         type: "context",
@@ -352,9 +379,9 @@ export default class SlackMessageBuilder {
           text: `*今日やること*\n${ todoListToday }`,
         },
       },
+      this.divider,
     ];
-
-    return { blocks };
+    return blocks;
   }
 
   public static createSuggestNotUpdatedTodoMessage(todo: Todo, user: User) {
@@ -384,7 +411,7 @@ export default class SlackMessageBuilder {
           return {
             type: "button",
             text: { type: "plain_text", emoji: true, text: `${ prospect.emoji } ${ prospect.text }` },
-            value: SlackActionLabel.PROSPECT + SEPARATOR + prospect.value,
+            action_id: SlackActionLabel.PROSPECT + SEPARATOR + prospect.value.toString(),
           };
         }),
       },
@@ -404,7 +431,7 @@ export default class SlackMessageBuilder {
             return {
               type: "button",
               text: { type: "plain_text", emoji: true, text: action.text },
-              value: SlackActionLabel.RELIEF_ACTION + SEPARATOR + action.value,
+              action_id: SlackActionLabel.RELIEF_ACTION + SEPARATOR + action.value.toString(),
             };
           }),
         },
@@ -528,14 +555,18 @@ export default class SlackMessageBuilder {
     ];
   }
 
-  private static getAskOpenModalBlock(questionText: string, buttonText: string, value: string): KnownBlock {
+  private static getAskOpenModalBlock(
+    questionText: string,
+    buttonText: string,
+    actionId: string,
+  ): KnownBlock {
     return {
       type: "section",
       text: { type: "mrkdwn", text: questionText },
       accessory: {
         type: "button",
         text: { type: "plain_text", emoji: true, text: buttonText },
-        value,
+        action_id: actionId,
       },
     };
   }
@@ -558,6 +589,51 @@ export default class SlackMessageBuilder {
         block_id: ReliefCommentModalItems.COMMENT,
       }
     ];
+  }
+
+  public static createAskPlanModal(todos: Todo[], milestoneText: string): KnownBlock[] {
+    const isDelayed = (ddl: Date): boolean => dayjs(ddl).isBefore(dayjs(), "day");
+    const delayedTodos = todos.filter(todo => isDelayed(todo.deadline)).sort(Sorter.byDate("deadline"));
+    const ongoingTodos = todos.filter(todo => !isDelayed(todo.deadline)).sort(Sorter.byDate("deadline"));
+    const getOption = (todo: Todo, prepend: string = ""): PlainTextOption => {
+      return {
+        text: { type: "plain_text", emoji: true, text: prepend + truncate(todo.name, 48, 1, 2) },
+        value: todo.id.toString(),
+      };
+    };
+    return [
+      {
+        type: "section",
+        text: { type: "plain_text", emoji: true, text: `${ milestoneText }着手するタスクを教えてください。` },
+      },
+      {
+        type: "input",
+        element: {
+          type: "multi_static_select",
+          action_id: AskPlanModalItems.TODOS,
+          focus_on_load: true,
+          options: [
+            ...delayedTodos.map(todo => getOption(todo, ":warning: ")),
+            ...ongoingTodos.map(todo => getOption(todo)),
+          ],
+        },
+        label: { type: "plain_text", emoji: true, text: "タスク" },
+        block_id: AskPlanModalItems.TODOS,
+      },
+    ];
+  }
+
+  public static createAskPlansMessage(milestone?: string) {
+    const [h, m] = milestone ? milestone.split(":") : [];
+    const milestoneText = milestone ? `${ h }:${ m }までに` : "今日";
+    const blocks: KnownBlock[] = [
+      this.getAskOpenModalBlock(
+        `お疲れ様です:raised_hands:\n${ milestoneText }着手するタスクを教えてください。`,
+        "選択する",
+        SlackActionLabel.OPEN_PLAN_MODAL + SEPARATOR + milestoneText,
+      ),
+    ];
+    return { blocks };
   }
 
   // TODO: SlackRepositoryへ移管する

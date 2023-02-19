@@ -77,15 +77,22 @@ export const reliefActions: ActionItem[] = [
   { text: "目的", value: ReliefAction.PURPOSE },
 ];
 
+export const DEFAULT_BULLET = "   • ";
+
 export const SlackActionLabel = {
   PROSPECT: "PROSPECT",
   RELIEF_ACTION: "RELIEF_ACTION",
   OPEN_RELIEF_COMMENT_MODAL: "OPEN_RELIEF_COMMENT",
+  OPEN_PLAN_MODAL: "OPEN_PLAN",
 };
 export const SEPARATOR = "__";
 export const SlackModalLabel = {
-  RELIEF_COMMENT: "SUBMIT_RELIEF_COMMENT"
+  RELIEF_COMMENT: "SUBMIT_RELIEF_COMMENT",
+  PLAN: "SUBMIT_PLAN",
 };
 export const ReliefCommentModalItems = {
   COMMENT: "COMMENT",
+};
+export const AskPlanModalItems = {
+  TODOS: "TODOS",
 };
