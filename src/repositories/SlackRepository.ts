@@ -853,7 +853,6 @@ export default class SlackRepository {
         const message = SlackMessageBuilder.createAskProspectMessage(todo);
         const users = target ? [target.user] : todo.users;
         await Promise.all(users.map(async user => {
-          if (user.id !== 1) return;  // TODO: Just for debug
           const { thread_id: ts, channel_id: channelId } = await this.sendDirectMessage(chatTool, user, message, todo);
           const prospect = new Prospect(todo.id, user.id, company.id, ts, channelId);
           askedProspects.push(prospect);
