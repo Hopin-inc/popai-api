@@ -11,6 +11,7 @@ import TodoApp from "@/entities/TodoApp";
 import Company from "@/entities/Company";
 import Section from "@/entities/Section";
 import User from "@/entities/User";
+import Property from "@/entities/Property";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
@@ -25,16 +26,18 @@ import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate, ITodoHistory } from "@/types";
 import { INotionProperty, INotionTask } from "@/types/notion";
+import { NotionPropertyType } from "@/consts/common";
 
 @Service()
 export default class NotionRepository {
   private notionRequest: Client;
   private todoRepository: Repository<Todo>;
   private columnNameRepository: Repository<ColumnName>;
+  private todoAppUserRepository: Repository<TodoAppUser>;
+  private propertyRepository: Repository<Property>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
   private commonRepository: CommonRepository;
@@ -42,11 +45,12 @@ export default class NotionRepository {
   constructor() {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.columnNameRepository = AppDataSource.getRepository(ColumnName);
+    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
+    this.propertyRepository = AppDataSource.getRepository(Property);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.todoHistoryRepository = Container.get(TodoHistoryRepository);
-    this.columnNameRepository = AppDataSource.getRepository(ColumnName);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
@@ -69,6 +73,7 @@ export default class NotionRepository {
       const todoTasks: ITodoTask<INotionTask>[] = [];
 
       for (const section of sections) {
+        await this.getProperties(section);
         const columnName = await this.getColumnName(section);
         if (columnName) {
           await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, columnName, sections);
@@ -81,6 +86,46 @@ export default class NotionRepository {
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
+  }
+
+  private async getProperties(section: Section): Promise<any> {
+    try {
+      const response = await this.notionRequest.databases.retrieve({ database_id: section.board_id });
+      const properties = Object.values(response.properties).map(({ id, name, type }) => ({
+        id,
+        name,
+        type,
+      }));
+
+      const updatedProperties = properties.map(({ id, name, type }) => {
+        const updatedType = NotionPropertyType[type.toUpperCase()];
+        if (updatedType !== undefined) {
+          return {
+            id,
+            name,
+            type: updatedType,
+            sectionId: section.id,
+          };
+        }
+        return { id, name, type, sectionId: section.id };
+      });
+      await Promise.all(updatedProperties.map(property => {
+        const { id, name, type, sectionId } = property;
+        return this.saveProperty(id, name, type, sectionId);
+      }));
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  }
+
+  private async saveProperty(id: string, name: string, type: number, sectionId: number) {
+    const property = new Property();
+    property.section_id = sectionId;
+    property.property_id = id;
+    property.name = name;
+    property.type = type;
+
+    await this.propertyRepository.save(property);
   }
 
   private async getColumnName(section: Section): Promise<ColumnName> {
