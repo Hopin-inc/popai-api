@@ -34,7 +34,7 @@ import {
   EventType,
 } from "@/consts/common";
 import EventTiming from "@/entities/EventTiming";
-import { roundMinutes } from "@/utils/common";
+import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/DailyReport";
 
 @Service()
@@ -277,9 +277,10 @@ export default class CommonRepository {
   }
 
   public async getEventTargetCompanies(significance: number, event: valueOf<typeof EventType>): Promise<EventTiming[]> {
-    const executedTimeRounded = roundMinutes(new Date(), significance, "floor");
+    const now = toJapanDateTime(new Date());
+    const executedTimeRounded = roundMinutes(now, significance, "floor");
     const time = dayjs(executedTimeRounded).format("HH:mm:ss");
-    const day = dayjs().day();
+    const day = dayjs(now).day();
     const timings = await this.eventTimingRepository.find({
       where: { time, event },
       relations: [
