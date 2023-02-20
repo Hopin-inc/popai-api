@@ -10,10 +10,15 @@ import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { ITodoHistory, valueOf } from "@/types";
-import { TodoHistoryProperty as Property, TodoHistoryAction as Action, ChatToolCode } from "@/consts/common";
+import {
+  TodoHistoryProperty as Property,
+  TodoHistoryAction as Action,
+  ChatToolCode,
+} from "@/consts/common";
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
+import TodoAppUser from "@/entities/TodoAppUser";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
@@ -22,10 +27,12 @@ export default class TodoHistoryRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private todoRepository: Repository<Todo>;
   private slackRepository: SlackRepository;
+  private todoAppUserRepository: Repository<TodoAppUser>;
 
   constructor() {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.slackRepository = Container.get(SlackRepository);
   }
 
@@ -157,9 +164,13 @@ export default class TodoHistoryRepository {
     await this.todoHistoryRepository.save(todoHistory);
 
     if (notify) {
-      await Promise.all(savedTodo.company?.chatTools?.map(
-        chatTool => this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool),
-      ));
+      await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
+        const editUser = await this.todoAppUserRepository.findOneBy({
+          employee_id: editedBy,
+          todoapp_id: savedTodo.todoapp_id,
+        });
+        return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+      }));
     }
   }
 
@@ -170,6 +181,7 @@ export default class TodoHistoryRepository {
     property: valueOf<typeof Property>,
     action: valueOf<typeof Action>,
     chatTool: ChatTool,
+    editUser: TodoAppUser,
   ) {
     const code = chatTool.tool_code;
     if (property === Property.NAME && action === Action.CREATE) { // 新規追加
@@ -177,7 +189,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool);
+          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool, editUser);
           break;
       }
     } else if (property === Property.IS_DONE && action === Action.CREATE) {  // 完了
@@ -185,7 +197,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool);
+          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool, editUser);
           break;
       }
     } else if (property === Property.ASSIGNEE) {  // 担当者
@@ -193,7 +205,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool);
+          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool, editUser);
           break;
       }
     } else if (property === Property.DEADLINE) {  // 期日
@@ -201,7 +213,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool);
+          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool, editUser);
           break;
       }
     } else if (property === Property.IS_CLOSED) {  // 保留
@@ -209,7 +221,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool);
+          await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool, editUser);
           break;
       }
     }

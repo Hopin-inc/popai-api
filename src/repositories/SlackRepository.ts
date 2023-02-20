@@ -35,6 +35,8 @@ import { ITodoSlack } from "@/types/slack";
 import Prospect from "@/entities/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
 import DailyReport from "@/entities/DailyReport";
+import TodoAppUser from "@/entities/TodoAppUser";
+import TodoApp from "@/entities/TodoApp";
 
 @Service()
 export default class SlackRepository {
@@ -790,8 +792,8 @@ export default class SlackRepository {
     return await query.getMany();
   }
 
-  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees);
+  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool, editUser: TodoAppUser) {
+    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -801,8 +803,8 @@ export default class SlackRepository {
     )));
   }
 
-  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo);
+  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool, editUser: TodoAppUser) {
+    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -817,8 +819,9 @@ export default class SlackRepository {
     action: valueOf<typeof TodoHistoryAction>,
     assignees: User[],
     chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees);
+    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -833,8 +836,9 @@ export default class SlackRepository {
     action: valueOf<typeof TodoHistoryAction>,
     deadline: Date,
     chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline);
+    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -848,8 +852,9 @@ export default class SlackRepository {
     savedTodo: Todo,
     action: valueOf<typeof TodoHistoryAction>,
     chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnClosedUpdatedMessage(savedTodo, action);
+    const message = SlackMessageBuilder.createNotifyOnClosedUpdatedMessage(savedTodo, action, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,

@@ -21,6 +21,8 @@ import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
 import { PlainTextOption } from "@slack/types";
+import TodoAppUser from "@/entities/TodoAppUser";
+import TodoApp from "@/entities/TodoApp";
 
 dayjs.locale("ja");
 
@@ -195,27 +197,28 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createNotifyOnCreatedMessage(todo: Todo, assignees: User[]) {
+  public static createNotifyOnCreatedMessage(todo: Todo, assignees: User[], editUser: TodoAppUser) {
     const blocks: KnownBlock[] = [{
       type: "section",
       text: { type: "mrkdwn", text: `${Icons.CREATED} タスクが追加されました。` },
     }];
-    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo, assignees)];
+    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo, assignees, editUser)];
     return { blocks, attachments };
   }
 
-  public static createNotifyOnCompletedMessage(todo: Todo) {
+  public static createNotifyOnCompletedMessage(todo: Todo, editUser: TodoAppUser) {
     const blocks: KnownBlock[] = [{
       type: "section",
       text: { type: "mrkdwn", text: `${Icons.DONE} タスクを完了しました。` },
     }];
-    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo)];
+    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo, null, editUser)];
     return { blocks, attachments };
   }
 
   private static createTodoAttachment(
     todo: Todo,
     assignees: User[] = todo.users,
+    editUser: TodoAppUser,
     color: string = "good",
   ): MessageAttachment {
     const blocks: KnownBlock[] = [
@@ -230,6 +233,13 @@ export default class SlackMessageBuilder {
           { type: "mrkdwn", text: `${Icons.DEADLINE} ${this.getDeadlineText(todo.deadline)}` },
         ],
       },
+      {
+        type: "context",
+        elements: [
+          { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
+          { type: "mrkdwn", text: editUser.user_app_name },
+        ],
+      },
     ];
     return { blocks, color };
   }
@@ -238,6 +248,7 @@ export default class SlackMessageBuilder {
     todo: Todo,
     action: valueOf<typeof TodoHistoryAction>,
     assignees: User[],
+    editUser: TodoAppUser,
   ) {
     const message = action === TodoHistoryAction.CREATE ? `${Icons.ASSIGNEE} 担当者が設定されました。`
       : action === TodoHistoryAction.DELETE ? `${Icons.ASSIGNEE} 担当者が削除されました。`
@@ -258,12 +269,23 @@ export default class SlackMessageBuilder {
           text: `~${this.getAssigneesText(todo.users)}~ → *${this.getAssigneesText(assignees)}*`,
         },
       },
+      {
+        type: "context",
+        elements: [
+          { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
+          { type: "mrkdwn", text: editUser.user_app_name },
+        ],
+      },
     ];
     const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
     return { blocks, attachments };
   }
 
-  public static createNotifyOnDeadlineUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>, deadline: Date) {
+  public static createNotifyOnDeadlineUpdatedMessage(
+    todo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    deadline: Date,
+    editUser: TodoAppUser) {
     const message = action === TodoHistoryAction.CREATE ? `${Icons.DEADLINE} 期日が設定されました。`
       : action === TodoHistoryAction.DELETE ? `${Icons.DEADLINE} 期日が削除されました。`
         : `${Icons.DEADLINE} 期日が変更されました。`;
@@ -283,12 +305,22 @@ export default class SlackMessageBuilder {
           text: `~${this.getDeadlineText(todo.deadline)}~ → *${this.getDeadlineText(deadline)}*`,
         },
       },
+      {
+        type: "context",
+        elements: [
+          { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
+          { type: "mrkdwn", text: editUser.user_app_name },
+        ],
+      },
     ];
     const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
     return { blocks, attachments };
   }
 
-  public static createNotifyOnClosedUpdatedMessage(todo: Todo, action: valueOf<typeof TodoHistoryAction>) {
+  public static createNotifyOnClosedUpdatedMessage(
+    todo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    editUser: TodoAppUser) {
     const message = action === TodoHistoryAction.CREATE
       ? `${Icons.CLOSED} 保留されました。`
       : `${Icons.CLOSED} 対応予定に戻されました。`;
@@ -300,6 +332,13 @@ export default class SlackMessageBuilder {
       {
         type: "section",
         text: { type: "mrkdwn", text: `*<${todo.todoapp_reg_url}|${todo.name}>*` },
+      },
+      {
+        type: "context",
+        elements: [
+          { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
+          { type: "mrkdwn", text: editUser.user_app_name },
+        ],
       },
     ];
     const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
