@@ -114,7 +114,7 @@ export default class SlackController extends Controller {
         await this.slackRepository.openReliefCommentModal(channelId, threadId, triggerId);
         break;
       case SlackActionLabel.OPEN_PLAN_MODAL:
-        await this.slackRepository.openPlanModal(user, channelId, triggerId, actionId);
+        await this.slackRepository.openPlanModal(user, channelId, triggerId, value);
         break;
       default:
         await this.respondToRemindReply(chatTool, slackId, repliedMessage, channelId, threadId);
