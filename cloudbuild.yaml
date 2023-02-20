@@ -20,7 +20,7 @@ steps:
       - |-
         cat <<EOF > ./app.yaml
         runtime: nodejs16
-        instance_class: F1
+        instance_class: F2
         env_variables:
           HOST: $_HOST
           PORT: 8080
