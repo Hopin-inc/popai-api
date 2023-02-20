@@ -15,7 +15,7 @@ import SlackRepository from "@/repositories/SlackRepository";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
-import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
+import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
@@ -48,7 +48,7 @@ export default class TaskService {
   /**
    * Update todos
    */
-  public async syncTodos(company: Company = null): Promise<any> {
+  public async syncTodos(company: Company = null, notify: boolean = false): Promise<any> {
     try {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
@@ -66,14 +66,14 @@ export default class TaskService {
         where,
       });
 
-      const syncOperations = (company: Company, todoApp: TodoApp) => {
+      const syncOperations = (company: Company, todoApp: TodoApp, notify) => {
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
-            return this.trelloRepository.syncTaskByUserBoards(company, todoApp);
-          case TodoAppCode.MICROSOFT:
+            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
+          case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
             return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
           case TodoAppCode.NOTION:
-            return this.notionRepository.syncTaskByUserBoards(company, todoApp);
+            return this.notionRepository.syncTaskByUserBoards(company, todoApp, notify);
           default:
             return;
         }
@@ -82,7 +82,9 @@ export default class TaskService {
       companies.forEach(company => {
         company.todoApps.forEach(todoApp => companyTodoApps.push([company, todoApp]));
       });
-      await Promise.all(companyTodoApps.map(([company, todoApp]) => syncOperations(company, todoApp)));
+      await Promise.all(companyTodoApps.map(
+        ([company, todoApp]) => syncOperations(company, todoApp, notify))
+      );
       return;
     } catch (error) {
       console.error(error);
@@ -125,13 +127,69 @@ export default class TaskService {
     }
   }
 
+  public async sendDailyReport(): Promise<any> {
+    try {
+      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      const companies = await this.companyRepository.find({
+        relations: [
+          "users.chattoolUsers.chattool",
+          "sections",
+          "implementedChatTools.chattool",
+          "adminUser.chattoolUsers.chattool",
+          "companyConditions",
+        ],
+      });
+      const remindOperations = async (company: Company) => {
+        for (const chatTool of company.chatTools) {
+          switch (chatTool.tool_code) {
+            case ChatToolCode.LINE:
+              break;
+            case ChatToolCode.SLACK:
+              await this.slackRepository.sendDailyReport(company);
+              break;
+            default:
+              break;
+          }
+        }
+      };
+      await Promise.all(companies.map(company => remindOperations(company)));
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  public async askProspects(): Promise<any> {
+    try {
+      const timings = await this.commonRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
+      await Promise.all(timings.map(async t => {
+        const { company, ask_plan: askPlan, ask_plan_milestone: milestone } = t;
+        for (const chatTool of company.chatTools) {
+          switch (chatTool.tool_code) {
+            case ChatToolCode.SLACK:
+              if (askPlan) {
+                await this.slackRepository.askPlans(company, milestone);
+              } else {
+                await this.slackRepository.askProspects(company);
+              }
+              break;
+            case ChatToolCode.LINE:
+            default:
+              break;
+          }
+        }
+      }));
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   /**
    * Remind todos
    */
   public async remindForDemoUser(user: User): Promise<number> {
     try {
-      console.log("remindTaskForDemoUser - START");
-
       const processingJobs = await this.remindUserJobRepository.findBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
@@ -179,8 +237,6 @@ export default class TaskService {
         processingJob.status = RemindUserJobStatus.DONE;
         await this.remindUserJobRepository.save(processingJob);
       }
-
-      console.log("remindTaskForDemoUser - END");
 
       return RemindUserJobResult.OK;
     } catch (error) {

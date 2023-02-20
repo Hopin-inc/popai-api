@@ -74,7 +74,7 @@ export default class RemindRepository {
     const map = new Map<number, ITodoLines[]>();
 
     for (const lineQueues of todoAllTodayQueueTasks) {
-      const remindDays = diffDays(lineQueues.todo.deadline, toJapanDateTime(new Date()));
+      const remindDays = diffDays(toJapanDateTime(lineQueues.todo.deadline), toJapanDateTime(new Date()));
       const chatToolUser = chatToolUsers.find(chatToolUser =>
         chatTool && chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === lineQueues.user.id
       );
@@ -249,7 +249,7 @@ export default class RemindRepository {
 
   private async updateRemindedCount(todos: Todo[]): Promise<any> {
     const todoData = todos.map((todo) => {
-      const dayDurations = diffDays(todo.deadline, toJapanDateTime(new Date()));
+      const dayDurations = diffDays(toJapanDateTime(todo.deadline), toJapanDateTime(new Date()));
 
       if (dayDurations > 0) {
         todo.reminded_count = todo.reminded_count + 1;

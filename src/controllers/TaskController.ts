@@ -1,7 +1,9 @@
 import { Controller } from "tsoa";
 import { Container } from "typedi";
+import * as process from "process";
 
 import TaskService from "@/services/TaskService";
+import { getProcessTime } from "@/utils/common";
 
 export default class TaskController extends Controller {
   private taskService: TaskService;
@@ -11,20 +13,37 @@ export default class TaskController extends Controller {
     this.taskService = Container.get(TaskService);
   }
 
-  public async syncTodos(): Promise<any> {
-    console.log("TaskController#syncTodos - START");
-    await this.taskService.syncTodos();
-    console.log("TaskController#syncTodos - END");
+  public async syncTodos(notify: boolean = false): Promise<any> {
+    console.log(`TaskController#syncTodos(notify = ${ notify }) - START`);
+    const start = process.hrtime();
+    await this.taskService.syncTodos(null, notify);
+    const end = process.hrtime(start);
+    console.log(`TaskController#syncTodos(notify = ${ notify }) - END - ${ getProcessTime(end) }`);
     return;
   }
 
   public async remind(): Promise<any> {
     console.log("TaskController#remind - START");
+    const start = process.hrtime();
     await this.taskService.remind();
-    console.log("TaskController#remind - END");
-
+    const end = process.hrtime(start);
+    console.log(`TaskController#remind - END - ${ getProcessTime(end) }`);
     return;
   }
 
-  public async;
+  public async sendDailyReport(): Promise<any> {
+    console.log("TaskController#sendDailyReport - START");
+    const start = process.hrtime();
+    await this.taskService.sendDailyReport();
+    const end = process.hrtime(start);
+    console.log(`TaskController#sendDailyReport - END - ${ getProcessTime(end) }`);
+  }
+
+  public async askProspects(): Promise<any> {
+    console.log("TaskController#askProspects - START");
+    const start = process.hrtime();
+    await this.taskService.askProspects();
+    const end = process.hrtime(start);
+    console.log(`TaskController#askProspects - END - ${ getProcessTime(end) }`);
+  }
 }

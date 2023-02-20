@@ -9,6 +9,7 @@ import ImplementedTodoApp from "./ImplementedTodoApp";
 import ImplementedChatTool from "./ImplementedChatTool";
 import TodoApp from "./TodoApp";
 import ChatTool from "./ChatTool";
+import EventTiming from "./EventTiming";
 
 @Entity("companies")
 export default class Company extends BaseEntity {
@@ -83,4 +84,11 @@ export default class Company extends BaseEntity {
     { cascade: true }
   )
   todos: Todo[];
+
+  @OneToMany(
+    () => EventTiming,
+    timing => timing.company,
+    { cascade: true }
+  )
+  eventTimings: EventTiming[];
 }

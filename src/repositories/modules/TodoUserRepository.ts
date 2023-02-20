@@ -1,5 +1,5 @@
 import { Service } from "typedi";
-import { IsNull, Repository } from "typeorm";
+import { In, IsNull, Repository } from "typeorm";
 
 import Todo from "@/entities/Todo";
 import TodoUser from "@/entities/TodoUser";
@@ -25,57 +25,55 @@ export default class TodoUserRepository {
       deleted_at: IsNull(),
     });
 
-    const todoUserIds: number[] = todoUsers.map((s) => s.user_id).filter(Number);
-    const userIds: number[] = users.map((s) => s.id).filter(Number);
+    const todoUserIds: number[] = todoUsers.map((s) => s.user_id);
+    const userIds: number[] = users.map(user => user.id);
 
     const differenceUserIds = todoUserIds
-      .filter((x) => !userIds.includes(x))
-      .concat(userIds.filter((x) => !todoUserIds.includes(x)));
+      .filter(id => !userIds.includes(id))
+      .concat(userIds.filter(id => !todoUserIds.includes(id)));
 
     if (differenceUserIds.length) {
       const deletedTodoUsers: TodoUser[] = todoUsers
-        .filter(function(obj) {
-          return differenceUserIds.includes(obj.user_id);
-        })
-        .map((s) => {
-          s.deleted_at = toJapanDateTime(new Date());
-          return s;
+        .filter(todoUser => differenceUserIds.includes(todoUser.user_id))
+        .map(todoUser => {
+          todoUser.deleted_at = toJapanDateTime(new Date());
+          return todoUser;
         });
 
       if (deletedTodoUsers.length) {
-        // await this.todoUserRepository.delete(idTodoUsers);
         await this.todoUserRepository.upsert(deletedTodoUsers, []);
       }
     }
   }
 
   public async saveTodoUsers(dataTodoUsers: ITodoUserUpdate[]): Promise<void> {
-    const todoUsers: TodoUser[] = [];
-
-    for await (const dataTodoUser of dataTodoUsers) {
+    const updatedTodoUsers: TodoUser[] = [];
+    await Promise.all(dataTodoUsers.map(async dataTodoUser => {
       const todo: Todo = await this.todoRepository.findOneBy({
         todoapp_reg_id: dataTodoUser.todoId,
       });
-
       if (todo) {
-        for (const user of dataTodoUser.users) {
-          const todoUser: TodoUser = await this.todoUserRepository.findOneBy({
-            todo_id: todo.id,
-            user_id: user.id,
-            deleted_at: IsNull(),
-          });
-
-          if (!todoUser) {
+        const savedTodoUsers = await this.todoUserRepository.findBy({
+          todo_id: todo.id,
+          user_id: In(dataTodoUser.users.map(user => user.id)),
+          deleted_at: IsNull(),
+        });
+        dataTodoUser.users.forEach(user => {
+          if (!savedTodoUsers.some(tu => tu.user_id === user.id)) {
             const todoUser = new TodoUser();
             todoUser.todo_id = todo.id;
             todoUser.user_id = user.id;
-            todoUsers.push(todoUser);
+            updatedTodoUsers.push(todoUser);
           }
-        }
+        });
+        savedTodoUsers.forEach(savedTodoUser => {
+          if (!dataTodoUser.users.map(u => u.id).includes(savedTodoUser.user_id)) {
+            updatedTodoUsers.push({ ...savedTodoUser, deleted_at: toJapanDateTime(new Date()) });
+          }
+        });
       }
-    }
-
-    await this.todoUserRepository.save(todoUsers);
+    }));
+    await this.todoUserRepository.save(updatedTodoUsers);
   }
 
   public async getUserAssignTask(usersCompany: User[], idMembers: string[]): Promise<User[]> {

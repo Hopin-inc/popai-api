@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 import moment from "moment";
 import { Service, Container } from "typedi";
 
@@ -48,24 +48,29 @@ export default class TrelloRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  public async syncTaskByUserBoards(company: Company, todoapp: TodoApp): Promise<void> {
+  public async syncTaskByUserBoards(company: Company, todoapp: TodoApp, notify: boolean = false): Promise<void> {
     const companyId = company.id;
     const todoappId = todoapp.id;
 
     await this.updateUsersTrello(company.users, todoappId);
     const sections = await this.commonRepository.getSections(companyId, todoappId);
 
-    await this.getUserCardBoards(sections, company, todoapp);
+    await this.getUserCardBoards(sections, company, todoapp, notify);
   }
 
-  private async getUserCardBoards(sections: Section[], company: Company, todoapp: TodoApp): Promise<void> {
+  private async getUserCardBoards(
+    sections: Section[],
+    company: Company,
+    todoapp: TodoApp,
+    notify: boolean = false
+  ): Promise<void> {
     try {
       const todoTasks: ITodoTask<ITrelloTask>[] = [];
       for (const section of sections) {
         await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
 
-      await this.filterUpdateCards(todoTasks);
+      await this.filterUpdateCards(todoTasks, notify);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -182,7 +187,7 @@ export default class TrelloRepository {
     }
   }
 
-  private async filterUpdateCards(cardTodos: ITodoTask<ITrelloTask>[]): Promise<void> {
+  private async filterUpdateCards(cardTodos: ITodoTask<ITrelloTask>[], notify: boolean = false): Promise<void> {
     const cards: IRemindTask<ITrelloTask>[] = [];
 
     for (const cardTodo of cardTodos) {
@@ -202,10 +207,10 @@ export default class TrelloRepository {
       });
     }
 
-    await this.createTodo(cards);
+    await this.createTodo(cards, notify);
   }
 
-  private async createTodo(taskReminds: IRemindTask<ITrelloTask>[]): Promise<void> {
+  private async createTodo(taskReminds: IRemindTask<ITrelloTask>[], notify: boolean = false): Promise<void> {
     try {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
@@ -218,11 +223,19 @@ export default class TrelloRepository {
         return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
+      const savedTodos: Todo[] = await this.todoRepository.find({
+        where: { deleted_at: IsNull() },
+        relations: [
+          "todoUsers.user.chattoolUsers",
+          "company.implementedChatTools.chattool",
+          "todoSections.section",
+        ],
+      });
       const response = await this.todoRepository.upsert(dataTodos, []);
 
       if (response) {
         await Promise.all([
-          this.todoHistoryRepository.saveTodoHistories(dataTodoHistories),
+          this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
           this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),

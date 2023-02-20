@@ -20,6 +20,10 @@ export default class ApiResponse {
     return res.status(status).json({ status, data, message });
   }
 
+  static successRawRes(res: Response, data?: object, status: number = StatusCodes.OK) {
+    return res.status(status).json(data);
+  }
+
   /**
    * Send error response
    *

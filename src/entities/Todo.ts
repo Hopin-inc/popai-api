@@ -8,6 +8,9 @@ import TodoUser from "./TodoUser";
 import TodoSection from "./TodoSection";
 import User from "./User";
 import Section from "./Section";
+import TodoHistory from "./TodoHistory";
+import Prospect from "./Prospect";
+import { Sorter } from "../utils/common";
 
 @Entity("todos")
 export default class Todo extends BaseEntity {
@@ -82,7 +85,7 @@ export default class Todo extends BaseEntity {
 
   get users(): User[] {
     const todoUsers = this.todoUsers;
-    return todoUsers ? todoUsers.map(record => record.user) : [];
+    return todoUsers ? todoUsers.filter(tu => tu.deleted_at === null).map(tu => tu.user) : [];
   }
 
   @OneToMany(
@@ -98,9 +101,31 @@ export default class Todo extends BaseEntity {
   }
 
   @OneToMany(
+    () => TodoHistory,
+    history => history.todo,
+    { cascade: false }
+  )
+  histories: TodoHistory[];
+
+  @OneToMany(
     () => TodoUpdateHistory,
       history => history.todo,
     { cascade: false }
   )
   updateHistories: TodoUpdateHistory[];
+
+  @OneToMany(
+    () => Prospect,
+    prospect => prospect.todo,
+    { cascade: false }
+  )
+  prospects: Prospect[];
+
+  get latestProspect(): Prospect | null {
+    if (this.prospects && this.prospects.length) {
+      return this.prospects.sort(Sorter.byDate<Prospect>("created_at")).slice(-1)[0];
+    } else {
+      return null;
+    }
+  }
 }
