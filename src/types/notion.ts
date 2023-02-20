@@ -16,6 +16,8 @@ export type INotionTask = {
   notion_user_id: string[];
   todoapp_reg_id: string;
   todoapp_reg_url: string;
+  last_edited_by: string;
+  last_edited_by_id: number;
 }
 
 export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;

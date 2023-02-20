@@ -26,6 +26,9 @@ export default class TodoHistory extends BaseEntity {
   @Column({ nullable: true })
   days_diff: number;
 
+  @Column({ nullable: true })
+  edited_by: number;
+
   @Column()
   todoapp_reg_updated_at: Date;
 

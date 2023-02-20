@@ -45,7 +45,7 @@ export default class TodoHistoryRepository {
         property: Property.NAME,
         action: Action.CREATE,
       }) > 0;
-      const { users, deadline, isDone, isClosed } = history;
+      const { users, deadline, isDone, isClosed, editedBy } = history;
       const assignees = users.filter(user => !user.deleted_at) || [];
       const isDelayed = savedTodo.deadline
         ? diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(new Date())) > 0
@@ -56,7 +56,7 @@ export default class TodoHistoryRepository {
       type Args = [
         valueOf<typeof Property>,
         valueOf<typeof Action>,
-        Info | null,    // New assignees & deadline
+          Info | null,    // New assignees & deadline
         boolean,        // Send notification?
       ];
       const argsList: Args[] = [];
@@ -124,7 +124,7 @@ export default class TodoHistoryRepository {
         }
       }
       await Promise.all(argsList.map(([property, action, info, notification]) => {
-        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification);
+        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification, editedBy);
       }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -139,6 +139,7 @@ export default class TodoHistoryRepository {
     updatedAt: Date,
     info: Info | null,
     notify?: boolean,
+    editedBy?: number,
   ) {
     const todoHistory = new TodoHistory();
     todoHistory.todo_id = savedTodo.id;
@@ -147,6 +148,7 @@ export default class TodoHistoryRepository {
     todoHistory.todoapp_reg_updated_at = updatedAt;
     todoHistory.deadline = info?.deadline ?? null;
     todoHistory.days_diff = info?.daysDiff ?? null;
+    todoHistory.edited_by = editedBy;
 
     if (info?.assignee) {
       todoHistory.user_id = info?.assignee.id;
@@ -156,7 +158,7 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(
-        chatTool => this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool)
+        chatTool => this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool),
       ));
     }
   }
@@ -167,7 +169,7 @@ export default class TodoHistoryRepository {
     deadline: Date,
     property: valueOf<typeof Property>,
     action: valueOf<typeof Action>,
-    chatTool: ChatTool
+    chatTool: ChatTool,
   ) {
     const code = chatTool.tool_code;
     if (property === Property.NAME && action === Action.CREATE) { // 新規追加
@@ -200,6 +202,14 @@ export default class TodoHistoryRepository {
           break;
         case ChatToolCode.SLACK:
           await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool);
+          break;
+      }
+    } else if (property === Property.IS_CLOSED) {  // 保留
+      switch (code) {
+        case ChatToolCode.LINE:
+          break;
+        case ChatToolCode.SLACK:
+          await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool);
           break;
       }
     }
