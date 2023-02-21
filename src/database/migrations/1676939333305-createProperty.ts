@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class createProperty1676898947420 implements MigrationInterface {
-  name = "createProperty1676898947420";
+export class createProperty1676939333305 implements MigrationInterface {
+  name = "createProperty1676939333305";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`CREATE TABLE \`properties\`
@@ -15,7 +15,6 @@ export class createProperty1676898947420 implements MigrationInterface {
                                  \`name\`        varchar(255) COLLATE "utf8mb4_unicode_ci" NOT NULL,
                                  \`type\`        int                                       NOT NULL,
                                  \`usage\`       int NULL,
-                                 UNIQUE INDEX \`REL_84ab42f4fb3d8c1664c6c13e31\` (\`section_id\`),
                                  PRIMARY KEY (\`id\`)
                              ) ENGINE=InnoDB`);
     await queryRunner.query(`ALTER TABLE \`properties\`
@@ -24,7 +23,6 @@ export class createProperty1676898947420 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE \`properties\` DROP FOREIGN KEY \`FK_84ab42f4fb3d8c1664c6c13e313\``);
-    await queryRunner.query(`DROP INDEX \`REL_84ab42f4fb3d8c1664c6c13e31\` ON \`properties\``);
     await queryRunner.query(`DROP TABLE \`properties\``);
   }
 

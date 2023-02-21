@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from "typeorm";
 
 import BaseEntity from "./BaseEntity";
 import Section from "./Section";
@@ -23,9 +23,9 @@ export default class Property extends BaseEntity {
   @Column({ nullable: true })
   usage: number;
 
-  @OneToOne(
+  @ManyToOne(
     () => Section,
-    section => section,
+    section => section.properties,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "section_id" })

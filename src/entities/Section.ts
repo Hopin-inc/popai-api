@@ -6,6 +6,7 @@ import Company from "./Company";
 import TodoApp from "./TodoApp";
 import TodoSection from "./TodoSection";
 import SectionLabel from "./SectionLabel";
+import Property from "./Property";
 
 @Entity("sections")
 export default class Section extends BaseEntity {
@@ -32,21 +33,21 @@ export default class Section extends BaseEntity {
 
   @ManyToOne(
     () => Company,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
 
   @ManyToOne(
     () => TodoApp,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "todoapp_id" })
   todoapp: TodoApp;
 
   @ManyToOne(
     () => User,
-    { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
+    { onDelete: "RESTRICT", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "board_admin_user_id" })
   boardAdminUser: User;
@@ -54,7 +55,7 @@ export default class Section extends BaseEntity {
   @OneToMany(
     () => TodoSection,
     todoSection => todoSection.section,
-    { cascade: true }
+    { cascade: true },
   )
   todoSections: TodoSection[];
 
@@ -63,10 +64,13 @@ export default class Section extends BaseEntity {
     return todoSections ? todoSections.map(record => record.section) : [];
   }
 
+  @OneToMany(() => Property, property => property.section)
+  properties: Property[];
+
   @OneToOne(
     () => SectionLabel,
     sectionLabel => sectionLabel.section,
-    { eager: true }
+    { eager: true },
   )
   sectionLabel: SectionLabel;
 }
