@@ -52,7 +52,7 @@ export const NotionPropertyType = {
   TITLE: 1,
   NUMBER: 2,
   SELECT: 3,
-  MULCH_SELECT: 4,
+  MULTI_SELECT: 4,
   URL: 5,
   STATUS: 6,
   PEOPLE: 7,
