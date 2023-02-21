@@ -77,7 +77,7 @@ export const reliefActions: ActionItem[] = [
   { text: "目的", value: ReliefAction.PURPOSE },
 ];
 
-export const DEFAULT_BULLET = "   • ";
+export const DEFAULT_BULLET = "   •  ";
 
 export const SlackActionLabel = {
   PROSPECT: "PROSPECT",

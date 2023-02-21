@@ -310,21 +310,46 @@ export default class SlackMessageBuilder {
   }
 
   public static createDailyReportByUser(items: IDailyReportItems, sections: Section[], user: User, iconUrl: string) {
-    const filterTodosByUser = (todos: Todo[], user: User): Todo[] => todos.filter(todo => {
-      return todo.sections.some(section => sections.some(s => s.id === section.id))
-        && todo.users.some(u => u.id === user.id);
-    });
-    const todosCompletedYesterday = filterTodosByUser(items.completedYesterday, user);
-    const todosDelayed = filterTodosByUser(items.delayed, user);
-    const todosOngoing = filterTodosByUser(items.ongoing, user);
-    const blocks = this.getDailyReportBlocks(user, iconUrl, todosCompletedYesterday, todosDelayed, todosOngoing);
+    const filteredItems = this.filterTodosByUser(items, sections, user);
+    const blocks = this.getDailyReportBlocks(
+      user,
+      iconUrl,
+      filteredItems.completedYesterday,
+      filteredItems.delayed,
+      filteredItems.ongoing
+    );
     return { blocks };
   }
 
   public static createDailyReportWithProspect(dailyReport: DailyReport, items: IDailyReportItems, iconUrl: string) {
-    const { completedYesterday, delayed, ongoing } = items;
-    const blocks = this.getDailyReportBlocks(dailyReport.user, iconUrl, completedYesterday, delayed, ongoing, true);
+    const filteredItems = this.filterTodosByUser(items, dailyReport.section_ids, dailyReport.user);
+    const blocks = this.getDailyReportBlocks(
+      dailyReport.user,
+      iconUrl,
+      filteredItems.completedYesterday,
+      filteredItems.delayed,
+      filteredItems.ongoing,
+      true
+    );
     return { blocks };
+  }
+
+  private static filterTodosByUser(
+    items: IDailyReportItems,
+    sections: (Section | number)[],
+    user: User
+  ): IDailyReportItems {
+    const sectionIds = sections?.length && typeof sections[0] === "number"
+      ? sections
+      : sections.map((s: Section) => s.id);
+    const filteredItems: IDailyReportItems = { completedYesterday: [], delayed: [], ongoing: [] };
+    Object.keys(items).forEach((key: keyof typeof items) => {
+      filteredItems[key] = items[key].filter(todo => {
+        return todo.sections.some(section => sectionIds.includes(section.id))
+          && todo.users.some(u => u.id === user.id);
+      });
+    });
+    return filteredItems;
   }
 
   private static getDailyReportBlocks(
@@ -357,7 +382,7 @@ export default class SlackMessageBuilder {
       : todosOngoing.length === 0 ? listTodos(todosDelayed, displayProspects, true)
         : todosDelayed.length === 0 ? listTodos(todosOngoing, displayProspects)
           : listTodos(todosDelayed, displayProspects, true) + "\n" + listTodos(todosOngoing, displayProspects);
-    const blocks: KnownBlock[] = [
+    return [
       {
         type: "context",
         elements: [
@@ -381,7 +406,6 @@ export default class SlackMessageBuilder {
       },
       this.divider,
     ];
-    return blocks;
   }
 
   public static createSuggestNotUpdatedTodoMessage(todo: Todo, user: User) {
