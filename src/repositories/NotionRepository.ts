@@ -1,4 +1,4 @@
-import { In, IsNull, Repository } from "typeorm";
+import { In, IsNull, Repository, SelectQueryBuilder } from "typeorm";
 import { Client } from "@notionhq/client";
 import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
@@ -26,6 +26,8 @@ import { LoggerError } from "@/exceptions";
 import { IRemindTask, ITodoHistory, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
 import { INotionTask } from "@/types/notion";
 import { NotionPropertyType, PropertyUsageType } from "@/consts/common";
+import TodoHistory from "@/entities/TodoHistory";
+import { Common } from "../../dist/const/common";
 
 @Service()
 export default class NotionRepository {
@@ -268,11 +270,15 @@ export default class NotionRepository {
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
       if (section.board_id) {
         try {
+          const lastUpdatedRecord = await this.commonRepository.getLastUpdatedTime(company, todoapp);
+          const lastUpdatedDay = lastUpdatedRecord.todoapp_reg_updated_at;
+          lastUpdatedDay.setDate(lastUpdatedDay.getDate() - 1);
+          const yesterdayLastUpdated = lastUpdatedDay.toISOString().slice(0, 10);
           let response = await this.notionRequest.databases.query({
             database_id: section.board_id,
             filter: {
               timestamp: "last_edited_time",
-              last_edited_time: { after: "2023-02-19" }, //TODO:最新更新日時を挿入する
+              last_edited_time: { after: yesterdayLastUpdated },
             },
           });
           const pages = response.results;

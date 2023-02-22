@@ -36,6 +36,7 @@ import {
 import EventTiming from "@/entities/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/DailyReport";
+import TodoApp from "@/entities/TodoApp";
 
 @Service()
 export default class CommonRepository {
@@ -314,7 +315,7 @@ export default class CommonRepository {
     company?: Company,
     user?: User,
     date: Date = new Date(),
-    sections?: Section[]
+    sections?: Section[],
   ): Promise<DailyReport[]> {
     const start = dayjs(date).startOf("day").toDate();
     const end = dayjs(date).endOf("day").toDate();
@@ -337,5 +338,21 @@ export default class CommonRepository {
     relations: string[] = ["todoUsers.user", "todoSections.section", "prospects"],
   ): Promise<Todo[]> {
     return await this.todoRepository.find({ where: { id: In(ids) }, relations });
+  }
+
+  public async getLastUpdatedTime(company: Company, todoapp: TodoApp): Promise<TodoHistory> | undefined {
+    const companyId = company.id;
+    const todoAppId = todoapp.id;
+
+    return await this.todoHistoryRepository
+      .createQueryBuilder("todo_histories")
+      .leftJoinAndSelect(
+        "todo_histories.todo",
+        "todos",
+        "todo_histories.todo_id = todos.id")
+      .where("todos.company_id = :companyId", { companyId: companyId })
+      .andWhere("todos.todoapp_id = :todoappId", { todoappId: todoAppId })
+      .orderBy("todo_histories.todoapp_reg_updated_at", "DESC")
+      .getOne();
   }
 }
