@@ -26,6 +26,9 @@ export default class Section extends BaseEntity {
   board_id: string;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  label_id: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   channel_id: string;
 
   @Column({ nullable: true })
