@@ -1,4 +1,4 @@
-import { In, IsNull, Repository, SelectQueryBuilder } from "typeorm";
+import { In, IsNull, Repository } from "typeorm";
 import { Client } from "@notionhq/client";
 import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
@@ -26,8 +26,6 @@ import { LoggerError } from "@/exceptions";
 import { IRemindTask, ITodoHistory, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
 import { INotionTask } from "@/types/notion";
 import { NotionPropertyType, PropertyUsageType } from "@/consts/common";
-import TodoHistory from "@/entities/TodoHistory";
-import { Common } from "../../dist/const/common";
 
 @Service()
 export default class NotionRepository {
@@ -71,9 +69,13 @@ export default class NotionRepository {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
 
+      const processedBoardIds = new Set<string>();
       for (const section of sections) {
-        await this.getProperties(section);
-        await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, sections);
+        if (!processedBoardIds.has(section.board_id)) {
+          processedBoardIds.add(section.board_id);
+          await this.getProperties(section);
+          await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, sections);
+        }
       }
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
