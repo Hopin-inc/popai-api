@@ -272,10 +272,10 @@ export default class NotionRepository {
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
       if (section.board_id) {
         try {
-          const lastUpdatedRecord = await this.commonRepository.getLastUpdatedTime(company, todoapp);
-          const lastUpdatedDay = lastUpdatedRecord.todoapp_reg_updated_at;
-          lastUpdatedDay.setDate(lastUpdatedDay.getDate() - 1);
-          const yesterdayLastUpdated = lastUpdatedDay.toISOString().slice(0, 10);
+          const lastUpdatedDate = await this.commonRepository.getLastUpdatedDate(company, todoapp);
+          lastUpdatedDate.setDate(lastUpdatedDate.getDate() - 1);
+          const yesterdayLastUpdated = lastUpdatedDate.toISOString().slice(0, 10);
+
           let response = await this.notionRequest.databases.query({
             database_id: section.board_id,
             filter: {

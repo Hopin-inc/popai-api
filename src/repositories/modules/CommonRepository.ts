@@ -340,11 +340,11 @@ export default class CommonRepository {
     return await this.todoRepository.find({ where: { id: In(ids) }, relations });
   }
 
-  public async getLastUpdatedTime(company: Company, todoapp: TodoApp): Promise<TodoHistory> | undefined {
+  public async getLastUpdatedDate(company: Company, todoapp: TodoApp): Promise<Date> {
     const companyId = company.id;
     const todoAppId = todoapp.id;
 
-    return await this.todoHistoryRepository
+    const lastUpdatedRecord = await this.todoHistoryRepository
       .createQueryBuilder("todo_histories")
       .leftJoinAndSelect(
         "todo_histories.todo",
@@ -354,5 +354,7 @@ export default class CommonRepository {
       .andWhere("todos.todoapp_id = :todoappId", { todoappId: todoAppId })
       .orderBy("todo_histories.todoapp_reg_updated_at", "DESC")
       .getOne();
+
+    return lastUpdatedRecord.todoapp_reg_updated_at;
   }
 }
