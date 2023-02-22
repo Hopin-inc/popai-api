@@ -1,7 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 
 import BaseEntity from "./BaseEntity";
 import Section from "./Section";
+import PropertyOption from "./PropertyOption";
 
 @Entity("properties")
 export default class Property extends BaseEntity {
@@ -30,4 +31,10 @@ export default class Property extends BaseEntity {
   )
   @JoinColumn({ name: "section_id" })
   section: Section;
+
+  @OneToMany(
+    () => PropertyOption,
+      propertyOption => propertyOption.property,
+    { cascade: false })
+  propertyOptions: PropertyOption[];
 }
