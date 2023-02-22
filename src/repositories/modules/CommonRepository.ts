@@ -22,6 +22,7 @@ import TodoHistory from "@/entities/TodoHistory";
 import TodoUser from "@/entities/TodoUser";
 import User from "@/entities/User";
 import CompanyCondition from "@/entities/CompanyCondition";
+import PropertyOption from "@/entities/PropertyOption";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
@@ -49,6 +50,7 @@ export default class CommonRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
+  private propertyOptionRepository: Repository<PropertyOption>;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -60,6 +62,7 @@ export default class CommonRepository {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
+    this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -80,20 +83,6 @@ export default class CommonRepository {
       .where("sections.company_id = :companyId", { companyId })
       .andWhere("sections.todoapp_id = :todoappId", { todoappId })
       .andWhere("sections.board_id IS NOT NULL")
-      .getMany();
-  }
-
-  public async getSectionLabels(companyId: number, todoappId: number): Promise<SectionLabel[]> {
-    return this.labelSectionRepository
-      .createQueryBuilder("section_labels")
-      .innerJoinAndSelect(
-        "section_labels.section",
-        "sections",
-        "section_labels.section_id = sections.id",
-      )
-      .where("sections.company_id = :companyId", { companyId })
-      .andWhere("sections.todoapp_id = :todoappId", { todoappId })
-      .andWhere("section_labels.label_id IS NOT NULL")
       .getMany();
   }
 
@@ -356,5 +345,18 @@ export default class CommonRepository {
       .getOne();
 
     return lastUpdatedRecord.todoapp_reg_updated_at;
+  }
+
+  public async getUsageProperty(property, optionId: string) {
+    return await this.propertyOptionRepository
+      .createQueryBuilder("property_options")
+      .leftJoin(
+        "property_options.property",
+        "properties",
+        "property_options.property_id = properties.id")
+      .where("property_options.property_id =:propertyId", { propertyId: property.id })
+      .andWhere("property_options.option_id =:optionId", { optionId: optionId })
+      .andWhere("property_options.usage IS NOT NULL")
+      .getOne();
   }
 }

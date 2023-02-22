@@ -11,6 +11,7 @@ import Company from "@/entities/Company";
 import Section from "@/entities/Section";
 import User from "@/entities/User";
 import Property from "@/entities/Property";
+import PropertyOption from "@/entities/PropertyOption";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
@@ -33,6 +34,8 @@ export default class NotionRepository {
   private todoRepository: Repository<Todo>;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private propertyRepository: Repository<Property>;
+  private propertyOptionRepository: Repository<PropertyOption>;
+  private sectionRepository: Repository<Section>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -45,6 +48,8 @@ export default class NotionRepository {
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.propertyRepository = AppDataSource.getRepository(Property);
+    this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
+    this.sectionRepository = AppDataSource.getRepository(Section);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
@@ -89,13 +94,9 @@ export default class NotionRepository {
   private async getProperties(section: Section): Promise<any> {
     try {
       const response = await this.notionRequest.databases.retrieve({ database_id: section.board_id });
-      const properties = Object.values(response.properties).map(({ id, name, type }) => ({
-        id,
-        name,
-        type,
-      }));
+      const properties = Object.values(response.properties);
 
-      const updatedProperties = properties.map(({ id, name, type }) => {
+      const updatedProperty = properties.map(({ id, name, type, ...rest }) => {
         const updatedType = NotionPropertyType[type.toUpperCase()];
         if (updatedType !== undefined) {
           return {
@@ -103,17 +104,83 @@ export default class NotionRepository {
             name,
             type: updatedType,
             sectionId: section.id,
+            ...rest,
           };
         }
-        return { id, name, type, sectionId: section.id };
       });
-      await Promise.all(updatedProperties.map(property => {
+
+      await Promise.all(updatedProperty.map(property => {
         const { id, name, type, sectionId } = property;
-        return this.saveProperty(id, name, type, sectionId);
+        this.saveProperty(id, name, type, sectionId);
+        return this.getPropertyOptions(property, sectionId);
       }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
+  }
+
+  private async savePropertyOption(propertyId: number, optionId: string, sectionId: number, name?: string) {
+    const propertyOptionExists = await this.propertyOptionRepository
+      .createQueryBuilder("property_options")
+      .leftJoinAndSelect(
+        "property_options.property",
+        "properties",
+        "property_options.property_id = properties.id")
+      .where("properties.section_id =:sectionId", { sectionId: sectionId })
+      .andWhere("property_options.property_id =:propertyId", { propertyId: propertyId })
+      .getOne();
+
+    if (propertyOptionExists && name) {
+      propertyOptionExists.name = name;
+      await this.propertyOptionRepository.save(propertyOptionExists);
+    } else if (!propertyOptionExists) {
+      const property = new PropertyOption();
+      property.property_id = propertyId;
+      property.option_id = optionId;
+      property.name = name;
+
+      await this.propertyOptionRepository.save(property);
+    }
+  }
+
+  private async getPropertyOptions(property, sectionId: number) {
+    const propertyRecord = await this.propertyRepository.findOne({
+      where: {
+        section_id: sectionId,
+        property_id: property.id,
+      },
+    });
+
+    let options;
+    switch (property.type) {
+      case NotionPropertyType.SELECT:
+        options = property.select.options;
+        break;
+      case NotionPropertyType.MULTI_SELECT:
+        options = property.multi_select.options;
+        break;
+      case NotionPropertyType.STATUS:
+        options = property.status.options;
+        break;
+      case NotionPropertyType.RELATION:
+        const propertyId = propertyRecord.id;
+        const optionId = property.relation.database_id;
+        const optionName = null;
+        return this.savePropertyOption(propertyId, optionId, sectionId, optionName);
+      default:
+        return;
+    }
+    const propertyOptions = options.map(option => ({
+      propertyId: propertyRecord.id,
+      optionId: option.id,
+      optionName: option.name,
+      sectionId: sectionId,
+    }));
+
+    for (const option of propertyOptions) {
+      await this.savePropertyOption(option.propertyId, option.optionId, option.sectionId, option.optionName);
+    }
+    return;
   }
 
   private async saveProperty(id: string, name: string, type: number, sectionId: number, usage?: number) {
@@ -183,6 +250,10 @@ export default class NotionRepository {
       const property = pageProperty.find(prop => prop.id === sectionId);
       if (property.type === "relation") {
         return property.relation.map(section => section.id);
+      } else if (property.type === "select") {
+        return property.select.id;
+      } else if (property.type === "multi_select") {
+        return property.multi_select.map(section => section.id);
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -191,9 +262,14 @@ export default class NotionRepository {
   }
 
   private async getNotionSectionIds(company: Company, todoApp: TodoApp, labelIds: string[]): Promise<number[]> {
-    const registeredSectionLabels = await this.commonRepository.getSectionLabels(company.id, todoApp.id);
-    const registeredLabelRecords = registeredSectionLabels.map(sectionLabel => {
-      return { sectionId: sectionLabel.section_id, labelId: sectionLabel.label_id };
+    const registeredSectionLabels = await this.sectionRepository.find({
+      where: {
+        company_id: company.id,
+        todoapp_id: todoApp.id,
+      },
+    });
+    const registeredLabelRecords = registeredSectionLabels.map(section => {
+      return { sectionId: section.id, labelId: section.label_id };
     });
 
     const results: number[] = [];
@@ -202,16 +278,32 @@ export default class NotionRepository {
         results.push(record.sectionId);
       }
     });
+
+    console.dir(results, { depth: null });
     return results;
   }
 
-  private getIsStatus(pageProperty: Record<any, any>, isFlagId: string): boolean {
+  private async getIsStatus(pageProperty: Record<any, any>, isFlagId: string): Promise<boolean> {
     try {
       const property = pageProperty.find(prop => prop.id === isFlagId);
       if (property.type === "checkbox") {
         return property.checkbox;
       } else if (property.type === "formula" && property.formula.type === "boolean") {
         return property.formula.boolean;
+      } else if (property.type === "status") {
+        const optionId: string = property.status.id;
+
+        const usagePropertyOption = await this.propertyOptionRepository
+          .createQueryBuilder("property_options")
+          .leftJoin(
+            "property_options.property",
+            "properties",
+            "property_options.property_id = properties.id")
+          .where("properties.property_id =:propertyId", { propertyId: property.id })
+          .andWhere("property_options.option_id =:optionId", { optionId: optionId })
+          .andWhere("property_options.usage IS NOT NULL")
+          .getOne();
+        return usagePropertyOption !== null && optionId === usagePropertyOption.option_id;
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -314,9 +406,9 @@ export default class NotionRepository {
   }
 
   private getUsageProperty(usageProperty: Property[], pagePropertyIds: string[], usageId: number) {
-    const targetProperty = usageProperty.filter(property => property.usage === usageId);
-    const foundProperty = targetProperty.find(property => pagePropertyIds.includes(property.property_id));
-    return foundProperty ? foundProperty.property_id : null;
+    const filteredProperty = usageProperty.filter(property => property.usage === usageId);
+    const result = filteredProperty.find(property => pagePropertyIds.includes(property.property_id));
+    return result ? result.property_id : null;
   }
 
   private async getPages(
@@ -341,6 +433,7 @@ export default class NotionRepository {
 
       const name = this.getTitle(pageProperty, propertyId.title);
       if (!name) return;
+
       const pageTodo: INotionTask = {
         todoapp_reg_id: pageId,
         name,
@@ -348,7 +441,7 @@ export default class NotionRepository {
         sections: this.getSections(pageProperty, propertyId.section),
         section_ids: [],
         deadline: this.getDue(pageProperty, propertyId.due),
-        is_done: this.getIsStatus(pageProperty, propertyId.isDone),
+        is_done: await this.getIsStatus(pageProperty, propertyId.isDone),
         created_by: this.getString(pageInfo, "created_by"),
         created_by_id: null,
         created_at: this.getDate(pageInfo, "created_time"),
@@ -357,11 +450,12 @@ export default class NotionRepository {
         last_edited_at: this.getDate(pageInfo, "last_edited_time"),
         todoapp_reg_url: this.getString(pageInfo, "url"),
         dueReminder: null,
-        closed: this.getIsStatus(pageProperty, propertyId.isClosed),
+        closed: await this.getIsStatus(pageProperty, propertyId.isClosed),
       };
       pageTodo.created_by_id = await this.getEditedById(company.users, todoapp.id, pageTodo.created_by);
       pageTodo.last_edited_by_id = await this.getEditedById(company.users, todoapp.id, pageTodo.last_edited_by);
       pageTodo.section_ids = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
+
       pageTodos.push(pageTodo);
     }
   }
