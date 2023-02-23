@@ -278,8 +278,6 @@ export default class NotionRepository {
         results.push(record.sectionId);
       }
     });
-
-    console.dir(results, { depth: null });
     return results;
   }
 
@@ -435,26 +433,26 @@ export default class NotionRepository {
       if (!name) return;
 
       const pageTodo: INotionTask = {
-        todoapp_reg_id: pageId,
+        todoappRegId: pageId,
         name,
-        notion_user_id: this.getAssignee(pageProperty, propertyId.assignee),
+        assignees: this.getAssignee(pageProperty, propertyId.assignee),
         sections: this.getSections(pageProperty, propertyId.section),
-        section_ids: [],
+        sectionIds: [],
         deadline: this.getDue(pageProperty, propertyId.due),
-        is_done: await this.getIsStatus(pageProperty, propertyId.isDone),
-        created_by: this.getString(pageInfo, "created_by"),
-        created_by_id: null,
-        created_at: this.getDate(pageInfo, "created_time"),
-        last_edited_by: this.getString(pageInfo, "last_edited_by"),
-        last_edited_by_id: null,
-        last_edited_at: this.getDate(pageInfo, "last_edited_time"),
-        todoapp_reg_url: this.getString(pageInfo, "url"),
-        dueReminder: null,
-        closed: await this.getIsStatus(pageProperty, propertyId.isClosed),
+        isDone: await this.getIsStatus(pageProperty, propertyId.isDone),
+        isClosed: await this.getIsStatus(pageProperty, propertyId.isClosed),
+        todoappRegUrl: this.getString(pageInfo, "url"),
+        deadlineReminder: null,
+        createdBy: this.getString(pageInfo, "created_by"),
+        createdById: null,
+        createdAt: this.getDate(pageInfo, "created_time"),
+        lastEditedBy: this.getString(pageInfo, "last_edited_by"),
+        lastEditedById: null,
+        lastEditedAt: this.getDate(pageInfo, "last_edited_time"),
       };
-      pageTodo.created_by_id = await this.getEditedById(company.users, todoapp.id, pageTodo.created_by);
-      pageTodo.last_edited_by_id = await this.getEditedById(company.users, todoapp.id, pageTodo.last_edited_by);
-      pageTodo.section_ids = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
+      pageTodo.sectionIds = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
+      pageTodo.createdById = await this.getEditedById(company.users, todoapp.id, pageTodo.createdBy);
+      pageTodo.lastEditedById = await this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy);
 
       pageTodos.push(pageTodo);
     }
@@ -468,18 +466,18 @@ export default class NotionRepository {
     sections: Section[],
     todoAppUser: TodoAppUser,
   ): Promise<void> {
-    const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.notion_user_id);
+    const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.assignees);
 
     const page: ITodoTask<INotionTask> = {
       todoTask: pageTodo,
       company,
       todoapp,
       todoAppUser,
-      sections: sections.filter(section => pageTodo.section_ids.includes(section.id)),
+      sections: sections.filter(section => pageTodo.sectionIds.includes(section.id)),
       users,
     };
 
-    const taskFound = todoTasks.find(task => task.todoTask?.todoapp_reg_id === pageTodo.todoapp_reg_id);
+    const taskFound = todoTasks.find(task => task.todoTask?.todoappRegId === pageTodo.todoappRegId);
     if (taskFound) {
       taskFound.users = users;
     } else {
@@ -555,42 +553,42 @@ export default class NotionRepository {
   ): Promise<void> {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
-    const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoapp_reg_id });
+    const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
     const deadline = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
     const todoData = new Todo();
     todoData.id = todo?.id ?? null;
     todoData.name = todoTask.name;
     todoData.todoapp_id = todoapp.id;
-    todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
-    todoData.todoapp_reg_url = todoTask.todoapp_reg_url;
-    todoData.todoapp_reg_created_by = todoTask.created_by_id;
-    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.created_at);
+    todoData.todoapp_reg_id = todoTask.todoappRegId;
+    todoData.todoapp_reg_url = todoTask.todoappRegUrl;
+    todoData.todoapp_reg_created_by = todoTask.createdById;
+    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdAt);
     todoData.company_id = company.id;
     todoData.deadline = deadline;
-    todoData.is_done = todoTask.is_done;
+    todoData.is_done = todoTask.isDone;
     todoData.is_reminded = todo?.is_reminded ?? false;
-    todoData.is_closed = todoTask.closed;
+    todoData.is_closed = todoTask.isClosed;
     todoData.delayed_count = todo?.delayed_count ?? 0;
     todoData.reminded_count = todo?.reminded_count ?? 0;
 
     if (users.length) {
-      dataTodoUsers.push({ todoId: todoTask.todoapp_reg_id, users });
+      dataTodoUsers.push({ todoId: todoTask.todoappRegId, users });
     }
 
     if (sections.length) {
-      dataTodoSections.push({ todoId: todoTask.todoapp_reg_id, sections });
+      dataTodoSections.push({ todoId: todoTask.todoappRegId, sections });
     }
 
     dataTodoHistories.push({
-      todoId: todoTask.todoapp_reg_id,
+      todoId: todoTask.todoappRegId,
       name: todoTask.name,
       deadline: todoTask.deadline,
       users: users,
-      isDone: todoTask.is_done,
-      isClosed: todoTask.closed,
-      todoappRegUpdatedAt: todoTask.last_edited_at,
-      editedBy: todoTask.last_edited_by_id,
+      isDone: todoTask.isDone,
+      isClosed: todoTask.isClosed,
+      todoappRegUpdatedAt: todoTask.lastEditedAt,
+      editedBy: todoTask.lastEditedById,
     });
 
     //update deadline task
@@ -600,10 +598,10 @@ export default class NotionRepository {
 
       if (isDeadlineChanged || isDoneChanged) {
         dataTodoUpdates.push({
-          todoId: todoTask.todoapp_reg_id,
+          todoId: todoTask.todoappRegId,
           dueTime: todo?.deadline,
           newDueTime: deadline,
-          updateTime: toJapanDateTime(todoTask.last_edited_at),
+          updateTime: toJapanDateTime(todoTask.lastEditedAt),
         });
       }
 
