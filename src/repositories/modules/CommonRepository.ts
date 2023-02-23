@@ -135,17 +135,6 @@ export default class CommonRepository {
       where: { chattoolUsers: { auth_key: authKey } },
       relations,
     });
-    // return await this.userRepository
-    //   .createQueryBuilder("users")
-    //   .innerJoinAndSelect("chat_tool_users", "r", "users.id = r.user_id")
-    //   .innerJoinAndMapMany(
-    //     "users.chattools",
-    //     "m_chat_tools",
-    //     "c",
-    //     "c.id = r.chattool_id AND r.auth_key = :authKey",
-    //     { authKey },
-    //   )
-    //   .getMany();
   }
 
   public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {
@@ -178,13 +167,6 @@ export default class CommonRepository {
           );
         }),
       )
-      // .andWhere(
-      //   new Brackets((qb) => {
-      //     qb.where('todos.reminded_count < :count', {
-      //       count: 2,
-      //     });
-      //   })
-      // )
       .getMany();
   }
 
@@ -345,18 +327,5 @@ export default class CommonRepository {
       .getOne();
 
     return lastUpdatedRecord.todoapp_reg_updated_at;
-  }
-
-  public async getUsageProperty(property, optionId: string) {
-    return await this.propertyOptionRepository
-      .createQueryBuilder("property_options")
-      .leftJoin(
-        "property_options.property",
-        "properties",
-        "property_options.property_id = properties.id")
-      .where("property_options.property_id =:propertyId", { propertyId: property.id })
-      .andWhere("property_options.option_id =:optionId", { optionId: optionId })
-      .andWhere("property_options.usage IS NOT NULL")
-      .getOne();
   }
 }
