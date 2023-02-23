@@ -19,17 +19,20 @@ import {
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
 import TodoAppUser from "@/entities/TodoAppUser";
+import { Client } from "@notionhq/client";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
 export default class TodoHistoryRepository {
+  private notionRequest: Client;
   private todoHistoryRepository: Repository<TodoHistory>;
   private todoRepository: Repository<Todo>;
   private slackRepository: SlackRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
 
   constructor() {
+    this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
@@ -165,11 +168,14 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-        const editUser = await this.todoAppUserRepository.findOneBy({
-          employee_id: editedBy,
-          todoapp_id: savedTodo.todoapp_id,
-        });
-        return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+        const isPageResponse = await this.notionRequest.pages.retrieve({ page_id: savedTodo.todoapp_reg_id });
+        if (isPageResponse) {
+          const editUser = await this.todoAppUserRepository.findOneBy({
+            employee_id: editedBy,
+            todoapp_id: savedTodo.todoapp_id,
+          });
+          return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+        }
       }));
     }
   }
