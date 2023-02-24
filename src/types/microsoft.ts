@@ -28,11 +28,11 @@ export type IMicrosoftRefresh = {
 };
 
 export type IMicrosoftToken = {
-  tokenType: string;
+  token_type: string;
   score: string;
-  expiresIn: number;
-  accessToken: string;
-  refreshToken: string;
+  expires_in: number;
+  access_token: string;
+  refresh_token: string;
 }
 
 export type IMicrosoftMember = Record<string, any> & {

@@ -201,16 +201,16 @@ export default class MicrosoftRepository {
 
         const response = await fetchApi<FormData, IMicrosoftToken>(url, "POST", formData, true);
 
-        if (response.accessToken) {
+        if (response.access_token) {
           const todoAppUser: TodoAppUser = await this.todoAppUserRepository.findOneBy({
             todoapp_id: todoAppUserData.todoapp_id,
             employee_id: todoAppUserData.employee_id,
           });
 
           if (todoAppUser) {
-            todoAppUser.api_token = response.accessToken;
-            todoAppUser.refresh_token = response.refreshToken;
-            todoAppUser.expires_in = response.expiresIn;
+            todoAppUser.api_token = response.access_token;
+            todoAppUser.refresh_token = response.refresh_token;
+            todoAppUser.expires_in = response.expires_in;
             return await this.todoAppUserRepository.save(todoAppUser);
           }
         }
