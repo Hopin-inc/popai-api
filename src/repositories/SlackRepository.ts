@@ -105,6 +105,7 @@ export default class SlackRepository {
   ) {
     // const ts = await this.startDailyReport(company, channel);
     // await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
+
     await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel)));
     await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
   }

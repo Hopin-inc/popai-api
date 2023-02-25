@@ -159,7 +159,6 @@ export default class TodoHistoryRepository {
     todoHistory.deadline = info?.deadline ?? null;
     todoHistory.days_diff = info?.daysDiff ?? null;
     todoHistory.edited_by = editedBy;
-    console.log(todoHistory);
 
     if (info?.assignee) {
       todoHistory.user_id = info?.assignee.id;
@@ -169,12 +168,14 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-          await this.commonRepository.syncArchivedTrue(savedTodo);
-          const editUser = await this.todoAppUserRepository.findOneBy({
-            employee_id: editedBy,
-            todoapp_id: savedTodo.todoapp_id,
-          });
-          return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+          const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
+          if (archivedPage === undefined) {
+            const editUser = await this.todoAppUserRepository.findOneBy({
+              employee_id: editedBy,
+              todoapp_id: savedTodo.todoapp_id,
+            });
+            return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+          }
         },
       ));
     }

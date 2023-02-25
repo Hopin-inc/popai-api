@@ -38,7 +38,7 @@ import EventTiming from "@/entities/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/DailyReport";
 import TodoApp from "@/entities/TodoApp";
-import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { deleteBlock, GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 
 @Service()
@@ -214,7 +214,7 @@ export default class CommonRepository {
 
   private async getTodosDelayed(company: Company): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
-    return await this.todoRepository.find({
+    const delayedTodos = await this.todoRepository.find({
       where: {
         company_id: company.id,
         deadline: LessThan(startOfToday),
@@ -223,12 +223,14 @@ export default class CommonRepository {
       },
       relations: ["todoUsers.user", "todoSections.section"],
     });
+
+    return this.getNotArchivedTodos(delayedTodos);
   }
 
   private async getTodosOngoing(company: Company): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
     const endOfToday = dayjs().endOf("d").toDate();
-    return await this.todoRepository.find({
+    const onGoingTodos = await this.todoRepository.find({
       where: {
         company_id: company.id,
         deadline: Between(startOfToday, endOfToday),
@@ -237,6 +239,8 @@ export default class CommonRepository {
       },
       relations: ["todoUsers.user", "todoSections.section"],
     });
+
+    return this.getNotArchivedTodos(onGoingTodos);
   }
 
   public async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
@@ -333,13 +337,26 @@ export default class CommonRepository {
     return lastUpdatedRecord.todoapp_reg_updated_at;
   }
 
-  public async syncArchivedTrue(todo: Todo) {
-    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todo.todoapp_reg_id });
+  public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
+    const archivedPages: PageObjectResponse[] = [];
+    await Promise.all(todos.map(async todo => {
+      const archivedPage = this.syncArchivedTrue(todo.todoapp_reg_id);
+      if (archivedPage !== undefined) {
+        archivedPages.push(await archivedPage);
+      }
+    }));
+
+    return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
+  }
+
+  public async syncArchivedTrue(todoappRegId: string) {
+    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
     if ("object" in isPageResponse && "properties" in isPageResponse) {
       const pageResponse: PageObjectResponse = isPageResponse;
       if (pageResponse.archived === true) {
-        const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todo.todoapp_reg_id } });
+        const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todoappRegId } });
         await this.todoRepository.softRemove(deletedPageRecord);
+        return pageResponse;
       }
     }
   }
