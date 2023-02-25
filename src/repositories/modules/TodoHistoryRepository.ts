@@ -5,6 +5,7 @@ import Todo from "@/entities/Todo";
 import TodoHistory from "@/entities/TodoHistory";
 import User from "@/entities/User";
 import ChatTool from "@/entities/ChatTool";
+import TodoAppUser from "@/entities/TodoAppUser";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
@@ -18,25 +19,24 @@ import {
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
-import TodoAppUser from "@/entities/TodoAppUser";
-import { Client } from "@notionhq/client";
+import CommonRepository from "@/repositories/modules/CommonRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
 export default class TodoHistoryRepository {
-  private notionRequest: Client;
   private todoHistoryRepository: Repository<TodoHistory>;
   private todoRepository: Repository<Todo>;
-  private slackRepository: SlackRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
+  private slackRepository: SlackRepository;
+  private commonRepository: CommonRepository;
 
   constructor() {
-    this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.slackRepository = Container.get(SlackRepository);
+    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async saveTodoHistories(savedTodos: Todo[], todos: ITodoHistory[], notify: boolean = false): Promise<void> {
@@ -159,6 +159,7 @@ export default class TodoHistoryRepository {
     todoHistory.deadline = info?.deadline ?? null;
     todoHistory.days_diff = info?.daysDiff ?? null;
     todoHistory.edited_by = editedBy;
+    console.log(todoHistory);
 
     if (info?.assignee) {
       todoHistory.user_id = info?.assignee.id;
@@ -168,15 +169,14 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-        const isPageResponse = await this.notionRequest.pages.retrieve({ page_id: savedTodo.todoapp_reg_id });
-        if (isPageResponse) {
+          await this.commonRepository.syncArchivedTrue(savedTodo);
           const editUser = await this.todoAppUserRepository.findOneBy({
             employee_id: editedBy,
             todoapp_id: savedTodo.todoapp_id,
           });
           return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
-        }
-      }));
+        },
+      ));
     }
   }
 

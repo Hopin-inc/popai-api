@@ -38,6 +38,8 @@ import EventTiming from "@/entities/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/DailyReport";
 import TodoApp from "@/entities/TodoApp";
+import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { Client } from "@notionhq/client";
 
 @Service()
 export default class CommonRepository {
@@ -51,6 +53,7 @@ export default class CommonRepository {
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
   private propertyOptionRepository: Repository<PropertyOption>;
+  private notionRequest: Client;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -63,6 +66,7 @@ export default class CommonRepository {
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
+    this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -327,5 +331,16 @@ export default class CommonRepository {
       .getOne();
 
     return lastUpdatedRecord.todoapp_reg_updated_at;
+  }
+
+  public async syncArchivedTrue(todo: Todo) {
+    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todo.todoapp_reg_id });
+    if ("object" in isPageResponse && "properties" in isPageResponse) {
+      const pageResponse: PageObjectResponse = isPageResponse;
+      if (pageResponse.archived === true) {
+        const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todo.todoapp_reg_id } });
+        await this.todoRepository.softRemove(deletedPageRecord);
+      }
+    }
   }
 }
