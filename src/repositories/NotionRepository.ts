@@ -91,12 +91,12 @@ export default class NotionRepository {
     }
   }
 
-  private async getProperties(section: Section): Promise<any> {
+  private async getProperties(section: Section): Promise<void> {
     try {
       const response = await this.notionRequest.databases.retrieve({ database_id: section.board_id });
       const properties = Object.values(response.properties);
 
-      const updatedProperty = properties.map(({ id, name, type, ...rest }) => {
+      const updatedProperties = properties.map(({ id, name, type, ...rest }) => {
         const updatedType = NotionPropertyType[type.toUpperCase()];
         if (updatedType !== undefined) {
           return {
@@ -109,9 +109,9 @@ export default class NotionRepository {
         }
       });
 
-      await Promise.all(updatedProperty.map(property => {
+      await Promise.all(updatedProperties.map(async property => {
         const { id, name, type, sectionId } = property;
-        this.saveProperty(id, name, type, sectionId);
+        await this.saveProperty(id, name, type, sectionId);
         return this.getPropertyOptions(property, sectionId);
       }));
     } catch (error) {
@@ -177,9 +177,9 @@ export default class NotionRepository {
       sectionId: sectionId,
     }));
 
-    for (const option of propertyOptions) {
-      await this.savePropertyOption(option.propertyId, option.optionId, option.sectionId, option.optionName);
-    }
+    await Promise.all(propertyOptions.map(option =>
+      this.savePropertyOption(option.propertyId, option.optionId, option.sectionId, option.optionName),
+    ));
     return;
   }
 
@@ -202,7 +202,7 @@ export default class NotionRepository {
     }
   }
 
-  private getTitle(pageProperty: Record<any, any>, titleId: string): string {
+  private getTitle(pageProperty: Record<string, any>, titleId: string): string {
     try {
       const property = pageProperty.find(prop => prop.id === titleId);
       return property.title.map(t => t.plain_text ?? "").join("");
@@ -212,7 +212,7 @@ export default class NotionRepository {
     }
   }
 
-  private getAssignee(pageProperty: Record<any, any>, assigneeId: string): string[] {
+  private getAssignee(pageProperty: Record<string, any>, assigneeId: string): string[] {
     try {
       const results: string[] = [];
       const property = pageProperty.find(prop => prop.id === assigneeId);
@@ -229,7 +229,7 @@ export default class NotionRepository {
     }
   }
 
-  private getDue(pageProperty: Record<any, any>, dueId: string): Date {
+  private getDue(pageProperty: Record<string, any>, dueId: string): Date {
     try {
       const property = pageProperty.find(prop => prop.id === dueId);
       if (property.type === "date" && property.date) {
@@ -245,7 +245,7 @@ export default class NotionRepository {
     }
   }
 
-  private getSections(pageProperty: Record<any, any>, sectionId: string): string[] {
+  private getSections(pageProperty: Record<string, any>, sectionId: string): string[] {
     try {
       const property = pageProperty.find(prop => prop.id === sectionId);
       if (property.type === "relation") {
@@ -281,7 +281,7 @@ export default class NotionRepository {
     return results;
   }
 
-  private async getIsStatus(pageProperty: Record<any, any>, isFlagId: string): Promise<boolean> {
+  private async getIsStatus(pageProperty: Record<string, any>, isFlagId: string): Promise<boolean> {
     try {
       const property = pageProperty.find(prop => prop.id === isFlagId);
       if (property.type === "checkbox") {
