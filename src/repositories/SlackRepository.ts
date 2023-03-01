@@ -101,22 +101,9 @@ export default class SlackRepository {
     users: User[],
     channel: string
   ) {
-    // const ts = await this.startDailyReport(company, channel);
-    // await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
     await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel)));
     await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
   }
-
-  // private async startDailyReport(company: Company, channel: string): Promise<string> {
-  //   const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-  //   if (chatTool) {
-  //     const message = SlackMessageBuilder.createStartDailyReportMessage();
-  //     const { ts } = await this.pushSlackMessage(chatTool, null, message, MessageTriggerType.REPORT, channel);
-  //     return ts;
-  //   } else {
-  //     return null;
-  //   }
-  // }
 
   private async reportByUser(
     items: IDailyReportItems,
