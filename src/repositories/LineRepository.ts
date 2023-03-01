@@ -3,12 +3,12 @@ import { In, Repository } from "typeorm";
 import { Message, Profile } from "@line/bot-sdk";
 import moment from "moment";
 
-import ChatMessage from "@/entities/ChatMessage";
-import ChatTool from "@/entities/ChatTool";
-import LineProfile from "@/entities/LineProfile";
-import ReportingLine from "@/entities/ReportingLine";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
+import ChatMessage from "@/entities/transactions/ChatMessage";
+import ChatTool from "@/entities/masters/ChatTool";
+import LineProfile from "@/entities/transactions/LineProfile";
+import ReportingLine from "@/entities/settings/ReportingLine";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
 
 import CommonRepository from "./modules/CommonRepository";
 

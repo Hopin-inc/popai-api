@@ -1,11 +1,11 @@
 import { Container, Service } from "typedi";
 import { Repository } from "typeorm";
 
-import Todo from "@/entities/Todo";
-import TodoHistory from "@/entities/TodoHistory";
-import User from "@/entities/User";
-import ChatTool from "@/entities/ChatTool";
-import TodoAppUser from "@/entities/TodoAppUser";
+import Todo from "@/entities/transactions/Todo";
+import TodoHistory from "@/entities/transactions/TodoHistory";
+import User from "@/entities/settings/User";
+import ChatTool from "@/entities/masters/ChatTool";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";

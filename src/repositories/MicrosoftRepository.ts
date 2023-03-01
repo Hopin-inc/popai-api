@@ -4,13 +4,13 @@ import { Service, Container } from "typedi";
 import moment from "moment";
 import FormData from "form-data";
 
-import ImplementedTodoApp from "@/entities/ImplementedTodoApp";
-import TodoAppUser from "@/entities/TodoAppUser";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
-import Company from "@/entities/Company";
-import Section from "@/entities/Section";
-import TodoApp from "@/entities/TodoApp";
+import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
+import Company from "@/entities/settings/Company";
+import Section from "@/entities/settings/Section";
+import TodoApp from "@/entities/masters/TodoApp";
 
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoUserRepository from "./modules/TodoUserRepository";

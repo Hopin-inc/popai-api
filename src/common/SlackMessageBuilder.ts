@@ -2,10 +2,10 @@ import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { Button, KnownBlock, MessageAttachment } from "@slack/web-api";
 
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
-import Section from "@/entities/Section";
-import DailyReport from "@/entities/DailyReport";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
+import Section from "@/entities/settings/Section";
+import DailyReport from "@/entities/transactions/DailyReport";
 
 import {
   AskPlanModalItems, DEFAULT_BULLET,
@@ -21,7 +21,7 @@ import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
 import { PlainTextOption } from "@slack/types";
-import TodoAppUser from "@/entities/TodoAppUser";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 dayjs.locale("ja");
 

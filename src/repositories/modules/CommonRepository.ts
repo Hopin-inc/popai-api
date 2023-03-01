@@ -12,17 +12,17 @@ import {
 import { Service } from "typedi";
 import dayjs from "dayjs";
 
-import ImplementedTodoApp from "@/entities/ImplementedTodoApp";
-import Company from "@/entities/Company";
-import ChatToolUser from "@/entities/ChatToolUser";
-import Section from "@/entities/Section";
-import SectionLabel from "@/entities/SectionLabel";
-import Todo from "@/entities/Todo";
-import TodoHistory from "@/entities/TodoHistory";
-import TodoUser from "@/entities/TodoUser";
-import User from "@/entities/User";
-import CompanyCondition from "@/entities/CompanyCondition";
-import PropertyOption from "@/entities/PropertyOption";
+import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
+import Company from "@/entities/settings/Company";
+import ChatToolUser from "@/entities/settings/ChatToolUser";
+import Section from "@/entities/settings/Section";
+import SectionLabel from "@/entities/settings/SectionLabel";
+import Todo from "@/entities/transactions/Todo";
+import TodoHistory from "@/entities/transactions/TodoHistory";
+import TodoUser from "@/entities/transactions/TodoUser";
+import User from "@/entities/settings/User";
+import CompanyCondition from "@/entities/settings/CompanyCondition";
+import PropertyOption from "@/entities/settings/PropertyOption";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
@@ -34,10 +34,10 @@ import {
   NOT_UPDATED_DAYS,
   EventType,
 } from "@/consts/common";
-import EventTiming from "@/entities/EventTiming";
+import EventTiming from "@/entities/settings/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
-import DailyReport from "@/entities/DailyReport";
-import TodoApp from "@/entities/TodoApp";
+import DailyReport from "@/entities/transactions/DailyReport";
+import TodoApp from "@/entities/masters/TodoApp";
 import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 

@@ -5,14 +5,14 @@ import moment from "moment";
 
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 
-import ChatTool from "@/entities/ChatTool";
-import ChatToolUser from "@/entities/ChatToolUser";
-import Company from "@/entities/Company";
-import ChatMessage from "@/entities/ChatMessage";
-import ReportingLine from "@/entities/ReportingLine";
-import Section from "@/entities/Section";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
+import ChatTool from "@/entities/masters/ChatTool";
+import ChatToolUser from "@/entities/settings/ChatToolUser";
+import Company from "@/entities/settings/Company";
+import ChatMessage from "@/entities/transactions/ChatMessage";
+import ReportingLine from "@/entities/settings/ReportingLine";
+import Section from "@/entities/settings/Section";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
 
 import CommonRepository from "./modules/CommonRepository";
 import logger from "@/logger/winston";
@@ -32,10 +32,10 @@ import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
-import Prospect from "@/entities/Prospect";
+import Prospect from "@/entities/transactions/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
-import DailyReport from "@/entities/DailyReport";
-import TodoAppUser from "@/entities/TodoAppUser";
+import DailyReport from "@/entities/transactions/DailyReport";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 @Service()
 export default class SlackRepository {
