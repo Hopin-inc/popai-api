@@ -15,7 +15,7 @@ import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueR
 
 import LineMessageBuilder from "@/common/LineMessageBuilder";
 import {
-  ChatToolCode, EventType,
+  ChatToolCode,
   LineMessageQueueStatus,
   MessageTriggerType,
   MessageType,
@@ -65,8 +65,6 @@ export default class LineController extends Controller {
         return;
       }
 
-      console.dir(event, { depth: null });
-
       const lineId = event.source.userId;
       const user = await this.lineRepository.getUserFromLineId(lineId);
 
@@ -86,12 +84,14 @@ export default class LineController extends Controller {
         case "memberJoined":
           if (event.source.type === "group") {
             const groupId = event.source.groupId;
+            const newMember: string[] = event.joined.members.map(member => member.userId);
           }
           return;
 
         case "memberLeft":
           if (event.source.type === "group") {
             const groupId = event.source.groupId;
+            const leftMember: string[] = event.left.members.map(member => member.userId);
           }
           return;
 

@@ -12,7 +12,8 @@ import {
   MessageAssets,
   ButtonStylesByColor,
 } from "@/consts/line";
-import { ITodoLines } from "@/types";
+import { IDailyReportItems, ITodoLines } from "@/types";
+import Section from "@/entities/Section";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -20,10 +21,10 @@ export default class LineMessageBuilder {
     const remindColor = LineMessageBuilder.getRemindColor(remindDays);
     const taskUrl = process.env.ENV === "local"
       ? todo.todoapp_reg_url
-      : `${ process.env.HOST }/api/message/redirect/${ todo.id }/${ messageToken }`;
+      : `${process.env.HOST}/api/message/redirect/${todo.id}/${messageToken}`;
     const message: FlexMessage = {
       type: "flex",
-      altText: `「${ todo.name }」の進捗はいかがですか？`,
+      altText: `「${todo.name}」の進捗はいかがですか？`,
       contents: {
         type: "bubble",
         body: {
@@ -62,7 +63,7 @@ export default class LineMessageBuilder {
                       flex: 5,
                       contents: [
                         { type: "span", text: relativeDays, weight: "bold", color: remindColor },
-                        { type: "span", text: `(${ formatDatetime(todo.deadline) })`, size: "sm" },
+                        { type: "span", text: `(${formatDatetime(todo.deadline)})`, size: "sm" },
                       ],
                     },
                   ],
@@ -77,7 +78,7 @@ export default class LineMessageBuilder {
           spacing: "md",
           contents: [],
           flex: 0,
-        }
+        },
       },
     };
 
@@ -125,7 +126,7 @@ export default class LineMessageBuilder {
       + "お疲れさまでした！\n\n"
       + "担当いただき、ありがとうございます😊";
     if (superior) {
-      text += `\n\n${ superior }さんに報告しておきますね💪`;
+      text += `\n\n${superior}さんに報告しておきますね💪`;
     }
     return { type: "text", text };
   }
@@ -133,7 +134,7 @@ export default class LineMessageBuilder {
   static createResponseToReplyInProgress(superior?: string): TextMessage {
     let text = "承知しました👍\n";
     if (superior) {
-      text += `${ superior }さんに報告しておきますね💪\n\n`;
+      text += `${superior}さんに報告しておきますね💪\n\n`;
     }
     text += "引き続きよろしくお願いします💪";
     return { type: "text", text };
@@ -155,7 +156,7 @@ export default class LineMessageBuilder {
   }
 
   static createBeforeReportMessage(superior: string): TextMessage {
-    const text = `${ superior }さん\n`
+    const text = `${superior}さん\n`
       + "お疲れさまです🙌\n\n"
       + "タスクの進捗を聞いてきたので、ご報告いたします。";
     return { type: "text", text };
@@ -180,9 +181,9 @@ export default class LineMessageBuilder {
       }
     });
 
-    let firstText = `${ user.name }さん、お疲れ様です！\nタスクの進捗をお尋ねします🙇`;
+    let firstText = `${user.name}さん、お疲れ様です！\nタスクの進捗をお尋ねします🙇`;
     if (superior) {
-      firstText += `\nお答えいただいた内容を${ superior }さんにお伝えします！`;
+      firstText += `\nお答えいただいた内容を${superior}さんにお伝えします！`;
     }
     const messages: (TextMessage | FlexMessage)[] = [{
       type: "text",
@@ -219,7 +220,7 @@ export default class LineMessageBuilder {
               wrap: true,
               contents: [
                 { type: "span", text: relativeDays, weight: "bold", color: remindColor },
-                { type: "span", text: `が期日のタスク: ${ targetDueTodos.length }件` },
+                { type: "span", text: `が期日のタスク: ${targetDueTodos.length}件` },
               ],
               color: "#757575",
             }],
@@ -250,7 +251,7 @@ export default class LineMessageBuilder {
   static createNotifyUnsetMessage(todos: Todo[]): FlexMessage {
     const message: FlexMessage = {
       type: "flex",
-      altText: `現在、${ todos.length }件のタスクの担当者・期日が設定されていません😭`,
+      altText: `現在、${todos.length}件のタスクの担当者・期日が設定されていません😭`,
       contents: {
         type: "bubble",
         body: {
@@ -268,12 +269,12 @@ export default class LineMessageBuilder {
                   size: "sm",
                   wrap: true,
                   contents: [
-                    { type: "span", text: `${ todos.length }件のタスクの` },
+                    { type: "span", text: `${todos.length}件のタスクの` },
                     { type: "span", text: "担当者・期日", weight: "bold" },
                     { type: "span", text: "が未設定です。" },
                   ],
                   color: Colors.alert,
-                }
+                },
               ],
               spacing: "xs",
             },
@@ -281,10 +282,10 @@ export default class LineMessageBuilder {
               type: "box",
               layout: "vertical",
               contents: [],
-            }
+            },
           ],
-          spacing: "sm"
-        }
+          spacing: "sm",
+        },
       },
     };
     todos.forEach(todo => ((message.contents as FlexBubble).body.contents[1] as FlexBox).contents.push({
@@ -303,7 +304,7 @@ export default class LineMessageBuilder {
   static createNotifyUnassignedMessage(todos: Todo[]): FlexMessage {
     const message: FlexMessage = {
       type: "flex",
-      altText: `現在、${ todos.length }件のタスクの担当者が設定されていません😭`,
+      altText: `現在、${todos.length}件のタスクの担当者が設定されていません😭`,
       contents: {
         type: "bubble",
         body: {
@@ -321,12 +322,12 @@ export default class LineMessageBuilder {
                   size: "sm",
                   wrap: true,
                   contents: [
-                    { type: "span", text: `${ todos.length }件のタスクの` },
+                    { type: "span", text: `${todos.length}件のタスクの` },
                     { type: "span", text: "担当者", weight: "bold" },
                     { type: "span", text: "が未設定です。" },
                   ],
                   color: Colors.alert,
-                }
+                },
               ],
               spacing: "xs",
             },
@@ -334,10 +335,10 @@ export default class LineMessageBuilder {
               type: "box",
               layout: "vertical",
               contents: [],
-            }
+            },
           ],
-          spacing: "sm"
-        }
+          spacing: "sm",
+        },
       },
     };
     todos.forEach(todo => ((message.contents as FlexBubble).body.contents[1] as FlexBox).contents.push({
@@ -356,7 +357,7 @@ export default class LineMessageBuilder {
   static createNotifyNoDeadlineMessage(todos: Todo[]): FlexMessage {
     const message: FlexMessage = {
       type: "flex",
-      altText: `現在、${ todos.length }件のタスクの期日が設定されていません😭`,
+      altText: `現在、${todos.length}件のタスクの期日が設定されていません😭`,
       contents: {
         type: "bubble",
         body: {
@@ -374,12 +375,12 @@ export default class LineMessageBuilder {
                   size: "sm",
                   wrap: true,
                   contents: [
-                    { type: "span", text: `${ todos.length }件のタスクの` },
+                    { type: "span", text: `${todos.length}件のタスクの` },
                     { type: "span", text: "期日", weight: "bold" },
                     { type: "span", text: "が未設定です。" },
                   ],
                   color: Colors.alert,
-                }
+                },
               ],
               spacing: "xs",
             },
@@ -387,10 +388,10 @@ export default class LineMessageBuilder {
               type: "box",
               layout: "vertical",
               contents: [],
-            }
+            },
           ],
-          spacing: "sm"
-        }
+          spacing: "sm",
+        },
       },
     };
     todos.forEach(todo => ((message.contents as FlexBubble).body.contents[1] as FlexBox).contents.push({
@@ -409,7 +410,7 @@ export default class LineMessageBuilder {
   static createNotifyNothingMessage(adminUser: User): TextMessage {
     return {
       type: "text",
-      text: `${ adminUser.name }さん\n`
+      text: `${adminUser.name}さん\n`
         + "お疲れ様です🙌\n\n"
         + "現在、次のタスクの担当者・期日が設定されていないタスクはありませんでした！\n"
         + "引き続きよろしくお願いします！",
@@ -422,12 +423,12 @@ export default class LineMessageBuilder {
     taskUrl: string,
     deadline: Date,
     remindDays: number,
-    content: string
+    content: string,
   ): FlexMessage {
     const relativeDays = relativeRemindDays(remindDays);
     return {
       type: "flex",
-      altText: `${ username }さんから「${ taskName }」の進捗共有がありました！`,
+      altText: `${username}さんから「${taskName}」の進捗共有がありました！`,
       contents: {
         type: "bubble",
         body: {
@@ -462,7 +463,7 @@ export default class LineMessageBuilder {
                       flex: 4,
                       contents: [
                         { type: "span", text: relativeDays, weight: "bold", color: this.getRemindColor(remindDays) },
-                        { type: "span", text: `(${ formatDatetime(deadline) })`, size: "sm" },
+                        { type: "span", text: `(${formatDatetime(deadline)})`, size: "sm" },
                       ],
                     },
                   ],
@@ -473,7 +474,7 @@ export default class LineMessageBuilder {
                   spacing: "sm",
                   contents: [
                     { type: "text", text: "担当者", color: "#BDBDBD", size: "sm", flex: 1 },
-                    { type: "text", text: `${ username }さん`, color: "#666666", size: "md", flex: 4, wrap: true },
+                    { type: "text", text: `${username}さん`, color: "#666666", size: "md", flex: 4, wrap: true },
                   ],
                 },
                 {
@@ -489,6 +490,125 @@ export default class LineMessageBuilder {
             },
           ],
         },
+      },
+    };
+  }
+
+  static createDailyReport(
+    greetingMessage: string,
+    yesterdayCompletedNumber: number,
+    onGoingNumber: number,
+    delayedItems: Todo[],
+    sections: Section[],
+    user: User): FlexMessage {
+    return {
+      type: "flex",
+      altText: greetingMessage,
+      contents: {
+        type: "carousel",
+        contents: [
+          {
+            type: "bubble",
+            size: "kilo",
+            hero: {
+              type: "image",
+              url: "aaa",
+              size: "full",
+              aspectMode: "cover",
+              aspectRatio: "320:213",
+            },
+            "body": {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "🥇 Shinji Nakashima",
+                  "weight": "bold",
+                  "size": "lg",
+                  "wrap": true,
+                  "margin": "md",
+                },
+                {
+                  "type": "box",
+                  "layout": "baseline",
+                  "contents": [
+                    {
+                      "type": "text",
+                      "text": "昨日",
+                      "color": "#BDBDBD",
+                      "size": "sm",
+                      "flex": 1,
+                    },
+                    {
+                      "type": "text",
+                      "text": "5件",
+                      "size": "md",
+                      "wrap": true,
+                      "flex": 4,
+                      "color": "#F44336",
+                      "weight": "bold",
+                    },
+                  ],
+                },
+                {
+                  "type": "box",
+                  "layout": "baseline",
+                  "contents": [
+                    {
+                      "type": "text",
+                      "text": "本日",
+                      "color": "#BDBDBD",
+                      "size": "sm",
+                      "flex": 1,
+                    },
+                    {
+                      "type": "text",
+                      "text": "12件",
+                      "color": "#666666",
+                      "size": "md",
+                      "wrap": true,
+                      "flex": 4,
+                    },
+                  ],
+                },
+                {
+                  "type": "text",
+                  "text": "🚨 三承工業の見積書を作成する",
+                  "size": "xs",
+                  "color": "#F44336",
+                  "offsetTop": "md",
+                },
+                {
+                  "type": "text",
+                  "text": "🚨 三承工業の見積書を作成する",
+                  "size": "xs",
+                  "color": "#F44336",
+                  "offsetTop": "md",
+                },
+              ],
+              "spacing": "sm",
+              "paddingAll": "13px",
+            },
+            "footer": {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "button",
+                  "action": {
+                    "type": "uri",
+                    "label": "くわしく見る",
+                    "uri": "http://linecorp.com/",
+                  },
+                  "height": "md",
+                  "style": "secondary",
+                  "color": "#F6F6F6",
+                },
+              ],
+            },
+          },
+        ],
       },
     };
   }

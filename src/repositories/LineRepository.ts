@@ -42,7 +42,7 @@ export default class LineRepository {
     chatTool: ChatTool,
     user: User,
     todo: Todo,
-    remindDays: number
+    remindDays: number,
   ): Promise<ChatMessage> {
     try {
       if (!user.lineId) {
@@ -65,14 +65,14 @@ export default class LineRepository {
         messageToken,
         user,
         remindTypes,
-        todo
+        todo,
       );
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         chatMessage.message_token,
         user.name,
         todo,
-        remindDays
+        remindDays,
       );
 
       if (process.env.ENV === "LOCAL") {
@@ -157,7 +157,7 @@ export default class LineRepository {
         user,
         message,
         MessageTriggerType.REMIND,
-        remindTypes
+        remindTypes,
       );
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -190,7 +190,7 @@ export default class LineRepository {
         user,
         message,
         MessageTriggerType.REMIND,
-        remindTypes
+        remindTypes,
       );
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -223,7 +223,7 @@ export default class LineRepository {
         user,
         message,
         MessageTriggerType.REMIND,
-        remindTypes
+        remindTypes,
       );
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -303,7 +303,7 @@ export default class LineRepository {
     if (superiorUserIds.length === 0) {
       return Promise.resolve([]);
     }
-    
+
     return await this.userRepository
       .createQueryBuilder("users")
       .where("id IN (:...ids)", {
@@ -333,7 +333,7 @@ export default class LineRepository {
     user: User,
     message: Message,
     messageTriggerId: number,
-    remindTypes?: IRemindType
+    remindTypes?: IRemindType,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
@@ -348,7 +348,7 @@ export default class LineRepository {
     chatTool: ChatTool,
     replyToken: string,
     message: Message,
-    user?: User
+    user?: User,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
@@ -370,7 +370,7 @@ export default class LineRepository {
     messageToken: string,
     user?: User,
     remindTypes?: IRemindType,
-    todo?: Todo
+    todo?: Todo,
   ): Promise<ChatMessage> {
     const { remindType, remindDays } = {
       remindType: RemindType.NOT_REMIND,
