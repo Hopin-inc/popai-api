@@ -12,6 +12,23 @@ export const ButtonStylesByColor: { [key: keyof typeof Colors]: "primary" | "sec
   alert: "primary",
 };
 
+export const WebhookEventType = {
+  JOIN: "join",
+  LEAVE: "leave",
+  MEMBER_JOINED: "memberJoined",
+  MEMBER_LEFT: "memberLeft",
+  MESSAGE: "message",
+  POSTBACK: "postback",
+  FOLLOW: "follow",
+  UN_FOLLOW: "unfollow",
+  ACCOUNT_LINE: "accountLink",
+};
+
+export const WebhookSourceType = {
+  GROUP: "group",
+  USER: "user",
+};
+
 export type ReplyMessage = {
   status: TodoStatus,
   label: string,
