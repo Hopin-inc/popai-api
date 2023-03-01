@@ -35,6 +35,7 @@ import { ITodoSlack } from "@/types/slack";
 import Prospect from "@/entities/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
 import DailyReport from "@/entities/DailyReport";
+import TodoAppUser from "@/entities/TodoAppUser";
 
 @Service()
 export default class SlackRepository {
@@ -99,10 +100,11 @@ export default class SlackRepository {
     company: Company,
     sections: Section[],
     users: User[],
-    channel: string
+    channel: string,
   ) {
     // const ts = await this.startDailyReport(company, channel);
     // await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
+
     await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel)));
     await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
   }
@@ -124,7 +126,7 @@ export default class SlackRepository {
     sections: Section[],
     user: User,
     channel: string,
-    ts?: string
+    ts?: string,
   ) {
     const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
     const slackProfile = await this.getUserProfile(user.slackId);
@@ -143,11 +145,11 @@ export default class SlackRepository {
     company: Company,
     sections: Section[],
     users: User[],
-    channel: string
+    channel: string,
   ) {
     const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
     const targetTodo = getItemRandomly(todos.filter(
-      todo => todo.sections.some(section => sections.some(s => s.id === section.id)))
+      todo => todo.sections.some(section => sections.some(s => s.id === section.id))),
     );
     const targetUser = getItemRandomly(users);
     if (targetTodo && targetUser) {
@@ -413,7 +415,7 @@ export default class SlackRepository {
     }
   }
 
-  public async createMessage (chatMessage: ChatMessage): Promise<ChatMessage> {
+  public async createMessage(chatMessage: ChatMessage): Promise<ChatMessage> {
     try {
       return await this.messageRepository.save(chatMessage);
     } catch (error) {
@@ -440,7 +442,7 @@ export default class SlackRepository {
     threadId?: string,
     _options?: {
       remindTypes?: IRemindType,
-    }
+    },
   ) {
     if (process.env.ENV === "LOCAL") {
       console.log(SlackMessageBuilder.getTextContentFromMessage(message));
@@ -602,7 +604,7 @@ export default class SlackRepository {
               if (chattool.tool_code === ChatToolCode.SLACK) {
                 const user = todos[0].users.find(user => user.id === userId);
                 const chatToolUser = chattoolUsers.find(
-                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === userId
+                  chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === userId,
                 );
 
                 if (chatToolUser) {
@@ -790,25 +792,25 @@ export default class SlackRepository {
     return await query.getMany();
   }
 
-  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees);
+  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool, editUser: TodoAppUser) {
+    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
       message,
       MessageTriggerType.NOTIFY,
-      section.channel_id
+      section.channel_id,
     )));
   }
 
-  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo);
+  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool, editUser: TodoAppUser) {
+    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
       message,
       MessageTriggerType.NOTIFY,
-      section.channel_id
+      section.channel_id,
     )));
   }
 
@@ -816,15 +818,16 @@ export default class SlackRepository {
     savedTodo: Todo,
     action: valueOf<typeof TodoHistoryAction>,
     assignees: User[],
-    chatTool: ChatTool
+    chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees);
+    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
       message,
       MessageTriggerType.NOTIFY,
-      section.channel_id
+      section.channel_id,
     )));
   }
 
@@ -832,15 +835,32 @@ export default class SlackRepository {
     savedTodo: Todo,
     action: valueOf<typeof TodoHistoryAction>,
     deadline: Date,
-    chatTool: ChatTool
+    chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline);
+    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
       message,
       MessageTriggerType.NOTIFY,
-      section.channel_id
+      section.channel_id,
+    )));
+  }
+
+  public async notifyOnClosedUpdated(
+    savedTodo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    chatTool: ChatTool,
+    editUser: TodoAppUser
+  ) {
+    const message = SlackMessageBuilder.createNotifyOnClosedUpdatedMessage(savedTodo, action, editUser);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id,
     )));
   }
 
@@ -914,7 +934,7 @@ export default class SlackRepository {
     const blocks = SlackMessageBuilder.createReliefCommentModal();
     const viewId = await this.openModal(
       triggerId,
-      `${ targetAction.text }について相談する`,
+      `${targetAction.text}について相談する`,
       blocks,
       SlackModalLabel.RELIEF_COMMENT,
     );
@@ -939,7 +959,7 @@ export default class SlackRepository {
         where: { id: prospectRecord.todo_id },
         relations: [
           "company.implementedChatTools.chattool",
-          "todoSections.section"
+          "todoSections.section",
         ],
       }),
       this.userRepository.findOne({
@@ -976,7 +996,7 @@ export default class SlackRepository {
     const [completedYesterday, delayed, ongoing] = await Promise.all(
       [report.todo_ids_yesterday, report.todo_ids_delayed, report.todo_ids_ongoing].map(ids => {
         return this.commonRepository.getTodosByIds(ids);
-      })
+      }),
     );
     const items: IDailyReportItems = { completedYesterday, delayed, ongoing };
     const { blocks: dailyReportMsg } = SlackMessageBuilder.createDailyReportWithProspect(report, items, iconUrl);
@@ -984,7 +1004,7 @@ export default class SlackRepository {
       channel: report.slack_channel_id,
       ts: report.slack_ts,
       blocks: dailyReportMsg,
-      text: `${ user.name }さんの日報`,
+      text: `${user.name}さんの日報`,
     });
   }
 

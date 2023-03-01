@@ -4,13 +4,14 @@ import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build
 import { Container, Service } from "typedi";
 import moment from "moment";
 
-import ColumnName from "@/entities/ColumnName";
 import Todo from "@/entities/Todo";
 import TodoAppUser from "@/entities/TodoAppUser";
 import TodoApp from "@/entities/TodoApp";
 import Company from "@/entities/Company";
 import Section from "@/entities/Section";
 import User from "@/entities/User";
+import Property from "@/entities/Property";
+import PropertyOption from "@/entities/PropertyOption";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
@@ -23,18 +24,21 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate, ITodoHistory } from "@/types";
-import { INotionProperty, INotionTask } from "@/types/notion";
+import { IRemindTask, ITodoHistory, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
+import { INotionTask } from "@/types/notion";
+import { NotionPropertyType, PropertyUsageType } from "@/consts/common";
 
 @Service()
 export default class NotionRepository {
   private notionRequest: Client;
   private todoRepository: Repository<Todo>;
-  private columnNameRepository: Repository<ColumnName>;
+  private todoAppUserRepository: Repository<TodoAppUser>;
+  private propertyRepository: Repository<Property>;
+  private propertyOptionRepository: Repository<PropertyOption>;
+  private sectionRepository: Repository<Section>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
   private commonRepository: CommonRepository;
@@ -42,11 +46,13 @@ export default class NotionRepository {
   constructor() {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
+    this.propertyRepository = AppDataSource.getRepository(Property);
+    this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
+    this.sectionRepository = AppDataSource.getRepository(Section);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.todoHistoryRepository = Container.get(TodoHistoryRepository);
-    this.columnNameRepository = AppDataSource.getRepository(ColumnName);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
@@ -63,15 +69,17 @@ export default class NotionRepository {
     sections: Section[],
     company: Company,
     todoapp: TodoApp,
-    notify: boolean = false
+    notify: boolean = false,
   ): Promise<void> {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
 
+      const processedBoardIds = new Set<string>();
       for (const section of sections) {
-        const columnName = await this.getColumnName(section);
-        if (columnName) {
-          await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, columnName, sections);
+        if (!processedBoardIds.has(section.board_id)) {
+          processedBoardIds.add(section.board_id);
+          await this.getProperties(section);
+          await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, sections);
         }
       }
 
@@ -83,28 +91,131 @@ export default class NotionRepository {
     }
   }
 
-  private async getColumnName(section: Section): Promise<ColumnName> {
-    return await this.columnNameRepository.findOneBy({ section_id: section.id });
+  private async getProperties(section: Section): Promise<void> {
+    try {
+      const response = await this.notionRequest.databases.retrieve({ database_id: section.board_id });
+      const properties = Object.values(response.properties);
+
+      const updatedProperties = properties.map(({ id, name, type, ...rest }) => {
+        const updatedType = NotionPropertyType[type.toUpperCase()];
+        if (updatedType !== undefined) {
+          return {
+            id,
+            name,
+            type: updatedType,
+            sectionId: section.id,
+            ...rest,
+          };
+        }
+      });
+
+      await Promise.all(updatedProperties.map(async property => {
+        const { id, name, type, sectionId } = property;
+        await this.saveProperty(id, name, type, sectionId);
+        return this.getPropertyOptions(property, sectionId);
+      }));
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
   }
 
-  private getTaskName(columnName: ColumnName, pageProperty: INotionProperty): string {
+  private async savePropertyOption(propertyId: number, optionId: string, sectionId: number, name?: string) {
+    const propertyOptionExists = await this.propertyOptionRepository
+      .createQueryBuilder("property_options")
+      .leftJoinAndSelect(
+        "property_options.property",
+        "properties",
+        "property_options.property_id = properties.id")
+      .where("properties.section_id =:sectionId", { sectionId: sectionId })
+      .andWhere("property_options.property_id =:propertyId", { propertyId: propertyId })
+      .getOne();
+
+    if (propertyOptionExists && name) {
+      propertyOptionExists.name = name;
+      await this.propertyOptionRepository.save(propertyOptionExists);
+    } else if (!propertyOptionExists) {
+      const property = new PropertyOption();
+      property.property_id = propertyId;
+      property.option_id = optionId;
+      property.name = name;
+
+      await this.propertyOptionRepository.save(property);
+    }
+  }
+
+  private async getPropertyOptions(property, sectionId: number) {
+    const propertyRecord = await this.propertyRepository.findOne({
+      where: {
+        section_id: sectionId,
+        property_id: property.id,
+      },
+    });
+
+    let options;
+    switch (property.type) {
+      case NotionPropertyType.SELECT:
+        options = property.select.options;
+        break;
+      case NotionPropertyType.MULTI_SELECT:
+        options = property.multi_select.options;
+        break;
+      case NotionPropertyType.STATUS:
+        options = property.status.options;
+        break;
+      case NotionPropertyType.RELATION:
+        const propertyId = propertyRecord.id;
+        const optionId = property.relation.database_id;
+        const optionName = null;
+        return this.savePropertyOption(propertyId, optionId, sectionId, optionName);
+      default:
+        return;
+    }
+    const propertyOptions = options.map(option => ({
+      propertyId: propertyRecord.id,
+      optionId: option.id,
+      optionName: option.name,
+      sectionId: sectionId,
+    }));
+
+    await Promise.all(propertyOptions.map(option =>
+      this.savePropertyOption(option.propertyId, option.optionId, option.sectionId, option.optionName),
+    ));
+    return;
+  }
+
+  private async saveProperty(id: string, name: string, type: number, sectionId: number) {
+    const propertyExists = await this.propertyRepository.findOne({ where: { section_id: sectionId, property_id: id } });
+    if (propertyExists) {
+      propertyExists.name = name;
+      propertyExists.type = type;
+      await this.propertyRepository.save(propertyExists);
+    } else {
+      const property = new Property();
+      property.section_id = sectionId;
+      property.property_id = id;
+      property.name = name;
+      property.type = type;
+
+      await this.propertyRepository.save(property);
+    }
+  }
+
+  private getTitle(pageProperty: Record<PropertyKey, any>, titleId: string): string {
     try {
-      const todoProp = pageProperty[columnName.label_todo];
-      if (todoProp.type === "title" && todoProp.title.length) {
-        return todoProp.title.map(t => t.plain_text ?? "").join("");
-      }
+      const property = pageProperty.find(prop => prop.id === titleId);
+      return property.title.map(t => t.plain_text ?? "").join("");
     } catch (err) {
       logger.error(new LoggerError(err.message));
       return;
     }
   }
 
-  private getAssignee(columnName: ColumnName, pageProperty: INotionProperty): string[] {
+  private getAssignee(pageProperty: Record<PropertyKey, any>, assigneeId: string): string[] {
     try {
       const results: string[] = [];
-      const assigneeProp = pageProperty[columnName.label_assignee];
-      if (assigneeProp.type === "people") {
-        const assignees = assigneeProp.people;
+      const property = pageProperty.find(prop => prop.id === assigneeId);
+      if (property.type === "people") {
+        const assignees = property.people;
         assignees.forEach(assignee => {
           results.push(assignee.id);
         });
@@ -116,14 +227,14 @@ export default class NotionRepository {
     }
   }
 
-  private getDue(columnName: ColumnName, pageProperty: INotionProperty): Date {
+  private getDue(pageProperty: Record<PropertyKey, any>, dueId: string): Date {
     try {
-      const labelProp = pageProperty[columnName.label_due];
-      if (labelProp.type === "date" && labelProp.date) {
-        const date = labelProp.date;
+      const property = pageProperty.find(prop => prop.id === dueId);
+      if (property.type === "date" && property.date) {
+        const date = property.date;
         return new Date(date.end ? date.end : date.start);
-      } else if (labelProp.type === "formula" && labelProp.formula.type === "date" && labelProp.formula.date) {
-        const date = labelProp.formula.date;
+      } else if (property.type === "formula" && property.formula.type === "date" && property.formula.date) {
+        const date = property.formula.date;
         return new Date(date.end ? date.end : date.start);
       }
     } catch (err) {
@@ -132,11 +243,15 @@ export default class NotionRepository {
     }
   }
 
-  private getNotionSections(columnName: ColumnName, pageProperty: INotionProperty): string[] {
+  private getSections(pageProperty: Record<PropertyKey, any>, sectionId: string): string[] {
     try {
-      const sectionProp = pageProperty[columnName.label_section];
-      if (sectionProp.type === "relation") {
-        return sectionProp.relation.map(section => section.id);
+      const property = pageProperty.find(prop => prop.id === sectionId);
+      if (property.type === "relation") {
+        return property.relation.map(section => section.id);
+      } else if (property.type === "select") {
+        return property.select.id;
+      } else if (property.type === "multi_select") {
+        return property.multi_select.map(section => section.id);
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
@@ -145,9 +260,14 @@ export default class NotionRepository {
   }
 
   private async getNotionSectionIds(company: Company, todoApp: TodoApp, labelIds: string[]): Promise<number[]> {
-    const registeredSectionLabels = await this.commonRepository.getSectionLabels(company.id, todoApp.id);
-    const registeredLabelRecords = registeredSectionLabels.map(sectionLabel => {
-      return { sectionId: sectionLabel.section_id, labelId: sectionLabel.label_id };
+    const registeredSectionLabels = await this.sectionRepository.find({
+      where: {
+        company_id: company.id,
+        todoapp_id: todoApp.id,
+      },
+    });
+    const registeredLabelRecords = registeredSectionLabels.map(section => {
+      return { sectionId: section.id, labelId: section.label_id };
     });
 
     const results: number[] = [];
@@ -159,42 +279,34 @@ export default class NotionRepository {
     return results;
   }
 
-
-  private getIsDone(columnName: ColumnName, pageProperty: INotionProperty): boolean {
+  private async getIsStatus(pageProperty: Record<PropertyKey, any>, isFlagId: string): Promise<boolean> {
     try {
-      const isDoneProp = pageProperty[columnName.label_is_done];
-      if (isDoneProp.type === "checkbox") {
-        return isDoneProp.checkbox;
-      } else if (isDoneProp.type === "formula" && isDoneProp.formula.type === "boolean") {
-        return isDoneProp.formula.boolean;
+      const property = pageProperty.find(prop => prop.id === isFlagId);
+      if (property.type === "checkbox") {
+        return property.checkbox;
+      } else if (property.type === "formula" && property.formula.type === "boolean") {
+        return property.formula.boolean;
+      } else if (property.type === "status") {
+        const optionId: string = property.status.id;
+
+        const usagePropertyOption = await this.propertyOptionRepository
+          .createQueryBuilder("property_options")
+          .leftJoin(
+            "property_options.property",
+            "properties",
+            "property_options.property_id = properties.id")
+          .where("properties.property_id =:propertyId", { propertyId: property.id })
+          .andWhere("property_options.option_id =:optionId", { optionId: optionId })
+          .andWhere("property_options.usage IS NOT NULL")
+          .getOne();
+        return usagePropertyOption !== null && optionId === usagePropertyOption.option_id;
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   }
 
-  private getIsArchive(columnName: ColumnName, pageProperty: INotionProperty): boolean {
-    try {
-      const isArchiveProp = pageProperty[columnName.label_is_archived];
-      if (isArchiveProp.type === "checkbox") {
-        return isArchiveProp.checkbox;
-      } else if (isArchiveProp.type === "formula" && isArchiveProp.formula.type === "boolean") {
-        return isArchiveProp.formula.boolean;
-      }
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
-    }
-  }
-
-  private getCreatedBy(pageInfo: PageObjectResponse): string {
-    try {
-      return pageInfo.created_by.id;
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
-    }
-  }
-
-  private async getCreatedById(usersCompany: User[], todoappId: number, createdBy: string): Promise<number> {
+  private async getEditedById(usersCompany: User[], todoappId: number, editedBy: string): Promise<number> {
     const users = usersCompany.filter(user => {
       const registeredUserAppIds = user?.todoAppUsers
         .filter(todoAppUser => todoAppUser.todoapp_id === todoappId)
@@ -202,7 +314,7 @@ export default class NotionRepository {
           userAppIds.push(todoAppUser.user_app_id);
           return userAppIds;
         }, []);
-      return registeredUserAppIds.find(id => id === createdBy);
+      return registeredUserAppIds.find(id => id === editedBy);
     });
     if (users.length) {
       return users[0].id;
@@ -211,27 +323,25 @@ export default class NotionRepository {
     }
   }
 
-  private getLastEditedAt(pageInfo: PageObjectResponse): Date {
+  private getString(pageInfo: PageObjectResponse, type: string): string {
     try {
-      const lastEditedAtStr = pageInfo.last_edited_time;
-      return new Date(lastEditedAtStr);
+      switch (type) {
+        case "last_edited_by":
+          return pageInfo.last_edited_by.id;
+        case "created_by":
+          return pageInfo.created_by.id;
+        case "url":
+          return pageInfo.url;
+      }
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   }
 
-  private getCreatedAt(pageInfo: PageObjectResponse): Date {
+  private getDate(pageInfo: PageObjectResponse, propName: string): Date {
     try {
-      const createdAtStr = pageInfo.created_time;
-      return new Date(createdAtStr);
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
-    }
-  }
-
-  private getUrl(pageInfo: PageObjectResponse): string {
-    try {
-      return pageInfo.url;
+      const dateStr = pageInfo[propName];
+      return new Date(dateStr);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -243,15 +353,25 @@ export default class NotionRepository {
     todoTasks: ITodoTask<INotionTask>[],
     company: Company,
     todoapp: TodoApp,
-    columnName: ColumnName,
-    sections: Section[]
+    sections: Section[],
   ): Promise<void> {
     if (!boardAdminUser?.todoAppUsers.length) return;
 
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
       if (section.board_id) {
         try {
-          let response = await this.notionRequest.databases.query({ database_id: section.board_id });
+          const lastUpdatedDate = await this.commonRepository.getLastUpdatedDate(company, todoapp);
+          lastUpdatedDate.setDate(lastUpdatedDate.getDate());
+          const lastUpdatedStr = lastUpdatedDate.toISOString().slice(0, 10);
+
+          let response = await this.notionRequest.databases.query({
+            database_id: section.board_id,
+            filter: {
+              timestamp: "last_edited_time",
+              last_edited_time: { on_or_after: lastUpdatedStr },
+            },
+          });
+
           const pages = response.results;
           while (response.has_more) {
             response = await this.notionRequest.databases.query({
@@ -261,10 +381,16 @@ export default class NotionRepository {
             pages.push(...response.results);
           }
 
+          const usageProperty = await this.propertyRepository
+            .createQueryBuilder("property")
+            .where("property.section_id = :sectionId", { sectionId: section.id })
+            .andWhere("property.usage IS NOT NULL")
+            .getMany();
           const pageIds: string[] = pages.map(page => page.id);
           const pageTodos: INotionTask[] = [];
+
           await Promise.all(pageIds.map(pageId => {
-            return this.getPages(pageId, pageTodos, company, todoapp, columnName);
+            return this.getPages(pageId, pageTodos, company, todoapp, usageProperty);
           }));
           await Promise.all(pageTodos.map(pageTodo => {
             return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections, todoAppUser);
@@ -276,37 +402,58 @@ export default class NotionRepository {
     }
   }
 
+  private getUsageProperty(usageProperty: Property[], pagePropertyIds: string[], usageId: number) {
+    const filteredProperty = usageProperty.filter(property => property.usage === usageId);
+    const result = filteredProperty.find(property => pagePropertyIds.includes(property.property_id));
+    return result ? result.property_id : null;
+  }
+
   private async getPages(
     pageId: string,
     pageTodos: INotionTask[],
     company: Company,
     todoapp: TodoApp,
-    columnName: ColumnName
+    usageProperty: Property[],
   ): Promise<void> {
     const pageInfo = await this.notionRequest.pages.retrieve({ page_id: pageId }) as PageObjectResponse;
-    const pageProperty = pageInfo.properties;
+    const pageProperty = Object.keys(pageInfo.properties).map((key) => pageInfo.properties[key]) as Record<any, any>;
     if (pageProperty) {
-      const name = this.getTaskName(columnName, pageProperty);
+      const pagePropertyIds = pageProperty.map((obj) => obj.id);
+      const propertyId = {
+        title: this.getUsageProperty(usageProperty, pagePropertyIds, PropertyUsageType.TITLE),
+        section: this.getUsageProperty(usageProperty, pagePropertyIds, PropertyUsageType.SECTION),
+        assignee: this.getUsageProperty(usageProperty, pagePropertyIds, PropertyUsageType.ASSIGNEE),
+        due: this.getUsageProperty(usageProperty, pagePropertyIds, PropertyUsageType.DUE),
+        isDone: this.getUsageProperty(usageProperty, pagePropertyIds, PropertyUsageType.IS_DONE),
+        isClosed: this.getUsageProperty(usageProperty, pagePropertyIds, PropertyUsageType.IS_CLOSED),
+      };
+
+      const name = this.getTitle(pageProperty, propertyId.title);
       if (!name) return;
 
       const pageTodo: INotionTask = {
-        todoapp_reg_id: pageId,
+        todoappRegId: pageId,
         name,
-        notion_user_id: this.getAssignee(columnName, pageProperty),
-        sections: this.getNotionSections(columnName, pageProperty),
-        section_ids: [],
-        deadline: this.getDue(columnName, pageProperty),
-        is_done: this.getIsDone(columnName, pageProperty),
-        created_by: this.getCreatedBy(pageInfo),
-        created_by_id: null,
-        created_at: this.getCreatedAt(pageInfo),
-        last_edited_at: this.getLastEditedAt(pageInfo),
-        todoapp_reg_url: this.getUrl(pageInfo),
-        dueReminder: null,
-        closed: this.getIsArchive(columnName, pageProperty),
+        assignees: this.getAssignee(pageProperty, propertyId.assignee),
+        sections: this.getSections(pageProperty, propertyId.section),
+        sectionIds: [],
+        deadline: this.getDue(pageProperty, propertyId.due),
+        isDone: await this.getIsStatus(pageProperty, propertyId.isDone),
+        isClosed: await this.getIsStatus(pageProperty, propertyId.isClosed),
+        todoappRegUrl: this.getString(pageInfo, "url"),
+        deadlineReminder: null,
+        createdBy: this.getString(pageInfo, "created_by"),
+        createdById: null,
+        createdAt: this.getDate(pageInfo, "created_time"),
+        lastEditedBy: this.getString(pageInfo, "last_edited_by"),
+        lastEditedById: null,
+        lastEditedAt: this.getDate(pageInfo, "last_edited_time"),
       };
-      pageTodo.created_by_id = await this.getCreatedById(company.users, todoapp.id, pageTodo.created_by);
-      pageTodo.section_ids = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
+      pageTodo.sectionIds = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
+      pageTodo.createdById = await this.getEditedById(company.users, todoapp.id, pageTodo.createdBy);
+      pageTodo.lastEditedById = await this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy);
+      // console.log(pageTodo);
+
       pageTodos.push(pageTodo);
     }
   }
@@ -317,20 +464,20 @@ export default class NotionRepository {
     company: Company,
     todoapp: TodoApp,
     sections: Section[],
-    todoAppUser: TodoAppUser
+    todoAppUser: TodoAppUser,
   ): Promise<void> {
-    const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.notion_user_id);
+    const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.assignees);
 
     const page: ITodoTask<INotionTask> = {
       todoTask: pageTodo,
       company,
       todoapp,
       todoAppUser,
-      sections: sections.filter(section => pageTodo.section_ids.includes(section.id)),
+      sections: sections.filter(section => pageTodo.sectionIds.includes(section.id)),
       users,
     };
 
-    const taskFound = todoTasks.find(task => task.todoTask?.todoapp_reg_id === pageTodo.todoapp_reg_id);
+    const taskFound = todoTasks.find(task => task.todoTask?.todoappRegId === pageTodo.todoappRegId);
     if (taskFound) {
       taskFound.users = users;
     } else {
@@ -406,41 +553,42 @@ export default class NotionRepository {
   ): Promise<void> {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
-    const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoapp_reg_id });
+    const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
     const deadline = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
     const todoData = new Todo();
     todoData.id = todo?.id ?? null;
     todoData.name = todoTask.name;
     todoData.todoapp_id = todoapp.id;
-    todoData.todoapp_reg_id = todoTask.todoapp_reg_id;
-    todoData.todoapp_reg_url = todoTask.todoapp_reg_url;
-    todoData.todoapp_reg_created_by = todoTask.created_by_id;
-    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.created_at);
+    todoData.todoapp_reg_id = todoTask.todoappRegId;
+    todoData.todoapp_reg_url = todoTask.todoappRegUrl;
+    todoData.todoapp_reg_created_by = todoTask.createdById;
+    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdAt);
     todoData.company_id = company.id;
     todoData.deadline = deadline;
-    todoData.is_done = todoTask.is_done;
+    todoData.is_done = todoTask.isDone;
     todoData.is_reminded = todo?.is_reminded ?? false;
-    todoData.is_closed = todoTask.closed;
+    todoData.is_closed = todoTask.isClosed;
     todoData.delayed_count = todo?.delayed_count ?? 0;
     todoData.reminded_count = todo?.reminded_count ?? 0;
 
     if (users.length) {
-      dataTodoUsers.push({ todoId: todoTask.todoapp_reg_id, users });
+      dataTodoUsers.push({ todoId: todoTask.todoappRegId, users });
     }
 
     if (sections.length) {
-      dataTodoSections.push({ todoId: todoTask.todoapp_reg_id, sections });
+      dataTodoSections.push({ todoId: todoTask.todoappRegId, sections });
     }
 
     dataTodoHistories.push({
-      todoId: todoTask.todoapp_reg_id,
+      todoId: todoTask.todoappRegId,
       name: todoTask.name,
       deadline: todoTask.deadline,
       users: users,
-      isDone: todoTask.is_done,
-      isClosed: todoTask.closed,
-      todoappRegUpdatedAt: todoTask.last_edited_at,
+      isDone: todoTask.isDone,
+      isClosed: todoTask.isClosed,
+      todoappRegUpdatedAt: todoTask.lastEditedAt,
+      editedBy: todoTask.lastEditedById,
     });
 
     //update deadline task
@@ -450,10 +598,10 @@ export default class NotionRepository {
 
       if (isDeadlineChanged || isDoneChanged) {
         dataTodoUpdates.push({
-          todoId: todoTask.todoapp_reg_id,
+          todoId: todoTask.todoappRegId,
           dueTime: todo?.deadline,
           newDueTime: deadline,
-          updateTime: toJapanDateTime(todoTask.last_edited_at),
+          updateTime: toJapanDateTime(todoTask.lastEditedAt),
         });
       }
 
@@ -477,16 +625,17 @@ export default class NotionRepository {
     id: string,
     task: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false
+    correctDelayedCount: boolean = false,
   ): Promise<void> => {
     try {
-      const columnName = await this.columnNameRepository.findOneBy({
+      const isDoneProperty = await this.propertyRepository.findOneBy({
         section_id: In(task.company.sections.map(section => section.id)),
+        usage: PropertyUsageType.IS_DONE,
       });
       const payload: UpdatePageParameters = {
         page_id: task.todoapp_reg_id,
         properties: {
-          [columnName.label_is_done]: {
+          [isDoneProperty.name]: {
             type: "checkbox",
             checkbox: task.is_done,
           },

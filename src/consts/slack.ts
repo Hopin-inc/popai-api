@@ -19,7 +19,8 @@ export const Icons = {
   CREATED: ":sparkles:",
   DONE: ":white_check_mark:",
   ASSIGNEE: ":busts_in_silhouette:",
-  DEADLINE: ":calendar:"
+  DEADLINE: ":calendar:",
+  CLOSED: ":snowflake:",
 };
 
 export const replyActionsBefore: ReplyAction[] = [

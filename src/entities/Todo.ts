@@ -64,14 +64,14 @@ export default class Todo extends BaseEntity {
 
   @ManyToOne(
     () => TodoApp,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "todoapp_id" })
   todoapp: TodoApp;
 
   @ManyToOne(
     () => Company,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
@@ -79,7 +79,7 @@ export default class Todo extends BaseEntity {
   @OneToMany(
     () => TodoUser,
     todoUser => todoUser.todo,
-    { cascade: true }
+    { cascade: true },
   )
   todoUsers: TodoUser[];
 
@@ -91,7 +91,7 @@ export default class Todo extends BaseEntity {
   @OneToMany(
     () => TodoSection,
     todoSection => todoSection.todo,
-    { cascade: false }
+    { cascade: false },
   )
   todoSections: TodoSection[];
 
@@ -103,21 +103,21 @@ export default class Todo extends BaseEntity {
   @OneToMany(
     () => TodoHistory,
     history => history.todo,
-    { cascade: false }
+    { cascade: false },
   )
   histories: TodoHistory[];
 
   @OneToMany(
     () => TodoUpdateHistory,
-      history => history.todo,
-    { cascade: false }
+    history => history.todo,
+    { cascade: false },
   )
   updateHistories: TodoUpdateHistory[];
 
   @OneToMany(
     () => Prospect,
     prospect => prospect.todo,
-    { cascade: false }
+    { cascade: false },
   )
   prospects: Prospect[];
 

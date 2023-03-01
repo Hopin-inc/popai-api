@@ -22,6 +22,7 @@ import TodoHistory from "@/entities/TodoHistory";
 import TodoUser from "@/entities/TodoUser";
 import User from "@/entities/User";
 import CompanyCondition from "@/entities/CompanyCondition";
+import PropertyOption from "@/entities/PropertyOption";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
@@ -36,6 +37,9 @@ import {
 import EventTiming from "@/entities/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/DailyReport";
+import TodoApp from "@/entities/TodoApp";
+import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { Client } from "@notionhq/client";
 
 @Service()
 export default class CommonRepository {
@@ -48,6 +52,8 @@ export default class CommonRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
+  private propertyOptionRepository: Repository<PropertyOption>;
+  private notionRequest: Client;
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -59,6 +65,8 @@ export default class CommonRepository {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
+    this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
+    this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
   }
 
   public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
@@ -79,20 +87,6 @@ export default class CommonRepository {
       .where("sections.company_id = :companyId", { companyId })
       .andWhere("sections.todoapp_id = :todoappId", { todoappId })
       .andWhere("sections.board_id IS NOT NULL")
-      .getMany();
-  }
-
-  public async getSectionLabels(companyId: number, todoappId: number): Promise<SectionLabel[]> {
-    return this.labelSectionRepository
-      .createQueryBuilder("section_labels")
-      .innerJoinAndSelect(
-        "section_labels.section",
-        "sections",
-        "section_labels.section_id = sections.id",
-      )
-      .where("sections.company_id = :companyId", { companyId })
-      .andWhere("sections.todoapp_id = :todoappId", { todoappId })
-      .andWhere("section_labels.label_id IS NOT NULL")
       .getMany();
   }
 
@@ -145,17 +139,6 @@ export default class CommonRepository {
       where: { chattoolUsers: { auth_key: authKey } },
       relations,
     });
-    // return await this.userRepository
-    //   .createQueryBuilder("users")
-    //   .innerJoinAndSelect("chat_tool_users", "r", "users.id = r.user_id")
-    //   .innerJoinAndMapMany(
-    //     "users.chattools",
-    //     "m_chat_tools",
-    //     "c",
-    //     "c.id = r.chattool_id AND r.auth_key = :authKey",
-    //     { authKey },
-    //   )
-    //   .getMany();
   }
 
   public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {
@@ -188,13 +171,6 @@ export default class CommonRepository {
           );
         }),
       )
-      // .andWhere(
-      //   new Brackets((qb) => {
-      //     qb.where('todos.reminded_count < :count', {
-      //       count: 2,
-      //     });
-      //   })
-      // )
       .getMany();
   }
 
@@ -238,7 +214,7 @@ export default class CommonRepository {
 
   private async getTodosDelayed(company: Company): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
-    return await this.todoRepository.find({
+    const delayedTodos = await this.todoRepository.find({
       where: {
         company_id: company.id,
         deadline: LessThan(startOfToday),
@@ -247,12 +223,14 @@ export default class CommonRepository {
       },
       relations: ["todoUsers.user", "todoSections.section"],
     });
+
+    return this.getNotArchivedTodos(delayedTodos);
   }
 
   private async getTodosOngoing(company: Company): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
     const endOfToday = dayjs().endOf("d").toDate();
-    return await this.todoRepository.find({
+    const onGoingTodos = await this.todoRepository.find({
       where: {
         company_id: company.id,
         deadline: Between(startOfToday, endOfToday),
@@ -261,6 +239,8 @@ export default class CommonRepository {
       },
       relations: ["todoUsers.user", "todoSections.section"],
     });
+
+    return this.getNotArchivedTodos(onGoingTodos);
   }
 
   public async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
@@ -314,7 +294,7 @@ export default class CommonRepository {
     company?: Company,
     user?: User,
     date: Date = new Date(),
-    sections?: Section[]
+    sections?: Section[],
   ): Promise<DailyReport[]> {
     const start = dayjs(date).startOf("day").toDate();
     const end = dayjs(date).endOf("day").toDate();
@@ -337,5 +317,47 @@ export default class CommonRepository {
     relations: string[] = ["todoUsers.user", "todoSections.section", "prospects"],
   ): Promise<Todo[]> {
     return await this.todoRepository.find({ where: { id: In(ids) }, relations });
+  }
+
+  public async getLastUpdatedDate(company: Company, todoapp: TodoApp): Promise<Date> {
+    const companyId = company.id;
+    const todoAppId = todoapp.id;
+
+    const lastUpdatedRecord = await this.todoHistoryRepository
+      .createQueryBuilder("todo_histories")
+      .leftJoinAndSelect(
+        "todo_histories.todo",
+        "todos",
+        "todo_histories.todo_id = todos.id")
+      .where("todos.company_id = :companyId", { companyId: companyId })
+      .andWhere("todos.todoapp_id = :todoappId", { todoappId: todoAppId })
+      .orderBy("todo_histories.todoapp_reg_updated_at", "DESC")
+      .getOne();
+
+    return lastUpdatedRecord.todoapp_reg_updated_at;
+  }
+
+  public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
+    const archivedPages: PageObjectResponse[] = [];
+    await Promise.all(todos.map(async todo => {
+      const archivedPage = this.syncArchivedTrue(todo.todoapp_reg_id);
+      if (archivedPage !== undefined) {
+        archivedPages.push(await archivedPage);
+      }
+    }));
+
+    return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
+  }
+
+  public async syncArchivedTrue(todoappRegId: string) {
+    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
+    if ("object" in isPageResponse && "properties" in isPageResponse) {
+      const pageResponse: PageObjectResponse = isPageResponse;
+      if (pageResponse.archived === true) {
+        const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todoappRegId } });
+        await this.todoRepository.softRemove(deletedPageRecord);
+        return pageResponse;
+      }
+    }
   }
 }

@@ -2,20 +2,22 @@ import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { valueOf } from "@/types/index";
 
 export type INotionTask = {
-  last_edited_at: Date;
-  created_at: Date;
-  created_by: string;
-  created_by_id: number;
-  closed: boolean;
-  deadline: Date;
-  dueReminder: number | null;
-  is_done: boolean;
   name: string;
+  assignees: string[];
+  deadline: Date;
   sections: string[];
-  section_ids: number[];
-  notion_user_id: string[];
-  todoapp_reg_id: string;
-  todoapp_reg_url: string;
+  sectionIds: number[];
+  isDone: boolean;
+  isClosed: boolean;
+  deadlineReminder: number | null;
+  todoappRegId: string;
+  todoappRegUrl: string;
+  createdAt: Date;
+  createdBy: string;
+  createdById: number;
+  lastEditedAt: Date;
+  lastEditedBy: string;
+  lastEditedById: number;
 }
 
 export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;

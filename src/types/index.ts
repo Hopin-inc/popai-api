@@ -29,6 +29,7 @@ export type ITodoHistory = {
   isDone: boolean;
   isClosed: boolean;
   todoappRegUpdatedAt: Date;
+  editedBy?:number;
 };
 
 export type ITodoUserUpdate = {

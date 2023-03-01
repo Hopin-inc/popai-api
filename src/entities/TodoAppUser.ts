@@ -15,6 +15,15 @@ export default class TodoAppUser extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   user_app_id: string;
 
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  user_app_name: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  avatar: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci"})
+  email: string;
+
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   api_key: string;
 
@@ -30,7 +39,7 @@ export default class TodoAppUser extends BaseEntity {
   @ManyToOne(
     () => User,
     user => user.todoAppUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "employee_id" })
   user: User;
@@ -38,7 +47,7 @@ export default class TodoAppUser extends BaseEntity {
   @ManyToOne(
     () => TodoApp,
     todoApp => todoApp.todoAppUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "todoapp_id" })
   todoApp: TodoApp;
