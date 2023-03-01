@@ -1,13 +1,13 @@
 import { Service } from "typedi";
 import { IsNull, Repository } from "typeorm";
 
-import Todo from "@/entities/Todo";
-import TodoSection from "@/entities/TodoSection";
+import Todo from "@/entities/transactions/Todo";
+import TodoSection from "@/entities/transactions/TodoSection";
 
 import { toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
 import { ITodoSectionUpdate } from "@/types";
-import Section from "@/entities/Section";
+import Section from "@/entities/settings/Section";
 
 @Service()
 export default class TodoSectionRepository {

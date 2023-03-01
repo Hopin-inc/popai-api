@@ -1,8 +1,8 @@
 import { Controller } from "tsoa";
 import { Repository } from "typeorm";
 
-import ChatMessage from "@/entities/ChatMessage";
-import Todo from "@/entities/Todo";
+import ChatMessage from "@/entities/transactions/ChatMessage";
+import Todo from "@/entities/transactions/Todo";
 
 import AppDataSource from "@/config/data-source";
 import { toJapanDateTime } from "@/utils/common";

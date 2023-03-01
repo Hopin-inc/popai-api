@@ -1,6 +1,6 @@
-import Todo from "@/entities/Todo";
-import ChatTool from "@/entities/ChatTool";
-import User from "@/entities/User";
+import Todo from "@/entities/transactions/Todo";
+import ChatTool from "@/entities/masters/ChatTool";
+import User from "@/entities/settings/User";
 import { Block, InputBlock, KnownBlock } from "@slack/web-api";
 
 export type ITodoSlack = {

@@ -4,14 +4,14 @@ import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build
 import { Container, Service } from "typedi";
 import moment from "moment";
 
-import Todo from "@/entities/Todo";
-import TodoAppUser from "@/entities/TodoAppUser";
-import TodoApp from "@/entities/TodoApp";
-import Company from "@/entities/Company";
-import Section from "@/entities/Section";
-import User from "@/entities/User";
-import Property from "@/entities/Property";
-import PropertyOption from "@/entities/PropertyOption";
+import Todo from "@/entities/transactions/Todo";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
+import TodoApp from "@/entities/masters/TodoApp";
+import Company from "@/entities/settings/Company";
+import Section from "@/entities/settings/Section";
+import User from "@/entities/settings/User";
+import Property from "@/entities/settings/Property";
+import PropertyOption from "@/entities/settings/PropertyOption";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";

@@ -1,9 +1,9 @@
 import { Controller } from "tsoa";
 import { Repository } from "typeorm";
 
-import ChatTool from "@/entities/ChatTool";
-import ChatToolUser from "@/entities/ChatToolUser";
-import User from "@/entities/User";
+import ChatTool from "@/entities/masters/ChatTool";
+import ChatToolUser from "@/entities/settings/ChatToolUser";
+import User from "@/entities/settings/User";
 
 import { ChatToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
