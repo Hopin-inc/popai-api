@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, OneToMany, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, OneToMany, ManyToOne, OneToOne } from "typeorm";
 
 import BaseEntity from "./BaseEntity";
 import CompanyCondition from "./CompanyCondition";
@@ -10,6 +10,10 @@ import ImplementedChatTool from "./ImplementedChatTool";
 import TodoApp from "./TodoApp";
 import ChatTool from "./ChatTool";
 import EventTiming from "./EventTiming";
+import Timing from "./Timing";
+import TimingException from "./TimingException";
+import DailyReportConfig from "./DailyReportConfig";
+import NotifyConfig from "./NotifyConfig";
 
 @Entity("companies")
 export default class Company extends BaseEntity {
@@ -91,4 +95,32 @@ export default class Company extends BaseEntity {
     { cascade: true }
   )
   eventTimings: EventTiming[];
+
+  @OneToOne(
+    () => Timing,
+    timing => timing.company,
+    { cascade: true }
+  )
+  timing: Timing;
+
+  @OneToMany(
+    () => TimingException,
+    exception => exception.company,
+    { cascade: true }
+  )
+  timingExceptions: TimingException[];
+
+  @OneToOne(
+    () => DailyReportConfig,
+    config => config.company,
+    { cascade: true }
+  )
+  dailyReportConfig: DailyReportConfig;
+
+  @OneToOne(
+    () => NotifyConfig,
+    config => config.company,
+    { cascade: true }
+  )
+  notifyConfig: NotifyConfig;
 }

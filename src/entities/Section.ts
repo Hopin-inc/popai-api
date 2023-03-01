@@ -7,6 +7,10 @@ import TodoApp from "./TodoApp";
 import TodoSection from "./TodoSection";
 import SectionLabel from "./SectionLabel";
 import Property from "./Property";
+import Timing from "./Timing";
+import TimingException from "./TimingException";
+import DailyReportConfig from "./DailyReportConfig";
+import NotifyConfig from "./NotifyConfig";
 
 @Entity("sections")
 export default class Section extends BaseEntity {
@@ -76,4 +80,32 @@ export default class Section extends BaseEntity {
     { eager: true },
   )
   sectionLabel: SectionLabel;
+
+  @OneToOne(
+    () => Timing,
+    timing => timing.section,
+    { cascade: true }
+  )
+  timing?: Timing;
+
+  @OneToMany(
+    () => TimingException,
+    exception => exception.section,
+    { cascade: true }
+  )
+  timingExceptions?: TimingException[];
+
+  @OneToOne(
+    () => DailyReportConfig,
+    config => config.section,
+    { cascade: true }
+  )
+  dailyReportConfig?: DailyReportConfig;
+
+  @OneToOne(
+    () => NotifyConfig,
+    config => config.section,
+    { cascade: true }
+  )
+  notifyConfig?: NotifyConfig;
 }
