@@ -15,13 +15,7 @@ export default class Timing extends BaseEntity {
   @Column({ nullable: true })
   section_id?: number;
 
-  @Column({
-    type: "varchar",
-    length: 35,
-    collation: "utf8mb4_unicode_ci",
-    nullable: true,
-    default: "Asia/Tokyo",
-  })
+  @Column({ type: "varchar", length: 35, collation: "utf8mb4_unicode_ci", nullable: true })
   timezone_name: string;
 
   @Column({ type: "json", nullable: true })

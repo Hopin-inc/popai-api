@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import Section from "./Section";
@@ -66,10 +66,10 @@ export default class ProspectConfig extends BaseEntity {
   @JoinColumn({ name: "chat_tool_id" })
   chat_tool: ChatTool;
 
-  @OneToOne(
+  @OneToMany(
     () => ProspectTiming,
     timing => timing.config,
     { cascade: true },
   )
-  timing: ProspectTiming;
+  timings: ProspectTiming[];
 }
