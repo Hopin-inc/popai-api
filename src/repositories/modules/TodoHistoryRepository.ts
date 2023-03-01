@@ -137,6 +137,7 @@ export default class TodoHistoryRepository {
         return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification, editedBy);
       }));
     } catch (error) {
+      console.log(error);
       logger.error(new LoggerError(error.message));
     }
   }
@@ -168,16 +169,15 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-          const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
-          if (archivedPage === undefined) {
-            const editUser = await this.todoAppUserRepository.findOneBy({
-              employee_id: editedBy,
-              todoapp_id: savedTodo.todoapp_id,
-            });
-            return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
-          }
-        },
-      ));
+        const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
+        if (archivedPage === undefined) {
+          const editUser = await this.todoAppUserRepository.findOneBy({
+            employee_id: editedBy,
+            todoapp_id: savedTodo.todoapp_id,
+          });
+          return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+        }
+      }));
     }
   }
 

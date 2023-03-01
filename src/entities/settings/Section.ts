@@ -68,7 +68,7 @@ export default class Section extends BaseEntity {
 
   get sections(): Section[] {
     const todoSections = this.todoSections;
-    return todoSections ? todoSections.map(record => record.section) : [];
+    return todoSections ? todoSections.filter(ts => !ts.deleted_at).map(ts => ts.section) : [];
   }
 
   @OneToMany(() => Property, property => property.section)

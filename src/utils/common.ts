@@ -65,6 +65,17 @@ export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], 
   return arrA?.filter(a => !arrB.some(b => a[key] === b[key])) ?? [];
 };
 
+export const extractArrayDifferences = <T>(arrA: T[], arrB: T[]): [T[], T[]] => {
+  return [
+    extractArrayMembersOfANotInB(arrA, arrB),
+    extractArrayMembersOfANotInB(arrB, arrA)
+  ];
+};
+
+export const extractArrayMembersOfANotInB = <T>(arrA: T[], arrB: T[]): T[] => {
+  return arrA?.filter(a => !arrB.some(b => a === b)) ?? [];
+};
+
 export const roundMinutes = (dt: Date, significance: number, method?: "floor" | "ceil" | "round"): Date => {
   const time = dayjs(dt);
   const newMinutes = (t: typeof time, s: typeof significance, m: typeof method) => {

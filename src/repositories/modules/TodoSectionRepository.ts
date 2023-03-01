@@ -1,13 +1,13 @@
 import { Service } from "typedi";
-import { IsNull, Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 
 import Todo from "@/entities/transactions/Todo";
 import TodoSection from "@/entities/transactions/TodoSection";
-
-import { toJapanDateTime } from "@/utils/common";
-import AppDataSource from "@/config/data-source";
-import { ITodoSectionUpdate } from "@/types";
 import Section from "@/entities/settings/Section";
+
+import AppDataSource from "@/config/data-source";
+import { extractArrayDifferences } from "@/utils/common";
+import { ITodoSectionUpdate } from "@/types";
 
 @Service()
 export default class TodoSectionRepository {
@@ -20,61 +20,71 @@ export default class TodoSectionRepository {
   }
 
   public async updateTodoSection(todo: Todo, sections: Section[]): Promise<void> {
-    const todoSections: TodoSection[] = await this.todoSectionRepository.findBy({
-      todo_id: todo.id,
-      deleted_at: IsNull(),
+    const todoSections: TodoSection[] = await this.todoSectionRepository.find({
+      where: { todo_id: todo.id },
+      withDeleted: true,
     });
 
-    const todoSectionIds: number[] = todoSections.map((s) => s.section_id).filter(Number);
-    const sectionIds: number[] = sections.map((s) => s.id).filter(Number);
+    const sectionIdsBefore: number[] = todoSections.filter(ts => !ts.deleted_at).map(ts => ts.section_id);
+    const sectionIdsAfter: number[] = sections.map(section => section.id);
+    const [addedSectionIds, deletedSectionIds] = extractArrayDifferences(sectionIdsAfter, sectionIdsBefore);
 
-    const differenceSectionIds = todoSectionIds
-      .filter((x) => !sectionIds.includes(x))
-      .concat(sectionIds.filter((x) => !todoSectionIds.includes(x)));
-
-    if (differenceSectionIds.length) {
-      const deletedTodoSections: TodoSection[] = todoSections
-        .filter(function(obj) {
-          return differenceSectionIds.includes(obj.section_id);
-        })
-        .map((s) => {
-          s.deleted_at = toJapanDateTime(new Date());
-          return s;
-        });
-
-      if (deletedTodoSections.length) {
-        // await this.todoUserRepository.delete(idTodoUsers);
-        await this.todoSectionRepository.upsert(deletedTodoSections, []);
+    const addedTodoSections: TodoSection[] = [];
+    const restoredSectionIds: number[] = [];
+    const deletedTodoSections = todoSections.filter(ts => deletedSectionIds.includes(ts.section_id));
+    addedSectionIds.forEach(sectionId => {
+      if (todoSections.filter(ts => ts.deleted_at).map(ts => ts.section_id).includes(sectionId)) {
+        restoredSectionIds.push(sectionId);
+      } else {
+        addedTodoSections.push(new TodoSection(todo, sectionId));
       }
-    }
+    });
+    await Promise.all([
+      this.todoSectionRepository.upsert(addedTodoSections, []),
+      this.todoSectionRepository.restore({
+        todo_id: todo.id,
+        section_id: In(restoredSectionIds),
+      }),
+      this.todoSectionRepository.softRemove(deletedTodoSections),
+    ]);
   }
 
   public async saveTodoSections(dataTodoSections: ITodoSectionUpdate[]): Promise<void> {
-    const todoSectionData: TodoSection[] = [];
-
-    for (const dataTodoSection of dataTodoSections) {
+    const updatedTodoSections: TodoSection[] = [];
+    const deletedTodoSections: TodoSection[] = [];
+    await Promise.all(dataTodoSections.map(async dataTodoSection => {
       const todo: Todo = await this.todoRepository.findOneBy({
         todoapp_reg_id: dataTodoSection.todoId,
       });
-
       if (todo) {
-        for (const section of dataTodoSection.sections) {
-          const todoSection: TodoSection = await this.todoSectionRepository.findOneBy({
-            todo_id: todo.id,
-            section_id: section.id,
-            deleted_at: IsNull(),
-          });
-
-          if (!todoSection) {
-            const todoSectionRecord = new TodoSection();
-            todoSectionRecord.todo_id = todo.id;
-            todoSectionRecord.section_id = section.id;
-            todoSectionData.push(todoSectionRecord);
+        const savedTodoSections = await this.todoSectionRepository.find({
+          where: { todo_id: todo.id },
+          withDeleted: true,
+        });
+        const restoredSectionIds: number[] = [];
+        dataTodoSection.sections.forEach(section => {
+          if (!savedTodoSections.some(ts => ts.section_id === section.id)) {
+            if (savedTodoSections.filter(ts => ts.deleted_at).some(ts => ts.section_id === section.id)) {
+              restoredSectionIds.push(section.id);
+            } else {
+              updatedTodoSections.push(new TodoSection(todo, section));
+            }
           }
-        }
+        });
+        savedTodoSections.filter(ts => !ts.deleted_at).forEach(savedTodoSection => {
+          if (!dataTodoSection.sections.map(s => s.id).includes(savedTodoSection.section_id)) {
+            deletedTodoSections.push(savedTodoSection);
+          }
+        });
+        await this.todoSectionRepository.restore({
+          todo_id: todo.id,
+          section_id: In(restoredSectionIds),
+        });
       }
-    }
-
-    await this.todoSectionRepository.save(todoSectionData);
+    }));
+    await Promise.all([
+      this.todoSectionRepository.upsert(updatedTodoSections, []),
+      this.todoSectionRepository.softRemove(deletedTodoSections),
+    ]);
   }
 }

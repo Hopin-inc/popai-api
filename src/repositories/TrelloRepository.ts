@@ -1,4 +1,4 @@
-import { IsNull, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import moment from "moment";
 import { Service, Container } from "typedi";
 
@@ -223,25 +223,23 @@ export default class TrelloRepository {
         return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
-      const savedTodos: Todo[] = await this.todoRepository.find({
-        where: { deleted_at: IsNull() },
-        relations: [
-          "todoUsers.user.chattoolUsers",
-          "company.implementedChatTools.chattool",
-          "todoSections.section",
-        ],
-      });
-      const response = await this.todoRepository.upsert(dataTodos, []);
-
-      if (response) {
-        await Promise.all([
-          this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
-          this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
-          this.todoUserRepository.saveTodoUsers(dataTodoUsers),
-          this.todoSectionRepository.saveTodoSections(dataTodoSections),
-          // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
-        ]);
-      }
+      const savedTodos = await this.todoRepository.createQueryBuilder("todos")
+        .leftJoinAndSelect("todos.todoUsers", "todo_users")
+        .leftJoinAndSelect("todo_users.user", "users")
+        .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
+        .leftJoinAndSelect("todos.todoSections", "todo_sections")
+        .leftJoinAndSelect("todo_sections.section", "sections")
+        .leftJoinAndSelect("todos.company", "company")
+        .leftJoinAndSelect("company.implementedChatTools", "implemented_chat_tools")
+        .leftJoinAndSelect("implemented_chat_tools.chattool", "chat_tool")
+        .getMany();
+      await this.todoRepository.upsert(dataTodos, []);
+      await Promise.all([
+        this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
+        this.todoUserRepository.saveTodoUsers(dataTodoUsers),
+        this.todoSectionRepository.saveTodoSections(dataTodoSections),
+        // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
+      ]);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -313,7 +311,6 @@ export default class TrelloRepository {
     if (taskDeadLine || todoData.is_done) {
       const isDeadlineChanged = !moment(taskDeadLine).isSame(todo?.deadline);
       const isDoneChanged = todo?.is_done !== todoData.is_done;
-
       if (isDeadlineChanged || isDoneChanged) {
         dataTodoUpdates.push({
           todoId: todoTask.id,
@@ -322,7 +319,6 @@ export default class TrelloRepository {
           updateTime: toJapanDateTime(todoTask.dateLastActivity),
         });
       }
-
       if (
         !todoData.is_done &&
         taskRemind.delayedCount > 0 &&
@@ -331,14 +327,7 @@ export default class TrelloRepository {
         todoData.delayed_count = todoData.delayed_count + 1;
       }
     }
-
     dataTodos.push(todoData);
-
-    // update user
-    if (todo) {
-      await this.todoUserRepository.updateTodoUser(todo, users);
-      await this.todoSectionRepository.updateTodoSection(todo, sections);
-    }
   }
 
   public async updateTodo(

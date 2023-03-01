@@ -27,4 +27,12 @@ export default class TodoSection extends BaseEntity {
   )
   @JoinColumn({ name: "section_id" })
   section: Section;
+
+  constructor(todo: Todo | number, section: Section | number) {
+    super();
+    if (todo && section) {
+      this.todo_id = typeof todo === "number" ? todo : todo.id;
+      this.section_id = typeof section === "number" ? section : section.id;
+    }
+  }
 }
