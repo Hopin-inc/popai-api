@@ -66,7 +66,7 @@ export default class TodoHistoryRepository {
       type Args = [
         valueOf<typeof Property>,
         valueOf<typeof Action>,
-          Info | null,    // New assignees & deadline
+        (Info | null),    // New assignees & deadline
         boolean,        // Send notification?
       ];
       const argsList: Args[] = [];

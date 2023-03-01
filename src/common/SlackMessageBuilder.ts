@@ -22,7 +22,6 @@ import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
 import { PlainTextOption } from "@slack/types";
 import TodoAppUser from "@/entities/TodoAppUser";
-import TodoApp from "@/entities/TodoApp";
 
 dayjs.locale("ja");
 

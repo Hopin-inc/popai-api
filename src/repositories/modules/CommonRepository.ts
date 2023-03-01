@@ -38,7 +38,7 @@ import EventTiming from "@/entities/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/DailyReport";
 import TodoApp from "@/entities/TodoApp";
-import { deleteBlock, GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 
 @Service()

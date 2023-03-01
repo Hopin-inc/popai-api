@@ -34,7 +34,7 @@ export default class Property extends BaseEntity {
 
   @OneToMany(
     () => PropertyOption,
-      propertyOption => propertyOption.property,
+    propertyOption => propertyOption.property,
     { cascade: false })
   propertyOptions: PropertyOption[];
 }

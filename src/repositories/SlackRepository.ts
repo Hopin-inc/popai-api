@@ -36,7 +36,6 @@ import Prospect from "@/entities/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
 import DailyReport from "@/entities/DailyReport";
 import TodoAppUser from "@/entities/TodoAppUser";
-import TodoApp from "@/entities/TodoApp";
 
 @Service()
 export default class SlackRepository {
