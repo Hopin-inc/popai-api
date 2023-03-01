@@ -2,10 +2,10 @@ import { Controller } from "tsoa";
 import Container from "typedi";
 import { Repository } from "typeorm";
 
-import ChatTool from "@/entities/ChatTool";
-import User from "@/entities/User";
-import Todo from "@/entities/Todo";
-import Section from "@/entities/Section";
+import ChatTool from "@/entities/masters/ChatTool";
+import User from "@/entities/settings/User";
+import Todo from "@/entities/transactions/Todo";
+import Section from "@/entities/settings/Section";
 
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import SlackRepository from "@/repositories/SlackRepository";

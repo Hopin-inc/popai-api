@@ -1,19 +1,25 @@
 import { Container, Service } from "typedi";
 import { Repository } from "typeorm";
 
-import Todo from "@/entities/Todo";
-import TodoHistory from "@/entities/TodoHistory";
-import User from "@/entities/User";
-import ChatTool from "@/entities/ChatTool";
+import Todo from "@/entities/transactions/Todo";
+import TodoHistory from "@/entities/transactions/TodoHistory";
+import User from "@/entities/settings/User";
+import ChatTool from "@/entities/masters/ChatTool";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { ITodoHistory, valueOf } from "@/types";
-import { TodoHistoryProperty as Property, TodoHistoryAction as Action, ChatToolCode } from "@/consts/common";
+import {
+  TodoHistoryProperty as Property,
+  TodoHistoryAction as Action,
+  ChatToolCode,
+} from "@/consts/common";
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
+import CommonRepository from "@/repositories/modules/CommonRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
@@ -21,12 +27,16 @@ type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 export default class TodoHistoryRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private todoRepository: Repository<Todo>;
+  private todoAppUserRepository: Repository<TodoAppUser>;
   private slackRepository: SlackRepository;
+  private commonRepository: CommonRepository;
 
   constructor() {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.slackRepository = Container.get(SlackRepository);
+    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async saveTodoHistories(savedTodos: Todo[], todos: ITodoHistory[], notify: boolean = false): Promise<void> {
@@ -45,7 +55,7 @@ export default class TodoHistoryRepository {
         property: Property.NAME,
         action: Action.CREATE,
       }) > 0;
-      const { users, deadline, isDone, isClosed } = history;
+      const { users, deadline, isDone, isClosed, editedBy } = history;
       const assignees = users.filter(user => !user.deleted_at) || [];
       const isDelayed = savedTodo.deadline
         ? diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(new Date())) > 0
@@ -56,7 +66,7 @@ export default class TodoHistoryRepository {
       type Args = [
         valueOf<typeof Property>,
         valueOf<typeof Action>,
-        Info | null,    // New assignees & deadline
+        (Info | null),    // New assignees & deadline
         boolean,        // Send notification?
       ];
       const argsList: Args[] = [];
@@ -124,7 +134,7 @@ export default class TodoHistoryRepository {
         }
       }
       await Promise.all(argsList.map(([property, action, info, notification]) => {
-        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification);
+        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification, editedBy);
       }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -139,6 +149,7 @@ export default class TodoHistoryRepository {
     updatedAt: Date,
     info: Info | null,
     notify?: boolean,
+    editedBy?: number,
   ) {
     const todoHistory = new TodoHistory();
     todoHistory.todo_id = savedTodo.id;
@@ -147,6 +158,7 @@ export default class TodoHistoryRepository {
     todoHistory.todoapp_reg_updated_at = updatedAt;
     todoHistory.deadline = info?.deadline ?? null;
     todoHistory.days_diff = info?.daysDiff ?? null;
+    todoHistory.edited_by = editedBy;
 
     if (info?.assignee) {
       todoHistory.user_id = info?.assignee.id;
@@ -155,8 +167,16 @@ export default class TodoHistoryRepository {
     await this.todoHistoryRepository.save(todoHistory);
 
     if (notify) {
-      await Promise.all(savedTodo.company?.chatTools?.map(
-        chatTool => this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool)
+      await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
+          const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
+          if (archivedPage === undefined) {
+            const editUser = await this.todoAppUserRepository.findOneBy({
+              employee_id: editedBy,
+              todoapp_id: savedTodo.todoapp_id,
+            });
+            return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+          }
+        },
       ));
     }
   }
@@ -167,7 +187,8 @@ export default class TodoHistoryRepository {
     deadline: Date,
     property: valueOf<typeof Property>,
     action: valueOf<typeof Action>,
-    chatTool: ChatTool
+    chatTool: ChatTool,
+    editUser: TodoAppUser,
   ) {
     const code = chatTool.tool_code;
     if (property === Property.NAME && action === Action.CREATE) { // 新規追加
@@ -175,7 +196,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool);
+          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool, editUser);
           break;
       }
     } else if (property === Property.IS_DONE && action === Action.CREATE) {  // 完了
@@ -183,7 +204,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool);
+          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool, editUser);
           break;
       }
     } else if (property === Property.ASSIGNEE) {  // 担当者
@@ -191,7 +212,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool);
+          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool, editUser);
           break;
       }
     } else if (property === Property.DEADLINE) {  // 期日
@@ -199,7 +220,15 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool);
+          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool, editUser);
+          break;
+      }
+    } else if (property === Property.IS_CLOSED) {  // 保留
+      switch (code) {
+        case ChatToolCode.LINE:
+          break;
+        case ChatToolCode.SLACK:
+          await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool, editUser);
           break;
       }
     }

@@ -2,12 +2,12 @@ import { IsNull, Repository } from "typeorm";
 import moment from "moment";
 import { Service, Container } from "typedi";
 
-import Todo from "@/entities/Todo";
-import TodoAppUser from "@/entities/TodoAppUser";
-import TodoApp from "@/entities/TodoApp";
-import Company from "@/entities/Company";
-import Section from "@/entities/Section";
-import User from "@/entities/User";
+import Todo from "@/entities/transactions/Todo";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
+import TodoApp from "@/entities/masters/TodoApp";
+import Company from "@/entities/settings/Company";
+import Section from "@/entities/settings/Section";
+import User from "@/entities/settings/User";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";

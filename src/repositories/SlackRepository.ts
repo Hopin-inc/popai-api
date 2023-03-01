@@ -5,14 +5,14 @@ import moment from "moment";
 
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 
-import ChatTool from "@/entities/ChatTool";
-import ChatToolUser from "@/entities/ChatToolUser";
-import Company from "@/entities/Company";
-import ChatMessage from "@/entities/ChatMessage";
-import ReportingLine from "@/entities/ReportingLine";
-import Section from "@/entities/Section";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
+import ChatTool from "@/entities/masters/ChatTool";
+import ChatToolUser from "@/entities/settings/ChatToolUser";
+import Company from "@/entities/settings/Company";
+import ChatMessage from "@/entities/transactions/ChatMessage";
+import ReportingLine from "@/entities/settings/ReportingLine";
+import Section from "@/entities/settings/Section";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
 
 import CommonRepository from "./modules/CommonRepository";
 import logger from "@/logger/winston";
@@ -32,9 +32,10 @@ import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
-import Prospect from "@/entities/Prospect";
+import Prospect from "@/entities/transactions/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
-import DailyReport from "@/entities/DailyReport";
+import DailyReport from "@/entities/transactions/DailyReport";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 @Service()
 export default class SlackRepository {
@@ -101,9 +102,23 @@ export default class SlackRepository {
     users: User[],
     channel: string,
   ) {
+    // const ts = await this.startDailyReport(company, channel);
+    // await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
+
     await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel)));
     await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
   }
+
+  // private async startDailyReport(company: Company, channel: string): Promise<string> {
+  //   const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+  //   if (chatTool) {
+  //     const message = SlackMessageBuilder.createStartDailyReportMessage();
+  //     const { ts } = await this.pushSlackMessage(chatTool, null, message, MessageTriggerType.REPORT, channel);
+  //     return ts;
+  //   } else {
+  //     return null;
+  //   }
+  // }
 
   private async reportByUser(
     items: IDailyReportItems,
@@ -777,8 +792,8 @@ export default class SlackRepository {
     return await query.getMany();
   }
 
-  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees);
+  public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool, editUser: TodoAppUser) {
+    const message = SlackMessageBuilder.createNotifyOnCreatedMessage(savedTodo, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -788,8 +803,8 @@ export default class SlackRepository {
     )));
   }
 
-  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool) {
-    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo);
+  public async notifyOnCompleted(savedTodo: Todo, chatTool: ChatTool, editUser: TodoAppUser) {
+    const message = SlackMessageBuilder.createNotifyOnCompletedMessage(savedTodo, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -804,8 +819,9 @@ export default class SlackRepository {
     action: valueOf<typeof TodoHistoryAction>,
     assignees: User[],
     chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees);
+    const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,
@@ -820,8 +836,25 @@ export default class SlackRepository {
     action: valueOf<typeof TodoHistoryAction>,
     deadline: Date,
     chatTool: ChatTool,
+    editUser: TodoAppUser
   ) {
-    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline);
+    const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline, editUser);
+    await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
+      chatTool,
+      null,
+      message,
+      MessageTriggerType.NOTIFY,
+      section.channel_id,
+    )));
+  }
+
+  public async notifyOnClosedUpdated(
+    savedTodo: Todo,
+    action: valueOf<typeof TodoHistoryAction>,
+    chatTool: ChatTool,
+    editUser: TodoAppUser
+  ) {
+    const message = SlackMessageBuilder.createNotifyOnClosedUpdatedMessage(savedTodo, action, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
       chatTool,
       null,

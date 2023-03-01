@@ -1,7 +1,7 @@
 import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
 
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
 
 import { formatDatetime, sliceByNumber, relativeRemindDays } from "@/utils/common";
 import {

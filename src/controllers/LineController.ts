@@ -4,10 +4,10 @@ import Container from "typedi";
 import { FlexMessage, MessageAPIResponseBase, TextMessage, WebhookEvent } from "@line/bot-sdk";
 import moment from "moment";
 
-import ChatMessage from "@/entities/ChatMessage";
-import ChatTool from "@/entities/ChatTool";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
+import ChatMessage from "@/entities/transactions/ChatMessage";
+import ChatTool from "@/entities/masters/ChatTool";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
 
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import LineRepository from "@/repositories/LineRepository";

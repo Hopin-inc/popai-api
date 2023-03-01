@@ -1,8 +1,8 @@
 import { Service } from "typedi";
 import { Repository } from "typeorm";
 
-import Todo from "@/entities/Todo";
-import TodoUpdateHistory from "@/entities/TodoUpdateHistory";
+import Todo from "@/entities/transactions/Todo";
+import TodoUpdateHistory from "@/entities/transactions/TodoUpdateHistory";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";

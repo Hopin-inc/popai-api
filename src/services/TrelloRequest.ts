@@ -1,6 +1,6 @@
 import { Service } from "typedi";
 
-import TodoAppUser from "@/entities/TodoAppUser";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import { fetchApi } from "@/libs/request";
 import { ITrelloAuth, ITrelloMember, ITrelloTask, ITrelloList, ITrelloActivityLog } from "@/types/trello";

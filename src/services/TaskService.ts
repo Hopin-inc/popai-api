@@ -1,11 +1,11 @@
 import { Repository, FindOptionsWhere } from "typeorm";
 import { Service, Container } from "typedi";
 
-import Company from "@/entities/Company";
-import RemindUserJob from "@/entities/RemindUserJob";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
-import TodoAppUser from "@/entities/TodoAppUser";
+import Company from "@/entities/settings/Company";
+import RemindUserJob from "@/entities/transactions/RemindUserJob";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import MicrosoftRepository from "@/repositories/MicrosoftRepository";
 import TrelloRepository from "@/repositories/TrelloRepository";
@@ -19,7 +19,7 @@ import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, Todo
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
-import TodoApp from "@/entities/TodoApp";
+import TodoApp from "@/entities/masters/TodoApp";
 
 @Service()
 export default class TaskService {

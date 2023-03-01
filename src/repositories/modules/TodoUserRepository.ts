@@ -1,9 +1,9 @@
 import { Service } from "typedi";
 import { In, IsNull, Repository } from "typeorm";
 
-import Todo from "@/entities/Todo";
-import TodoUser from "@/entities/TodoUser";
-import User from "@/entities/User";
+import Todo from "@/entities/transactions/Todo";
+import TodoUser from "@/entities/transactions/TodoUser";
+import User from "@/entities/settings/User";
 
 import AppDataSource from "@/config/data-source";
 import { toJapanDateTime } from "@/utils/common";

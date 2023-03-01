@@ -1,4 +1,4 @@
-import TodoAppUser from "@/entities/TodoAppUser";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 export type IMicrosoftCreateBy = {
   user: IMicrosoftMember;

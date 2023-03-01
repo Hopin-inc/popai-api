@@ -2,11 +2,11 @@ import Container, { Service } from "typedi";
 import { Repository } from "typeorm";
 import moment from "moment";
 
-import ChatToolUser from "@/entities/ChatToolUser";
-import Company from "@/entities/Company";
-import LineMessageQueue from "@/entities/LineMessageQueue";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
+import ChatToolUser from "@/entities/settings/ChatToolUser";
+import Company from "@/entities/settings/Company";
+import LineMessageQueue from "@/entities/transactions/LineMessageQueue";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
 
 import CommonRepository from "./CommonRepository";
 
