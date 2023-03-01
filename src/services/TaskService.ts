@@ -87,7 +87,6 @@ export default class TaskService {
       );
       return;
     } catch (error) {
-      console.error(error);
       logger.error(new LoggerError(error.message));
       throw new InternalServerErrorException(error.message);
     }
