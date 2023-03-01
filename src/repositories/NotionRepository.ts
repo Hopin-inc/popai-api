@@ -183,12 +183,11 @@ export default class NotionRepository {
     return;
   }
 
-  private async saveProperty(id: string, name: string, type: number, sectionId: number, usage?: number) {
+  private async saveProperty(id: string, name: string, type: number, sectionId: number) {
     const propertyExists = await this.propertyRepository.findOne({ where: { section_id: sectionId, property_id: id } });
     if (propertyExists) {
       propertyExists.name = name;
       propertyExists.type = type;
-      // propertyExists.usage = usage; //TODO:usageがnullで上書きされる恐れがある
       await this.propertyRepository.save(propertyExists);
     } else {
       const property = new Property();
@@ -196,13 +195,12 @@ export default class NotionRepository {
       property.property_id = id;
       property.name = name;
       property.type = type;
-      // property.usage = usage; //TODO:usageは入力されていない
 
       await this.propertyRepository.save(property);
     }
   }
 
-  private getTitle(pageProperty: Record<string, any>, titleId: string): string {
+  private getTitle(pageProperty: Record<PropertyKey, any>, titleId: string): string {
     try {
       const property = pageProperty.find(prop => prop.id === titleId);
       return property.title.map(t => t.plain_text ?? "").join("");
@@ -212,7 +210,7 @@ export default class NotionRepository {
     }
   }
 
-  private getAssignee(pageProperty: Record<string, any>, assigneeId: string): string[] {
+  private getAssignee(pageProperty: Record<PropertyKey, any>, assigneeId: string): string[] {
     try {
       const results: string[] = [];
       const property = pageProperty.find(prop => prop.id === assigneeId);
@@ -229,7 +227,7 @@ export default class NotionRepository {
     }
   }
 
-  private getDue(pageProperty: Record<string, any>, dueId: string): Date {
+  private getDue(pageProperty: Record<PropertyKey, any>, dueId: string): Date {
     try {
       const property = pageProperty.find(prop => prop.id === dueId);
       if (property.type === "date" && property.date) {
@@ -245,7 +243,7 @@ export default class NotionRepository {
     }
   }
 
-  private getSections(pageProperty: Record<string, any>, sectionId: string): string[] {
+  private getSections(pageProperty: Record<PropertyKey, any>, sectionId: string): string[] {
     try {
       const property = pageProperty.find(prop => prop.id === sectionId);
       if (property.type === "relation") {
@@ -281,7 +279,7 @@ export default class NotionRepository {
     return results;
   }
 
-  private async getIsStatus(pageProperty: Record<string, any>, isFlagId: string): Promise<boolean> {
+  private async getIsStatus(pageProperty: Record<PropertyKey, any>, isFlagId: string): Promise<boolean> {
     try {
       const property = pageProperty.find(prop => prop.id === isFlagId);
       if (property.type === "checkbox") {
@@ -363,16 +361,17 @@ export default class NotionRepository {
       if (section.board_id) {
         try {
           const lastUpdatedDate = await this.commonRepository.getLastUpdatedDate(company, todoapp);
-          lastUpdatedDate.setDate(lastUpdatedDate.getDate() - 1);
-          const yesterdayLastUpdated = lastUpdatedDate.toISOString().slice(0, 10);
+          lastUpdatedDate.setDate(lastUpdatedDate.getDate());
+          const lastUpdatedStr = lastUpdatedDate.toISOString().slice(0, 10);
 
           let response = await this.notionRequest.databases.query({
             database_id: section.board_id,
             filter: {
               timestamp: "last_edited_time",
-              last_edited_time: { after: yesterdayLastUpdated },
+              last_edited_time: { on_or_after: lastUpdatedStr },
             },
           });
+
           const pages = response.results;
           while (response.has_more) {
             response = await this.notionRequest.databases.query({
@@ -453,6 +452,7 @@ export default class NotionRepository {
       pageTodo.sectionIds = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
       pageTodo.createdById = await this.getEditedById(company.users, todoapp.id, pageTodo.createdBy);
       pageTodo.lastEditedById = await this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy);
+      // console.log(pageTodo);
 
       pageTodos.push(pageTodo);
     }
