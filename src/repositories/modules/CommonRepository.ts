@@ -38,7 +38,7 @@ import EventTiming from "@/entities/settings/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoApp from "@/entities/masters/TodoApp";
-import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 
 @Service()
@@ -283,7 +283,6 @@ export default class CommonRepository {
         deadline: Between(startDate, endDate),
         is_done: false,
         is_closed: false,
-        deleted_at: IsNull(),
         ...filterByUser,
       },
       relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],
@@ -340,19 +339,17 @@ export default class CommonRepository {
   public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
     const archivedPages: PageObjectResponse[] = [];
     await Promise.all(todos.map(async todo => {
-      const archivedPage = this.syncArchivedTrue(todo.todoapp_reg_id);
+      const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
       if (archivedPage !== undefined) {
-        archivedPages.push(await archivedPage);
+        archivedPages.push(archivedPage);
       }
     }));
-
     return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
   }
 
   public async syncArchivedTrue(todoappRegId: string) {
-    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
-    if ("object" in isPageResponse && "properties" in isPageResponse) {
-      const pageResponse: PageObjectResponse = isPageResponse;
+    const pageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
+    if ("properties" in pageResponse) {
       if (pageResponse.archived === true) {
         const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todoappRegId } });
         await this.todoRepository.softRemove(deletedPageRecord);
