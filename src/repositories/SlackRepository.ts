@@ -13,6 +13,11 @@ import ReportingLine from "@/entities/settings/ReportingLine";
 import Section from "@/entities/settings/Section";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
+import DailyReport from "@/entities/transactions/DailyReport";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
+import DailyReportConfig from "@/entities/settings/DailyReportConfig";
+import NotifyConfig from "@/entities/settings/NotifyConfig";
+import ProspectConfig from "@/entities/settings/ProspectConfig";
 
 import CommonRepository from "./modules/CommonRepository";
 import logger from "@/logger/winston";
@@ -34,36 +39,38 @@ import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack } from "@/types/slack";
 import Prospect from "@/entities/transactions/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
-import DailyReport from "@/entities/transactions/DailyReport";
-import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 @Service()
 export default class SlackRepository {
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private todoRepository: Repository<Todo>;
-  private commonRepository: CommonRepository;
   private sectionRepository: Repository<Section>;
   private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportRepository: Repository<DailyReport>;
+  private dailyReportConfigRepository: Repository<DailyReportConfig>
+  private commonRepository: CommonRepository;
+
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.commonRepository = Container.get(CommonRepository);
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
+    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
+    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async sendDailyReport(company: Company) {
     try {
       const channelSectionsMap: Map<string, Section[]> = new Map();
+      const configRecord = await this.dailyReportConfigRepository.findOneBy({company_id: company.id, enabled:true});
+      const channelId = configRecord.channel;
       company.sections.forEach(section => {
-        const channelId = section.channel_id;
         if (channelSectionsMap.has(section.channel_id)) {
           channelSectionsMap.get(channelId).push(section);
         } else {
@@ -819,7 +826,7 @@ export default class SlackRepository {
     action: valueOf<typeof TodoHistoryAction>,
     assignees: User[],
     chatTool: ChatTool,
-    editUser: TodoAppUser
+    editUser: TodoAppUser,
   ) {
     const message = SlackMessageBuilder.createNotifyOnAssigneeUpdatedMessage(savedTodo, action, assignees, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
@@ -836,7 +843,7 @@ export default class SlackRepository {
     action: valueOf<typeof TodoHistoryAction>,
     deadline: Date,
     chatTool: ChatTool,
-    editUser: TodoAppUser
+    editUser: TodoAppUser,
   ) {
     const message = SlackMessageBuilder.createNotifyOnDeadlineUpdatedMessage(savedTodo, action, deadline, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(
@@ -852,7 +859,7 @@ export default class SlackRepository {
     savedTodo: Todo,
     action: valueOf<typeof TodoHistoryAction>,
     chatTool: ChatTool,
-    editUser: TodoAppUser
+    editUser: TodoAppUser,
   ) {
     const message = SlackMessageBuilder.createNotifyOnClosedUpdatedMessage(savedTodo, action, editUser);
     await Promise.all(savedTodo.sections.map(section => this.pushSlackMessage(

@@ -340,9 +340,11 @@ export default class CommonRepository {
   public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
     const archivedPages: PageObjectResponse[] = [];
     await Promise.all(todos.map(async todo => {
-      const archivedPage = this.syncArchivedTrue(todo.todoapp_reg_id);
-      if (archivedPage !== undefined) {
-        archivedPages.push(await archivedPage);
+      if (todo.todoapp_id === 3) {
+        const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
+        if (archivedPage.archived === true) {
+          archivedPages.push(await archivedPage);
+        }
       }
     }));
 
@@ -356,8 +358,8 @@ export default class CommonRepository {
       if (pageResponse.archived === true) {
         const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todoappRegId } });
         await this.todoRepository.softRemove(deletedPageRecord);
-        return pageResponse;
       }
+      return pageResponse;
     }
   }
 }
