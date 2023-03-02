@@ -452,7 +452,6 @@ export default class NotionRepository {
       pageTodo.sectionIds = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
       pageTodo.createdById = await this.getEditedById(company.users, todoapp.id, pageTodo.createdBy);
       pageTodo.lastEditedById = await this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy);
-      // console.log(pageTodo);
 
       pageTodos.push(pageTodo);
     }

@@ -1,6 +1,14 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { Button, KnownBlock, MessageAttachment } from "@slack/web-api";
+import {
+  ActionsBlock,
+  Button,
+  ContextBlock,
+  KnownBlock,
+  MessageAttachment,
+  MrkdwnElement,
+  SectionBlock,
+} from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
@@ -17,7 +25,7 @@ import {
   SlackActionLabel,
 } from "@/consts/slack";
 import { diffDays, formatDatetime, relativeRemindDays, Sorter, toJapanDateTime, truncate } from "@/utils/common";
-import { ITodoSlack } from "@/types/slack";
+import { ITodoSlack, SlackInteractionPayload } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
 import { PlainTextOption } from "@slack/types";
@@ -373,7 +381,7 @@ export default class SlackMessageBuilder {
       iconUrl,
       filteredItems.completedYesterday,
       filteredItems.delayed,
-      filteredItems.ongoing
+      filteredItems.ongoing,
     );
     return { blocks };
   }
@@ -386,7 +394,7 @@ export default class SlackMessageBuilder {
       filteredItems.completedYesterday,
       filteredItems.delayed,
       filteredItems.ongoing,
-      true
+      true,
     );
     return { blocks };
   }
@@ -394,7 +402,7 @@ export default class SlackMessageBuilder {
   private static filterTodosByUser(
     items: IDailyReportItems,
     sections: (Section | number)[],
-    user: User
+    user: User,
   ): IDailyReportItems {
     const sectionIds = sections?.length && typeof sections[0] === "number"
       ? sections
@@ -715,18 +723,5 @@ export default class SlackMessageBuilder {
       ),
     ];
     return { blocks };
-  }
-
-  // TODO: SlackRepositoryへ移管する
-  public static getTextContentFromMessage(message: MessageAttachment) { // TODO:replyが記録できていない
-    if (message.blocks && message.blocks.length) {
-      const blocks = message.blocks as KnownBlock[];
-      if (blocks[0].type === "section" && blocks[0].fields) {
-        return blocks[0].fields.map(field => field.text)?.join("\n") ?? "";
-      }
-    } else if (message.actions && message.actions.length && message.actions[0].text) {
-      return message.actions[0].text;
-    }
-    return "";
   }
 }
