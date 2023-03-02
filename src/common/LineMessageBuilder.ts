@@ -504,16 +504,15 @@ export default class LineMessageBuilder {
   }
 
   // static createDailyReport(
-  //   greetingMessage: string,
+  //   user: User,
   //   yesterdayCompletedNumber: number,
   //   onGoingNumber: number,
   //   delayedItems: Todo[],
-  //   sections: Section[],
-  //   user: User): FlexCarousel {
-  //   // const teamReport: FlexBubble[] = [];
-  //   const reportByUser:FlexBox[] = [];
+  // ): FlexBubble[] {
+  //   const message:FlexBubble[] = [];
+  //   const reportByUser:FlexBubble
   //
-  //   const reportBySection: FlexBubble = {
+  //     [{
   //     type: "bubble",
   //     size: "kilo",
   //     hero: {
@@ -527,32 +526,19 @@ export default class LineMessageBuilder {
   //       type: "box",
   //       layout: "vertical",
   //       contents: [
-  //         {
-  //           type: "text",
-  //           text: "🥇 Shinji Nakashima",
-  //           weight: "bold",
-  //           size: "lg",
-  //           wrap: true,
-  //           margin: "md",
-  //         },
+  //         { type: "text", text: user.name, weight: "bold", size: "lg", wrap: true, margin: "md" },
   //         {
   //           type: "box",
   //           layout: "baseline",
   //           contents: [
+  //             { type: "text", text: "昨日", color: "#BDBDBD", size: "sm", flex: 1 },
   //             {
   //               type: "text",
-  //               text: "昨日",
-  //               color: "#BDBDBD",
-  //               size: "sm",
-  //               flex: 1,
-  //             },
-  //             {
-  //               type: "text",
-  //               text: "5件",
+  //               text: `${yesterdayCompletedNumber}件`,
+  //               color: "#F44336",
   //               size: "md",
   //               wrap: true,
   //               flex: 4,
-  //               color: "#F44336",
   //               weight: "bold",
   //             },
   //           ],
@@ -561,36 +547,16 @@ export default class LineMessageBuilder {
   //           type: "box",
   //           layout: "baseline",
   //           contents: [
+  //             { type: "text", text: "本日", color: "#BDBDBD", size: "sm", flex: 1 },
   //             {
   //               type: "text",
-  //               text: "本日",
-  //               color: "#BDBDBD",
-  //               size: "sm",
-  //               flex: 1,
-  //             },
-  //             {
-  //               type: "text",
-  //               text: "12件",
+  //               text: `${onGoingNumber}件`,
   //               color: "#666666",
   //               size: "md",
   //               wrap: true,
   //               flex: 4,
   //             },
   //           ],
-  //         },
-  //         {
-  //           type: "text",
-  //           text: "🚨 三承工業の見積書を作成する",
-  //           size: "xs",
-  //           color: "#F44336",
-  //           offsetTop: "md",
-  //         },
-  //         {
-  //           type: "text",
-  //           text: "🚨 三承工業の見積書を作成する",
-  //           size: "xs",
-  //           color: "#F44336",
-  //           offsetTop: "md",
   //         },
   //       ],
   //       spacing: "sm",
@@ -613,7 +579,7 @@ export default class LineMessageBuilder {
   //         },
   //       ],
   //     },
-  //   };
+  //   }];
   // }
 
   static getTextContentFromMessage(message: Message): string {

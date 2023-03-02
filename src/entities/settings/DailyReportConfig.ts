@@ -22,7 +22,7 @@ export default class DailyReportConfig extends BaseEntity {
   @Column({ nullable: true })
   chat_tool_id: number;
 
-  @Column({ type: "varchar", length: 12, collation: "utf8mb4_unicode_ci", nullable: true })
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   channel: string;
 
   @OneToOne(
