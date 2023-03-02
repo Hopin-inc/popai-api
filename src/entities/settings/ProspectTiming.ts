@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import ProspectConfig from "./ProspectConfig";
 
@@ -16,9 +16,12 @@ export default class ProspectTiming extends BaseEntity {
   @Column({ default: false })
   ask_plan: boolean;
 
-  @OneToOne(
+  @Column({ type: "time", nullable: true })
+  ask_plan_milestone: string;
+
+  @OneToMany(
     () => ProspectConfig,
-    config => config.timing,
+    config => config.timings,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "config_id" })

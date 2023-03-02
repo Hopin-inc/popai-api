@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import Section from "./Section";
@@ -48,10 +48,10 @@ export default class DailyReportConfig extends BaseEntity {
   @JoinColumn({ name: "chat_tool_id" })
   chat_tool: ChatTool;
 
-  @OneToOne(
+  @OneToMany(
     () => DailyReportTiming,
     timing => timing.config,
     { cascade: true },
   )
-  timing: DailyReportTiming;
+  timings: DailyReportTiming[];
 }

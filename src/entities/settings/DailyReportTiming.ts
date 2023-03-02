@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import DailyReportConfig from "./DailyReportConfig";
 
@@ -16,9 +16,9 @@ export default class DailyReportTiming extends BaseEntity {
   @Column({ default: false })
   enable_pending: boolean;
 
-  @OneToOne(
+  @ManyToOne(
     () => DailyReportConfig,
-    config => config.timing,
+    config => config.timings,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "config_id" })
