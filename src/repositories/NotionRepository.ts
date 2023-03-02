@@ -371,7 +371,6 @@ export default class NotionRepository {
               last_edited_time: { on_or_after: lastUpdatedStr },
             },
           });
-          console.log(response);
 
           const pages = response.results;
           while (response.has_more) {
