@@ -49,7 +49,7 @@ export default class SlackRepository {
   private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportRepository: Repository<DailyReport>;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>
+  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
 
 
@@ -68,9 +68,10 @@ export default class SlackRepository {
   public async sendDailyReport(company: Company) {
     try {
       const channelSectionsMap: Map<string, Section[]> = new Map();
-      const configRecord = await this.dailyReportConfigRepository.findOneBy({company_id: company.id, enabled:true});
-      const channelId = configRecord.channel;
+      // const configRecord = await this.dailyReportConfigRepository.findOneBy({company_id: company.id, enabled:true});
+      // const channelId = configRecord.channel;
       company.sections.forEach(section => {
+        const channelId = section.channel_id;
         if (channelSectionsMap.has(section.channel_id)) {
           channelSectionsMap.get(channelId).push(section);
         } else {
