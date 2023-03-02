@@ -371,6 +371,7 @@ export default class NotionRepository {
               last_edited_time: { on_or_after: lastUpdatedStr },
             },
           });
+          console.log(response);
 
           const pages = response.results;
           while (response.has_more) {
@@ -452,7 +453,6 @@ export default class NotionRepository {
       pageTodo.sectionIds = await this.getNotionSectionIds(company, todoapp, pageTodo.sections);
       pageTodo.createdById = await this.getEditedById(company.users, todoapp.id, pageTodo.createdBy);
       pageTodo.lastEditedById = await this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy);
-      // console.log(pageTodo);
 
       pageTodos.push(pageTodo);
     }

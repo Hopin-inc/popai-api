@@ -32,7 +32,7 @@ import {
   TodoHistoryProperty as Property,
   TodoHistoryAction as Action,
   NOT_UPDATED_DAYS,
-  EventType,
+  EventType, TodoAppCode,
 } from "@/consts/common";
 import EventTiming from "@/entities/settings/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
@@ -221,7 +221,7 @@ export default class CommonRepository {
         is_closed: false,
         is_done: false,
       },
-      relations: ["todoUsers.user", "todoSections.section"],
+      relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
 
     return this.getNotArchivedTodos(delayedTodos);
@@ -237,7 +237,7 @@ export default class CommonRepository {
         is_closed: false,
         is_done: false,
       },
-      relations: ["todoUsers.user", "todoSections.section"],
+      relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
 
     return this.getNotArchivedTodos(onGoingTodos);
@@ -340,13 +340,18 @@ export default class CommonRepository {
   public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
     const archivedPages: PageObjectResponse[] = [];
     await Promise.all(todos.map(async todo => {
-      const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
-      if (archivedPage !== undefined) {
-        archivedPages.push(await archivedPage);
+      if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
+        const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
+        if (archivedPage.archived === true) {
+          archivedPages.push(await archivedPage);
+        }
       }
     }));
-
-    return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
+    if (archivedPages) {
+      return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
+    } else {
+      return todos;
+    }
   }
 
   public async syncArchivedTrue(todoappRegId: string) {

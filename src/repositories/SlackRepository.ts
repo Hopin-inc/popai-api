@@ -68,16 +68,16 @@ export default class SlackRepository {
   public async sendDailyReport(company: Company) {
     try {
       const channelSectionsMap: Map<string, Section[]> = new Map();
-      // const configRecord = await this.dailyReportConfigRepository.findOneBy({company_id: company.id, enabled:true});
-      // const channelId = configRecord.channel;
+      const configRecord = await this.dailyReportConfigRepository.findOneBy({ company_id: company.id, enabled: true });
+      const channelId = configRecord.channel;
       company.sections.forEach(section => {
-        const channelId = section.channel_id;
-        if (channelSectionsMap.has(section.channel_id)) {
+        if (channelSectionsMap.has(channelId)) {
           channelSectionsMap.get(channelId).push(section);
         } else {
           channelSectionsMap.set(channelId, [section]);
         }
       });
+
       const users = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
       const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
         this.commonRepository.getDailyReportItems(company),
