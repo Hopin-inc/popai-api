@@ -69,17 +69,17 @@ export default class LineController extends Controller {
       const user = await this.lineRepository.getUserFromLineId(lineId);
 
       switch (event.type) {
-        case "join":
-          if (event.source.type === "group") {
-            const groupId = event.source.groupId;
-          }
-          return;
-
-        case "leave":
-          if (event.source.type === "group") {
-            const groupId = event.source.groupId;
-          }
-          return;
+        // case "join":
+        //   if (event.source.type === "group") {
+        //     const groupId = event.source.groupId;
+        //   }
+        //   return;
+        //
+        // case "leave":
+        //   if (event.source.type === "group") {
+        //     const groupId = event.source.groupId;
+        //   }
+        //   return;
 
         case "memberJoined":
           if (event.source.type === "group") {

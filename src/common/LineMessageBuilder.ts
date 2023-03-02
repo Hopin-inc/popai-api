@@ -1,7 +1,17 @@
-import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
+import {
+  FlexBox,
+  FlexBubble,
+  FlexCarousel,
+  FlexComponent,
+  FlexContainer,
+  FlexMessage,
+  Message,
+  TextMessage,
+} from "@line/bot-sdk";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
+import Section from "@/entities/settings/Section";
 
 import { formatDatetime, sliceByNumber, relativeRemindDays } from "@/utils/common";
 import {
@@ -13,7 +23,6 @@ import {
   ButtonStylesByColor,
 } from "@/consts/line";
 import { IDailyReportItems, ITodoLines } from "@/types";
-import Section from "@/entities/Section";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -494,124 +503,118 @@ export default class LineMessageBuilder {
     };
   }
 
-  static createDailyReport(
-    greetingMessage: string,
-    yesterdayCompletedNumber: number,
-    onGoingNumber: number,
-    delayedItems: Todo[],
-    sections: Section[],
-    user: User): FlexMessage {
-    return {
-      type: "flex",
-      altText: greetingMessage,
-      contents: {
-        type: "carousel",
-        contents: [
-          {
-            type: "bubble",
-            size: "kilo",
-            hero: {
-              type: "image",
-              url: "aaa",
-              size: "full",
-              aspectMode: "cover",
-              aspectRatio: "320:213",
-            },
-            "body": {
-              "type": "box",
-              "layout": "vertical",
-              "contents": [
-                {
-                  "type": "text",
-                  "text": "🥇 Shinji Nakashima",
-                  "weight": "bold",
-                  "size": "lg",
-                  "wrap": true,
-                  "margin": "md",
-                },
-                {
-                  "type": "box",
-                  "layout": "baseline",
-                  "contents": [
-                    {
-                      "type": "text",
-                      "text": "昨日",
-                      "color": "#BDBDBD",
-                      "size": "sm",
-                      "flex": 1,
-                    },
-                    {
-                      "type": "text",
-                      "text": "5件",
-                      "size": "md",
-                      "wrap": true,
-                      "flex": 4,
-                      "color": "#F44336",
-                      "weight": "bold",
-                    },
-                  ],
-                },
-                {
-                  "type": "box",
-                  "layout": "baseline",
-                  "contents": [
-                    {
-                      "type": "text",
-                      "text": "本日",
-                      "color": "#BDBDBD",
-                      "size": "sm",
-                      "flex": 1,
-                    },
-                    {
-                      "type": "text",
-                      "text": "12件",
-                      "color": "#666666",
-                      "size": "md",
-                      "wrap": true,
-                      "flex": 4,
-                    },
-                  ],
-                },
-                {
-                  "type": "text",
-                  "text": "🚨 三承工業の見積書を作成する",
-                  "size": "xs",
-                  "color": "#F44336",
-                  "offsetTop": "md",
-                },
-                {
-                  "type": "text",
-                  "text": "🚨 三承工業の見積書を作成する",
-                  "size": "xs",
-                  "color": "#F44336",
-                  "offsetTop": "md",
-                },
-              ],
-              "spacing": "sm",
-              "paddingAll": "13px",
-            },
-            "footer": {
-              "type": "box",
-              "layout": "vertical",
-              "contents": [
-                {
-                  "type": "button",
-                  "action": {
-                    "type": "uri",
-                    "label": "くわしく見る",
-                    "uri": "http://linecorp.com/",
-                  },
-                  "height": "md",
-                  "style": "secondary",
-                  "color": "#F6F6F6",
-                },
-              ],
-            },
-          },
-        ],
-      },
-    };
-  }
+  // static createDailyReport(
+  //   greetingMessage: string,
+  //   yesterdayCompletedNumber: number,
+  //   onGoingNumber: number,
+  //   delayedItems: Todo[],
+  //   sections: Section[],
+  //   user: User): FlexCarousel {
+  //   // const teamReport: FlexBubble[] = [];
+  //   const reportByUser:FlexBox[] = [];
+  //
+  //   const reportBySection: FlexBubble = {
+  //     type: "bubble",
+  //     size: "kilo",
+  //     hero: {
+  //       type: "image",
+  //       url: "https://ca.slack-edge.com/T02H4LKBTFA-U02GF5PM6R1-c703e95535a4-512",
+  //       size: "full",
+  //       aspectMode: "cover",
+  //       aspectRatio: "320:213",
+  //     },
+  //     body: {
+  //       type: "box",
+  //       layout: "vertical",
+  //       contents: [
+  //         {
+  //           type: "text",
+  //           text: "🥇 Shinji Nakashima",
+  //           weight: "bold",
+  //           size: "lg",
+  //           wrap: true,
+  //           margin: "md",
+  //         },
+  //         {
+  //           type: "box",
+  //           layout: "baseline",
+  //           contents: [
+  //             {
+  //               type: "text",
+  //               text: "昨日",
+  //               color: "#BDBDBD",
+  //               size: "sm",
+  //               flex: 1,
+  //             },
+  //             {
+  //               type: "text",
+  //               text: "5件",
+  //               size: "md",
+  //               wrap: true,
+  //               flex: 4,
+  //               color: "#F44336",
+  //               weight: "bold",
+  //             },
+  //           ],
+  //         },
+  //         {
+  //           type: "box",
+  //           layout: "baseline",
+  //           contents: [
+  //             {
+  //               type: "text",
+  //               text: "本日",
+  //               color: "#BDBDBD",
+  //               size: "sm",
+  //               flex: 1,
+  //             },
+  //             {
+  //               type: "text",
+  //               text: "12件",
+  //               color: "#666666",
+  //               size: "md",
+  //               wrap: true,
+  //               flex: 4,
+  //             },
+  //           ],
+  //         },
+  //         {
+  //           type: "text",
+  //           text: "🚨 三承工業の見積書を作成する",
+  //           size: "xs",
+  //           color: "#F44336",
+  //           offsetTop: "md",
+  //         },
+  //         {
+  //           type: "text",
+  //           text: "🚨 三承工業の見積書を作成する",
+  //           size: "xs",
+  //           color: "#F44336",
+  //           offsetTop: "md",
+  //         },
+  //       ],
+  //       spacing: "sm",
+  //       paddingAll: "13px",
+  //     },
+  //     footer: {
+  //       type: "box",
+  //       layout: "vertical",
+  //       contents: [
+  //         {
+  //           type: "button",
+  //           action: {
+  //             type: "uri",
+  //             label: "くわしく見る",
+  //             uri: "http://linecorp.com/",
+  //           },
+  //           height: "md",
+  //           style: "secondary",
+  //           color: "#F6F6F6",
+  //         },
+  //       ],
+  //     },
+  //   };
+  // }
 
   static getTextContentFromMessage(message: Message): string {
     switch (message.type) {
