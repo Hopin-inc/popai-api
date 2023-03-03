@@ -1,6 +1,7 @@
 import "moment-timezone";
 import moment from "moment";
 import dayjs from "dayjs";
+import Holidays, { HolidaysTypes } from "date-holidays";
 import * as process from "process";
 
 export function toJapanDateTime(date: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
@@ -65,6 +66,17 @@ export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], 
   return arrA?.filter(a => !arrB.some(b => a[key] === b[key])) ?? [];
 };
 
+export const extractArrayDifferences = <T>(arrA: T[], arrB: T[]): [T[], T[]] => {
+  return [
+    extractArrayMembersOfANotInB(arrA, arrB),
+    extractArrayMembersOfANotInB(arrB, arrA)
+  ];
+};
+
+export const extractArrayMembersOfANotInB = <T>(arrA: T[], arrB: T[]): T[] => {
+  return arrA?.filter(a => !arrB.some(b => a === b)) ?? [];
+};
+
 export const roundMinutes = (dt: Date, significance: number, method?: "floor" | "ceil" | "round"): Date => {
   const time = dayjs(dt);
   const newMinutes = (t: typeof time, s: typeof significance, m: typeof method) => {
@@ -113,4 +125,14 @@ export const truncate = (str: string, max: number, countHalfAs: number = 1, coun
     }
   }
   return truncatedStr;
+};
+
+export const isHolidayToday = (country: string = "JP", state?: string, region?: string): boolean => {
+  const holidays = listHolidays(new Date(), country, state, region);
+  return holidays.length > 0;
+};
+
+export const listHolidays = (date: Date, country: string, state?: string, region?: string): HolidaysTypes.Holiday[] => {
+  const hd = new Holidays(country, state, region);
+  return hd.isHoliday(date) || [];
 };

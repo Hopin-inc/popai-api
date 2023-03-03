@@ -68,16 +68,24 @@ export default class Prospect extends BaseEntity {
   @JoinColumn({ name: "company_id" })
   company: Company;
 
-  constructor(todoId: number, userId: number, companyId: number, slackTs?: string, slackChannelId?: string) {
+  constructor(
+    todo: Todo | number,
+    user: User | number,
+    company: Company | number,
+    slackTs?: string,
+    slackChannelId?: string,
+  ) {
     super();
-    this.todo_id = todoId;
-    this.user_id = userId;
-    this.company_id = companyId;
-    if (slackTs) {
-      this.slack_ts = slackTs;
-    }
-    if (slackChannelId) {
-      this.slack_channel_id = slackChannelId;
+    if (todo && user && company) {
+      this.todo_id = typeof todo === "number" ? todo : todo.id;
+      this.user_id = typeof user === "number" ? user : user.id;
+      this.company_id = typeof company === "number" ? company : company.id;
+      if (slackTs) {
+        this.slack_ts = slackTs;
+      }
+      if (slackChannelId) {
+        this.slack_channel_id = slackChannelId;
+      }
     }
   }
 }

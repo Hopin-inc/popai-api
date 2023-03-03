@@ -38,7 +38,7 @@ import EventTiming from "@/entities/settings/EventTiming";
 import { getItemRandomly, roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoApp from "@/entities/masters/TodoApp";
-import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import SlackRepository from "@/repositories/SlackRepository";
@@ -376,7 +376,6 @@ export default class CommonRepository {
         deadline: Between(startDate, endDate),
         is_done: false,
         is_closed: false,
-        deleted_at: IsNull(),
         ...filterByUser,
       },
       relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],

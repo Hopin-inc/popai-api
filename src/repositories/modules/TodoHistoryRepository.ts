@@ -140,6 +140,7 @@ export default class TodoHistoryRepository {
         return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification, editedBy);
       }));
     } catch (error) {
+      console.log(error);
       logger.error(new LoggerError(error.message));
     }
   }
