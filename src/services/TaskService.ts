@@ -145,10 +145,10 @@ export default class TaskService {
         for (const chatTool of company.chatTools) {
           switch (chatTool.tool_code) {
             case ChatToolCode.LINE:
-              await this.commonRepository.sendDailyReport(company, ChatToolCode.LINE);
+              // await this.lineRepository.sendDailyReport(company);
               break;
             case ChatToolCode.SLACK:
-              await this.commonRepository.sendDailyReport(company, ChatToolCode.SLACK);
+              await this.slackRepository.sendDailyReport(company);
               break;
             default:
               break;
