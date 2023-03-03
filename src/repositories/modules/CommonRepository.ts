@@ -38,7 +38,7 @@ import EventTiming from "@/entities/settings/EventTiming";
 import { getItemRandomly, roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoApp from "@/entities/masters/TodoApp";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import SlackRepository from "@/repositories/SlackRepository";
