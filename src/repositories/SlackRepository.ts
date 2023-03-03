@@ -54,7 +54,6 @@ export default class SlackRepository {
   private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportRepository: Repository<DailyReport>;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
 
 
@@ -66,75 +65,10 @@ export default class SlackRepository {
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  public async sendDailyReport(company: Company) {
-    try {
-      const channelSectionsMap: Map<string, Section[]> = new Map();
-      const configRecord = await this.dailyReportConfigRepository.findOneBy({ company_id: company.id, enabled: true });
-      const channelId = configRecord.channel;
-      company.sections.forEach(section => {
-        if (channelSectionsMap.has(channelId)) {
-          channelSectionsMap.get(channelId).push(section);
-        } else {
-          channelSectionsMap.set(channelId, [section]);
-        }
-      });
-
-      const slackUsers = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
-
-      const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-        this.commonRepository.getDailyReportItems(company),
-        this.commonRepository.getNotUpdatedTodos(company),
-      ]);
-
-      const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
-      channelSectionsMap.forEach((sections, channel) => {
-        operations.push(this.sendDailyReportForChannel(
-          dailyReportTodos,
-          notUpdatedTodos,
-          company,
-          sections,
-          slackUsers,
-          channel,
-        ));
-      });
-      await Promise.all(operations);
-    } catch (error) {
-      console.error(error);
-      logger.error(new LoggerError(error.message));
-    }
-  }
-
-  private async sendDailyReportForChannel(
-    dailyReportTodos: IDailyReportItems,
-    notUpdatedTodos: Todo[],
-    company: Company,
-    sections: Section[],
-    users: User[],
-    channel: string,
-  ) {
-    // const ts = await this.startDailyReport(company, channel);
-    // await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
-
-    await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel)));
-    await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
-  }
-
-  // private async startDailyReport(company: Company, channel: string): Promise<string> {
-  //   const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-  //   if (chatTool) {
-  //     const message = SlackMessageBuilder.createStartDailyReportMessage();
-  //     const { ts } = await this.pushSlackMessage(chatTool, null, message, MessageTriggerType.REPORT, channel);
-  //     return ts;
-  //   } else {
-  //     return null;
-  //   }
-  // }
-
-  private async reportByUser(
+  async reportByUser(
     items: IDailyReportItems,
     company: Company,
     sections: Section[],
@@ -151,24 +85,6 @@ export default class SlackRepository {
       ts = ts ?? res?.ts;
       const dailyReport = new DailyReport(user, company, sections, items, channel, ts);
       await this.dailyReportRepository.save(dailyReport);
-    }
-  }
-
-  private async suggestNotUpdatedTodo(
-    todos: Todo[],
-    company: Company,
-    sections: Section[],
-    users: User[],
-    channel: string,
-  ) {
-    const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-    const targetTodo = getItemRandomly(todos.filter(
-      todo => todo.sections.some(section => sections.some(s => s.id === section.id))),
-    );
-    const targetUser = getItemRandomly(users);
-    if (targetTodo && targetUser) {
-      const message = SlackMessageBuilder.createSuggestNotUpdatedTodoMessage(targetTodo, targetUser);
-      await this.pushSlackMessage(chatTool, targetUser, message, MessageTriggerType.REPORT, channel);
     }
   }
 

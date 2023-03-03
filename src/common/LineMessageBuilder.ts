@@ -24,6 +24,8 @@ import {
 } from "@/consts/line";
 import { IDailyReportItems, ITodoLines } from "@/types";
 import LineBot from "@/config/line-bot";
+import { GreetingMessage } from "@/consts/common";
+import lineBot from "@/config/line-bot";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -504,19 +506,27 @@ export default class LineMessageBuilder {
     };
   }
 
+  static createGreetingMessage(): TextMessage {
+    return {
+      type: "text",
+      text: GreetingMessage[Math.floor(Math.random() * GreetingMessage.length)],
+    };
+  }
+
   static createDailyReportByCompany(
     users: User[],
     items: IDailyReportItems,
   ): FlexMessage {
-    const crouselMessage: FlexCarousel = { type: "carousel", contents: [] };
+    const byCompany: FlexCarousel = { type: "carousel", contents: [] };
+    const today = new Date().toString();
 
-    const reportByCompany: FlexMessage = {
+    const message: FlexMessage = {
       type: "flex",
-      altText: "てい",
-      contents: crouselMessage,
+      altText: `${today}の日報です🙌`,
+      contents: byCompany,
     };
-    users.map(user => crouselMessage.contents.push(this.getDailyReportByUser(user, items)));
-    return reportByCompany;
+    users.map(user => byCompany.contents.push(this.getDailyReportByUser(user, items)));
+    return message;
   }
 
   static getDailyReportByUser(
@@ -527,11 +537,14 @@ export default class LineMessageBuilder {
     const onGoingNumber = items.ongoing.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
     const delayedTodos = items.delayed.filter(c => c.todoUsers.some(tu => tu.user_id === user.id));
 
+    // const profile = await lineBot.getProfile(user.lineId);
+
     const reportByUser: FlexBubble = {
       type: "bubble",
       size: "kilo",
       hero: {
         type: "image",
+        // url: profile.pictureUrl,
         url: "https://ca.slack-edge.com/T02H4LKBTFA-U02GF5PM6R1-c703e95535a4-512",
         size: "full",
         aspectMode: "cover",
@@ -541,6 +554,7 @@ export default class LineMessageBuilder {
         type: "box",
         layout: "vertical",
         contents: [
+          // { type: "text", text: profile.displayName, weight: "bold", size: "lg", wrap: true, margin: "md" },
           { type: "text", text: user.name, weight: "bold", size: "lg", wrap: true, margin: "md" },
           {
             type: "box",
@@ -550,7 +564,7 @@ export default class LineMessageBuilder {
               {
                 type: "text",
                 text: `${completedYesterdayNumber}件`,
-                // color: "#666666",
+                color: "#666666",
                 size: "md",
                 wrap: true,
                 flex: 4,
@@ -566,7 +580,7 @@ export default class LineMessageBuilder {
               {
                 type: "text",
                 text: `${onGoingNumber}件`,
-                // color: "#666666",
+                color: "#666666",
                 size: "md",
                 wrap: true,
                 flex: 4,
@@ -587,7 +601,7 @@ export default class LineMessageBuilder {
             action: {
               type: "uri",
               label: "くわしく見る",
-              uri: "http://linecorp.com/",
+              uri: "http://linecorp.com/", //TODO:notionのurlを添付する
             },
             height: "md",
             style: "secondary",
