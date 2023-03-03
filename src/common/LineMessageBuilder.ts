@@ -5,13 +5,12 @@ import {
   FlexComponent,
   FlexContainer,
   FlexMessage,
-  Message,
+  Message, Profile,
   TextMessage,
 } from "@line/bot-sdk";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
-import Section from "@/entities/settings/Section";
 
 import { formatDatetime, sliceByNumber, relativeRemindDays } from "@/utils/common";
 import {
@@ -26,6 +25,7 @@ import { IDailyReportItems, ITodoLines } from "@/types";
 import LineBot from "@/config/line-bot";
 import { GreetingMessage } from "@/consts/common";
 import lineBot from "@/config/line-bot";
+import LineProfile from "@/entities/transactions/LineProfile";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -513,39 +513,41 @@ export default class LineMessageBuilder {
     };
   }
 
-  static createDailyReportByCompany(
+  static async createDailyReportByCompany(
     users: User[],
     items: IDailyReportItems,
-  ): FlexMessage {
+  ): Promise<FlexMessage> {
     const byCompany: FlexCarousel = { type: "carousel", contents: [] };
-    const today = new Date().toString();
+    const today = new Date();
 
     const message: FlexMessage = {
       type: "flex",
-      altText: `${today}の日報です🙌`,
+      altText: `${today.getMonth() + 1}月${today.getDate()}日の日報です🙌`,
       contents: byCompany,
     };
-    users.map(user => byCompany.contents.push(this.getDailyReportByUser(user, items)));
+    const getOperation = users.map(async (user) => {
+      const profile = await lineBot.getProfile(user.lineId);
+      return this.getDailyReportByUser(user, items, profile);
+    });
+    byCompany.contents = await Promise.all(getOperation);
     return message;
   }
 
   static getDailyReportByUser(
     user: User,
     items: IDailyReportItems,
+    profile: Profile,
   ): FlexBubble {
     const completedYesterdayNumber = items.completedYesterday.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
     const onGoingNumber = items.ongoing.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
     const delayedTodos = items.delayed.filter(c => c.todoUsers.some(tu => tu.user_id === user.id));
-
-    // const profile = await lineBot.getProfile(user.lineId);
 
     const reportByUser: FlexBubble = {
       type: "bubble",
       size: "kilo",
       hero: {
         type: "image",
-        // url: profile.pictureUrl,
-        url: "https://ca.slack-edge.com/T02H4LKBTFA-U02GF5PM6R1-c703e95535a4-512",
+        url: profile.pictureUrl,
         size: "full",
         aspectMode: "cover",
         aspectRatio: "320:213",
@@ -554,8 +556,7 @@ export default class LineMessageBuilder {
         type: "box",
         layout: "vertical",
         contents: [
-          // { type: "text", text: profile.displayName, weight: "bold", size: "lg", wrap: true, margin: "md" },
-          { type: "text", text: user.name, weight: "bold", size: "lg", wrap: true, margin: "md" },
+          { type: "text", text: profile.displayName, weight: "bold", size: "lg", wrap: true, margin: "md" },
           {
             type: "box",
             layout: "baseline",

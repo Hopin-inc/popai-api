@@ -4,13 +4,16 @@ import * as process from "process";
 
 import TaskService from "@/services/TaskService";
 import { getProcessTime } from "@/utils/common";
+import DailyReportService from "@/services/DailyReportService";
 
 export default class TaskController extends Controller {
   private taskService: TaskService;
+  private dailyReportService: DailyReportService;
 
   constructor() {
     super();
     this.taskService = Container.get(TaskService);
+    this.dailyReportService = Container.get(DailyReportService);
   }
 
   public async syncTodos(notify: boolean = false): Promise<any> {
@@ -34,7 +37,7 @@ export default class TaskController extends Controller {
   public async sendDailyReport(): Promise<any> {
     console.log("TaskController#sendDailyReport - START");
     const start = process.hrtime();
-    await this.taskService.sendDailyReport();
+    await this.dailyReportService.sendDailyReport();
     const end = process.hrtime(start);
     console.log(`TaskController#sendDailyReport - END - ${ getProcessTime(end) }`);
   }

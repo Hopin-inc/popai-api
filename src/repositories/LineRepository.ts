@@ -52,60 +52,31 @@ export default class LineRepository {
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  // public async sendDailyReport(company: Company) {
-  //   try {
-  //     const channelSectionsMap: Map<string, Section[]> = new Map();
-  //     const configRecord = await this.dailyReportConfigRepository.findOneBy({
-  //       company_id: company.id,
-  //       enabled: true,
-  //     });
-  //     const channelId = configRecord.channel;
-  //     company.sections.forEach(section => {
-  //       if (channelSectionsMap.has(channelId)) {
-  //         channelSectionsMap.get(channelId).push(section);
-  //       } else {
-  //         channelSectionsMap.set(channelId, [section]);
-  //       }
-  //     });
-  //     const users = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.LINE));
-  //     const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-  //       this.commonRepository.getDailyReportItems(company),
-  //       this.commonRepository.getNotUpdatedTodos(company),
-  //     ]);
-  //
-  //     const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
-  //     channelSectionsMap.forEach((sections, channel) => {
-  //       operations.push(this.sendDailyReportForChannel(
-  //         dailyReportTodos,
-  //         // notUpdatedTodos,
-  //         company,
-  //         // sections,
-  //         users,
-  //         channel,
-  //       ));
-  //     });
-  //     await Promise.all(operations);
-  //   } catch (error) {
-  //     console.error(error);
-  //     logger.error(new LoggerError(error.message));
-  //   }
-  // }
-  //
-  // private async sendDailyReportForChannel(
-  //   dailyReportTodos: IDailyReportItems,
-  //   // notUpdatedTodos: Todo[],
-  //   company: Company,
-  //   // sections: Section[],
-  //   users: User[],
-  //   channel: string,
-  // ) {
-  //   const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.LINE);
-  //   const greetingMessage = LineMessageBuilder.createGreetingMessage();
-  //   await this.pushLineMessage(chatTool, greetingMessage, MessageTriggerType.DAILY_REPORT, null, null, channel);
-  //
-  //   const message = LineMessageBuilder.createDailyReportByCompany(users, dailyReportTodos);
-  //   await this.pushLineMessage(chatTool, message, MessageTriggerType.DAILY_REPORT, null, null, channel);
-  // }
+  public async reportByUser(
+    dailyReportTodos: IDailyReportItems,
+    company: Company,
+    sections: Section[],
+    users: User[],
+    chatTool: ChatTool,
+    channel: string,
+  ) {
+    await this.pushLineMessage(
+      chatTool,
+      LineMessageBuilder.createGreetingMessage(),
+      MessageTriggerType.DAILY_REPORT,
+      null,
+      null,
+      channel);
+
+    const message = await LineMessageBuilder.createDailyReportByCompany(users, dailyReportTodos);
+    await this.pushLineMessage(
+      chatTool,
+      message,
+      MessageTriggerType.DAILY_REPORT,
+      null,
+      null,
+      channel);
+  }
 
   public async pushMessageRemind(
     chatTool: ChatTool,

@@ -9,7 +9,7 @@ import {
   Repository,
   SelectQueryBuilder,
 } from "typeorm";
-import { Container, Service } from "typedi";
+import { Service } from "typedi";
 import dayjs from "dayjs";
 
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
@@ -41,8 +41,6 @@ import TodoApp from "@/entities/masters/TodoApp";
 import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
-import SlackRepository from "@/repositories/SlackRepository";
-import LineRepository from "@/repositories/LineRepository";
 
 @Service()
 export default class CommonRepository {
@@ -57,8 +55,6 @@ export default class CommonRepository {
   private dailyReportRepository: Repository<DailyReport>;
   private propertyOptionRepository: Repository<PropertyOption>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
-  private slackRepository: SlackRepository;
-  private lineRepository: LineRepository;
   private notionRequest: Client;
 
   constructor() {
@@ -73,8 +69,6 @@ export default class CommonRepository {
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
-    this.slackRepository = Container.get(SlackRepository);
-    this.lineRepository = Container.get(LineRepository);
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
   }
 

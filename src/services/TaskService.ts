@@ -129,39 +129,6 @@ export default class TaskService {
     }
   }
 
-  public async sendDailyReport(): Promise<any> {
-    try {
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
-      const companies = await this.companyRepository.find({
-        relations: [
-          "users.chattoolUsers.chattool",
-          "sections",
-          "implementedChatTools.chattool",
-          "adminUser.chattoolUsers.chattool",
-          "companyConditions",
-        ],
-      });
-      const remindOperations = async (company: Company) => {
-        for (const chatTool of company.chatTools) {
-          switch (chatTool.tool_code) {
-            case ChatToolCode.LINE:
-              // await this.lineRepository.sendDailyReport(company);
-              break;
-            case ChatToolCode.SLACK:
-              await this.slackRepository.sendDailyReport(company);
-              break;
-            default:
-              break;
-          }
-        }
-      };
-      await Promise.all(companies.map(company => remindOperations(company)));
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
-    }
-  }
-
   public async askProspects(): Promise<any> {
     try {
       const timings = await this.commonRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);

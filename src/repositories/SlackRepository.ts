@@ -69,80 +69,15 @@ export default class SlackRepository {
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
   }
 
-  public async sendDailyReport(company: Company) {
-    try {
-      const channelSectionsMap: Map<string, Section[]> = new Map();
-      const configRecord = await this.dailyReportConfigRepository.findOneBy({
-        company_id: company.id,
-        enabled: true,
-      });
-      const channelId = configRecord.channel;
-      company.sections.forEach(section => {
-        if (channelSectionsMap.has(channelId)) {
-          channelSectionsMap.get(channelId).push(section);
-        } else {
-          channelSectionsMap.set(channelId, [section]);
-        }
-      });
-      const users = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
-      const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-        this.commonRepository.getDailyReportItems(company),
-        this.commonRepository.getNotUpdatedTodos(company),
-      ]);
-
-      const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
-      channelSectionsMap.forEach((sections, channel) => {
-        operations.push(this.sendDailyReportForChannel(
-          dailyReportTodos,
-          notUpdatedTodos,
-          company,
-          sections,
-          users,
-          channel,
-        ));
-      });
-      await Promise.all(operations);
-    } catch (error) {
-      console.error(error);
-      logger.error(new LoggerError(error.message));
-    }
-  }
-
-  private async sendDailyReportForChannel(
-    dailyReportTodos: IDailyReportItems,
-    notUpdatedTodos: Todo[],
-    company: Company,
-    sections: Section[],
-    users: User[],
-    channel: string,
-  ) {
-    // const ts = await this.startDailyReport(company, channel);
-    // await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel, ts)));
-
-    await Promise.all(users.map(user => this.reportByUser(dailyReportTodos, company, sections, user, channel)));
-    await this.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
-  }
-
-  // private async startDailyReport(company: Company, channel: string): Promise<string> {
-  //   const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-  //   if (chatTool) {
-  //     const message = SlackMessageBuilder.createStartDailyReportMessage();
-  //     const { ts } = await this.pushSlackMessage(chatTool, null, message, MessageTriggerType.REPORT, channel);
-  //     return ts;
-  //   } else {
-  //     return null;
-  //   }
-  // }
-
-  private async reportByUser(
+  public async reportByUser(
     items: IDailyReportItems,
     company: Company,
     sections: Section[],
     user: User,
+    chatTool: ChatTool,
     channel: string,
     ts?: string,
   ) {
-    const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
     const slackProfile = await this.getUserProfile(user.slackId);
     if (chatTool && slackProfile?.ok) {
       const iconUrl = slackProfile.profile.image_48;
@@ -154,7 +89,7 @@ export default class SlackRepository {
     }
   }
 
-  private async suggestNotUpdatedTodo(
+  public async suggestNotUpdatedTodo(
     todos: Todo[],
     company: Company,
     sections: Section[],
