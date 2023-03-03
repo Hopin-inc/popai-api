@@ -1,6 +1,7 @@
 import "moment-timezone";
 import moment from "moment";
 import dayjs from "dayjs";
+import Holidays, { HolidaysTypes } from "date-holidays";
 import * as process from "process";
 
 export function toJapanDateTime(date: Date, format = "YYYY/MM/DD HH:mm:ss"): Date {
@@ -124,4 +125,14 @@ export const truncate = (str: string, max: number, countHalfAs: number = 1, coun
     }
   }
   return truncatedStr;
+};
+
+export const isHolidayToday = (country: string = "JP", state?: string, region?: string): boolean => {
+  const holidays = listHolidays(new Date(), country, state, region);
+  return holidays.length > 0;
+};
+
+export const listHolidays = (date: Date, country: string, state?: string, region?: string): HolidaysTypes.Holiday[] => {
+  const hd = new Holidays(country, state, region);
+  return hd.isHoliday(date) || [];
 };
