@@ -23,6 +23,7 @@ import {
   ButtonStylesByColor,
 } from "@/consts/line";
 import { IDailyReportItems, ITodoLines } from "@/types";
+import LineBot from "@/config/line-bot";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -503,84 +504,110 @@ export default class LineMessageBuilder {
     };
   }
 
-  // static createDailyReport(
-  //   user: User,
-  //   yesterdayCompletedNumber: number,
-  //   onGoingNumber: number,
-  //   delayedItems: Todo[],
-  // ): FlexBubble[] {
-  //   const message:FlexBubble[] = [];
-  //   const reportByUser:FlexBubble
-  //
-  //     [{
-  //     type: "bubble",
-  //     size: "kilo",
-  //     hero: {
-  //       type: "image",
-  //       url: "https://ca.slack-edge.com/T02H4LKBTFA-U02GF5PM6R1-c703e95535a4-512",
-  //       size: "full",
-  //       aspectMode: "cover",
-  //       aspectRatio: "320:213",
-  //     },
-  //     body: {
-  //       type: "box",
-  //       layout: "vertical",
-  //       contents: [
-  //         { type: "text", text: user.name, weight: "bold", size: "lg", wrap: true, margin: "md" },
-  //         {
-  //           type: "box",
-  //           layout: "baseline",
-  //           contents: [
-  //             { type: "text", text: "昨日", color: "#BDBDBD", size: "sm", flex: 1 },
-  //             {
-  //               type: "text",
-  //               text: `${yesterdayCompletedNumber}件`,
-  //               color: "#F44336",
-  //               size: "md",
-  //               wrap: true,
-  //               flex: 4,
-  //               weight: "bold",
-  //             },
-  //           ],
-  //         },
-  //         {
-  //           type: "box",
-  //           layout: "baseline",
-  //           contents: [
-  //             { type: "text", text: "本日", color: "#BDBDBD", size: "sm", flex: 1 },
-  //             {
-  //               type: "text",
-  //               text: `${onGoingNumber}件`,
-  //               color: "#666666",
-  //               size: "md",
-  //               wrap: true,
-  //               flex: 4,
-  //             },
-  //           ],
-  //         },
-  //       ],
-  //       spacing: "sm",
-  //       paddingAll: "13px",
-  //     },
-  //     footer: {
-  //       type: "box",
-  //       layout: "vertical",
-  //       contents: [
-  //         {
-  //           type: "button",
-  //           action: {
-  //             type: "uri",
-  //             label: "くわしく見る",
-  //             uri: "http://linecorp.com/",
-  //           },
-  //           height: "md",
-  //           style: "secondary",
-  //           color: "#F6F6F6",
-  //         },
-  //       ],
-  //     },
-  //   }];
-  // }
+  static createDailyReportByCompany(
+    users: User[],
+    items: IDailyReportItems,
+  ): FlexMessage {
+    const crouselMessage: FlexCarousel = { type: "carousel", contents: [] };
+
+    const reportByCompany: FlexMessage = {
+      type: "flex",
+      altText: "てい",
+      contents: crouselMessage,
+    };
+    users.map(user => crouselMessage.contents.push(this.getDailyReportByUser(user, items)));
+    return reportByCompany;
+  }
+
+  static getDailyReportByUser(
+    user: User,
+    items: IDailyReportItems,
+  ): FlexBubble {
+    const completedYesterdayNumber = items.completedYesterday.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
+    const onGoingNumber = items.ongoing.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
+    const delayedTodos = items.delayed.filter(c => c.todoUsers.some(tu => tu.user_id === user.id));
+
+    const reportByUser: FlexBubble = {
+      type: "bubble",
+      size: "kilo",
+      hero: {
+        type: "image",
+        url: "https://ca.slack-edge.com/T02H4LKBTFA-U02GF5PM6R1-c703e95535a4-512",
+        size: "full",
+        aspectMode: "cover",
+        aspectRatio: "320:213",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: user.name, weight: "bold", size: "lg", wrap: true, margin: "md" },
+          {
+            type: "box",
+            layout: "baseline",
+            contents: [
+              { type: "text", text: "昨日", color: "#BDBDBD", size: "sm", flex: 1 },
+              {
+                type: "text",
+                text: `${completedYesterdayNumber}件`,
+                // color: "#666666",
+                size: "md",
+                wrap: true,
+                flex: 4,
+                weight: "bold",
+              },
+            ],
+          },
+          {
+            type: "box",
+            layout: "baseline",
+            contents: [
+              { type: "text", text: "本日", color: "#BDBDBD", size: "sm", flex: 1 },
+              {
+                type: "text",
+                text: `${onGoingNumber}件`,
+                // color: "#666666",
+                size: "md",
+                wrap: true,
+                flex: 4,
+                weight: "bold",
+              },
+            ],
+          },
+        ],
+        spacing: "sm",
+        paddingAll: "13px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            action: {
+              type: "uri",
+              label: "くわしく見る",
+              uri: "http://linecorp.com/",
+            },
+            height: "md",
+            style: "secondary",
+            color: "#F6F6F6",
+          },
+        ],
+      },
+    };
+
+    delayedTodos.map(d => reportByUser.body.contents.push({
+      type: "text",
+      text: `🚨${d.name}`,
+      size: "xs",
+      color: "#666666",
+      offsetTop: "md",
+      action: { type: "uri", label: "タスクの詳細", uri: d.todoapp_reg_url },
+    }));
+
+    return reportByUser;
+  }
 
   static getTextContentFromMessage(message: Message): string {
     switch (message.type) {

@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
@@ -26,7 +26,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => TodoAppUser,
     todoAppUsers => todoAppUsers.user,
-    { cascade: true }
+    { cascade: true },
   )
   todoAppUsers: TodoAppUser[];
 
@@ -38,7 +38,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => ChatToolUser,
     chattoolUser => chattoolUser.user,
-    { cascade: true }
+    { cascade: true },
   )
   chattoolUsers: ChatToolUser[];
 
@@ -60,13 +60,13 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => Section,
     section => section.boardAdminUser,
-    { cascade: false }
+    { cascade: false },
   )
   adminSections: Section[];
 
   @ManyToOne(
     () => Company,
-    { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
+    { onDelete: "RESTRICT", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
@@ -74,7 +74,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => TodoUser,
     todoUser => todoUser.user,
-    { cascade: true }
+    { cascade: true },
   )
   todoUsers: TodoUser[];
 
@@ -86,7 +86,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => Prospect,
     prospect => prospect.user,
-    { cascade: false }
+    { cascade: false },
   )
   prospects: Prospect[];
 }

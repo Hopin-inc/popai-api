@@ -419,9 +419,9 @@ export default class LineController extends Controller {
     );
     return await this.lineRepository.pushLineMessage(
       chattool,
-      superiorUser,
       reportMessage,
       MessageTriggerType.REPORT,
+      superiorUser,
     );
   }
 }

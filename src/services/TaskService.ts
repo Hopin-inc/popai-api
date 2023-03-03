@@ -20,6 +20,7 @@ import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
+import LineRepository from "@/repositories/LineRepository";
 
 @Service()
 export default class TaskService {
@@ -31,6 +32,7 @@ export default class TaskService {
   private lineQueueRepository: LineMessageQueueRepository;
   private commonRepository: CommonRepository;
   private slackRepository: SlackRepository;
+  private lineRepository: LineRepository;
   private remindUserJobRepository: Repository<RemindUserJob>;
 
   constructor() {
@@ -42,6 +44,7 @@ export default class TaskService {
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.slackRepository = Container.get(SlackRepository);
+    this.lineRepository = Container.get(LineRepository);
     this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);
   }
 
@@ -61,7 +64,7 @@ export default class TaskService {
           "implementedChatTools.chattool",
           "adminUser",
           "companyConditions",
-          "users.todoAppUsers"
+          "users.todoAppUsers",
         ],
         where,
       });
@@ -83,7 +86,7 @@ export default class TaskService {
         company.todoApps.forEach(todoApp => companyTodoApps.push([company, todoApp]));
       });
       await Promise.all(companyTodoApps.map(
-        ([company, todoApp]) => syncOperations(company, todoApp, notify))
+        ([company, todoApp]) => syncOperations(company, todoApp, notify)),
       );
       return;
     } catch (error) {
@@ -142,9 +145,10 @@ export default class TaskService {
         for (const chatTool of company.chatTools) {
           switch (chatTool.tool_code) {
             case ChatToolCode.LINE:
+              await this.lineRepository.sendDailyReport(company);
               break;
             case ChatToolCode.SLACK:
-              await this.slackRepository.sendDailyReport(company);
+              // await this.slackRepository.sendDailyReport(company);
               break;
             default:
               break;
@@ -248,7 +252,7 @@ export default class TaskService {
     todoappRegId: string,
     todo: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false
+    correctDelayedCount: boolean = false,
   ) {
     switch (todo.todoapp.todo_app_code) {
       case TodoAppCode.TRELLO:

@@ -83,7 +83,8 @@ export default class SlackRepository {
         }
       });
 
-      const users = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
+      const slackUsers = company.users.filter(u => u.chatTools.some(c => c.tool_code === ChatToolCode.SLACK));
+
       const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
         this.commonRepository.getDailyReportItems(company),
         this.commonRepository.getNotUpdatedTodos(company),
@@ -96,7 +97,7 @@ export default class SlackRepository {
           notUpdatedTodos,
           company,
           sections,
-          users,
+          slackUsers,
           channel,
         ));
       });
