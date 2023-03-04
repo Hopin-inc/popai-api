@@ -1,5 +1,6 @@
 import path from "path";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import dotenvExpand from "dotenv-expand";
@@ -20,6 +21,7 @@ const app: Application = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("tiny"));
+app.use(cookieParser());
 app.use(express.static("public"));
 // app.use(bodyParser.json());
 app.use(cors());

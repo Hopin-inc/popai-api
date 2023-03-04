@@ -14,6 +14,7 @@ import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
+import Account from "./Account";
 
 @Entity("companies")
 export default class Company extends BaseEntity {
@@ -88,6 +89,13 @@ export default class Company extends BaseEntity {
     { cascade: true }
   )
   todos: Todo[];
+
+  @OneToMany(
+    () => Account,
+    account => account.company,
+    { cascade: true }
+  )
+  accounts: Account[];
 
   @OneToMany(
     () => EventTiming,
