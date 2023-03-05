@@ -1,6 +1,6 @@
 import { In, Repository } from "typeorm";
 import { Client } from "@notionhq/client";
-import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
+import { CreatePageResponse, PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
 import moment from "moment";
 
@@ -24,9 +24,19 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
-import { IRemindTask, ITodoHistory, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
+import {
+  IDailyReportItems,
+  IRemindTask,
+  ITodoHistory,
+  ITodoSectionUpdate,
+  ITodoTask,
+  ITodoUpdate,
+  ITodoUserUpdate,
+} from "@/types";
 import { INotionTask } from "@/types/notion";
-import { NotionPropertyType, PropertyUsageType } from "@/consts/common";
+import { NotionPropertyType, PropertyUsageType, TodoAppCode } from "@/consts/common";
+import NotionPageBuilder from "@/common/NotionPageBuilder";
+import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 
 @Service()
 export default class NotionRepository {
@@ -41,6 +51,7 @@ export default class NotionRepository {
   private lineQueueRepository: LineMessageQueueRepository;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
+  private notionPageBuilder: NotionPageBuilder;
   private commonRepository: CommonRepository;
 
   constructor() {
@@ -55,6 +66,7 @@ export default class NotionRepository {
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
+    this.notionPageBuilder = Container.get(NotionPageBuilder);
     this.commonRepository = Container.get(CommonRepository);
   }
 
@@ -646,4 +658,29 @@ export default class NotionRepository {
       logger.error(new LoggerError(error.message));
     }
   };
+
+  public async postDailyReportByUser(items: IDailyReportItems, sections: Section[], users: User[]) {
+    const today = new Date();
+    const createdAt = today.toISOString().slice(0, 10);
+    const databaseId = "cbfe6313401149948f8300308054b6f8"; //TODO:DBに格納して取得できるようにする
+    const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; //TODO:DBに格納して取得できるようにする
+
+    const postOperation = [];
+    for (const user of users) {
+      if (!user || !user.todoAppUsers) {
+        continue;
+      }
+      const filteredItems = SlackMessageBuilder.filterTodosByUser(items, sections ,user);
+      const notionUsers = user.todoAppUsers.filter((tu) => tu.todoApp.todo_app_code === TodoAppCode.NOTION);
+      if (notionUsers.length) {
+        for (const notionUser of notionUsers) {
+          postOperation.push(
+            this.notionPageBuilder.createDailyReportByUser(databaseId, notionUser, filteredItems, createdAt, reportId)
+              .then((page) => this.notionRequest.pages.create(page)),
+          );
+        }
+      }
+    }
+    const response:CreatePageResponse[] = await Promise.all(postOperation);
+  }
 }
