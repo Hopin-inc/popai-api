@@ -34,6 +34,12 @@ export default class DailyReport extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   slack_ts: string;
 
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  doc_app_reg_id: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  doc_app_reg_url: string;
+
   @ManyToOne(
     () => User,
     user => user.prospects,
