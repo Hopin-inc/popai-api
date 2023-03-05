@@ -3,7 +3,6 @@ import {
   FlexBubble,
   FlexCarousel,
   FlexComponent,
-  FlexContainer,
   FlexMessage,
   Message, Profile,
   TextMessage,
@@ -22,10 +21,8 @@ import {
   ButtonStylesByColor,
 } from "@/consts/line";
 import { IDailyReportItems, ITodoLines } from "@/types";
-import LineBot from "@/config/line-bot";
 import { GreetingMessage } from "@/consts/common";
 import lineBot from "@/config/line-bot";
-import LineProfile from "@/entities/transactions/LineProfile";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
