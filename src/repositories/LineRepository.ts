@@ -20,7 +20,6 @@ import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { toJapanDateTime } from "@/utils/common";
 import {
-  ChatToolCode,
   MessageTriggerType,
   MessageType,
   OpenStatus,
@@ -32,7 +31,6 @@ import {
 import { IDailyReportItems, IRemindType, ITodoLines } from "@/types";
 import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
-import Line from "@/routes/line";
 
 @Service()
 export default class LineRepository {
