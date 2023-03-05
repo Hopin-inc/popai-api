@@ -5,7 +5,7 @@ import LineRepository from "@/repositories/LineRepository";
 import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 
 import Company from "@/entities/settings/Company";
-import { ChatToolCode } from "@/consts/common";
+import { ChatToolCode, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import { Repository } from "typeorm";
@@ -17,6 +17,7 @@ import User from "@/entities/settings/User";
 import ChatTool from "@/entities/masters/ChatTool";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import CommonRepository from "@/repositories/modules/CommonRepository";
+import NotionRepository from "@/repositories/NotionRepository";
 
 @Service()
 export default class DailyReportService {
@@ -24,7 +25,7 @@ export default class DailyReportService {
   private lineRepository: LineRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private commonRepository: CommonRepository;
-
+  private notionRepository: NotionRepository;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private companyRepository: Repository<Company>;
 
@@ -33,8 +34,9 @@ export default class DailyReportService {
     this.lineRepository = Container.get(LineRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.commonRepository = Container.get(CommonRepository);
-    this.companyRepository = AppDataSource.getRepository(Company);
+    this.notionRepository = Container.get(NotionRepository);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
+    this.companyRepository = AppDataSource.getRepository(Company);
   }
 
   public async sendDailyReport(): Promise<any> {
@@ -43,12 +45,14 @@ export default class DailyReportService {
       const companies = await this.companyRepository.find({
         relations: [
           "users.chattoolUsers.chattool",
+          "users.todoAppUsers.todoApp",
           "sections",
           "implementedChatTools.chattool",
           "adminUser.chattoolUsers.chattool",
           "companyConditions",
           "dailyReportConfig",
-          "dailyReportConfig.chat_tool"
+          "dailyReportConfig.chat_tool",
+          "implementedTodoApps",
         ],
       });
       const sendOperations = async (company: Company) => {
@@ -76,6 +80,13 @@ export default class DailyReportService {
         this.commonRepository.getDailyReportItems(company),
         this.commonRepository.getNotUpdatedTodos(company),
       ]);
+
+      const notionUsers = company.users.filter(u => u.todoApps.some(t => t.todo_app_code === TodoAppCode.NOTION));
+      channelSectionsMap.forEach((sections) => {
+        this.notionRepository.postDailyReportByUser(dailyReportTodos, sections, notionUsers);
+      });
+
+      //TODO:DBに格納して引っ張れるようにする
 
       const operations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
       channelSectionsMap.forEach((sections, channel) => {
