@@ -44,6 +44,7 @@ import { reliefActions, SlackModalLabel } from "@/consts/slack";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
+import { INotionDailyReport } from "@/types/notion";
 
 @Service()
 export default class SlackRepository {
@@ -77,14 +78,17 @@ export default class SlackRepository {
     chatTool: ChatTool,
     channel: string,
     ts?: string,
+    response?: INotionDailyReport[],
   ) {
     const slackProfile = await this.getUserProfile(user.slackId);
     if (chatTool && slackProfile?.ok) {
       const iconUrl = slackProfile.profile.image_48;
       const message = SlackMessageBuilder.createDailyReportByUser(items, sections, user, iconUrl);
       const res = await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.DAILY_REPORT, channel, ts);
+
       ts = ts ?? res?.ts;
-      const dailyReport = new DailyReport(user, company, sections, items, channel, ts);
+      const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
+      const dailyReport = new DailyReport(user, company, sections, items, channel, ts, filteredRes.pageId, filteredRes.docAppRegUrl);
       await this.dailyReportRepository.save(dailyReport);
     }
   }
