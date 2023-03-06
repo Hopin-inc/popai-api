@@ -23,6 +23,7 @@ import {
 import { IDailyReportItems, ITodoLines } from "@/types";
 import { GreetingMessage } from "@/consts/common";
 import lineBot from "@/config/line-bot";
+import { INotionDailyReport } from "@/types/notion";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -513,6 +514,7 @@ export default class LineMessageBuilder {
   static async createDailyReportByCompany(
     users: User[],
     items: IDailyReportItems,
+    response: INotionDailyReport[],
   ): Promise<FlexMessage> {
     const byCompany: FlexCarousel = { type: "carousel", contents: [] };
     const today = new Date();
@@ -523,8 +525,10 @@ export default class LineMessageBuilder {
       contents: byCompany,
     };
     const getOperation = users.map(async (user) => {
+      const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
+      const pageUrl = filteredRes.docAppRegUrl;
       const profile = await lineBot.getProfile(user.lineId);
-      return this.getDailyReportByUser(user, items, profile);
+      return this.getDailyReportByUser(user, items, profile, pageUrl);
     });
     byCompany.contents = await Promise.all(getOperation);
     return message;
@@ -534,6 +538,7 @@ export default class LineMessageBuilder {
     user: User,
     items: IDailyReportItems,
     profile: Profile,
+    pageUrl: string,
   ): FlexBubble {
     const completedYesterdayNumber = items.completedYesterday.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
     const onGoingNumber = items.ongoing.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
@@ -599,7 +604,7 @@ export default class LineMessageBuilder {
             action: {
               type: "uri",
               label: "くわしく見る",
-              uri: "http://linecorp.com/", //TODO:notionのurlを添付する
+              uri: pageUrl,
             },
             height: "md",
             style: "secondary",

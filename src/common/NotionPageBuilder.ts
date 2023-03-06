@@ -1,13 +1,10 @@
 import { Service } from "typedi";
-
 import { BlockObjectRequest, CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { IDailyReportItems } from "@/types";
 import { TodoAppCode } from "@/consts/common";
-
 import { Client } from "@notionhq/client";
-
-import TodoAppUser from "@/entities/settings/TodoAppUser";
 import Todo from "@/entities/transactions/Todo";
+import DocumentToolUser from "@/entities/settings/DocumentToolUser";
 
 @Service()
 export default class NotionPageBuilder {
@@ -19,7 +16,7 @@ export default class NotionPageBuilder {
 
   public async createDailyReportByUser(
     databaseId: string,
-    user: TodoAppUser,
+    user: DocumentToolUser,
     items: IDailyReportItems,
     createdAt: string,
     reportId: string,
@@ -46,8 +43,8 @@ export default class NotionPageBuilder {
     return {
       parent: { database_id: databaseId },
       properties: {
-        "タイトル": { title: [{ text: { content: `${user.user_app_name} ${createdAt}` } }] },
-        "担当者": { people: [{ object: "user", id: user.user_app_id }] },
+        "タイトル": { title: [{ text: { content: `${user.user_name} ${createdAt}` } }] },
+        "担当者": { people: [{ object: "user", id: user.auth_key }] },
         "日付": { date: { start: createdAt } },
         "種類": { select: { id: reportId } },
       },
@@ -55,10 +52,10 @@ export default class NotionPageBuilder {
     };
   }
 
-  private async createTodoSentence(todo: Todo, isDelay?: boolean): Promise<BlockObjectRequest> {
+  private async createTodoSentence(todo: Todo, isDelayed?: boolean): Promise<BlockObjectRequest> {
     switch (todo.todoapp.todo_app_code) {
       case TodoAppCode.NOTION:
-        if (isDelay) {
+        if (isDelayed) {
           await this.notionRequest.pages.update(
             {
               page_id: todo.todoapp_reg_id,
@@ -72,7 +69,7 @@ export default class NotionPageBuilder {
           },
         };
       case TodoAppCode.TRELLO || TodoAppCode.MICROSOFT:
-        if (isDelay) {
+        if (isDelayed) {
           return {
             object: "block", type: "bulleted_list_item",
             bulleted_list_item: {

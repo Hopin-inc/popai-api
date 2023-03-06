@@ -31,6 +31,8 @@ import {
 import { IDailyReportItems, IRemindType, ITodoLines } from "@/types";
 import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
+import { INotionDailyReport } from "@/types/notion";
+import DailyReport from "@/entities/transactions/DailyReport";
 
 @Service()
 export default class LineRepository {
@@ -38,6 +40,7 @@ export default class LineRepository {
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private todoRepository: Repository<Todo>;
+  private dailyReportRepository: Repository<DailyReport>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
 
@@ -46,17 +49,19 @@ export default class LineRepository {
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.commonRepository = Container.get(CommonRepository);
   }
 
-  public async reportByUser(
+  public async reportByCompany(
     dailyReportTodos: IDailyReportItems,
     company: Company,
     sections: Section[],
     users: User[],
     chatTool: ChatTool,
     channel: string,
+    response: INotionDailyReport[],
   ) {
     await this.pushLineMessage(
       chatTool,
@@ -66,7 +71,7 @@ export default class LineRepository {
       null,
       channel);
 
-    const message = await LineMessageBuilder.createDailyReportByCompany(users, dailyReportTodos);
+    const message = await LineMessageBuilder.createDailyReportByCompany(users, dailyReportTodos, response);
     await this.pushLineMessage(
       chatTool,
       message,
@@ -74,6 +79,12 @@ export default class LineRepository {
       null,
       null,
       channel);
+
+    users.map(async user => {
+      const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
+      const dailyReport = new DailyReport(user, company, sections, dailyReportTodos, channel, null, filteredRes.pageId, filteredRes.docAppRegUrl);
+      await this.dailyReportRepository.save(dailyReport);
+    });
   }
 
   public async pushMessageRemind(

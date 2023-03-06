@@ -1,6 +1,9 @@
 import { In, Repository } from "typeorm";
 import { Client } from "@notionhq/client";
-import { CreatePageResponse, PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
+import {
+  PageObjectResponse,
+  UpdatePageParameters,
+} from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
 import moment from "moment";
 
@@ -33,8 +36,8 @@ import {
   ITodoUpdate,
   ITodoUserUpdate,
 } from "@/types";
-import { INotionTask } from "@/types/notion";
-import { NotionPropertyType, PropertyUsageType, TodoAppCode } from "@/consts/common";
+import { INotionDailyReport, INotionTask } from "@/types/notion";
+import { DocumentToolCode, NotionPropertyType, PropertyUsageType, TodoAppCode } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 
@@ -659,28 +662,38 @@ export default class NotionRepository {
     }
   };
 
-  public async postDailyReportByUser(items: IDailyReportItems, sections: Section[], users: User[]) {
+  public async postDailyReportByUser(
+    items: IDailyReportItems,
+    sections: Section[],
+    users: User[],
+  ): Promise<INotionDailyReport[]> {
     const today = new Date();
     const createdAt = today.toISOString().slice(0, 10);
     const databaseId = "cbfe6313401149948f8300308054b6f8"; //TODO:DBに格納して取得できるようにする
     const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; //TODO:DBに格納して取得できるようにする
 
-    const postOperation = [];
-    for (const user of users) {
-      if (!user || !user.todoAppUsers) {
-        continue;
+    const postOperations = [];
+    users.map(user => {
+      const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
+      const docToolUsers = user.documentToolUsers.find((du) => du.documentTool.tool_code === DocumentToolCode.NOTION);
+      postOperations.push(
+        this.notionPageBuilder.createDailyReportByUser(databaseId, docToolUsers, itemsByUser, createdAt, reportId)
+          .then((page) => this.notionRequest.pages.create(page)),
+      );
+    });
+    const response = await Promise.all(postOperations) as PageObjectResponse[];
+
+    const pageInfo: INotionDailyReport[] = response.map(page => {
+      const people = Object.values(page.properties).find(prop => prop.type === "people");
+      if (people.type === "people") {
+        const peopleIds = people ? people.people.find(person => person.id) : [];
+        return {
+          pageId: page.id,
+          docAppRegUrl: page.url,
+          assignee: peopleIds[0],
+        };
       }
-      const filteredItems = SlackMessageBuilder.filterTodosByUser(items, sections ,user);
-      const notionUsers = user.todoAppUsers.filter((tu) => tu.todoApp.todo_app_code === TodoAppCode.NOTION);
-      if (notionUsers.length) {
-        for (const notionUser of notionUsers) {
-          postOperation.push(
-            this.notionPageBuilder.createDailyReportByUser(databaseId, notionUser, filteredItems, createdAt, reportId)
-              .then((page) => this.notionRequest.pages.create(page)),
-          );
-        }
-      }
-    }
-    const response:CreatePageResponse[] = await Promise.all(postOperation);
+    });
+    return pageInfo;
   }
 }
