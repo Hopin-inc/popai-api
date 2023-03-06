@@ -62,6 +62,8 @@ export default class DailyReport extends BaseEntity {
     items: IDailyReportItems,
     slackChannelId?: string,
     slackTs?: string,
+    docAppRegId?: string,
+    docAppRegUrl?: string,
   ) {
     super();
     if (user && company && sections && items) {
@@ -76,6 +78,12 @@ export default class DailyReport extends BaseEntity {
       }
       if (slackTs) {
         this.slack_ts = slackTs;
+      }
+      if (docAppRegId) {
+        this.doc_app_reg_id = docAppRegId;
+      }
+      if (docAppRegUrl) {
+        this.doc_app_reg_url = docAppRegUrl;
       }
     }
   }
