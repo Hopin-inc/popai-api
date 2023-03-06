@@ -114,6 +114,10 @@ export const TodoAppCode = {
   NOTION: "notion",
 };
 
+export const DocumentToolCode = {
+  NOTION: "notion",
+};
+
 export const LineMessageQueueStatus = {
   WAITING: 0,
   UNREPLIED: 1,
@@ -166,7 +170,7 @@ export const ReliefAction = {
 };
 
 export const GreetingMessage = [
-  "おはようございます🌞\n\n転んでもただで起きるのがニャンコみたいにかわいくないですか？今日も笑って過ごしましょう！",
+  "おはようございます🌞\n\n転んでもただで起きるのがニャンコみたいにかわいくないですか？\n今日も笑って過ごしましょう！",
   "おはようございます💤\n\nまだ眠いですが、今日も一日がんばりましょう！",
   "おはようございます🌈\n\n今日は何かハッピーなことが起きますように！",
   "おはようございます☕️\n\nコーヒーをのんでカフェインパワー全開で、今日もいけます！",
