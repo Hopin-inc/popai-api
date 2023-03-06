@@ -399,7 +399,7 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  private static filterTodosByUser(
+  public static filterTodosByUser(
     items: IDailyReportItems,
     sections: (Section | number)[],
     user: User,
