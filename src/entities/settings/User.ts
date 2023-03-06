@@ -10,7 +10,9 @@ import ChatTool from "../masters/ChatTool";
 import Todo from "../transactions/Todo";
 import TodoApp from "../masters/TodoApp";
 import Prospect from "../transactions/Prospect";
-import { ChatToolCode } from "../../consts/common";
+import { ChatToolCode, DocumentToolCode } from "../../consts/common";
+import DocumentTool from "../masters/DocumentTool";
+import DocumentToolUser from "../settings/DocumentToolUser";
 
 @Entity("users")
 export default class User extends BaseEntity {
@@ -55,6 +57,23 @@ export default class User extends BaseEntity {
   get slackId(): string | null {
     const slackUser = this.chattoolUsers.find(record => record.chattool.tool_code === ChatToolCode.SLACK);
     return slackUser ? slackUser.auth_key : null;
+  }
+
+  @OneToMany(
+    () => DocumentToolUser,
+    documentToolUser => documentToolUser.user,
+    { cascade: true },
+  )
+  documentToolUsers: DocumentToolUser[];
+
+  get documentTools(): DocumentTool[] {
+    const documentToolUsers = this.documentToolUsers;
+    return documentToolUsers ? documentToolUsers.map(record => record.documentTool) : [];
+  }
+
+  get notionId(): string | null {
+    const notionUser = this.documentToolUsers.find(record => record.documentTool.tool_code === DocumentToolCode.NOTION);
+    return notionUser ? notionUser.auth_key : null;
   }
 
   @OneToMany(
