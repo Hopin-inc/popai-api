@@ -201,7 +201,7 @@ export default class CommonRepository {
     const targetTodoIds = targetHistories.map(history => history.todo_id);
     const todos = await this.todoRepository.find({
       where: { id: In(targetTodoIds) },
-      relations: ["histories", "todoUsers.user", "todoSections.section"],
+      relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
     });
     return todos.filter(todo => {
       if (todo.histories) {
