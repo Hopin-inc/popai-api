@@ -80,6 +80,14 @@ export default class LineRepository {
       null,
       channel);
 
+    await this.pushLineMessage(
+      chatTool,
+      LineMessageBuilder.createActivateMessage(),
+      MessageTriggerType.DAILY_REPORT,
+      null,
+      null,
+      channel);
+
     users.map(async user => {
       const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
       const dailyReport = new DailyReport(user, company, sections, dailyReportTodos, channel, null, filteredRes.pageId, filteredRes.docAppRegUrl);

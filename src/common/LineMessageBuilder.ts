@@ -4,24 +4,25 @@ import {
   FlexCarousel,
   FlexComponent,
   FlexMessage,
-  Message, Profile,
+  Message,
+  Profile,
   TextMessage,
 } from "@line/bot-sdk";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import { formatDatetime, sliceByNumber, relativeRemindDays } from "@/utils/common";
+import { formatDatetime, relativeRemindDays, sliceByNumber } from "@/utils/common";
 import {
-  replyMessagesBefore,
-  replyMessagesAfter,
-  ReplyMessage,
+  ButtonStylesByColor,
   Colors,
   MessageAssets,
-  ButtonStylesByColor,
+  ReplyMessage,
+  replyMessagesAfter,
+  replyMessagesBefore,
 } from "@/consts/line";
 import { IDailyReportItems, ITodoLines } from "@/types";
-import { GreetingMessage } from "@/consts/common";
+import { GreetingMessage, PraiseMessage } from "@/consts/common";
 import lineBot from "@/config/line-bot";
 import { INotionDailyReport } from "@/types/notion";
 
@@ -511,6 +512,13 @@ export default class LineMessageBuilder {
     };
   }
 
+  static createActivateMessage(): TextMessage {
+    return {
+      type: "text",
+      text: "遅延しているものは、本日中に期日を再設定しておきましょう🙋‍♀️",
+    };
+  }
+
   static async createDailyReportByCompany(
     users: User[],
     items: IDailyReportItems,
@@ -524,13 +532,63 @@ export default class LineMessageBuilder {
       altText: `${today.getMonth() + 1}月${today.getDate()}日の日報です🙌`,
       contents: byCompany,
     };
-    const getOperation = users.map(async (user) => {
-      const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
+
+    const MAX_DISPLAY_COUNT = 1;
+    const getOperation = users.slice(0, MAX_DISPLAY_COUNT).map(async (user) => {
+      const filteredRes = response.find((r) =>
+        user.todoAppUsers.some((tu) => tu.user_app_id === r.assignee),
+      );
       const pageUrl = filteredRes.docAppRegUrl;
       const profile = await lineBot.getProfile(user.lineId);
       return this.getDailyReportByUser(user, items, profile, pageUrl);
     });
-    byCompany.contents = await Promise.all(getOperation);
+
+    const remainingCount = users.length - MAX_DISPLAY_COUNT;
+    if (remainingCount > 0) {
+      const remainingBubble: FlexBubble = {
+        type: "bubble",
+        size: "kilo",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: "まだ紹介できていない", size: "sm", margin: "md", align: "center" },
+            {
+              type: "box",
+              layout: "baseline",
+              contents: [
+                {
+                  type: "text",
+                  contents: [
+                    { type: "span", text: `${remainingCount}名`, size: "md", weight: "bold" },
+                    { type: "span", text: "の日報があります🙌", size: "sm" },
+                  ],
+                  align: "center",
+                },
+              ],
+            },
+          ],
+          justifyContent: "center",
+        },
+        footer: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "button",
+              action: { type: "uri", label: "もっと見る", uri: "https://google.com" }, //TODO:データベースURLを入れる
+              height: "md",
+              style: "secondary",
+              color: "#F6F6F6",
+            },
+          ],
+        },
+      };
+      byCompany.contents = await Promise.all([...getOperation, Promise.resolve(remainingBubble)]);
+    } else {
+      byCompany.contents = await Promise.all(getOperation);
+    }
+
     return message;
   }
 
@@ -547,53 +605,40 @@ export default class LineMessageBuilder {
     const reportByUser: FlexBubble = {
       type: "bubble",
       size: "kilo",
-      hero: {
-        type: "image",
-        url: profile.pictureUrl,
-        size: "full",
-        aspectMode: "cover",
-        aspectRatio: "320:213",
-      },
+      hero: { type: "image", url: profile.pictureUrl, size: "md" },
       body: {
         type: "box",
         layout: "vertical",
         contents: [
-          { type: "text", text: profile.displayName, weight: "bold", size: "lg", wrap: true, margin: "md" },
+          { type: "text", text: profile.displayName, weight: "bold", size: "lg", wrap: true, align: "center" },
           {
             type: "box",
-            layout: "baseline",
+            layout: "horizontal",
             contents: [
-              { type: "text", text: "昨日", color: "#BDBDBD", size: "sm", flex: 1 },
               {
                 type: "text",
-                text: `${completedYesterdayNumber}件`,
-                color: "#666666",
-                size: "md",
-                wrap: true,
-                flex: 4,
-                weight: "bold",
+                contents: [
+                  { type: "span", text: "昨日", size: "sm", color: "#666666" },
+                  { type: "span", text: `${completedYesterdayNumber}件`, weight: "bold" },
+                ],
+                align: "center",
+              },
+              {
+                type: "text",
+                contents: [
+                  { type: "span", text: "本日", size: "sm", color: "#666666" },
+                  { type: "span", text: `${onGoingNumber}件`, weight: "bold" },
+                ],
+                align: "center",
               },
             ],
+            margin: "md",
           },
           {
-            type: "box",
-            layout: "baseline",
-            contents: [
-              { type: "text", text: "本日", color: "#BDBDBD", size: "sm", flex: 1 },
-              {
-                type: "text",
-                text: `${onGoingNumber}件`,
-                color: "#666666",
-                size: "md",
-                wrap: true,
-                flex: 4,
-                weight: "bold",
-              },
-            ],
+            type: "separator",
+            margin: "md",
           },
         ],
-        spacing: "sm",
-        paddingAll: "13px",
       },
       footer: {
         type: "box",
@@ -601,28 +646,47 @@ export default class LineMessageBuilder {
         contents: [
           {
             type: "button",
-            action: {
-              type: "uri",
-              label: "くわしく見る",
-              uri: pageUrl,
-            },
-            height: "md",
-            style: "secondary",
-            color: "#F6F6F6",
+            action: { type: "uri", label: "くわしく見る", uri: pageUrl },
+            style: "primary",
+            color: "#06C755",
           },
         ],
       },
     };
 
-    delayedTodos.map(d => reportByUser.body.contents.push({
-      type: "text",
-      text: `🚨${d.name}`,
-      size: "xs",
-      color: "#666666",
-      offsetTop: "md",
-      action: { type: "uri", label: "タスクの詳細", uri: d.todoapp_reg_url },
-    }));
+    if (!delayedTodos.length && completedYesterdayNumber > 0) {
+      reportByUser.body.contents.push({
+        type: "text",
+        text: PraiseMessage[Math.floor(Math.random() * GreetingMessage.length)],
+        wrap: true,
+        size: "xs",
+        margin: "md",
+      });
+    }
 
+    const MAX_DISPLAY_COUNT = 5;
+    for (let i = 0; i < delayedTodos.length; i++) {
+      if (i < MAX_DISPLAY_COUNT) {
+        reportByUser.body.contents.push({
+          type: "text",
+          text: `🚨${delayedTodos[i].name}`,
+          size: "xs",
+          color: "#666666",
+          offsetTop: "md",
+          action: { type: "uri", label: "タスクの詳細", uri: delayedTodos[i].todoapp_reg_url },
+        });
+      } else {
+        const remainingCount = delayedTodos.length - MAX_DISPLAY_COUNT;
+        reportByUser.body.contents.push({
+          type: "text",
+          text: `など、残り${remainingCount}件が遅延しています👮‍♀️`,
+          size: "xs",
+          color: "#666666",
+          margin: "lg",
+        });
+        break;
+      }
+    }
     return reportByUser;
   }
 
