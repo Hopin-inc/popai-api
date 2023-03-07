@@ -667,33 +667,39 @@ export default class NotionRepository {
     sections: Section[],
     users: User[],
   ): Promise<INotionDailyReport[]> {
-    const today = new Date();
-    const createdAt = today.toISOString().slice(0, 10);
-    const databaseId = "cbfe6313401149948f8300308054b6f8"; //TODO:DBに格納して取得できるようにする
-    const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; //TODO:DBに格納して取得できるようにする
+    try {
+      const today = new Date();
+      const createdAt = today.toISOString().slice(0, 10);
+      const databaseId = "cbfe6313401149948f8300308054b6f8"; //TODO:DBに格納して取得できるようにする
+      const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; //TODO:DBに格納して取得できるようにする
 
-    const postOperations = [];
-    users.map(user => {
-      const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
-      const docToolUsers = user.documentToolUsers.find((du) => du.documentTool.tool_code === DocumentToolCode.NOTION);
-      postOperations.push(
-        this.notionPageBuilder.createDailyReportByUser(databaseId, docToolUsers, itemsByUser, createdAt, reportId)
-          .then((page) => this.notionRequest.pages.create(page)),
-      );
-    });
-    const response = await Promise.all(postOperations) as PageObjectResponse[];
+      const postOperations = [];
+      users.map(user => {
+        const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
+        const docToolUsers = user.documentToolUsers.find((du) => du.documentTool.tool_code === DocumentToolCode.NOTION);
+        postOperations.push(
+          this.notionPageBuilder.createDailyReportByUser(databaseId, docToolUsers, itemsByUser, createdAt, reportId)
+            .then((page) => this.notionRequest.pages.create(page)),
+        );
+      });
+      const response = await Promise.all(postOperations) as PageObjectResponse[];
 
-    const pageInfo: INotionDailyReport[] = response.map(page => {
-      const people = Object.values(page.properties).find(prop => prop.type === "people");
-      if (people.type === "people") {
-        const peopleIds = people ? people.people.find(person => person.id) : [];
-        return {
-          pageId: page.id,
-          docAppRegUrl: page.url,
-          assignee: peopleIds[0],
-        };
-      }
-    });
-    return pageInfo;
+      const pageInfo = response.flatMap(page => {
+        const people = Object.values(page.properties).find(prop => prop.type === "people");
+        if (people && people.type === "people") {
+          const peopleProps = people ? people.people.filter(person => person.id) : [];
+          return peopleProps.map(prop => ({
+            pageId: page.id,
+            docAppRegUrl: page.url,
+            assignee: prop.id,
+          })) as INotionDailyReport[];
+        }
+        return [];
+      });
+      return pageInfo;
+    } catch (error) {
+      console.error(error);
+      logger.error(new LoggerError(error.message));
+    }
   }
 }
