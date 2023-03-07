@@ -40,6 +40,7 @@ import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, NotionPropertyType, PropertyUsageType, TodoAppCode } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
+import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 
 @Service()
 export default class NotionRepository {
@@ -49,6 +50,7 @@ export default class NotionRepository {
   private propertyRepository: Repository<Property>;
   private propertyOptionRepository: Repository<PropertyOption>;
   private sectionRepository: Repository<Section>;
+  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -64,6 +66,7 @@ export default class NotionRepository {
     this.propertyRepository = AppDataSource.getRepository(Property);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.sectionRepository = AppDataSource.getRepository(Section);
+    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
@@ -664,13 +667,14 @@ export default class NotionRepository {
 
   public async postDailyReportByUser(
     items: IDailyReportItems,
+    company: Company,
     sections: Section[],
     users: User[],
   ): Promise<INotionDailyReport[]> {
     try {
       const today = new Date();
       const createdAt = today.toISOString().slice(0, 10);
-      const databaseId = "cbfe6313401149948f8300308054b6f8"; //TODO:DBに格納して取得できるようにする
+      const configRecord = await this.dailyReportConfigRepository.findOneBy({ company_id: company.id });
       const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; //TODO:DBに格納して取得できるようにする
 
       const postOperations = [];
@@ -678,7 +682,7 @@ export default class NotionRepository {
         const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
         const docToolUsers = user.documentToolUsers.find((du) => du.documentTool.tool_code === DocumentToolCode.NOTION);
         postOperations.push(
-          this.notionPageBuilder.createDailyReportByUser(databaseId, docToolUsers, itemsByUser, createdAt, reportId)
+          this.notionPageBuilder.createDailyReportByUser(configRecord.database, docToolUsers, itemsByUser, createdAt, reportId)
             .then((page) => this.notionRequest.pages.create(page)),
         );
       });

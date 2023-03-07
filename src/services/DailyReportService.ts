@@ -83,7 +83,7 @@ export default class DailyReportService {
       ]);
 
       const usersByDocApp = company.users.filter(u => u.documentTools.some(t => t.tool_code === DocumentToolCode.NOTION));
-      const response = await this.notionRepository.postDailyReportByUser(dailyReportTodos, company.sections, usersByDocApp);
+      const response = await this.notionRepository.postDailyReportByUser(dailyReportTodos, company, company.sections, usersByDocApp);
 
       const usersByChatTool = company.users.filter(u => u.chatTools.some(c => c.tool_code === chatTool.tool_code));
       const sendOperations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
