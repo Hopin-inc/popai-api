@@ -30,7 +30,7 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
 import LineBot from "@/config/line-bot";
 import TaskService from "@/services/TaskService";
-import { messageData, REMIND_ME_COMMAND, replyMessages, WebhookSourceType, WebhookEventType } from "@/consts/line";
+import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
