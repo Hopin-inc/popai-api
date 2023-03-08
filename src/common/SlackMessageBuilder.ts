@@ -452,7 +452,7 @@ export default class SlackMessageBuilder {
         type: "context",
         elements: [
           { type: "image", image_url: iconUrl, alt_text: user.name },
-          { type: "mrkdwn", text: `*${user.name}* さんの日報です。` },
+          { type: "mrkdwn", text: `<@${user.slackId}> さんの日報です。` },
         ],
       },
       {
