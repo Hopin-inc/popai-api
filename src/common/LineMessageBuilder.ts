@@ -533,7 +533,7 @@ export default class LineMessageBuilder {
       contents: byCompany,
     };
 
-    const MAX_DISPLAY_COUNT = 1;
+    const MAX_DISPLAY_COUNT = 11;
     const getOperation = users.slice(0, MAX_DISPLAY_COUNT).map(async (user) => {
       const filteredRes = response.find((r) =>
         user.todoAppUsers.some((tu) => tu.user_app_id === r.assignee),
