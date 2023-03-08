@@ -336,7 +336,7 @@ export default class CommonRepository {
       .orderBy("todo_histories.todoapp_reg_updated_at", "DESC")
       .getOne();
 
-    return lastUpdatedRecord.todoapp_reg_updated_at;
+    return lastUpdatedRecord?.todoapp_reg_updated_at;
   }
 
   public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
