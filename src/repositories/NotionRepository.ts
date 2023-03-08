@@ -379,15 +379,15 @@ export default class NotionRepository {
       if (section.board_id) {
         try {
           const lastUpdatedDate = await this.commonRepository.getLastUpdatedDate(company, todoapp);
-          lastUpdatedDate.setDate(lastUpdatedDate.getDate());
-          const lastUpdatedStr = lastUpdatedDate.toISOString().slice(0, 10);
 
           let response = await this.notionRequest.databases.query({
             database_id: section.board_id,
-            filter: {
-              timestamp: "last_edited_time",
-              last_edited_time: { on_or_after: lastUpdatedStr },
-            },
+            filter: lastUpdatedDate
+              ? {
+                timestamp: "last_edited_time",
+                last_edited_time: { on_or_after: lastUpdatedDate.toISOString().slice(0, 10) },
+              }
+              : undefined,
           });
 
           const pages = response.results;
