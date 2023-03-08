@@ -17,6 +17,16 @@ export default class Account extends BaseEntity {
   @Column()
   company_id: number;
 
+  constructor(uid: string, email: string, name: string, company: Company | number) {
+    super();
+    if (company) {
+      this.uid = uid;
+      this.email = email;
+      this.name = name;
+      this.company_id = typeof company === "number" ? company : company.id;
+    }
+  }
+
   @ManyToOne(
     () => Company,
     company => company.accounts,

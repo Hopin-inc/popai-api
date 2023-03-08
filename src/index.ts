@@ -24,7 +24,10 @@ app.use(morgan("tiny"));
 app.use(cookieParser());
 app.use(express.static("public"));
 // app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_BASE_URL,
+  credentials: true,
+}));
 
 app.get("/_ah/warmup", (req, res) => {
   const currentDate = new Date();

@@ -30,6 +30,12 @@ export default class Company extends BaseEntity {
   @Column({ default: false })
   is_demo: boolean;
 
+  constructor(name: string) {
+    super();
+    this.name = name;
+    this.is_demo = false;
+  }
+
   @OneToMany(
     () => ImplementedTodoApp,
     implementedTodoApp => implementedTodoApp.company,

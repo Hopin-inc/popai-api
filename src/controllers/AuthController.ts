@@ -16,4 +16,8 @@ export default class AuthController extends Controller {
     const uid = await this.authService.verifyIdToken(authHeader);
     return await this.authService.getAccount(uid);
   }
+
+  public async fetchLoginState(uid: string): Promise<Account> {
+    return await this.authService.getAccount(uid);
+  }
 }
