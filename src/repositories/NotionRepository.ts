@@ -13,7 +13,7 @@ import TodoApp from "@/entities/masters/TodoApp";
 import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
-import Property from "@/entities/settings/Property";
+import BoardProperty from "@/entities/settings/BoardProperty";
 import OptionCandidate from "@/entities/settings/OptionCandidate";
 import PropertyOption from "@/entities/settings/PropertyOption";
 
@@ -49,7 +49,7 @@ export default class NotionRepository {
   private notionRequest: Client;
   private todoRepository: Repository<Todo>;
   private todoAppUserRepository: Repository<TodoAppUser>;
-  private propertyRepository: Repository<Property>;
+  private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
   private sectionRepository: Repository<Section>;
@@ -66,7 +66,7 @@ export default class NotionRepository {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
-    this.propertyRepository = AppDataSource.getRepository(Property);
+    this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -133,7 +133,7 @@ export default class NotionRepository {
 
       await Promise.all(updatedProperties.map(async property => {
         const { id, name, type, sectionId } = property;
-        await this.saveProperty(id, name, type, sectionId);
+        await this.commonRepository.saveProperty(id, name, type, sectionId);
         return this.getOptionCandidates(property, sectionId);
       }));
     } catch (error) {
@@ -142,7 +142,7 @@ export default class NotionRepository {
   }
 
   private async getOptionCandidates(property, sectionId: number) {
-    const propertyRecord = await this.propertyRepository.findOneBy({
+    const propertyRecord = await this.boardPropertyRepository.findOneBy({
       section_id: sectionId,
       property_id: property.id,
     });
@@ -154,61 +154,15 @@ export default class NotionRepository {
         const typeKey = Object.keys(NotionPropertyType).find(key => NotionPropertyType[key] === property.type);
         const options = property[typeKey.toLowerCase()].options;
         await Promise.all(options.map(option => {
-          this.saveOptionCandidate(propertyRecord.id, option.id, sectionId, option.name);
-          this.savePropertyOption(propertyRecord.id, option.id);
+          this.commonRepository.saveOptionCandidate(propertyRecord.id, option.id, sectionId, option.name);
         }));
         break;
       case NotionPropertyType.RELATION:
-        await this.saveOptionCandidate(propertyRecord.id, property.relation.database_id, sectionId);
-        await this.savePropertyOption(propertyRecord.id, property.relation.database_id);
+        await this.commonRepository.saveOptionCandidate(propertyRecord.id, property.relation.database_id, sectionId);
         break;
       default:
-        await this.savePropertyOption(propertyRecord.id);
+        await this.commonRepository.savePropertyOption(propertyRecord.id);
         break;
-    }
-  }
-
-  private async saveProperty(id: string, name: string, type: number, sectionId: number) {
-    const propertyExists = await this.propertyRepository.findOne({ where: { section_id: sectionId, property_id: id } });
-    if (!propertyExists) {
-      const property = new Property(sectionId, id, type, name);
-      await this.propertyRepository.save(property);
-    }
-  }
-
-  private async saveOptionCandidate(
-    propertyId: number,
-    optionId: string,
-    sectionId: number,
-    name?: string,
-  ) {
-    const optionCandidateExit = await this.optionCandidateRepository.findOne({
-      relations: ["property"],
-      where: {
-        property_id: propertyId,
-        property: { section_id: sectionId },
-      },
-    });
-
-    if (!optionCandidateExit) {
-      const optionCandidate = new OptionCandidate(propertyId, optionId, name);
-      await this.optionCandidateRepository.save(optionCandidate);
-    }
-  }
-
-  private async savePropertyOption(propertyId: number, optionId?: string) {
-    const optionRecord = optionId
-      ? await this.optionCandidateRepository.findOneBy({ property_id: propertyId, option_id: optionId })
-      : await this.optionCandidateRepository.findOneBy({ property_id: propertyId });
-
-    const propertyOptionExit = await this.propertyOptionRepository.findOneBy({
-      property_id: propertyId,
-      option_id: optionRecord?.id,
-    });
-
-    if (!propertyOptionExit) {
-      const propertyOption = new PropertyOption(propertyId, optionRecord?.id);
-      await this.propertyOptionRepository.save(propertyOption);
     }
   }
 
@@ -247,9 +201,9 @@ export default class NotionRepository {
           }
 
           const usagePropertyOptions = await this.propertyOptionRepository.find({
-            relations: ["property", "optionCandidate"],
+            relations: ["boardProperty", "optionCandidate"],
             where: {
-              property: { section_id: section.id },
+              boardProperty: { section_id: section.id },
               usage: Not(IsNull()),
             },
           });
@@ -273,8 +227,8 @@ export default class NotionRepository {
   private getUsageProperty(propertyOptions: PropertyOption[], pagePropertyIds: string[], usageId: number) {
     const result = propertyOptions.find(
       propOpt => propOpt.usage === usageId
-        && pagePropertyIds.includes(propOpt.property.property_id));
-    return result ? result.property.property_id : null;
+        && pagePropertyIds.includes(propOpt.boardProperty.property_id));
+    return result ? result.boardProperty.property_id : null;
   }
 
   private async getPages(
@@ -305,8 +259,8 @@ export default class NotionRepository {
         await Promise.all([
           this.getIsStatus(pageProperty, propertyId.isDone, UsageType.IS_DONE),
           this.getIsStatus(pageProperty, propertyId.isClosed, UsageType.IS_CLOSED),
-          this.getDefaultInfo(pageInfo, "created_by"),
-          this.getDefaultInfo(pageInfo, "last_edited_by"),
+          this.getDefaultStr(pageInfo, "created_by"),
+          this.getDefaultStr(pageInfo, "last_edited_by"),
           this.getDefaultDate(pageInfo, "created_time"),
           this.getDefaultDate(pageInfo, "last_edited_time"),
         ]);
@@ -314,12 +268,12 @@ export default class NotionRepository {
       const pageTodo: INotionTask = {
         todoappRegId: pageId,
         name,
-        sections: this.getSections(pageProperty, propertyId.section),
-        assignees: this.getAssignee(pageProperty, propertyId.assignee),
+        sections: this.getOptionIds(pageProperty, propertyId.section),
+        assignees: this.getOptionIds(pageProperty, propertyId.assignee),
         deadline: this.getDue(pageProperty, propertyId.due),
         isDone: isDone,
         isClosed: isClosed,
-        todoappRegUrl: this.getDefaultInfo(pageInfo, "url"),
+        todoappRegUrl: this.getDefaultStr(pageInfo, "url"),
         createdBy: createdBy,
         lastEditedBy: lastEditedBy,
         createdAt: createdAt,
@@ -331,7 +285,7 @@ export default class NotionRepository {
       };
 
       const [sectionIds, createdById, lastEditedById] = await Promise.all([
-        this.getNotionSectionIds(company, todoapp, pageTodo.sections),
+        this.getSectionIds(company, todoapp, pageTodo.sections),
         this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
         this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
       ]);
@@ -502,7 +456,7 @@ export default class NotionRepository {
     correctDelayedCount: boolean = false,
   ): Promise<void> => {
     try {
-      const isDoneProperty = await this.propertyRepository.findOneBy({
+      const isDoneProperty = await this.boardPropertyRepository.findOneBy({
         section_id: In(task.company.sections.map(section => section.id)),
         // usage: UsageType.IS_DONE,
       });
@@ -588,19 +542,6 @@ export default class NotionRepository {
     }
   }
 
-  private getAssignee(
-    pageProperty: Record<PropertyKey, any>,
-    assigneeId: string,
-  ): string[] {
-    try {
-      const property = pageProperty.find(prop => prop.id === assigneeId);
-      return property.type === "people" ? property.people.map(assignee => assignee.id) : [];
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
-      return [];
-    }
-  }
-
   private getDue(
     pageProperty: Record<PropertyKey, any>,
     dueId: string,
@@ -629,7 +570,7 @@ export default class NotionRepository {
     }
   }
 
-  private getSections(
+  private getOptionIds(
     pageProperty: Record<PropertyKey, any>,
     sectionId: string,
   ): string[] {
@@ -637,17 +578,18 @@ export default class NotionRepository {
       const property = pageProperty.find(prop => prop.id === sectionId);
       switch (property.type) {
         case "relation":
-          return property.relation.map(section => section.id);
+          return property.relation.map(relation => relation.id);
         case "select":
           return property.select.id;
         case "multi_select":
-          return property.multi_select.map(section => section.id);
+          return property.multi_select.map(select => select.id);
+        case "people":
+          return property.people.map(person => person.id);
         default:
           return null;
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
-      return [];
     }
   }
 
@@ -667,7 +609,7 @@ export default class NotionRepository {
           return !!(await this.propertyOptionRepository.findOne({
             relations: ["optionCandidate"],
             where: {
-              optionCandidate: { option_id: property.status.id },
+              optionCandidate: { option_id: property.status?.id },
               usage: usageId,
             },
           }));
@@ -675,20 +617,19 @@ export default class NotionRepository {
           return !!(await this.propertyOptionRepository.findOne({
             relations: ["optionCandidate"],
             where: {
-              optionCandidate: { option_id: property.select.id },
+              optionCandidate: { option_id: property.select?.id },
               usage: usageId,
             },
           }));
         default:
           break;
       }
-
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
   }
 
-  private async getNotionSectionIds(
+  private async getSectionIds(
     company: Company,
     todoApp: TodoApp,
     labelIds: string[],
@@ -717,7 +658,7 @@ export default class NotionRepository {
     return filteredUsers.length ? filteredUsers[0].id : undefined;
   }
 
-  private getDefaultInfo(
+  private getDefaultStr(
     pageInfo: PageObjectResponse,
     type: string,
   ): string {

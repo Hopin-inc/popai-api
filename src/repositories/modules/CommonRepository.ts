@@ -41,6 +41,8 @@ import TodoApp from "@/entities/masters/TodoApp";
 import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
+import BoardProperty from "@/entities/settings/BoardProperty";
+import OptionCandidate from "@/entities/settings/OptionCandidate";
 
 @Service()
 export default class CommonRepository {
@@ -53,6 +55,8 @@ export default class CommonRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
+  private boardPropertyRepository: Repository<BoardProperty>;
+  private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private notionRequest: Client;
@@ -67,6 +71,8 @@ export default class CommonRepository {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
+    this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
+    this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
@@ -365,6 +371,57 @@ export default class CommonRepository {
         await this.todoRepository.softRemove(deletedPageRecord);
       }
       return pageResponse;
+    }
+  }
+
+  public async saveProperty(id: string, name: string, type: number, sectionId: number) {
+    const propertyExists = await this.boardPropertyRepository.findOne({
+      where: {
+        section_id: sectionId,
+        property_id: id,
+      },
+    });
+    if (!propertyExists) {
+      const property = new BoardProperty(sectionId, id, type, name);
+      await this.boardPropertyRepository.save(property);
+    }
+  }
+
+  public async saveOptionCandidate(
+    propertyId: number,
+    optionId: string,
+    sectionId: number,
+    name?: string,
+  ) {
+    const optionCandidateExit = await this.optionCandidateRepository.findOne({
+      relations: ["boardProperty"],
+      where: {
+        property_id: propertyId,
+        boardProperty: { section_id: sectionId },
+      },
+    });
+
+    if (!optionCandidateExit) {
+      const optionCandidate = new OptionCandidate(propertyId, optionId, name);
+      await this.optionCandidateRepository.save(optionCandidate);
+    }
+
+    await this.savePropertyOption(propertyId, optionId);
+  }
+
+  public async savePropertyOption(propertyId: number, optionId?: string) {
+    const optionRecord = optionId
+      ? await this.optionCandidateRepository.findOneBy({ property_id: propertyId, option_id: optionId })
+      : await this.optionCandidateRepository.findOneBy({ property_id: propertyId });
+
+    const propertyOptionExit = await this.propertyOptionRepository.findOneBy({
+      property_id: propertyId,
+      option_id: optionRecord?.id,
+    });
+
+    if (!propertyOptionExit) {
+      const propertyOption = new PropertyOption(propertyId, optionRecord?.id);
+      await this.propertyOptionRepository.save(propertyOption);
     }
   }
 }
