@@ -313,7 +313,7 @@ export default class NotionRepository {
       company,
       todoapp,
       todoAppUser,
-      sections: sections.filter(section => pageTodo.sectionIds.includes(section.id)),
+      sections: sections.filter(section => pageTodo.sectionIds?.includes(section.id)),
       users,
     };
 
@@ -580,7 +580,7 @@ export default class NotionRepository {
         case "relation":
           return property.relation.map(relation => relation.id);
         case "select":
-          return property.select.id;
+          return [property.select?.id];
         case "multi_select":
           return property.multi_select.map(select => select.id);
         case "people":
@@ -634,16 +634,18 @@ export default class NotionRepository {
     todoApp: TodoApp,
     labelIds: string[],
   ): Promise<number[]> {
-    const registeredLabelRecords = await this.sectionRepository.find({
-      where: {
-        company_id: company.id,
-        todoapp_id: todoApp.id,
-        label_id: In(labelIds),
-      },
-      select: ["id"],
-    });
+    if (labelIds) {
+      const registeredLabelRecords = await this.sectionRepository.find({
+        where: {
+          company_id: company.id,
+          todoapp_id: todoApp.id,
+          label_id: In(labelIds),
+        },
+        select: ["id"],
+      });
 
-    return registeredLabelRecords.map(record => record.id);
+      return registeredLabelRecords.map(record => record.id);
+    }
   }
 
   private async getEditedById(
