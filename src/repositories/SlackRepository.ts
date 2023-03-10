@@ -28,10 +28,9 @@ import {
   MAX_REMIND_COUNT,
   MessageTriggerType,
   MessageType,
-  OpenStatus, ProspectLevel,
+  ProspectLevel,
   RemindType,
-  ReplyStatus,
-  SenderType, TodoHistoryAction,
+  TodoHistoryAction,
 } from "@/consts/common";
 import { diffDays, getItemRandomly, getUniqueArray, Sorter, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
@@ -143,16 +142,19 @@ export default class SlackRepository {
       blocks: message.blocks,
     });
     if (result.ok) {
-      return await this.saveChatMessage(
+      const chatMessage = new ChatMessage(
         chatTool,
-        message,
+        this.getTextFromSendMessage(message),
         MessageTriggerType.REMIND,
+        MessageType.TEXT,
+        user,
         conversationId,
         result.ts,
-        user,
-        undefined,
+        null,
         todo,
+        null,
       );
+      return await this.messageRepository.save(chatMessage);
     }
   }
 
@@ -410,7 +412,16 @@ export default class SlackRepository {
       const response = await SlackBot.chat.postMessage(props);
       if (response.ok) {
         const ts = threadId ? threadId : response.ts;
-        await this.saveChatMessage(chatTool, message, messageTriggerId, channelId, ts, user);
+        const chatMessage = new ChatMessage(
+          chatTool,
+          this.getTextFromSendMessage(message),
+          messageTriggerId,
+          MessageType.TEXT,
+          user,
+          channelId,
+          ts,
+        );
+        await this.messageRepository.save(chatMessage);
       }
       return response;
     }
@@ -433,7 +444,16 @@ export default class SlackRepository {
         blocks: message.blocks,
       });
       if (response.ok) {
-        return await this.saveChatMessage(chatTool, message, MessageTriggerType.RESPONSE, channelId, threadId, user);
+        const chatMessage = new ChatMessage(
+          chatTool,
+          this.getTextFromSendMessage(message),
+          MessageTriggerType.RESPONSE,
+          MessageType.TEXT,
+          user,
+          channelId,
+          threadId,
+        );
+        return await this.messageRepository.save(chatMessage);
       }
     }
   }
@@ -446,36 +466,6 @@ export default class SlackRepository {
   private async pushTodoSlack(todoSlack: ITodoSlack, channelId: string): Promise<ChatMessage> {
     const { todo, chatTool, user, remindDays } = todoSlack;
     return await this.pushMessageRemind(chatTool, user, todo, remindDays, channelId);
-  }
-
-  private async saveChatMessage(
-    chatTool: ChatTool,
-    message: MessageAttachment,
-    messageTriggerId: number,
-    channelId: string,
-    threadId: string,
-    user?: User,
-    remindTypes?: IRemindType,
-    todo?: Todo,
-  ): Promise<ChatMessage> {
-    const remindType = remindTypes?.remindType ?? RemindType.NOT_REMIND;
-    const remindDays = remindTypes?.remindDays ?? null;
-    const chatMessage = new ChatMessage();
-    chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chattool_id = chatTool.id;
-    chatMessage.is_opened = OpenStatus.OPENED;
-    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = messageTriggerId; // batch
-    chatMessage.message_type_id = MessageType.TEXT;
-    chatMessage.channel_id = channelId;
-    chatMessage.thread_id = threadId;
-    chatMessage.body = this.getTextFromSendMessage(message);
-    chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = toJapanDateTime(moment().utc().toDate());
-    chatMessage.user_id = user?.id;
-    chatMessage.remind_type = remindType;
-    chatMessage.remind_before_days = remindDays;
-    return await this.messageRepository.save(chatMessage);
   }
 
   private async getSendChannel(company: Company): Promise<string> {

@@ -2,7 +2,6 @@ import { Repository } from "typeorm";
 import { Controller } from "tsoa";
 import Container from "typedi";
 import { FlexMessage, MessageAPIResponseBase, TextMessage, WebhookEvent } from "@line/bot-sdk";
-import moment from "moment";
 
 import ChatMessage from "@/entities/transactions/ChatMessage";
 import ChatTool from "@/entities/masters/ChatTool";
@@ -19,16 +18,13 @@ import {
   LineMessageQueueStatus,
   MessageTriggerType,
   MessageType,
-  OpenStatus,
   ReplyStatus,
-  SenderType,
   TodoStatus,
 } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
-import LineBot from "@/config/line-bot";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
@@ -36,6 +32,7 @@ export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
   private readonly chattoolRepository: Repository<ChatTool>;
   private readonly todoRepository: Repository<Todo>;
+  private messageRepository: Repository<ChatMessage>;
   private readonly commonRepository: CommonRepository;
   private readonly lineQueueRepository: LineMessageQueueRepository;
   private readonly taskService: TaskService;
@@ -45,6 +42,7 @@ export default class LineController extends Controller {
     this.lineRepository = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
+    this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);
@@ -215,15 +213,20 @@ export default class LineController extends Controller {
     } else {
       await Promise.all(superiorUsers.map(async (superiorUser) => {
         await this.handleByReplyMessage(replyMessage, chattool, user, replyToken, superiorUser.name);
-        await this.saveChatMessage(
+        const chatMessage = new ChatMessage(
           chattool,
-          todo,
-          user.id,
-          messageParentId,
           replyMessage,
-          replyToken,
           MessageTriggerType.REPLY,
+          MessageType.FLEX,
+          user,
+          null,
+          null,
+          null,
+          todo,
+          replyToken,
+          messageParentId
         );
+        await this.messageRepository.save(chatMessage);
         await this.sendSuperiorMessage(
           chattool,
           superiorUser,
@@ -257,44 +260,6 @@ export default class LineController extends Controller {
     } else if (messageMatchesStatus(replyMessage, [TodoStatus.WITHDRAWN])) {
       await this.replyWithdrawnAction(chattool, user, replyToken);
     }
-  }
-
-  /**
-   * Save chat message
-   * @returns
-   * @param chattool
-   * @param todo
-   * @param userId
-   * @param messageParentId
-   * @param messageContent
-   * @param messageToken
-   * @param messageTriggerId
-   */
-  private async saveChatMessage(
-    chattool: ChatTool,
-    todo: Todo,
-    userId: number,
-    messageParentId: number,
-    messageContent: string,
-    messageToken: string,
-    messageTriggerId: number,
-  ): Promise<ChatMessage> {
-    const chatMessage = new ChatMessage();
-    chatMessage.is_from_user = SenderType.FROM_USER;
-    chatMessage.chattool_id = chattool.id;
-    chatMessage.is_opened = OpenStatus.OPENED;
-    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = messageTriggerId; // reply
-    chatMessage.message_type_id = MessageType.TEXT;
-
-    chatMessage.body = messageContent;
-    chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = toJapanDateTime(moment().utc().toDate());
-    chatMessage.message_token = messageToken;
-    chatMessage.user_id = userId;
-    chatMessage.parent_message_id = messageParentId;
-
-    return await this.lineRepository.createMessage(chatMessage);
   }
 
   /**

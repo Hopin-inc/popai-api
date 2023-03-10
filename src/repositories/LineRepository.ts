@@ -1,7 +1,6 @@
 import { Container, Service } from "typedi";
 import { In, Repository } from "typeorm";
-import { Message, Profile } from "@line/bot-sdk";
-import moment from "moment";
+import { FlexComponent, Message } from "@line/bot-sdk";
 
 import ChatMessage from "@/entities/transactions/ChatMessage";
 import ChatTool from "@/entities/masters/ChatTool";
@@ -17,14 +16,10 @@ import LineMessageBuilder from "@/common/LineMessageBuilder";
 import LineBot from "@/config/line-bot";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
-import { toJapanDateTime } from "@/utils/common";
 import {
   MessageTriggerType,
   MessageType,
-  OpenStatus,
   RemindType,
-  ReplyStatus,
-  SenderType,
 } from "@/consts/common";
 
 import { IDailyReportItems, IRemindType, ITodoLines } from "@/types";
@@ -104,7 +99,6 @@ export default class LineRepository {
         return;
       }
 
-      //1.期日に対するリマインド
       const remindTypes: IRemindType = {
         remindType: RemindType.REMIND_BY_DEADLINE,
         remindDays: remindDays,
@@ -112,15 +106,19 @@ export default class LineRepository {
 
       const messageToken = await LineBot.getLinkToken(user.lineId);
       const message = LineMessageBuilder.createRemindMessage(messageToken, user.name, todo, remindDays);
-      const chatMessage = await this.saveChatMessage(
+      const chatMessage = new ChatMessage(
         chatTool,
-        message,
+        this.getTextContentFromMessage(message),
         MessageTriggerType.REMIND,
-        messageToken,
+        MessageType.FLEX,
         user,
+        null,
+        null,
         remindTypes,
         todo,
+        messageToken,
       );
+      await this.messageRepository.save(chatMessage);
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         chatMessage.message_token,
@@ -369,16 +367,22 @@ export default class LineRepository {
     groupId?: string,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
-      console.log(LineMessageBuilder.getTextContentFromMessage(message));
+      console.log(this.getTextContentFromMessage(message));
     } else {
-      const pushTarget = groupId ? groupId : user.lineId;
-
-      await LineBot.pushMessage(pushTarget, message, false);
-      if (user) {
-        const linkToken = await LineBot.getLinkToken(user.lineId);
-        return await this.saveChatMessage(chatTool, message, messageTriggerId, linkToken, user, remindTypes);
-      }
-      return await this.saveChatMessage(chatTool, message, messageTriggerId, null, user, remindTypes);
+      const linkToken = user ? await LineBot.getLinkToken(user.lineId) : null;
+      const chatMessage = new ChatMessage(
+        chatTool,
+        this.getTextContentFromMessage(message),
+        messageTriggerId,
+        MessageType.FLEX,
+        user,
+        groupId,
+        null,
+        remindTypes,
+        null,
+        linkToken,
+      );
+      return await this.messageRepository.save(chatMessage);
     }
   }
 
@@ -389,11 +393,23 @@ export default class LineRepository {
     user?: User,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
-      console.log(LineMessageBuilder.getTextContentFromMessage(message));
+      console.log(this.getTextContentFromMessage(message));
     } else {
       await LineBot.replyMessage(replyToken, message);
     }
-    return await this.saveChatMessage(chatTool, message, MessageTriggerType.RESPONSE, replyToken, user);
+    const chatMessage = new ChatMessage(
+      chatTool,
+      this.getTextContentFromMessage(message),
+      MessageTriggerType.RESPONSE,
+      MessageType.TEXT,
+      user,
+      null,
+      null,
+      null,
+      null,
+      replyToken,
+    );
+    return await this.messageRepository.save(chatMessage);
   }
 
   public async pushTodoLine(todoLine: ITodoLines): Promise<ChatMessage> {
@@ -401,37 +417,68 @@ export default class LineRepository {
     return await this.pushMessageRemind(chattool, user, todo, remindDays);
   }
 
-  public async saveChatMessage(
-    chatTool: ChatTool,
-    message: Message,
-    messageTriggerId: number,
-    messageToken: string,
-    user?: User,
-    remindTypes?: IRemindType,
-    todo?: Todo,
-  ): Promise<ChatMessage> {
-    const { remindType, remindDays } = {
-      remindType: RemindType.NOT_REMIND,
-      remindDays: null,
-      ...remindTypes,
-    };
+  private getTextContentFromMessage(message: Message): string {
+    switch (message.type) {
+      case "text":
+        return message.text;
 
-    const chatMessage = new ChatMessage();
-    chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chattool_id = chatTool.id;
-    chatMessage.is_opened = OpenStatus.OPENED;
-    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = messageTriggerId; // batch
-    chatMessage.message_type_id = MessageType.FLEX;
+      case "flex":
+        const texts = [];
+        const findText = (components: FlexComponent[]) => {
+          components.forEach(component => {
+            switch (component.type) {
+              case "text":
+                if (component.text) {
+                  texts.push(component.text);
+                } else if (component.contents) {
+                  findText(component.contents);
+                }
+                break;
+              case "span":
+                const lastText = texts.pop();
+                texts.push(lastText + component.text);
+                break;
+              case "box":
+                if (component.contents) {
+                  findText(component.contents);
+                }
+                break;
+              default:
+                break;
+            }
+          });
+        };
 
-    chatMessage.body = LineMessageBuilder.getTextContentFromMessage(message);
-    chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = toJapanDateTime(moment().utc().toDate());
-    chatMessage.user_id = user?.id;
-    chatMessage.message_token = messageToken;
-    chatMessage.remind_type = remindType;
-    chatMessage.remind_before_days = remindDays;
+        const messageContents = message.contents;
+        if (messageContents.type === "bubble") {
+          const flexComponents = messageContents.body?.contents ?? [];
+          findText(flexComponents);
+        }
+        return texts.join("\n");
 
-    return await this.messageRepository.save(chatMessage);
+      case "audio":
+        return message.originalContentUrl;
+
+      case "image":
+        return message.originalContentUrl;
+
+      case "imagemap":
+        return message.baseUrl;
+
+      case "location":
+        return message.address;
+
+      case "sticker":
+        return message.packageId;
+
+      case "template":
+        return message.altText;
+
+      case "video":
+        return message.originalContentUrl;
+
+      default:
+        return "";
+    }
   }
 }
