@@ -71,7 +71,7 @@ export const NotionPropertyType = {
   LAST_EDITED_TIME: 20,
 };
 
-export const PropertyUsageType = {
+export const UsageType = {
   TITLE: 1,
   SECTION: 2,
   ASSIGNEE: 3,
