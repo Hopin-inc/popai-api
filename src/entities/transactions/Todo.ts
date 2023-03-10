@@ -12,7 +12,7 @@ import TodoHistory from "./TodoHistory";
 import Prospect from "./Prospect";
 import { Sorter } from "../../utils/common";
 
-@Entity("todos")
+@Entity("t_todos")
 export default class Todo extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

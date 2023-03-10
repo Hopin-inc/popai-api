@@ -5,7 +5,6 @@ import moment from "moment";
 
 import ChatMessage from "@/entities/transactions/ChatMessage";
 import ChatTool from "@/entities/masters/ChatTool";
-import LineProfile from "@/entities/transactions/LineProfile";
 import ReportingLine from "@/entities/settings/ReportingLine";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
@@ -36,7 +35,6 @@ import DailyReport from "@/entities/transactions/DailyReport";
 
 @Service()
 export default class LineRepository {
-  private lineProfileRepository: Repository<LineProfile>;
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private todoRepository: Repository<Todo>;
@@ -45,7 +43,6 @@ export default class LineRepository {
   private commonRepository: CommonRepository;
 
   constructor() {
-    this.lineProfileRepository = AppDataSource.getRepository(LineProfile);
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.todoRepository = AppDataSource.getRepository(Todo);
@@ -304,28 +301,6 @@ export default class LineRepository {
       const message = LineMessageBuilder.createNotifyNothingMessage(user);
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(chatTool, message, MessageTriggerType.REMIND, user);
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  }
-
-  public async createLineProfile(lineProfile: Profile): Promise<LineProfile> {
-    try {
-      const findResult = await this.lineProfileRepository.findOneBy({
-        line_id: lineProfile.userId,
-      });
-
-      if (!findResult) {
-        const profile = new LineProfile();
-        profile.line_id = lineProfile.userId;
-        profile.display_name = lineProfile.displayName;
-        profile.picture_url = lineProfile.pictureUrl;
-        profile.status_message = lineProfile.statusMessage;
-
-        return await this.lineProfileRepository.save(profile);
-      } // find by id
-
-      return findResult;
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

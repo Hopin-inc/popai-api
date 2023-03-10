@@ -14,7 +14,7 @@ import { ChatToolCode, DocumentToolCode } from "../../consts/common";
 import DocumentTool from "../masters/DocumentTool";
 import DocumentToolUser from "../settings/DocumentToolUser";
 
-@Entity("users")
+@Entity("s_users")
 export default class User extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

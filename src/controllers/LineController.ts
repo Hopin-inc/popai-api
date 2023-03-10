@@ -96,8 +96,8 @@ export default class LineController extends Controller {
           return;
 
         case "follow":
-          const lineProfile = await LineBot.getProfile(lineId);
-          await this.lineRepository.createLineProfile(lineProfile);
+          // const lineProfile = await LineBot.getProfile(lineId);
+          // await this.lineRepository.createLineProfile(lineProfile);
           return;
 
         case "unfollow":

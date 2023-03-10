@@ -5,7 +5,7 @@ import ChatMessage from "./ChatMessage";
 import Todo from "./Todo";
 import User from "../settings/User";
 
-@Entity("line_message_queues")
+@Entity("t_line_message_queues")
 export default class LineMessageQueue extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

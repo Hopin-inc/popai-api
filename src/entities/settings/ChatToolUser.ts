@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import User from "./User";
 import ChatTool from "../masters/ChatTool";
 
-@Entity("chat_tool_users")
+@Entity("s_chat_tool_users")
 export default class ChatToolUser extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   auth_key: string;

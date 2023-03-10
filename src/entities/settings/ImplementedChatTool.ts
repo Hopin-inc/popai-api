@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import ChatTool from "../masters/ChatTool";
 import Company from "./Company";
 
-@Entity("implemented_chat_tools")
+@Entity("s_implemented_chat_tools")
 export default class ImplementedChatTool extends BaseEntity {
   @PrimaryColumn()
   company_id: number;

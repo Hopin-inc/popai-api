@@ -3,7 +3,7 @@ import BaseEntity from "../BaseEntity";
 import Company from "../settings/Company";
 import DocumentTool from "../masters/DocumentTool";
 
-@Entity("implemented_document_tools")
+@Entity("s_implemented_document_tools")
 export default class ImplementedDocumentTool extends BaseEntity {
   @PrimaryColumn()
   company_id: number;

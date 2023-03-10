@@ -3,7 +3,7 @@ import BaseEntity from "../BaseEntity";
 import User from "../settings/User";
 import DocumentTool from "../masters/DocumentTool";
 
-@Entity("document_tool_users")
+@Entity("s_document_tool_users")
 export default class DocumentToolUser extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   auth_key: string;
