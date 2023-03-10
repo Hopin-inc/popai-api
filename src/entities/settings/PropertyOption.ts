@@ -3,9 +3,8 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "t
 import BaseEntity from "../BaseEntity";
 import BoardProperty from "./BoardProperty";
 import OptionCandidate from "./OptionCandidate";
-import Section from "@/entities/settings/Section";
 
-@Entity("property_options")
+@Entity("s_property_options")
 export default class PropertyOption extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

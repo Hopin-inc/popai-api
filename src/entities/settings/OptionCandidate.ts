@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import PropertyOption from "./PropertyOption";
 import BoardProperty from "./BoardProperty";
 
-@Entity("option_candidates")
+@Entity("s_options")
 export default class OptionCandidate extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

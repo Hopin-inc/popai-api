@@ -5,7 +5,7 @@ import Section from "./Section";
 import PropertyOption from "./PropertyOption";
 import OptionCandidate from "./OptionCandidate";
 
-@Entity("board_properties")
+@Entity("s_properties")
 export default class BoardProperty extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
