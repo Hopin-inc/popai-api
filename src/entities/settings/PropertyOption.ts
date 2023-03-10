@@ -1,7 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import Property from "./Property";
+import OptionCandidate from "./OptionCandidate";
 
 @Entity("property_options")
 export default class PropertyOption extends BaseEntity {
@@ -11,19 +12,25 @@ export default class PropertyOption extends BaseEntity {
   @Column()
   property_id: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
-  option_id: string;
+  @Column({ nullable: true })
+  option_id: number;
 
   @Column({ nullable: true })
   usage: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  name: string;
-
   @ManyToOne(
     () => Property,
     property => property.propertyOptions,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" })
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+  )
   @JoinColumn({ name: "property_id" })
   property: Property;
+
+  @ManyToOne(
+    () => OptionCandidate,
+    optionCandidate => optionCandidate.propertyOptions,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+  )
+  @JoinColumn({ name: "option_id" })
+  optionCandidate?: OptionCandidate;
 }
