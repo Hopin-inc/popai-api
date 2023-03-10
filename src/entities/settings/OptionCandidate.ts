@@ -2,11 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMan
 
 import BaseEntity from "../BaseEntity";
 import PropertyOption from "./PropertyOption";
-import Property from "./Property";
-import User from "@/entities/settings/User";
-import Company from "@/entities/settings/Company";
-import Section from "@/entities/settings/Section";
-import { IDailyReportItems } from "@/types";
+import BoardProperty from "./BoardProperty";
 
 @Entity("option_candidates")
 export default class OptionCandidate extends BaseEntity {
@@ -23,12 +19,12 @@ export default class OptionCandidate extends BaseEntity {
   name: string;
 
   @ManyToOne(
-    () => Property,
+    () => BoardProperty,
     property => property.id,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "property_id" })
-  property: Property;
+  boardProperty: BoardProperty;
 
   @OneToMany(
     () => PropertyOption,
@@ -39,7 +35,7 @@ export default class OptionCandidate extends BaseEntity {
   propertyOptions: PropertyOption[];
 
   constructor(
-    property: Property | number,
+    property: BoardProperty | number,
     optionId: string,
     name: string,
   ) {

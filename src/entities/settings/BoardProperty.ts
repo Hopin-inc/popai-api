@@ -5,8 +5,8 @@ import Section from "./Section";
 import PropertyOption from "./PropertyOption";
 import OptionCandidate from "./OptionCandidate";
 
-@Entity("properties")
-export default class Property extends BaseEntity {
+@Entity("board_properties")
+export default class BoardProperty extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

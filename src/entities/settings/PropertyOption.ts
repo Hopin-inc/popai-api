@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
-import Property from "./Property";
+import BoardProperty from "./BoardProperty";
 import OptionCandidate from "./OptionCandidate";
 import Section from "@/entities/settings/Section";
 
@@ -20,12 +20,12 @@ export default class PropertyOption extends BaseEntity {
   usage: number;
 
   @ManyToOne(
-    () => Property,
+    () => BoardProperty,
     property => property.propertyOptions,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "property_id" })
-  property: Property;
+  boardProperty: BoardProperty;
 
   @ManyToOne(
     () => OptionCandidate,
@@ -36,7 +36,7 @@ export default class PropertyOption extends BaseEntity {
   optionCandidate?: OptionCandidate;
 
   constructor(
-    property: Property | number,
+    property: BoardProperty | number,
     option?: OptionCandidate | number,
     usage?: number,
   ) {
