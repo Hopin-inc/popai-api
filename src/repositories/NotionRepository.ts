@@ -664,15 +664,21 @@ export default class NotionRepository {
         case "formula":
           return property.formula.type === "boolean" ? property.formula.boolean : null;
         case "status":
-          const optionId: string = property.status.id;
-          const usagePropertyOption = await this.propertyOptionRepository.findOne({
+          return !!(await this.propertyOptionRepository.findOne({
             relations: ["optionCandidate"],
             where: {
-              optionCandidate: { option_id: optionId },
+              optionCandidate: { option_id: property.status.id },
               usage: usageId,
             },
-          });
-          return (usagePropertyOption !== null && optionId === usagePropertyOption.optionCandidate.option_id);
+          }));
+        case "select":
+          return !!(await this.propertyOptionRepository.findOne({
+            relations: ["optionCandidate"],
+            where: {
+              optionCandidate: { option_id: property.select.id },
+              usage: usageId,
+            },
+          }));
         default:
           break;
       }
