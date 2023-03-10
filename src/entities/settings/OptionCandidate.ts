@@ -3,6 +3,10 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMan
 import BaseEntity from "../BaseEntity";
 import PropertyOption from "./PropertyOption";
 import Property from "./Property";
+import User from "@/entities/settings/User";
+import Company from "@/entities/settings/Company";
+import Section from "@/entities/settings/Section";
+import { IDailyReportItems } from "@/types";
 
 @Entity("option_candidates")
 export default class OptionCandidate extends BaseEntity {
@@ -33,4 +37,17 @@ export default class OptionCandidate extends BaseEntity {
   )
   @JoinColumn({ name: "id" })
   propertyOptions: PropertyOption[];
+
+  constructor(
+    property: Property | number,
+    optionId: string,
+    name: string,
+  ) {
+    super();
+    if (property && optionId && name) {
+      this.property_id = typeof property === "number" ? property : property.id;
+      this.option_id = optionId;
+      this.name = name;
+    }
+  }
 }

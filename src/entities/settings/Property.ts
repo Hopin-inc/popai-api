@@ -45,4 +45,19 @@ export default class Property extends BaseEntity {
   )
   @JoinColumn({ name: "id" })
   propertyOptions: PropertyOption[];
+
+  constructor(
+    section: Section | number,
+    propertyId: string,
+    type: number,
+    name: string,
+  ) {
+    super();
+    if (section && propertyId && type && name) {
+      this.section_id = typeof section === "number" ? section : section.id;
+      this.property_id = propertyId;
+      this.type = type;
+      this.name = name;
+    }
+  }
 }

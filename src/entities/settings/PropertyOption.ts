@@ -3,6 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "t
 import BaseEntity from "../BaseEntity";
 import Property from "./Property";
 import OptionCandidate from "./OptionCandidate";
+import Section from "@/entities/settings/Section";
 
 @Entity("property_options")
 export default class PropertyOption extends BaseEntity {
@@ -33,4 +34,21 @@ export default class PropertyOption extends BaseEntity {
   )
   @JoinColumn({ name: "option_id" })
   optionCandidate?: OptionCandidate;
+
+  constructor(
+    property: Property | number,
+    option?: OptionCandidate | number,
+    usage?: number,
+  ) {
+    super();
+    if (property) {
+      this.property_id = typeof property === "number" ? property : property.id;
+    }
+    if (option) {
+      this.option_id = typeof option === "number" ? option : option.id;
+    }
+    if (usage) {
+      this.usage = usage;
+    }
+  }
 }
