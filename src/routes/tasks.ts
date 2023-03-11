@@ -30,6 +30,7 @@ router.get("/remind", async (req, res) => {
 router.get("/daily", async (req, res) => {
   try {
     const controller = new TaskController();
+    await controller.syncTodos();
     const response = await controller.sendDailyReport();
     ApiResponse.successRes(res, response);
   } catch (err) {

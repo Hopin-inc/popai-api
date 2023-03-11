@@ -5,10 +5,10 @@ import moment from "moment";
 
 import ChatMessage from "@/entities/transactions/ChatMessage";
 import ChatTool from "@/entities/masters/ChatTool";
-import LineProfile from "@/entities/transactions/LineProfile";
 import ReportingLine from "@/entities/settings/ReportingLine";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
+import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 
 import CommonRepository from "./modules/CommonRepository";
 
@@ -18,31 +18,85 @@ import LineBot from "@/config/line-bot";
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { toJapanDateTime } from "@/utils/common";
-import { MessageTriggerType, MessageType, OpenStatus, RemindType, ReplyStatus, SenderType } from "@/consts/common";
+import {
+  MessageTriggerType,
+  MessageType,
+  OpenStatus,
+  RemindType,
+  ReplyStatus,
+  SenderType,
+} from "@/consts/common";
 
-import { IRemindType, ITodoLines } from "@/types";
+import { IDailyReportItems, IRemindType, ITodoLines } from "@/types";
+import Company from "@/entities/settings/Company";
+import Section from "@/entities/settings/Section";
+import { INotionDailyReport } from "@/types/notion";
+import DailyReport from "@/entities/transactions/DailyReport";
 
 @Service()
 export default class LineRepository {
-  private lineProfileRepository: Repository<LineProfile>;
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private todoRepository: Repository<Todo>;
+  private dailyReportRepository: Repository<DailyReport>;
+  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
 
   constructor() {
-    this.lineProfileRepository = AppDataSource.getRepository(LineProfile);
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.todoRepository = AppDataSource.getRepository(Todo);
+    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
+    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.commonRepository = Container.get(CommonRepository);
+  }
+
+  public async reportByCompany(
+    dailyReportTodos: IDailyReportItems,
+    company: Company,
+    sections: Section[],
+    users: User[],
+    chatTool: ChatTool,
+    channel: string,
+    response: INotionDailyReport[],
+  ) {
+    await this.pushLineMessage(
+      chatTool,
+      LineMessageBuilder.createGreetingMessage(),
+      MessageTriggerType.DAILY_REPORT,
+      null,
+      null,
+      channel);
+
+    const message = await LineMessageBuilder.createDailyReportByCompany(users, dailyReportTodos, response);
+    await this.pushLineMessage(
+      chatTool,
+      message,
+      MessageTriggerType.DAILY_REPORT,
+      null,
+      null,
+      channel);
+
+    await this.pushLineMessage(
+      chatTool,
+      LineMessageBuilder.createActivateMessage(),
+      MessageTriggerType.DAILY_REPORT,
+      null,
+      null,
+      channel);
+
+    users.map(async user => {
+      const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
+      const dailyReport = new DailyReport(user, company, sections, dailyReportTodos, channel, null, filteredRes.pageId, filteredRes.docAppRegUrl);
+      await this.dailyReportRepository.save(dailyReport);
+    });
   }
 
   public async pushMessageRemind(
     chatTool: ChatTool,
     user: User,
     todo: Todo,
-    remindDays: number
+    remindDays: number,
   ): Promise<ChatMessage> {
     try {
       if (!user.lineId) {
@@ -65,14 +119,14 @@ export default class LineRepository {
         messageToken,
         user,
         remindTypes,
-        todo
+        todo,
       );
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         chatMessage.message_token,
         user.name,
         todo,
-        remindDays
+        remindDays,
       );
 
       if (process.env.ENV === "LOCAL") {
@@ -108,7 +162,7 @@ export default class LineRepository {
         console.log(messages);
       } else {
         for (const message of messages) {
-          await this.pushLineMessage(chatTool, user, message, MessageTriggerType.REMIND);
+          await this.pushLineMessage(chatTool, message, MessageTriggerType.REMIND, user);
         }
       }
     } catch (error) {
@@ -122,7 +176,7 @@ export default class LineRepository {
         logger.error(new LoggerError(superiorUser.name + "がLineIDが設定されていない。"));
       } else {
         const message = LineMessageBuilder.createBeforeReportMessage(superiorUser.name);
-        await this.pushLineMessage(chatTool, superiorUser, message, MessageTriggerType.REPORT);
+        await this.pushLineMessage(chatTool, message, MessageTriggerType.REPORT, superiorUser);
       }
 
       return;
@@ -154,10 +208,10 @@ export default class LineRepository {
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
         chatTool,
-        user,
         message,
         MessageTriggerType.REMIND,
-        remindTypes
+        user,
+        remindTypes,
       );
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -187,10 +241,10 @@ export default class LineRepository {
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
         chatTool,
-        user,
         message,
         MessageTriggerType.REMIND,
-        remindTypes
+        user,
+        remindTypes,
       );
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -220,10 +274,10 @@ export default class LineRepository {
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(
         chatTool,
-        user,
         message,
         MessageTriggerType.REMIND,
-        remindTypes
+        user,
+        remindTypes,
       );
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -246,29 +300,7 @@ export default class LineRepository {
 
       const message = LineMessageBuilder.createNotifyNothingMessage(user);
       // await this.saveChatMessage(user, todo, message);
-      return await this.pushLineMessage(chatTool, user, message, MessageTriggerType.REMIND);
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  }
-
-  public async createLineProfile(lineProfile: Profile): Promise<LineProfile> {
-    try {
-      const findResult = await this.lineProfileRepository.findOneBy({
-        line_id: lineProfile.userId,
-      });
-
-      if (!findResult) {
-        const profile = new LineProfile();
-        profile.line_id = lineProfile.userId;
-        profile.display_name = lineProfile.displayName;
-        profile.picture_url = lineProfile.pictureUrl;
-        profile.status_message = lineProfile.statusMessage;
-
-        return await this.lineProfileRepository.save(profile);
-      } // find by id
-
-      return findResult;
+      return await this.pushLineMessage(chatTool, message, MessageTriggerType.REMIND, user);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -303,7 +335,7 @@ export default class LineRepository {
     if (superiorUserIds.length === 0) {
       return Promise.resolve([]);
     }
-    
+
     return await this.userRepository
       .createQueryBuilder("users")
       .where("id IN (:...ids)", {
@@ -330,25 +362,31 @@ export default class LineRepository {
 
   public async pushLineMessage(
     chatTool: ChatTool,
-    user: User,
     message: Message,
     messageTriggerId: number,
-    remindTypes?: IRemindType
+    user?: User,
+    remindTypes?: IRemindType,
+    groupId?: string,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
     } else {
-      await LineBot.pushMessage(user.lineId, message, false);
+      const pushTarget = groupId ? groupId : user.lineId;
+
+      await LineBot.pushMessage(pushTarget, message, false);
+      if (user) {
+        const linkToken = await LineBot.getLinkToken(user.lineId);
+        return await this.saveChatMessage(chatTool, message, messageTriggerId, linkToken, user, remindTypes);
+      }
+      return await this.saveChatMessage(chatTool, message, messageTriggerId, null, user, remindTypes);
     }
-    const linkToken = await LineBot.getLinkToken(user.lineId);
-    return await this.saveChatMessage(chatTool, message, messageTriggerId, linkToken, user, remindTypes);
   }
 
   public async replyMessage(
     chatTool: ChatTool,
     replyToken: string,
     message: Message,
-    user?: User
+    user?: User,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
       console.log(LineMessageBuilder.getTextContentFromMessage(message));
@@ -370,7 +408,7 @@ export default class LineRepository {
     messageToken: string,
     user?: User,
     remindTypes?: IRemindType,
-    todo?: Todo
+    todo?: Todo,
   ): Promise<ChatMessage> {
     const { remindType, remindDays } = {
       remindType: RemindType.NOT_REMIND,

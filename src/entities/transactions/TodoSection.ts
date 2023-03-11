@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import Section from "../settings/Section";
 import Todo from "./Todo";
 
-@Entity("todo_sections")
+@Entity("t_todo_sections")
 export default class TodoSection extends BaseEntity {
   constructor(todo: Todo | number, section: Section | number) {
     super();

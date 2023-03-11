@@ -71,7 +71,7 @@ export const NotionPropertyType = {
   LAST_EDITED_TIME: 20,
 };
 
-export const PropertyUsageType = {
+export const UsageType = {
   TITLE: 1,
   SECTION: 2,
   ASSIGNEE: 3,
@@ -111,6 +111,10 @@ export const ChatToolCode = {
 export const TodoAppCode = {
   TRELLO: "trello",
   MICROSOFT: "microsoft",
+  NOTION: "notion",
+};
+
+export const DocumentToolCode = {
   NOTION: "notion",
 };
 
@@ -164,3 +168,27 @@ export const ReliefAction = {
   PURPOSE: 4,
   OUTPUT: 5,
 };
+
+export const GreetingMessage = [
+  "おはようございます🌞\n\n転んでもただで起きるのがニャンコみたいにかわいくないですか？\n今日も笑って過ごしましょう！",
+  "おはようございます💤\n\nまだ眠いですが、今日も一日がんばりましょう！",
+  "おはようございます🌈\n\n今日は何かハッピーなことが起きますように！",
+  "おはようございます☕️\n\nコーヒーをのんでカフェインパワー全開で、今日もいけます！",
+  "おはようございます🌹\n\n今日は愛と感謝の気持ちを伝える1日にしませんか？",
+];
+
+export const PraiseMessage = [
+  "💯 タスクを計画的にこなすあなたは、完璧です！",
+  "🌟 タスクの処理方法が素晴らしく光りますね！",
+  "💪 タスクをこなすあなたの力強い姿勢に、励まされます！",
+  "🎉 タスクの計画力は、まるでお祭りのように楽しいです！",
+  "🌈 タスクをこなすあなたの姿勢は、本当に美しく輝いています",
+];
+
+export const ActivateMessage = [
+  "💯 タスクを計画的にこなすあなたは、完璧です！",
+  "🌟 タスクの処理方法が素晴らしく光りますね！",
+  "💪 タスクをこなすあなたの力強い姿勢に、励まされます！",
+  "🎉 タスクの計画力は、まるでお祭りのように楽しいです！",
+  "🌈 タスクをこなすあなたの姿勢は、本当に美しく輝いています",
+];

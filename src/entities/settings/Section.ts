@@ -5,14 +5,13 @@ import User from "./User";
 import Company from "./Company";
 import TodoApp from "../masters/TodoApp";
 import TodoSection from "../transactions/TodoSection";
-import SectionLabel from "./SectionLabel";
-import Property from "./Property";
+import Property from "./BoardProperty";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
 
-@Entity("sections")
+@Entity("s_sections")
 export default class Section extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -73,13 +72,6 @@ export default class Section extends BaseEntity {
 
   @OneToMany(() => Property, property => property.section)
   properties: Property[];
-
-  @OneToOne(
-    () => SectionLabel,
-    sectionLabel => sectionLabel.section,
-    { eager: true },
-  )
-  sectionLabel: SectionLabel;
 
   @OneToOne(
     () => Timing,

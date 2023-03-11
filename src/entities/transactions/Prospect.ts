@@ -4,7 +4,7 @@ import Todo from "./Todo";
 import User from "../settings/User";
 import Company from "../settings/Company";
 
-@Entity("prospects")
+@Entity("t_prospects")
 export default class Prospect extends BaseEntity {
   constructor(
     todo: Todo | number,

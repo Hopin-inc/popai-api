@@ -5,7 +5,7 @@ import ChatTool from "../masters/ChatTool";
 import Company from "./Company";
 import { Installation } from "@slack/oauth";
 
-@Entity("implemented_chat_tools")
+@Entity("s_implemented_chat_tools")
 export default class ImplementedChatTool extends BaseEntity {
   constructor(company: Company | number, chatTool: ChatTool | number, auth?: Installation) {
     super();

@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
@@ -10,9 +10,11 @@ import ChatTool from "../masters/ChatTool";
 import Todo from "../transactions/Todo";
 import TodoApp from "../masters/TodoApp";
 import Prospect from "../transactions/Prospect";
-import { ChatToolCode } from "../../consts/common";
+import { ChatToolCode, DocumentToolCode } from "../../consts/common";
+import DocumentTool from "../masters/DocumentTool";
+import DocumentToolUser from "../settings/DocumentToolUser";
 
-@Entity("users")
+@Entity("s_users")
 export default class User extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -26,7 +28,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => TodoAppUser,
     todoAppUsers => todoAppUsers.user,
-    { cascade: true }
+    { cascade: true },
   )
   todoAppUsers: TodoAppUser[];
 
@@ -38,7 +40,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => ChatToolUser,
     chattoolUser => chattoolUser.user,
-    { cascade: true }
+    { cascade: true },
   )
   chattoolUsers: ChatToolUser[];
 
@@ -58,15 +60,32 @@ export default class User extends BaseEntity {
   }
 
   @OneToMany(
+    () => DocumentToolUser,
+    documentToolUser => documentToolUser.user,
+    { cascade: true },
+  )
+  documentToolUsers: DocumentToolUser[];
+
+  get documentTools(): DocumentTool[] {
+    const documentToolUsers = this.documentToolUsers;
+    return documentToolUsers ? documentToolUsers.map(record => record.documentTool) : [];
+  }
+
+  get notionId(): string | null {
+    const notionUser = this.documentToolUsers.find(record => record.documentTool.tool_code === DocumentToolCode.NOTION);
+    return notionUser ? notionUser.auth_key : null;
+  }
+
+  @OneToMany(
     () => Section,
     section => section.boardAdminUser,
-    { cascade: false }
+    { cascade: false },
   )
   adminSections: Section[];
 
   @ManyToOne(
     () => Company,
-    { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
+    { onDelete: "RESTRICT", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
@@ -74,7 +93,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => TodoUser,
     todoUser => todoUser.user,
-    { cascade: true }
+    { cascade: true },
   )
   todoUsers: TodoUser[];
 
@@ -86,7 +105,7 @@ export default class User extends BaseEntity {
   @OneToMany(
     () => Prospect,
     prospect => prospect.user,
-    { cascade: false }
+    { cascade: false },
   )
   prospects: Prospect[];
 }

@@ -16,7 +16,7 @@ import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
 import Account from "./Account";
 
-@Entity("companies")
+@Entity("s_companies")
 export default class Company extends BaseEntity {
   constructor(name: string) {
     super();

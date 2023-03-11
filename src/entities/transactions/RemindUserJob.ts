@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "t
 import BaseEntity from "../BaseEntity";
 import User from "../settings/User";
 
-@Entity("remind_user_jobs")
+@Entity("t_remind_user_jobs")
 export default class RemindUserJob extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

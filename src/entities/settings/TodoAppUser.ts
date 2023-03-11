@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import User from "./User";
 import TodoApp from "../masters/TodoApp";
 
-@Entity("todo_app_users")
+@Entity("s_todo_app_users")
 export default class TodoAppUser extends BaseEntity {
   @PrimaryColumn()
   employee_id: number;

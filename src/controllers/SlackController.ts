@@ -146,14 +146,14 @@ export default class SlackController extends Controller {
           const prospect = await this.slackRepository.receiveReliefComment(view.id, comment);
           return [
             undefined,
-            async () => await this.slackRepository.shareReliefCommentAndUpdateDailyReport(view.id, comment, prospect)
+            async () => await this.slackRepository.shareReliefCommentAndUpdateDailyReport(view.id, comment, prospect),
           ];
         case SlackModalLabel.PLAN:
           const selectedOptions = this.getInputValue<PlainTextOption[]>(
             view,
             AskPlanModalItems.TODOS,
             AskPlanModalItems.TODOS,
-            "selected_options"
+            "selected_options",
           );
           const todoIds = selectedOptions.map(option => parseInt(option.value));
           return [
@@ -161,7 +161,7 @@ export default class SlackController extends Controller {
             async () => {
               const todos = await this.commonRepository.getTodosByIds(todoIds);
               await this.slackRepository.askProspects(user.company, { user, todos });
-            }
+            },
           ];
         default:
           break;
@@ -219,7 +219,7 @@ export default class SlackController extends Controller {
     const sendChannelId = sections.length ? sections[0].channel_id : null; //TODO: 複数sectionにまたがる場合に対応する
     const shareMessage = SlackMessageBuilder.createShareMessage(slackId, slackTodo, repliedMessage);
     await Promise.all(superiorUsers.map(
-      su => this.sendShareMessageToChannel(chatTool, su, sendChannelId, null, shareMessage)
+      su => this.sendShareMessageToChannel(chatTool, su, sendChannelId, null, shareMessage),
     ));
 
     // await this.replyButtonClick(chatTool, slackId, user, status, channelId, threadId);

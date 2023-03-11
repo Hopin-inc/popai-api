@@ -3,7 +3,7 @@ import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
 import User from "../settings/User";
 
-@Entity("todo_histories")
+@Entity("t_todo_histories")
 export default class TodoHistory extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

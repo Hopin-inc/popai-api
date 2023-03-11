@@ -62,7 +62,7 @@ export default class TrelloRepository {
     sections: Section[],
     company: Company,
     todoapp: TodoApp,
-    notify: boolean = false
+    notify: boolean = false,
   ): Promise<void> {
     try {
       const todoTasks: ITodoTask<ITrelloTask>[] = [];
@@ -104,7 +104,7 @@ export default class TrelloRepository {
             todoapp,
             todoAppUser,
             archiveListIds,
-            createCards
+            createCards,
           )));
         } catch (err) {
           logger.error(new LoggerError(err.message));
@@ -334,7 +334,7 @@ export default class TrelloRepository {
     id: string,
     task: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false
+    correctDelayedCount: boolean = false,
   ): Promise<void> {
     try {
       const idMembers = task.todoUsers.map(todoUser => {
