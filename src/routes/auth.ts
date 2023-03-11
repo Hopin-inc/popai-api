@@ -39,6 +39,7 @@ router.get("/login", async (req, res) => {
         const { uid, company, name } = account;
         req.session.uid = uid;
         req.session.company = company;
+        console.log(req.session);
         const response: AccountInfo = { organization: company.name, name };
         ApiResponse.successRes(res, response);
       } else {

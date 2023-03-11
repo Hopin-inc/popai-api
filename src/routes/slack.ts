@@ -1,10 +1,11 @@
 import express from "express";
 import ApiResponse from "@/common/ApiResponse";
 import SlackController from "@/controllers/SlackController";
+import { authRequired } from "@/middleware/auth";
 
 const router = express();
 
-router.post("/webhook", async function(req, res) {
+router.post("/webhook", async (req, res) => {
   let responded: boolean = false;
   try {
     if (req.headers["content-type"] === "" || typeof req.headers["content-type"] === "undefined") {
@@ -24,6 +25,26 @@ router.post("/webhook", async function(req, res) {
     } else {
       console.error(err);
     }
+  }
+});
+
+router.get("/install", authRequired, async (req, res) => {
+  try {
+    const controller = new SlackController();
+    const url = await controller.generateInstallUrl(req.session.uid);
+    ApiResponse.successRes(res, { url });
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
+router.get("/oauth_redirect", async (req, res) => {
+  try {
+    const controller = new SlackController();
+    await controller.handleCallback(req, res);
+    ApiResponse.successRawRes(res);
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
   }
 });
 

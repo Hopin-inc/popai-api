@@ -6,6 +6,14 @@ import User from "../settings/User";
 
 @Entity("todo_users")
 export default class TodoUser extends BaseEntity {
+  constructor(todo: Todo | number, user: User | number) {
+    super();
+    if (todo && user) {
+      this.todo_id = typeof todo === "number" ? todo : todo.id;
+      this.user_id = typeof user === "number" ? user : user.id;
+    }
+  }
+
   @PrimaryColumn()
   todo_id: number;
 
@@ -27,12 +35,4 @@ export default class TodoUser extends BaseEntity {
   )
   @JoinColumn({ name: "user_id" })
   user: User;
-
-  constructor(todo: Todo | number, user: User | number) {
-    super();
-    if (todo && user) {
-      this.todo_id = typeof todo === "number" ? todo : todo.id;
-      this.user_id = typeof user === "number" ? user : user.id;
-    }
-  }
 }

@@ -1,16 +1,31 @@
-import { Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import ChatTool from "../masters/ChatTool";
 import Company from "./Company";
+import { Installation } from "@slack/oauth";
 
 @Entity("implemented_chat_tools")
 export default class ImplementedChatTool extends BaseEntity {
+  constructor(company: Company | number, chatTool: ChatTool | number, auth?: Installation) {
+    super();
+    if (company && chatTool) {
+      this.company_id = typeof company === "number" ? company : company.id;
+      this.chattool_id = typeof chatTool === "number" ? chatTool : chatTool.id;
+      if (auth) {
+        this.auth = auth;
+      }
+    }
+  }
+
   @PrimaryColumn()
   company_id: number;
 
   @PrimaryColumn()
   chattool_id: number;
+
+  @Column({ type: "json", nullable: true })
+  auth?: Installation;
 
   @ManyToOne(
     () => Company,

@@ -1,6 +1,7 @@
 import { Controller } from "tsoa";
 import Container from "typedi";
 import { Repository } from "typeorm";
+import { Request, Response } from "express";
 
 import ChatTool from "@/entities/masters/ChatTool";
 import User from "@/entities/settings/User";
@@ -29,6 +30,7 @@ import {
 import { Block, KnownBlock } from "@slack/web-api";
 import { SlackInteractionPayload, SlackView } from "@/types/slack";
 import { PlainTextOption } from "@slack/types";
+import SlackOAuthService from "@/services/SlackOAuthService";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -37,6 +39,7 @@ export default class SlackController extends Controller {
   private sectionRepository: Repository<Section>;
   private commonRepository: CommonRepository;
   private taskService: TaskService;
+  private readonly slackOAuthService: SlackOAuthService;
 
   constructor() {
     super();
@@ -46,6 +49,15 @@ export default class SlackController extends Controller {
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.taskService = Container.get(TaskService);
+    this.slackOAuthService = Container.get(SlackOAuthService);
+  }
+
+  public async generateInstallUrl(state: string) {
+    return await this.slackOAuthService.generateInstallUrl(state);
+  }
+
+  public async handleCallback(req: Request, res: Response) {
+    await this.slackOAuthService.handleCallback(req, res);
   }
 
   async handleEvent(payload: SlackInteractionPayload): Promise<[any, (...args) => unknown | undefined]> {

@@ -18,6 +18,12 @@ import Account from "./Account";
 
 @Entity("companies")
 export default class Company extends BaseEntity {
+  constructor(name: string) {
+    super();
+    this.name = name;
+    this.is_demo = false;
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -29,12 +35,6 @@ export default class Company extends BaseEntity {
 
   @Column({ default: false })
   is_demo: boolean;
-
-  constructor(name: string) {
-    super();
-    this.name = name;
-    this.is_demo = false;
-  }
 
   @OneToMany(
     () => ImplementedTodoApp,

@@ -6,6 +6,27 @@ import Company from "../settings/Company";
 
 @Entity("prospects")
 export default class Prospect extends BaseEntity {
+  constructor(
+    todo: Todo | number,
+    user: User | number,
+    company: Company | number,
+    slackTs?: string,
+    slackChannelId?: string,
+  ) {
+    super();
+    if (todo && user && company) {
+      this.todo_id = typeof todo === "number" ? todo : todo.id;
+      this.user_id = typeof user === "number" ? user : user.id;
+      this.company_id = typeof company === "number" ? company : company.id;
+      if (slackTs) {
+        this.slack_ts = slackTs;
+      }
+      if (slackChannelId) {
+        this.slack_channel_id = slackChannelId;
+      }
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -67,25 +88,4 @@ export default class Prospect extends BaseEntity {
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
-
-  constructor(
-    todo: Todo | number,
-    user: User | number,
-    company: Company | number,
-    slackTs?: string,
-    slackChannelId?: string,
-  ) {
-    super();
-    if (todo && user && company) {
-      this.todo_id = typeof todo === "number" ? todo : todo.id;
-      this.user_id = typeof user === "number" ? user : user.id;
-      this.company_id = typeof company === "number" ? company : company.id;
-      if (slackTs) {
-        this.slack_ts = slackTs;
-      }
-      if (slackChannelId) {
-        this.slack_channel_id = slackChannelId;
-      }
-    }
-  }
 }
