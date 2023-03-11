@@ -22,7 +22,7 @@ import {
   OpenStatus,
   ReplyStatus,
   SenderType,
-  TodoStatus
+  TodoStatus,
 } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
@@ -69,9 +69,38 @@ export default class LineController extends Controller {
       const user = await this.lineRepository.getUserFromLineId(lineId);
 
       switch (event.type) {
+        // case "join":
+        //   if (event.source.type === "group") {
+        //     const groupId = event.source.groupId;
+        //   }
+        //   return;
+        //
+        // case "leave":
+        //   if (event.source.type === "group") {
+        //     const groupId = event.source.groupId;
+        //   }
+        //   return;
+
+        case "memberJoined":
+          if (event.source.type === "group") {
+            const groupId = event.source.groupId;
+            const newMember: string[] = event.joined.members.map(member => member.userId);
+          }
+          return;
+
+        case "memberLeft":
+          if (event.source.type === "group") {
+            const groupId = event.source.groupId;
+            const leftMember: string[] = event.left.members.map(member => member.userId);
+          }
+          return;
+
         case "follow":
           const lineProfile = await LineBot.getProfile(lineId);
           await this.lineRepository.createLineProfile(lineProfile);
+          return;
+
+        case "unfollow":
           return;
 
         case "postback":
@@ -107,7 +136,7 @@ export default class LineController extends Controller {
     user: User,
     lineId: string,
     repliedMessage: string,
-    replyToken: string
+    replyToken: string,
   ) {
     if (!user) {
       return;
@@ -143,7 +172,7 @@ export default class LineController extends Controller {
       repliedMessage,
       lineMessageQueue.todo,
       lineMessageQueue.message.remind_before_days,
-      lineMessageQueue.message_id
+      lineMessageQueue.message_id,
     );
 
     const nextQueue = await this.lineQueueRepository.getFirstQueueTaskForSendLine(user.id);
@@ -177,7 +206,7 @@ export default class LineController extends Controller {
     replyMessage: string,
     todo: Todo,
     remindDays,
-    messageParentId: number
+    messageParentId: number,
   ) {
     const superiorUsers = await this.lineRepository.getSuperiorUsers(lineId);
 
@@ -193,7 +222,7 @@ export default class LineController extends Controller {
           messageParentId,
           replyMessage,
           replyToken,
-          MessageTriggerType.REPLY
+          MessageTriggerType.REPLY,
         );
         await this.sendSuperiorMessage(
           chattool,
@@ -201,7 +230,7 @@ export default class LineController extends Controller {
           user.name,
           todo,
           remindDays,
-          replyMessage
+          replyMessage,
         );
       }));
     }
@@ -212,7 +241,7 @@ export default class LineController extends Controller {
     chattool: ChatTool,
     user: User,
     replyToken: string,
-    superior?: string
+    superior?: string,
   ) {
     const messageMatchesStatus = (message: string, statuses: TodoStatus[]): boolean => {
       const targetMessages = replyMessages.filter(m => statuses.includes(m.status)).map(m => m.displayText);
@@ -248,7 +277,7 @@ export default class LineController extends Controller {
     messageParentId: number,
     messageContent: string,
     messageToken: string,
-    messageTriggerId: number
+    messageTriggerId: number,
   ): Promise<ChatMessage> {
     const chatMessage = new ChatMessage();
     chatMessage.is_from_user = SenderType.FROM_USER;
@@ -280,7 +309,7 @@ export default class LineController extends Controller {
     chattool: ChatTool,
     user: User,
     replyToken: string,
-    superior?: string
+    superior?: string,
   ): Promise<MessageAPIResponseBase> {
     const message: TextMessage = LineMessageBuilder.createResponseToReplyDone(superior);
     return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
@@ -298,7 +327,7 @@ export default class LineController extends Controller {
     chattool: ChatTool,
     user: User,
     replyToken: string,
-    superior?: string
+    superior?: string,
   ): Promise<MessageAPIResponseBase> {
     const message: TextMessage = LineMessageBuilder.createResponseToReplyInProgress(superior);
     return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
@@ -314,7 +343,7 @@ export default class LineController extends Controller {
   private async replyDelayAction(
     chattool: ChatTool,
     user: User,
-    replyToken: string
+    replyToken: string,
   ): Promise<MessageAPIResponseBase> {
     const message: TextMessage = LineMessageBuilder.createResponseToReplyDelayed();
     return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
@@ -330,7 +359,7 @@ export default class LineController extends Controller {
   private async replyWithdrawnAction(
     chattool: ChatTool,
     user: User,
-    replyToken: string
+    replyToken: string,
   ): Promise<MessageAPIResponseBase> {
     const message: TextMessage = LineMessageBuilder.createResponseToReplyWithdrawn();
     return await this.lineRepository.replyMessage(chattool, replyToken, message, user);
@@ -339,7 +368,7 @@ export default class LineController extends Controller {
   private async replyProcessingJob(
     chattool: ChatTool,
     user: User,
-    replyToken: string
+    replyToken: string,
   ): Promise<MessageAPIResponseBase> {
     const replyMessage: TextMessage = LineMessageBuilder.createBotMessageOnProcessingJob();
     return await this.lineRepository.replyMessage(chattool, replyToken, replyMessage, user);
@@ -371,7 +400,7 @@ export default class LineController extends Controller {
     userName: string,
     todo: Todo,
     remindDays: number,
-    reportContent: string
+    reportContent: string,
   ): Promise<MessageAPIResponseBase> {
     if (!superiorUser.lineId) {
       logger.error(new LoggerError(superiorUser.name + "さんのLINE IDが設定されていません。"));
@@ -386,13 +415,13 @@ export default class LineController extends Controller {
       todo.todoapp_reg_url,
       todo.deadline,
       remindDays,
-      reportContent
+      reportContent,
     );
     return await this.lineRepository.pushLineMessage(
       chattool,
-      superiorUser,
       reportMessage,
-      MessageTriggerType.REPORT
+      MessageTriggerType.REPORT,
+      superiorUser,
     );
   }
 }

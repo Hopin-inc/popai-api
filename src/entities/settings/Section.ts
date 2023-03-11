@@ -6,7 +6,7 @@ import Company from "./Company";
 import TodoApp from "../masters/TodoApp";
 import TodoSection from "../transactions/TodoSection";
 import SectionLabel from "./SectionLabel";
-import Property from "./Property";
+import Property from "./BoardProperty";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";

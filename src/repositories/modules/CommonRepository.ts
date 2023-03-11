@@ -32,14 +32,17 @@ import {
   TodoHistoryProperty as Property,
   TodoHistoryAction as Action,
   NOT_UPDATED_DAYS,
-  EventType,
+  EventType, TodoAppCode,
 } from "@/consts/common";
 import EventTiming from "@/entities/settings/EventTiming";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoApp from "@/entities/masters/TodoApp";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Client } from "@notionhq/client";
+import DailyReportConfig from "@/entities/settings/DailyReportConfig";
+import BoardProperty from "@/entities/settings/BoardProperty";
+import OptionCandidate from "@/entities/settings/OptionCandidate";
 
 @Service()
 export default class CommonRepository {
@@ -52,7 +55,10 @@ export default class CommonRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
+  private boardPropertyRepository: Repository<BoardProperty>;
+  private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
+  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private notionRequest: Client;
 
   constructor() {
@@ -65,7 +71,10 @@ export default class CommonRepository {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
+    this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
+    this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
+    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
   }
 
@@ -198,7 +207,7 @@ export default class CommonRepository {
     const targetTodoIds = targetHistories.map(history => history.todo_id);
     const todos = await this.todoRepository.find({
       where: { id: In(targetTodoIds) },
-      relations: ["histories", "todoUsers.user", "todoSections.section"],
+      relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
     });
     return todos.filter(todo => {
       if (todo.histories) {
@@ -221,7 +230,7 @@ export default class CommonRepository {
         is_closed: false,
         is_done: false,
       },
-      relations: ["todoUsers.user", "todoSections.section"],
+      relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
 
     return this.getNotArchivedTodos(delayedTodos);
@@ -237,7 +246,7 @@ export default class CommonRepository {
         is_closed: false,
         is_done: false,
       },
-      relations: ["todoUsers.user", "todoSections.section"],
+      relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
 
     return this.getNotArchivedTodos(onGoingTodos);
@@ -333,28 +342,86 @@ export default class CommonRepository {
       .orderBy("todo_histories.todoapp_reg_updated_at", "DESC")
       .getOne();
 
-    return lastUpdatedRecord.todoapp_reg_updated_at;
+    return lastUpdatedRecord?.todoapp_reg_updated_at;
   }
 
   public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
     const archivedPages: PageObjectResponse[] = [];
     await Promise.all(todos.map(async todo => {
-      const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
-      if (archivedPage !== undefined) {
-        archivedPages.push(archivedPage);
+      if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
+        const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
+        if (archivedPage.archived === true) {
+          archivedPages.push(await archivedPage);
+        }
       }
     }));
-    return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
+    if (archivedPages) {
+      return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
+    } else {
+      return todos;
+    }
   }
 
   public async syncArchivedTrue(todoappRegId: string) {
-    const pageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
-    if ("properties" in pageResponse) {
+    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
+    if ("object" in isPageResponse && "properties" in isPageResponse) {
+      const pageResponse: PageObjectResponse = isPageResponse;
       if (pageResponse.archived === true) {
         const deletedPageRecord = await this.todoRepository.find({ where: { todoapp_reg_id: todoappRegId } });
         await this.todoRepository.softRemove(deletedPageRecord);
-        return pageResponse;
       }
+      return pageResponse;
+    }
+  }
+
+  public async saveProperty(id: string, name: string, type: number, sectionId: number) {
+    const propertyExists = await this.boardPropertyRepository.findOne({
+      where: {
+        section_id: sectionId,
+        property_id: id,
+      },
+    });
+    if (!propertyExists) {
+      const property = new BoardProperty(sectionId, id, type, name);
+      await this.boardPropertyRepository.save(property);
+    }
+  }
+
+  public async saveOptionCandidate(
+    propertyId: number,
+    optionId: string,
+    sectionId: number,
+    name?: string,
+  ) {
+    const optionCandidateExit = await this.optionCandidateRepository.findOne({
+      relations: ["boardProperty"],
+      where: {
+        property_id: propertyId,
+        boardProperty: { section_id: sectionId },
+      },
+    });
+
+    if (!optionCandidateExit) {
+      const optionCandidate = new OptionCandidate(propertyId, optionId, name);
+      await this.optionCandidateRepository.save(optionCandidate);
+    }
+
+    await this.savePropertyOption(propertyId, optionId);
+  }
+
+  public async savePropertyOption(propertyId: number, optionId?: string) {
+    const optionRecord = optionId
+      ? await this.optionCandidateRepository.findOneBy({ property_id: propertyId, option_id: optionId })
+      : await this.optionCandidateRepository.findOneBy({ property_id: propertyId });
+
+    const propertyOptionExit = await this.propertyOptionRepository.findOneBy({
+      property_id: propertyId,
+      option_id: optionRecord?.id,
+    });
+
+    if (!propertyOptionExit) {
+      const propertyOption = new PropertyOption(propertyId, optionRecord?.id);
+      await this.propertyOptionRepository.save(propertyOption);
     }
   }
 }

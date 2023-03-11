@@ -20,4 +20,10 @@ export type INotionTask = {
   lastEditedById: number;
 }
 
+export type INotionDailyReport = {
+  pageId: string,
+  docAppRegUrl: string,
+  assignee: string,
+}
+
 export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;

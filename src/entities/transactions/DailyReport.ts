@@ -34,6 +34,12 @@ export default class DailyReport extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   slack_ts: string;
 
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  doc_app_reg_id: string;
+
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
+  doc_app_reg_url: string;
+
   @ManyToOne(
     () => User,
     user => user.prospects,
@@ -56,6 +62,8 @@ export default class DailyReport extends BaseEntity {
     items: IDailyReportItems,
     slackChannelId?: string,
     slackTs?: string,
+    docAppRegId?: string,
+    docAppRegUrl?: string,
   ) {
     super();
     if (user && company && sections && items) {
@@ -70,6 +78,12 @@ export default class DailyReport extends BaseEntity {
       }
       if (slackTs) {
         this.slack_ts = slackTs;
+      }
+      if (docAppRegId) {
+        this.doc_app_reg_id = docAppRegId;
+      }
+      if (docAppRegUrl) {
+        this.doc_app_reg_url = docAppRegUrl;
       }
     }
   }

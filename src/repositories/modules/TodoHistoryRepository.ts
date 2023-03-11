@@ -6,6 +6,7 @@ import TodoHistory from "@/entities/transactions/TodoHistory";
 import User from "@/entities/settings/User";
 import ChatTool from "@/entities/masters/ChatTool";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
+import NotifyConfig from "@/entities/settings/NotifyConfig";
 
 import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
@@ -28,6 +29,7 @@ export default class TodoHistoryRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
   private todoRepository: Repository<Todo>;
   private todoAppUserRepository: Repository<TodoAppUser>;
+  private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
   private commonRepository: CommonRepository;
 
@@ -35,6 +37,7 @@ export default class TodoHistoryRepository {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
+    this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
     this.commonRepository = Container.get(CommonRepository);
   }
@@ -169,15 +172,16 @@ export default class TodoHistoryRepository {
 
     if (notify) {
       await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-        const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
-        if (archivedPage === undefined) {
-          const editUser = await this.todoAppUserRepository.findOneBy({
-            employee_id: editedBy,
-            todoapp_id: savedTodo.todoapp_id,
-          });
-          return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
-        }
-      }));
+          const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
+          if (archivedPage.archived === false) {
+            const editUser = await this.todoAppUserRepository.findOneBy({
+              employee_id: editedBy,
+              todoapp_id: savedTodo.todoapp_id,
+            });
+            return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
+          }
+        },
+      ));
     }
   }
 
@@ -191,12 +195,18 @@ export default class TodoHistoryRepository {
     editUser: TodoAppUser,
   ) {
     const code = chatTool.tool_code;
+    const configRecord = await this.notifyConfigRepository.findOneBy({
+      company_id: savedTodo.company_id,
+      enabled: true,
+    });
+    const channelId = configRecord.channel;
+
     if (property === Property.NAME && action === Action.CREATE) { // 新規追加
       switch (code) {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool, editUser);
+          await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.IS_DONE && action === Action.CREATE) {  // 完了
@@ -204,7 +214,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool, editUser);
+          await this.slackRepository.notifyOnCompleted(savedTodo, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.ASSIGNEE) {  // 担当者
@@ -212,7 +222,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool, editUser);
+          await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.DEADLINE) {  // 期日
@@ -220,7 +230,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool, editUser);
+          await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.IS_CLOSED) {  // 保留
@@ -228,7 +238,7 @@ export default class TodoHistoryRepository {
         case ChatToolCode.LINE:
           break;
         case ChatToolCode.SLACK:
-          await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool, editUser);
+          await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool, editUser, channelId);
           break;
       }
     }

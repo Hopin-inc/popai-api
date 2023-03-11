@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
-import Property from "./Property";
+import BoardProperty from "./BoardProperty";
+import OptionCandidate from "./OptionCandidate";
 
-@Entity("property_options")
+@Entity("s_property_options")
 export default class PropertyOption extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -11,19 +12,42 @@ export default class PropertyOption extends BaseEntity {
   @Column()
   property_id: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
-  option_id: string;
+  @Column({ nullable: true })
+  option_id: number;
 
   @Column({ nullable: true })
   usage: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  name: string;
+  @ManyToOne(
+    () => BoardProperty,
+    property => property.propertyOptions,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+  )
+  @JoinColumn({ name: "property_id" })
+  boardProperty: BoardProperty;
 
   @ManyToOne(
-    () => Property,
-    property => property.propertyOptions,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" })
-  @JoinColumn({ name: "property_id" })
-  property: Property;
+    () => OptionCandidate,
+    optionCandidate => optionCandidate.propertyOptions,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+  )
+  @JoinColumn({ name: "option_id" })
+  optionCandidate?: OptionCandidate;
+
+  constructor(
+    property: BoardProperty | number,
+    option?: OptionCandidate | number,
+    usage?: number,
+  ) {
+    super();
+    if (property) {
+      this.property_id = typeof property === "number" ? property : property.id;
+    }
+    if (option) {
+      this.option_id = typeof option === "number" ? option : option.id;
+    }
+    if (usage) {
+      this.usage = usage;
+    }
+  }
 }

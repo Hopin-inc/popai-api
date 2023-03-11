@@ -1,18 +1,30 @@
-import { FlexBox, FlexBubble, FlexComponent, FlexMessage, Message, TextMessage } from "@line/bot-sdk";
+import {
+  FlexBox,
+  FlexBubble,
+  FlexCarousel,
+  FlexComponent,
+  FlexMessage,
+  Message,
+  Profile,
+  TextMessage,
+} from "@line/bot-sdk";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import { formatDatetime, sliceByNumber, relativeRemindDays } from "@/utils/common";
+import { formatDatetime, relativeRemindDays, sliceByNumber } from "@/utils/common";
 import {
-  replyMessagesBefore,
-  replyMessagesAfter,
-  ReplyMessage,
+  ButtonStylesByColor,
   Colors,
   MessageAssets,
-  ButtonStylesByColor,
+  ReplyMessage,
+  replyMessagesAfter,
+  replyMessagesBefore,
 } from "@/consts/line";
-import { ITodoLines } from "@/types";
+import { IDailyReportItems, ITodoLines } from "@/types";
+import { GreetingMessage, PraiseMessage } from "@/consts/common";
+import lineBot from "@/config/line-bot";
+import { INotionDailyReport } from "@/types/notion";
 
 export default class LineMessageBuilder {
   static createRemindMessage(messageToken: string, userName: string, todo: Todo, remindDays: number) {
@@ -491,6 +503,191 @@ export default class LineMessageBuilder {
         },
       },
     };
+  }
+
+  static createGreetingMessage(): TextMessage {
+    return {
+      type: "text",
+      text: GreetingMessage[Math.floor(Math.random() * GreetingMessage.length)],
+    };
+  }
+
+  static createActivateMessage(): TextMessage {
+    return {
+      type: "text",
+      text: "遅延しているものは、本日中に期日を再設定しておきましょう🙋‍♀️",
+    };
+  }
+
+  static async createDailyReportByCompany(
+    users: User[],
+    items: IDailyReportItems,
+    response: INotionDailyReport[],
+  ): Promise<FlexMessage> {
+    const byCompany: FlexCarousel = { type: "carousel", contents: [] };
+    const today = new Date();
+
+    const message: FlexMessage = {
+      type: "flex",
+      altText: `${today.getMonth() + 1}月${today.getDate()}日の日報です🙌`,
+      contents: byCompany,
+    };
+
+    const MAX_DISPLAY_COUNT = 11;
+    const getOperation = users.slice(0, MAX_DISPLAY_COUNT).map(async (user) => {
+      const filteredRes = response.find((r) =>
+        user.todoAppUsers.some((tu) => tu.user_app_id === r.assignee),
+      );
+      const pageUrl = filteredRes.docAppRegUrl;
+      const profile = await lineBot.getProfile(user.lineId);
+      return this.getDailyReportByUser(user, items, profile, pageUrl);
+    });
+
+    const remainingCount = users.length - MAX_DISPLAY_COUNT;
+    if (remainingCount > 0) {
+      const remainingBubble: FlexBubble = {
+        type: "bubble",
+        size: "kilo",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: "まだ紹介できていない", size: "sm", margin: "md", align: "center" },
+            {
+              type: "box",
+              layout: "baseline",
+              contents: [
+                {
+                  type: "text",
+                  contents: [
+                    { type: "span", text: `${remainingCount}名`, size: "md", weight: "bold" },
+                    { type: "span", text: "の日報があります🙌", size: "sm" },
+                  ],
+                  align: "center",
+                },
+              ],
+            },
+          ],
+          justifyContent: "center",
+        },
+        footer: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "button",
+              action: { type: "uri", label: "もっと見る", uri: "https://google.com" }, //TODO:データベースURLを入れる
+              height: "md",
+              style: "secondary",
+              color: "#F6F6F6",
+            },
+          ],
+        },
+      };
+      byCompany.contents = await Promise.all([...getOperation, Promise.resolve(remainingBubble)]);
+    } else {
+      byCompany.contents = await Promise.all(getOperation);
+    }
+
+    return message;
+  }
+
+  static getDailyReportByUser(
+    user: User,
+    items: IDailyReportItems,
+    profile: Profile,
+    pageUrl: string,
+  ): FlexBubble {
+    const completedYesterdayNumber = items.completedYesterday.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
+    const onGoingNumber = items.ongoing.filter(c => c.todoUsers.some(tu => tu.user_id === user.id)).length;
+    const delayedTodos = items.delayed.filter(c => c.todoUsers.some(tu => tu.user_id === user.id));
+
+    const reportByUser: FlexBubble = {
+      type: "bubble",
+      size: "kilo",
+      hero: { type: "image", url: profile.pictureUrl, size: "md" },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: profile.displayName, weight: "bold", size: "lg", wrap: true, align: "center" },
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "text",
+                contents: [
+                  { type: "span", text: "昨日", size: "sm", color: "#666666" },
+                  { type: "span", text: `${completedYesterdayNumber}件`, weight: "bold" },
+                ],
+                align: "center",
+              },
+              {
+                type: "text",
+                contents: [
+                  { type: "span", text: "本日", size: "sm", color: "#666666" },
+                  { type: "span", text: `${onGoingNumber}件`, weight: "bold" },
+                ],
+                align: "center",
+              },
+            ],
+            margin: "md",
+          },
+          {
+            type: "separator",
+            margin: "md",
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            action: { type: "uri", label: "くわしく見る", uri: pageUrl },
+            style: "primary",
+            color: "#06C755",
+          },
+        ],
+      },
+    };
+
+    if (!delayedTodos.length && completedYesterdayNumber > 0) {
+      reportByUser.body.contents.push({
+        type: "text",
+        text: PraiseMessage[Math.floor(Math.random() * GreetingMessage.length)],
+        wrap: true,
+        size: "xs",
+        margin: "md",
+      });
+    }
+
+    const MAX_DISPLAY_COUNT = 5;
+    for (let i = 0; i < delayedTodos.length; i++) {
+      if (i < MAX_DISPLAY_COUNT) {
+        reportByUser.body.contents.push({
+          type: "text",
+          text: `🚨${delayedTodos[i].name}`,
+          size: "xs",
+          color: "#666666",
+          offsetTop: "md",
+          action: { type: "uri", label: "タスクの詳細", uri: delayedTodos[i].todoapp_reg_url },
+        });
+      } else {
+        const remainingCount = delayedTodos.length - MAX_DISPLAY_COUNT;
+        reportByUser.body.contents.push({
+          type: "text",
+          text: `など、残り${remainingCount}件が遅延しています👮‍♀️`,
+          size: "xs",
+          color: "#666666",
+          margin: "lg",
+        });
+        break;
+      }
+    }
+    return reportByUser;
   }
 
   static getTextContentFromMessage(message: Message): string {
