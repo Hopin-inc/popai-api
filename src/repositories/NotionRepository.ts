@@ -1,9 +1,6 @@
 import { In, IsNull, Not, Repository } from "typeorm";
 import { Client } from "@notionhq/client";
-import {
-  PageObjectResponse,
-  UpdatePageParameters,
-} from "@notionhq/client/build/src/api-endpoints";
+import { PageObjectResponse, UpdatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
 import moment from "moment";
 
@@ -36,13 +33,13 @@ import {
   ITodoTask,
   ITodoUpdate,
   ITodoUserUpdate,
+  valueOf,
 } from "@/types";
 import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, NotionPropertyType, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
-import { valueOf } from "../../dist/types";
 
 @Service()
 export default class NotionRepository {
@@ -235,7 +232,7 @@ export default class NotionRepository {
     pageId: string,
     pageTodos: INotionTask[],
     company: Company,
-    section: Section,
+    _section: Section,
     todoapp: TodoApp,
     usagePropertyOptions: PropertyOption[],
   ): Promise<void> {
@@ -510,7 +507,7 @@ export default class NotionRepository {
       });
       const response = await Promise.all(postOperations) as PageObjectResponse[];
 
-      const pageInfo = response.flatMap(page => {
+      return response.flatMap(page => {
         const people = Object.values(page.properties).find(prop => prop.type === "people");
         if (people && people.type === "people") {
           const peopleProps = people ? people.people.filter(person => person.id) : [];
@@ -522,7 +519,6 @@ export default class NotionRepository {
         }
         return [];
       });
-      return pageInfo;
     } catch (error) {
       console.error(error);
       logger.error(new LoggerError(error.message));
