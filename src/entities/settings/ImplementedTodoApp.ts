@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import TodoApp from "../masters/TodoApp";
 
-@Entity("implemented_todo_apps")
+@Entity("s_implemented_todo_apps")
 export default class ImplementedTodoApp extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   auth_key: string;

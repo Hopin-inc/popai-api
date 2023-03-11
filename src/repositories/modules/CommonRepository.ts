@@ -16,7 +16,6 @@ import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import Company from "@/entities/settings/Company";
 import ChatToolUser from "@/entities/settings/ChatToolUser";
 import Section from "@/entities/settings/Section";
-import SectionLabel from "@/entities/settings/SectionLabel";
 import Todo from "@/entities/transactions/Todo";
 import TodoHistory from "@/entities/transactions/TodoHistory";
 import TodoUser from "@/entities/transactions/TodoUser";
@@ -47,7 +46,6 @@ import OptionCandidate from "@/entities/settings/OptionCandidate";
 @Service()
 export default class CommonRepository {
   private sectionRepository: Repository<Section>;
-  private labelSectionRepository: Repository<SectionLabel>;
   private userRepository: Repository<User>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
@@ -63,7 +61,6 @@ export default class CommonRepository {
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
-    this.labelSectionRepository = AppDataSource.getRepository(SectionLabel);
     this.userRepository = AppDataSource.getRepository(User);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.todoRepository = AppDataSource.getRepository(Todo);

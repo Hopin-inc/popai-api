@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "t
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 
-@Entity("m_company_conditions")
+@Entity("s_company_conditions")
 export default class CompanyCondition extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

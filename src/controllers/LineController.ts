@@ -28,7 +28,7 @@ import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
-import LineBot from "@/config/line-bot";
+// import LineBot from "@/config/line-bot";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
@@ -82,25 +82,29 @@ export default class LineController extends Controller {
         //   return;
 
         case "memberJoined":
-          if (event.source.type === "group") {
-            const groupId = event.source.groupId;
-            const newMember: string[] = event.joined.members.map(member => member.userId);
-          }
+          // FIXME: 処理がない
+          // if (event.source.type === "group") {
+          //   const groupId = event.source.groupId;
+          //   const newMember: string[] = event.joined.members.map(member => member.userId);
+          // }
           return;
 
         case "memberLeft":
-          if (event.source.type === "group") {
-            const groupId = event.source.groupId;
-            const leftMember: string[] = event.left.members.map(member => member.userId);
-          }
+          // FIXME: 処理がない
+          // if (event.source.type === "group") {
+          //   const groupId = event.source.groupId;
+          //   const leftMember: string[] = event.left.members.map(member => member.userId);
+          // }
           return;
 
         case "follow":
-          const lineProfile = await LineBot.getProfile(lineId);
-          await this.lineRepository.createLineProfile(lineProfile);
+          // TODO: LINEで友だち追加された際の処理を作成する
+          // const lineProfile = await LineBot.getProfile(lineId);
+          // await this.lineRepository.createLineProfile(lineProfile);
           return;
 
         case "unfollow":
+          // TODO: LINEでフォロー解除された際の処理を作成する
           return;
 
         case "postback":

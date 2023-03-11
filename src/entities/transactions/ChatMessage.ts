@@ -6,7 +6,7 @@ import User from "../settings/User";
 import ChatTool from "../masters/ChatTool";
 import Todo from "./Todo";
 
-@Entity("messages")
+@Entity("t_messages")
 export default class ChatMessage extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

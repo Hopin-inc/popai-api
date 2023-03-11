@@ -5,7 +5,7 @@ import User from "../settings/User";
 import Company from "../settings/Company";
 import { IDailyReportItems } from "../../types";
 
-@Entity("daily_reports")
+@Entity("t_daily_reports")
 export default class DailyReport extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

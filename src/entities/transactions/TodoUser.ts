@@ -4,7 +4,7 @@ import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
 import User from "../settings/User";
 
-@Entity("todo_users")
+@Entity("t_todo_users")
 export default class TodoUser extends BaseEntity {
   @PrimaryColumn()
   todo_id: number;

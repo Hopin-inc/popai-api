@@ -15,7 +15,7 @@ import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
 
-@Entity("companies")
+@Entity("s_companies")
 export default class Company extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
