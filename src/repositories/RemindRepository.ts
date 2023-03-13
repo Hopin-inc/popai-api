@@ -115,7 +115,7 @@ export default class RemindRepository {
     }
 
     const chatToolUsers = await this.commonRepository.getChatToolUsers();
-    const needRemindTasks = await this.commonRepository.getNoDeadlineOrUnassignedTodos(company.id);
+    const needRemindTasks = await TodoRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
     // 期日未設定のタスクがない旨のメッセージが管理者に送られること
     if (needRemindTasks.length) {
