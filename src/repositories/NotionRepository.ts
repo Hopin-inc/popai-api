@@ -351,13 +351,12 @@ export default class NotionRepository {
     try {
       if (!taskReminds.length) return;
       const todos: Todo[] = [];
-      const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, todos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, todos, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
       const savedTodos = await this.todoRepository.createQueryBuilder("todos")
@@ -385,7 +384,6 @@ export default class NotionRepository {
   private async addDataTodo(
     taskRemind: IRemindTask<INotionTask>,
     dataTodos: Todo[],
-    dataTodoUpdates: ITodoUpdate[],
     dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
@@ -430,22 +428,6 @@ export default class NotionRepository {
       editedBy: todoTask.lastEditedById,
     });
 
-    //update deadline task
-    if (deadline || todoData.is_done) {
-      const isDeadlineChanged = !moment(deadline).isSame(todo?.deadline);
-      const isDoneChanged = todo?.is_done !== todoData.is_done;
-      if (isDeadlineChanged || isDoneChanged) {
-        dataTodoUpdates.push({
-          todoId: todoTask.todoappRegId,
-          dueTime: todo?.deadline,
-          newDueTime: deadline,
-          updateTime: toJapanDateTime(todoTask.lastEditedAt),
-        });
-      }
-      if (!todoData.is_done && taskRemind.delayedCount > 0 && (isDeadlineChanged || !todoData.delayed_count)) {
-        todoData.delayed_count = todoData.delayed_count + 1;
-      }
-    }
     dataTodos.push(todoData);
   }
 

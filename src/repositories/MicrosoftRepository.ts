@@ -257,7 +257,6 @@ export default class MicrosoftRepository {
       if (!taskReminds.length) return;
 
       const dataTodos: Todo[] = [];
-      const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
@@ -265,7 +264,6 @@ export default class MicrosoftRepository {
         return this.addDataTodo(
           taskRemind,
           dataTodos,
-          dataTodoUpdates,
           dataTodoUsers,
           dataTodoSections,
           implementedTodoApp.primary_domain
@@ -276,7 +274,6 @@ export default class MicrosoftRepository {
 
       if (response) {
         await Promise.all([
-          this.todoUpdateRepository.saveTodoUpdateHistories(dataTodoUpdates),
           this.todoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
           // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
@@ -290,7 +287,6 @@ export default class MicrosoftRepository {
   private async addDataTodo(
     taskRemind: IRemindTask<IMicrosoftTask>,
     dataTodos: Todo[],
-    dataTodoUpdates: ITodoUpdate[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
     primaryDomain: string,
@@ -342,29 +338,6 @@ export default class MicrosoftRepository {
 
     if (sections.length) {
       dataTodoSections.push({ todoId: todoTask.id, sections });
-    }
-
-    //update deadline task
-    if (taskDeadLine || todoData.is_done) {
-      const isDeadlineChanged = !moment(taskDeadLine).isSame(todo?.deadline);
-      const isDoneChanged = todo?.is_done !== todoData.is_done;
-
-      if (isDeadlineChanged || isDoneChanged) {
-        dataTodoUpdates.push({
-          todoId: todoTask.id,
-          dueTime: todo?.deadline,
-          newDueTime: taskDeadLine,
-          updateTime: toJapanDateTime(new Date()),
-        });
-      }
-
-      if (
-        !todoData.is_done &&
-        taskRemind.delayedCount > 0 &&
-        (isDeadlineChanged || !todoData.delayed_count)
-      ) {
-        todoData.delayed_count = todoData.delayed_count + 1;
-      }
     }
 
     dataTodos.push(todoData);

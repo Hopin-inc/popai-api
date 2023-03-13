@@ -214,13 +214,12 @@ export default class TrelloRepository {
     try {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
-      const dataTodoUpdates: ITodoUpdate[] = [];
       const dataTodoHistories: ITodoHistory[] = [];
       const dataTodoUsers: ITodoUserUpdate[] = [];
       const dataTodoSections: ITodoSectionUpdate[] = [];
 
       await Promise.all(taskReminds.map(taskRemind => {
-        return this.addDataTodo(taskRemind, dataTodos, dataTodoUpdates, dataTodoHistories, dataTodoUsers, dataTodoSections);
+        return this.addDataTodo(taskRemind, dataTodos, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
       const savedTodos = await this.todoRepository.createQueryBuilder("todos")
@@ -248,7 +247,6 @@ export default class TrelloRepository {
   private async addDataTodo(
     taskRemind: IRemindTask<ITrelloTask>,
     dataTodos: Todo[],
-    dataTodoUpdates: ITodoUpdate[],
     dataTodoHistories: ITodoHistory[],
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
@@ -302,31 +300,10 @@ export default class TrelloRepository {
     });
 
     if (users.length) {
-      //set first update task
       todoData.first_assigned_at = todo?.first_assigned_at || taskUpdated;
       dataTodoUsers.push({ todoId: todoTask.id, users });
     }
 
-    //update deadline task
-    if (taskDeadLine || todoData.is_done) {
-      const isDeadlineChanged = !moment(taskDeadLine).isSame(todo?.deadline);
-      const isDoneChanged = todo?.is_done !== todoData.is_done;
-      if (isDeadlineChanged || isDoneChanged) {
-        dataTodoUpdates.push({
-          todoId: todoTask.id,
-          dueTime: todo?.deadline,
-          newDueTime: taskDeadLine,
-          updateTime: toJapanDateTime(todoTask.dateLastActivity),
-        });
-      }
-      if (
-        !todoData.is_done &&
-        taskRemind.delayedCount > 0 &&
-        (isDeadlineChanged || !todoData.delayed_count)
-      ) {
-        todoData.delayed_count = todoData.delayed_count + 1;
-      }
-    }
     dataTodos.push(todoData);
   }
 
