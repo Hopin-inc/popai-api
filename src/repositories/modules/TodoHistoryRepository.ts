@@ -136,52 +136,24 @@ export default class TodoHistoryRepository {
           }
         }
       }
-      await Promise.all(argsList.map(([property, action, info, notification]) => {
-        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification, editedBy);
-      }));
+
+      await Promise.all(argsList.map(([property, action, info, notification]) =>
+        this.todoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
+            notification && savedTodo.company?.chatTools?.map(chatTool =>
+              this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id).then(archivedPage =>
+                  archivedPage.archived === false && this.todoAppUserRepository.findOneBy({
+                    employee_id: editedBy,
+                    todoapp_id: savedTodo.todoapp_id,
+                  }).then(editUser =>
+                    this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser),
+                  ),
+              ),
+            ),
+        ),
+      ));
     } catch (error) {
       console.log(error);
       logger.error(new LoggerError(error.message));
-    }
-  }
-
-  public async saveTodo(
-    savedTodo: Todo,
-    assignees: User[],
-    property: valueOf<typeof Property>,
-    action: valueOf<typeof Action>,
-    updatedAt: Date,
-    info: Info | null,
-    notify?: boolean,
-    editedBy?: number,
-  ) {
-    const todoHistory = new TodoHistory();
-    todoHistory.todo_id = savedTodo.id;
-    todoHistory.property = property;
-    todoHistory.action = action;
-    todoHistory.todoapp_reg_updated_at = updatedAt;
-    todoHistory.deadline = info?.deadline ?? null;
-    todoHistory.days_diff = info?.daysDiff ?? null;
-    todoHistory.edited_by = editedBy;
-
-    if (info?.assignee) {
-      todoHistory.user_id = info?.assignee.id;
-    }
-
-    await this.todoHistoryRepository.save(todoHistory);
-
-    if (notify) {
-      await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-          const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
-          if (archivedPage.archived === false) {
-            const editUser = await this.todoAppUserRepository.findOneBy({
-              employee_id: editedBy,
-              todoapp_id: savedTodo.todoapp_id,
-            });
-            return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
-          }
-        },
-      ));
     }
   }
 
