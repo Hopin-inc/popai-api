@@ -22,18 +22,18 @@ import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
+import { TodoUserRepository } from "@/repositories/TodoUserRepository";
+import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
 export default class TodoHistoryService {
-  private todoAppUserRepository: Repository<TodoAppUser>;
   private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
   private commonRepository: CommonRepository;
 
   constructor() {
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
     this.commonRepository = Container.get(CommonRepository);
@@ -138,7 +138,7 @@ export default class TodoHistoryService {
         TodoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
             notification && savedTodo.company?.chatTools?.map(chatTool =>
               this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id).then(archivedPage =>
-                  archivedPage.archived === false && this.todoAppUserRepository.findOneBy({
+                  archivedPage.archived === false && TodoAppUserRepository.findOneBy({
                     employee_id: editedBy,
                     todoapp_id: savedTodo.todoapp_id,
                   }).then(editUser =>

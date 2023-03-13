@@ -26,10 +26,10 @@ import { IMicrosoftRefresh, IMicrosoftTask, IMicrosoftToken } from "@/types/micr
 import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { TodoUserRepository } from "@/repositories/TodoUserRepository";
+import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
 
 @Service()
 export default class MicrosoftRepository {
-  private todoAppUserRepository: Repository<TodoAppUser>;
   private microsoftRequest: MicrosoftRequest;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -37,7 +37,6 @@ export default class MicrosoftRepository {
   private commonRepository: CommonRepository;
 
   constructor() {
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
@@ -170,7 +169,7 @@ export default class MicrosoftRepository {
           const dataRefresh: IMicrosoftRefresh = { todoAppUser };
           const me = await this.microsoftRequest.getMyInfo(dataRefresh);
           todoAppUser.user_app_id = me?.id;
-          await this.todoAppUserRepository.save(todoAppUser);
+          await TodoAppUserRepository.save(todoAppUser);
         } catch (err) {
           logger.error(new LoggerError(err.message));
         }
@@ -198,7 +197,7 @@ export default class MicrosoftRepository {
         const response = await fetchApi<FormData, IMicrosoftToken>(url, "POST", formData, true);
 
         if (response.access_token) {
-          const todoAppUser: TodoAppUser = await this.todoAppUserRepository.findOneBy({
+          const todoAppUser: TodoAppUser = await TodoAppUserRepository.findOneBy({
             todoapp_id: todoAppUserData.todoapp_id,
             employee_id: todoAppUserData.employee_id,
           });
@@ -207,7 +206,7 @@ export default class MicrosoftRepository {
             todoAppUser.api_token = response.access_token;
             todoAppUser.refresh_token = response.refresh_token;
             todoAppUser.expires_in = response.expires_in;
-            return await this.todoAppUserRepository.save(todoAppUser);
+            return await TodoAppUserRepository.save(todoAppUser);
           }
         }
       }

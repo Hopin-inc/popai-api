@@ -49,7 +49,6 @@ import { valueOf } from "../../dist/types";
 @Service()
 export default class NotionRepository {
   private notionRequest: Client;
-  private todoAppUserRepository: Repository<TodoAppUser>;
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
@@ -64,7 +63,6 @@ export default class NotionRepository {
 
   constructor() {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);

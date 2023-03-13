@@ -16,12 +16,12 @@ import TodoSectionRepository from "./modules/TodoSectionRepository";
 import { toJapanDateTime, diffDays } from "@/utils/common";
 import logger from "@/logger/winston";
 import TrelloRequest from "@/services/TrelloRequest";
-import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { ITodoTask, ITodoUserUpdate, ITodoUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { TodoUserRepository } from "@/repositories/TodoUserRepository";
+import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
 import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
 @Service()
@@ -29,7 +29,6 @@ export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private todoAppUserRepository: Repository<TodoAppUser>;
   private todoSectionRepository: TodoSectionRepository;
   private todoHistoryService: TodoHistoryService;
   private commonRepository: CommonRepository;
@@ -38,7 +37,6 @@ export default class TrelloRepository {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.todoHistoryService = Container.get(TodoHistoryService);
@@ -175,7 +173,7 @@ export default class TrelloRepository {
 
           const me = await this.trelloRequest.getMyInfo(trelloAuth);
           todoAppUser.user_app_id = me?.id;
-          await this.todoAppUserRepository.save(todoAppUser);
+          await TodoAppUserRepository.save(todoAppUser);
         } catch (err) {
           logger.error(new LoggerError(err.message));
         }
@@ -248,7 +246,7 @@ export default class TrelloRepository {
 
     const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
     const taskUpdated = toJapanDateTime(todoTask.dateLastActivity);
-    const createdBy = await this.todoAppUserRepository.findOneBy({
+    const createdBy = await TodoAppUserRepository.findOneBy({
       user_app_id: todoTask.idMemberCreator,
     });
 
