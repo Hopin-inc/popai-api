@@ -24,7 +24,7 @@ export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).exten
     const companyId = company.id;
     const todoAppId = todoapp.id;
 
-    const lastUpdatedRecord = await this.todoHistoryRepository
+    const lastUpdatedRecord = await this
       .createQueryBuilder("todo_histories")
       .leftJoinAndSelect(
         "todo_histories.todo",
