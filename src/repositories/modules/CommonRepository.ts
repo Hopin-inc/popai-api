@@ -42,7 +42,6 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 @Service()
 export default class CommonRepository {
   private sectionRepository: Repository<Section>;
-  private userRepository: Repository<User>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
   private eventTimingRepository: Repository<EventTiming>;
@@ -55,7 +54,6 @@ export default class CommonRepository {
 
   constructor() {
     this.sectionRepository = AppDataSource.getRepository(Section);
-    this.userRepository = AppDataSource.getRepository(User);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
@@ -127,16 +125,6 @@ export default class CommonRepository {
       ));
     }
     return chatToolUser;
-  }
-
-  public async getChatToolUserByUserId(
-    authKey: string,
-    relations: string[] = ["chattoolUsers.chattool", "company.implementedChatTools.chattool"],
-  ): Promise<User[]> {
-    return await this.userRepository.find({
-      where: { chattoolUsers: { auth_key: authKey } },
-      relations,
-    });
   }
 
   public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {

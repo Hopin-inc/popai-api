@@ -27,17 +27,16 @@ import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import { INotionDailyReport } from "@/types/notion";
 import DailyReport from "@/entities/transactions/DailyReport";
+import { UserRepository } from "@/repositories/UserRepository";
 
 @Service()
 export default class LineRepository {
-  private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private dailyReportRepository: Repository<DailyReport>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
 
   constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
@@ -304,7 +303,7 @@ export default class LineRepository {
 
   public async getUserFromLineId(lineId: string): Promise<User> {
     // Get user by line id
-    const users = await this.commonRepository.getChatToolUserByUserId(lineId);
+    const users = await UserRepository.getChatToolUserByUserId(lineId);
 
     if (!users.length) {
       return Promise.resolve(null);
@@ -315,7 +314,7 @@ export default class LineRepository {
 
   public async getSuperiorUsers(lineId: string): Promise<User[]> {
     // Get user by line id
-    const users = await this.commonRepository.getChatToolUserByUserId(lineId);
+    const users = await UserRepository.getChatToolUserByUserId(lineId);
 
     if (!users.length) {
       return Promise.resolve([]);
@@ -332,12 +331,7 @@ export default class LineRepository {
       return Promise.resolve([]);
     }
 
-    return await this.userRepository
-      .createQueryBuilder("users")
-      .where("id IN (:...ids)", {
-        ids: superiorUserIds.map(superiorUserId => superiorUserId.superior_user_id),
-      })
-      .getMany();
+    return await UserRepository.getSuperiorUser(superiorUserIds);
   }
 
   public async createMessage(chatMessage: ChatMessage): Promise<ChatMessage> {

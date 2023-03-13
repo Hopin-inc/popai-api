@@ -46,10 +46,10 @@ import DailyReport from "@/entities/transactions/DailyReport";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { INotionDailyReport } from "@/types/notion";
+import { UserRepository } from "@/repositories/UserRepository";
 
 @Service()
 export default class SlackRepository {
-  private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
   private commonRepository: CommonRepository;
   private sectionRepository: Repository<Section>;
@@ -59,7 +59,6 @@ export default class SlackRepository {
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.commonRepository = Container.get(CommonRepository);
     this.sectionRepository = AppDataSource.getRepository(Section);
@@ -331,7 +330,7 @@ export default class SlackRepository {
   }
 
   public async getSuperiorUsers(slackId: string): Promise<User[]> {
-    const users = await this.commonRepository.getChatToolUserByUserId(slackId);
+    const users = await UserRepository.getChatToolUserByUserId(slackId);
 
     if (!users.length) {
       return Promise.resolve([]);
@@ -348,7 +347,7 @@ export default class SlackRepository {
       return Promise.resolve([]);
     }
 
-    return await this.userRepository.find({
+    return await UserRepository.find({
       where: { id: In(reportingLines.map(record => record.superior_user_id)) },
       relations: ["chattoolUsers.chattool"],
     });
@@ -459,7 +458,7 @@ export default class SlackRepository {
   }
 
   public async getUserFromSlackId(slackId: string): Promise<User> {
-    const users = await this.commonRepository.getChatToolUserByUserId(slackId);
+    const users = await UserRepository.getChatToolUserByUserId(slackId);
     return users.length ? users[0] : null;
   }
 
@@ -892,7 +891,7 @@ export default class SlackRepository {
           "todoSections.section",
         ],
       }),
-      this.userRepository.findOne({
+      UserRepository.findOne({
         where: { id: prospectRecord.user_id },
         relations: ["chattoolUsers.chattool"],
       }),
