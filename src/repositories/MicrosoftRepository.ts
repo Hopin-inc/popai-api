@@ -12,7 +12,6 @@ import Section from "@/entities/settings/Section";
 import TodoApp from "@/entities/masters/TodoApp";
 
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
-import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
@@ -26,6 +25,7 @@ import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdat
 import { IMicrosoftRefresh, IMicrosoftTask, IMicrosoftToken } from "@/types/microsoft";
 import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 
 @Service()
 export default class MicrosoftRepository {
@@ -33,7 +33,6 @@ export default class MicrosoftRepository {
   private microsoftRequest: MicrosoftRequest;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
   private commonRepository: CommonRepository;
 
@@ -42,7 +41,6 @@ export default class MicrosoftRepository {
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
   }
@@ -59,7 +57,7 @@ export default class MicrosoftRepository {
   private async getUserTaskBoards(
     sections: Section[],
     company: Company,
-    todoapp: TodoApp
+    todoapp: TodoApp,
   ): Promise<void> {
     try {
       const todoTasks: ITodoTask<IMicrosoftTask>[] = [];
@@ -67,14 +65,14 @@ export default class MicrosoftRepository {
       for (const section of sections) {
         await this.getTaskBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
-      console.log(`[${ company.name } - ${ todoapp.name }] getCardBoards: ${ todoTasks.length }`);
+      console.log(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
 
       const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
       const implementedTodoApp = await this.commonRepository.getImplementTodoApp(company.id, todoapp.id);
       if (implementedTodoApp) {
         await this.filterUpdateTask(dayReminds, todoTasks, implementedTodoApp);
       }
-      console.log(`[${ company.name } - ${ todoapp.name }] filterUpdateTask: ${ dayReminds }`);
+      console.log(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
     } catch (err) {
       logger.error(new LoggerError(err.message));
     }
@@ -85,7 +83,7 @@ export default class MicrosoftRepository {
     section: Section,
     todoTasks: ITodoTask<IMicrosoftTask>[],
     company: Company,
-    todoapp: TodoApp
+    todoapp: TodoApp,
   ): Promise<void> {
     if (!boardAdminUser?.todoAppUsers.length) return;
 
@@ -114,11 +112,11 @@ export default class MicrosoftRepository {
     todoTasks: ITodoTask<IMicrosoftTask>[],
     company: Company,
     todoapp: TodoApp,
-    todoAppUser: TodoAppUser
+    todoAppUser: TodoAppUser,
   ): Promise<void> {
     let userCreateBy = null;
     if (todoTask.createdBy) {
-      const userCreates = await this.todoUserRepository.getUserAssignTask(company.users, [
+      const userCreates = await TodoUserRepository.getUserAssignTask(company.users, [
         todoTask.createdBy?.user?.id,
       ]);
 
@@ -128,9 +126,9 @@ export default class MicrosoftRepository {
     }
 
     const userAssigns = Object.keys(todoTask.assignments);
-    const users = await this.todoUserRepository.getUserAssignTask(
+    const users = await TodoUserRepository.getUserAssignTask(
       company.users,
-      userAssigns
+      userAssigns,
     );
 
     const card: ITodoTask<IMicrosoftTask> = {
@@ -154,7 +152,7 @@ export default class MicrosoftRepository {
   private async updateUsersMicrosoft(usersCompany: User[], todoappId: number): Promise<void> {
     const users = usersCompany.filter((user) => {
       return user?.todoAppUsers.find(
-        (todoAppUser) => todoAppUser.todoapp_id === todoappId && !todoAppUser.user_app_id
+        (todoAppUser) => todoAppUser.todoapp_id === todoappId && !todoAppUser.user_app_id,
       );
     });
 
@@ -223,7 +221,7 @@ export default class MicrosoftRepository {
   private async filterUpdateTask(
     _dayReminds: number[],
     todoTaskLists: ITodoTask<IMicrosoftTask>[],
-    implementTodoApp: ImplementedTodoApp
+    implementTodoApp: ImplementedTodoApp,
   ): Promise<void> {
     const tasks: IRemindTask<IMicrosoftTask>[] = [];
 
@@ -249,7 +247,7 @@ export default class MicrosoftRepository {
 
   private async createTodo(
     taskReminds: IRemindTask<IMicrosoftTask>[],
-    implementedTodoApp: ImplementedTodoApp
+    implementedTodoApp: ImplementedTodoApp,
   ): Promise<void> {
     try {
       if (!taskReminds.length) return;
@@ -264,7 +262,7 @@ export default class MicrosoftRepository {
           dataTodos,
           dataTodoUsers,
           dataTodoSections,
-          implementedTodoApp.primary_domain
+          implementedTodoApp.primary_domain,
         );
       }));
 
@@ -272,7 +270,7 @@ export default class MicrosoftRepository {
 
       if (response) {
         await Promise.all([
-          this.todoUserRepository.saveTodoUsers(dataTodoUsers),
+          TodoUserRepository.saveTodoUsers(dataTodoUsers),
           this.todoSectionRepository.saveTodoSections(dataTodoSections),
           // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
         ]);
@@ -323,16 +321,16 @@ export default class MicrosoftRepository {
 
     //Update user
     if (todo) {
-      await this.todoUserRepository.updateTodoUser(todo, users);
+      await TodoUserRepository.updateTodoUser(todo, users);
       await this.todoSectionRepository.updateTodoSection(todo, sections);
     }
   }
 
   public async updateTodo(
-    id: string, 
-    task: Todo, 
+    id: string,
+    task: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false
+    correctDelayedCount: boolean = false,
   ): Promise<void> {
     try {
       // consts assignees = task.todoUsers.map(todoUser => {

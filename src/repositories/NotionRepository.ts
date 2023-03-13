@@ -16,7 +16,6 @@ import BoardProperty from "@/entities/settings/BoardProperty";
 import OptionCandidate from "@/entities/settings/OptionCandidate";
 import PropertyOption from "@/entities/settings/PropertyOption";
 
-import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
@@ -25,6 +24,7 @@ import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
+import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
@@ -58,7 +58,6 @@ export default class NotionRepository {
   private todoHistoryService: TodoHistoryService;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
   private notionPageBuilder: NotionPageBuilder;
   private commonRepository: CommonRepository;
@@ -73,7 +72,6 @@ export default class NotionRepository {
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.notionPageBuilder = Container.get(NotionPageBuilder);
     this.commonRepository = Container.get(CommonRepository);
@@ -306,7 +304,7 @@ export default class NotionRepository {
     sections: Section[],
     todoAppUser: TodoAppUser,
   ): Promise<void> {
-    const users = await this.todoUserRepository.getUserAssignTask(company.users, pageTodo.assignees);
+    const users = await TodoUserRepository.getUserAssignTask(company.users, pageTodo.assignees);
 
     const page: ITodoTask<INotionTask> = {
       todoTask: pageTodo,
@@ -364,7 +362,7 @@ export default class NotionRepository {
       await TodoRepository.upsert(todos, []);
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
-        this.todoUserRepository.saveTodoUsers(dataTodoUsers),
+        TodoUserRepository.saveTodoUsers(dataTodoUsers),
         this.todoSectionRepository.saveTodoSections(dataTodoSections),
         // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);

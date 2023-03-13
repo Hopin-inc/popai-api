@@ -8,7 +8,6 @@ import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
 
-import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
@@ -22,6 +21,7 @@ import { LoggerError } from "@/exceptions";
 import { ITodoTask, ITodoUserUpdate, ITodoUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
 @Service()
@@ -30,7 +30,6 @@ export default class TrelloRepository {
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
-  private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
   private todoHistoryService: TodoHistoryService;
   private commonRepository: CommonRepository;
@@ -40,7 +39,6 @@ export default class TrelloRepository {
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
-    this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
     this.todoHistoryService = Container.get(TodoHistoryService);
@@ -122,7 +120,7 @@ export default class TrelloRepository {
     archiveListIds: string[],
     createCards: ITrelloActivityLog[],
   ): Promise<void> {
-    const users = await this.todoUserRepository.getUserAssignTask(company.users, todoTask.idMembers);
+    const users = await TodoUserRepository.getUserAssignTask(company.users, todoTask.idMembers);
 
     if (archiveListIds.length) {
       for (const id of archiveListIds) {
@@ -225,7 +223,7 @@ export default class TrelloRepository {
       await TodoRepository.upsert(dataTodos, []);
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
-        this.todoUserRepository.saveTodoUsers(dataTodoUsers),
+        TodoUserRepository.saveTodoUsers(dataTodoUsers),
         this.todoSectionRepository.saveTodoSections(dataTodoSections),
         // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
