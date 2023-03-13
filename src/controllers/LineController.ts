@@ -28,6 +28,8 @@ import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
+import { SectionRepository } from "@/repositories/SectionRepository";
+
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
   private readonly chattoolRepository: Repository<ChatTool>;
@@ -150,7 +152,7 @@ export default class LineController extends Controller {
     const sections = lineMessageQueue.todo.sections;
     const sectionId = sections.length ? sections[0].id : null;
     const todoAppId = lineMessageQueue.todo.todoapp_id;
-    const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
+    const boardAdminUser = await SectionRepository.getBoardAdminUser(sectionId);
     const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
     const doneMessages = replyMessages.filter(m => m.status === TodoStatus.DONE).map(m => m.displayText);
     if (doneMessages.includes(repliedMessage)) {
@@ -224,7 +226,7 @@ export default class LineController extends Controller {
           null,
           todo,
           replyToken,
-          messageParentId
+          messageParentId,
         );
         await this.messageRepository.save(chatMessage);
         await this.sendSuperiorMessage(

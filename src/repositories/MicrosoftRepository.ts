@@ -27,6 +27,7 @@ import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
+import { SectionRepository } from "@/repositories/SectionRepository";
 
 @Service()
 export default class MicrosoftRepository {
@@ -49,7 +50,7 @@ export default class MicrosoftRepository {
     const todoappId = todoapp.id;
 
     await this.updateUsersMicrosoft(company.users, todoappId);
-    const sections = await this.commonRepository.getSections(companyId, todoappId);
+    const sections = await SectionRepository.getSections(companyId, todoappId);
     await this.getUserTaskBoards(sections, company, todoapp);
   }
 

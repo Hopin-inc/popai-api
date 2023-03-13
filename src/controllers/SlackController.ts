@@ -30,11 +30,12 @@ import { Block, KnownBlock } from "@slack/web-api";
 import { SlackInteractionPayload, SlackView } from "@/types/slack";
 import { PlainTextOption } from "@slack/types";
 
+import { SectionRepository } from "@/repositories/SectionRepository";
+
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
   private chatToolRepository: Repository<ChatTool>;
   private todoRepository: Repository<Todo>;
-  private sectionRepository: Repository<Section>;
   private commonRepository: CommonRepository;
   private taskService: TaskService;
 
@@ -44,7 +45,6 @@ export default class SlackController extends Controller {
     this.commonRepository = Container.get(CommonRepository);
     this.chatToolRepository = AppDataSource.getRepository(ChatTool);
     this.todoRepository = AppDataSource.getRepository(Todo);
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.taskService = Container.get(TaskService);
   }
 
@@ -193,7 +193,7 @@ export default class SlackController extends Controller {
     const sections = slackTodo.sections;
     const sectionId = sections.length ? sections[0].id : null;
     const todoAppId = slackTodo.todoapp_id;
-    const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
+    const boardAdminUser = await SectionRepository.getBoardAdminUser(sectionId);
     const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
     const doneActions = replyActions.filter(m => m.status === TodoStatus.DONE).map(m => m.text);
     if (doneActions.includes(repliedMessage)) {

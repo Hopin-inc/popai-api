@@ -47,12 +47,12 @@ import TodoAppUser from "@/entities/settings/TodoAppUser";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { INotionDailyReport } from "@/types/notion";
 import { UserRepository } from "@/repositories/UserRepository";
+import { SectionRepository } from "@/repositories/SectionRepository";
 
 @Service()
 export default class SlackRepository {
   private messageRepository: Repository<ChatMessage>;
   private commonRepository: CommonRepository;
-  private sectionRepository: Repository<Section>;
   private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportRepository: Repository<DailyReport>;
@@ -61,7 +61,6 @@ export default class SlackRepository {
   constructor() {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.commonRepository = Container.get(CommonRepository);
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
@@ -469,7 +468,7 @@ export default class SlackRepository {
 
   private async getSendChannel(company: Company): Promise<string> {
     const companyId = company.id;
-    const section = await this.sectionRepository.findOneBy({
+    const section = await SectionRepository.findOneBy({
       company_id: companyId,
       channel_id: Not(IsNull()),
     });

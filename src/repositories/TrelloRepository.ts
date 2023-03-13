@@ -22,6 +22,8 @@ import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
+import { SectionRepository } from "@/repositories/SectionRepository";
+
 import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
 @Service()
@@ -47,7 +49,7 @@ export default class TrelloRepository {
     const todoappId = todoapp.id;
 
     await this.updateUsersTrello(company.users, todoappId);
-    const sections = await this.commonRepository.getSections(companyId, todoappId);
+    const sections = await SectionRepository.getSections(companyId, todoappId);
 
     await this.getUserCardBoards(sections, company, todoapp, notify);
   }

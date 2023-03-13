@@ -25,6 +25,7 @@ import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
 import { TodoUserRepository } from "@/repositories/TodoUserRepository";
+import { SectionRepository } from "@/repositories/SectionRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
@@ -52,7 +53,6 @@ export default class NotionRepository {
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
-  private sectionRepository: Repository<Section>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private todoHistoryService: TodoHistoryService;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
@@ -66,7 +66,6 @@ export default class NotionRepository {
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
@@ -79,7 +78,7 @@ export default class NotionRepository {
   public async syncTaskByUserBoards(company: Company, todoapp: TodoApp, notify: boolean = false): Promise<void> {
     const companyId = company.id;
     const todoappId = todoapp.id;
-    const sections = await this.commonRepository.getSections(companyId, todoappId);
+    const sections = await SectionRepository.getSections(companyId, todoappId);
     await this.getUserPageBoards(sections, company, todoapp, notify);
   }
 
@@ -281,7 +280,7 @@ export default class NotionRepository {
       };
 
       const [sectionIds, createdById, lastEditedById] = await Promise.all([
-        this.getSectionIds(company, todoapp, pageTodo.sections),
+        SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
         this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
         this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
       ]);
@@ -575,25 +574,6 @@ export default class NotionRepository {
       }
     } catch (err) {
       logger.error(new LoggerError(err.message));
-    }
-  }
-
-  private async getSectionIds(
-    company: Company,
-    todoApp: TodoApp,
-    labelIds: string[],
-  ): Promise<number[]> {
-    if (labelIds) {
-      const registeredLabelRecords = await this.sectionRepository.find({
-        where: {
-          company_id: company.id,
-          todoapp_id: todoApp.id,
-          label_id: In(labelIds),
-        },
-        select: ["id"],
-      });
-
-      return registeredLabelRecords.map(record => record.id);
     }
   }
 

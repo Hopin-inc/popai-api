@@ -41,7 +41,6 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class CommonRepository {
-  private sectionRepository: Repository<Section>;
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private chatToolUserRepository: Repository<ChatToolUser>;
   private eventTimingRepository: Repository<EventTiming>;
@@ -53,7 +52,6 @@ export default class CommonRepository {
   private notionRequest: Client;
 
   constructor() {
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
@@ -63,35 +61,6 @@ export default class CommonRepository {
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-  }
-
-  public async getSections(companyId: number, todoappId: number): Promise<Section[]> {
-    return await this.sectionRepository
-      .createQueryBuilder("sections")
-      .innerJoinAndSelect(
-        "sections.boardAdminUser",
-        "users",
-        "sections.board_admin_user_id = users.id AND users.company_id = :companyId",
-        { companyId },
-      )
-      .innerJoinAndSelect(
-        "users.todoAppUsers",
-        "todo_app_users",
-        "users.id = todo_app_users.employee_id AND todo_app_users.todoapp_id = :todoappId",
-        { todoappId },
-      )
-      .where("sections.company_id = :companyId", { companyId })
-      .andWhere("sections.todoapp_id = :todoappId", { todoappId })
-      .andWhere("sections.board_id IS NOT NULL")
-      .getMany();
-  }
-
-  public async getBoardAdminUser(sectionId: number): Promise<User> {
-    const section = await this.sectionRepository.findOne({
-      where: { id: sectionId },
-      relations: ["boardAdminUser", "boardAdminUser.todoAppUsers"],
-    });
-    return section.boardAdminUser;
   }
 
   public async getImplementTodoApp(companyId: number, todoappId: number): Promise<ImplementedTodoApp> {
