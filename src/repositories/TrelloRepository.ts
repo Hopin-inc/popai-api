@@ -254,21 +254,7 @@ export default class TrelloRepository {
       user_app_id: todoTask.idMemberCreator,
     });
 
-    const todoData = new Todo();
-    todoData.id = todo?.id || null;
-    todoData.name = todoTask.name;
-    todoData.todoapp_id = todoapp.id;
-    todoData.todoapp_reg_id = todoTask.id;
-    todoData.todoapp_reg_url = todoTask.shortUrl;
-    todoData.todoapp_reg_created_by = createdBy.employee_id || null;
-    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdAt) || taskUpdated;
-    todoData.company_id = company.id;
-    todoData.deadline = taskDeadLine;
-    todoData.is_done = todoTask.dueComplete;
-    todoData.is_reminded = !!todoTask.dueReminder;
-    todoData.is_closed = todoTask.closed;
-    todoData.delayed_count = todo?.delayed_count || 0;
-    todoData.reminded_count = todo?.reminded_count || 0;
+    const todoData = new Todo(todoTask, company, todoapp, todo, createdBy.employee_id);
 
     //set first update task
     if (taskDeadLine) {

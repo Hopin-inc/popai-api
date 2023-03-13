@@ -10,7 +10,13 @@ import User from "../settings/User";
 import Section from "../settings/Section";
 import TodoHistory from "./TodoHistory";
 import Prospect from "./Prospect";
-import { Sorter } from "../../utils/common";
+import { replaceString, Sorter, toJapanDateTime } from "../../utils/common";
+import { IRemindTask, ITask } from "@/types";
+import { INotionTask } from "@/types/notion";
+import { IMicrosoftTask } from "@/types/microsoft";
+import { ITrelloList, ITrelloTask } from "@/types/trello";
+import { TodoAppCode } from "@/consts/common";
+import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
 
 @Entity("t_todos")
 export default class Todo extends BaseEntity {
@@ -126,6 +132,63 @@ export default class Todo extends BaseEntity {
       return this.prospects.sort(Sorter.byDate<Prospect>("created_at")).slice(-1)[0];
     } else {
       return null;
+    }
+  }
+
+  constructor(
+    todoByApi: ITask,
+    company: Company | number,
+    todoApp: TodoApp,
+    todoByDb: Todo,
+    trelloCreatedBy?: number,
+    microSoftPrimaryDomain?: string,
+  ) {
+    super();
+    if (todoByApi && company && todoApp) {
+      this.company_id = typeof company === "number" ? company : company.id;
+      this.todoapp_id = todoApp.id;
+
+      this.id = todoByDb.id ?? null;
+      this.is_reminded = todoByDb?.is_reminded ?? false;
+      this.delayed_count = todoByDb?.delayed_count ?? 0;
+      this.reminded_count = todoByDb?.reminded_count ?? 0;
+
+      switch (todoApp.todo_app_code) {
+        case TodoAppCode.NOTION:
+          const notionTodo = todoByApi as INotionTask;
+          this.name = notionTodo.name;
+          this.todoapp_reg_id = notionTodo.todoappRegId;
+          this.todoapp_reg_url = notionTodo.todoappRegUrl;
+          this.todoapp_reg_created_by = notionTodo.createdById;
+          this.todoapp_reg_created_at = toJapanDateTime(notionTodo.createdAt);
+          this.deadline = notionTodo.deadline ? toJapanDateTime(notionTodo.deadline) : null;
+          this.is_done = notionTodo.isDone;
+          this.is_closed = notionTodo.isClosed;
+          break;
+        case TodoAppCode.TRELLO:
+          const trelloTodo = todoByApi as ITrelloTask;
+          this.name = trelloTodo.name;
+          this.todoapp_reg_id = trelloTodo.id;
+          this.todoapp_reg_url = trelloTodo.shortUrl;
+          this.todoapp_reg_created_by = trelloCreatedBy;
+          this.todoapp_reg_created_at = toJapanDateTime(trelloTodo.createdAt) || toJapanDateTime(trelloTodo.dateLastActivity);
+          this.deadline = trelloTodo.due;
+          this.is_done = trelloTodo.dueComplete;
+          this.is_closed = trelloTodo.closed;
+          break;
+        case TodoAppCode.MICROSOFT:
+          const microSoftTodo = todoByApi as IMicrosoftTask;
+          this.name = microSoftTodo.title;
+          this.todoapp_reg_id = microSoftTodo.id;
+          this.todoapp_reg_url = replaceString(
+            MICROSOFT_BASE_URL.concat("/", microSoftTodo.id), "{tenant}", microSoftPrimaryDomain);
+          this.todoapp_reg_created_by = microSoftTodo.userCreateBy;
+          this.todoapp_reg_created_at = toJapanDateTime(microSoftTodo.createdDateTime);
+          this.deadline = microSoftTodo.dueDateTime;
+          this.is_done = microSoftTodo.percentComplete === COMPLETED;
+          this.is_closed = false;
+          break;
+      }
     }
   }
 }

@@ -298,26 +298,7 @@ export default class MicrosoftRepository {
 
     const taskDeadLine = todoTask?.dueDateTime ? toJapanDateTime(todoTask.dueDateTime) : null;
     const taskUpdated = toJapanDateTime(todoTask.createdDateTime);
-
-    const todoData = new Todo();
-    todoData.id = todo?.id || null;
-    todoData.name = todoTask.title;
-    todoData.todoapp_id = todoapp.id;
-    todoData.todoapp_reg_id = todoTask.id;
-    todoData.todoapp_reg_url = replaceString(
-      MICROSOFT_BASE_URL.concat("/", todoTask.id),
-      "{tenant}",
-      primaryDomain
-    );
-    todoData.todoapp_reg_created_by = todoTask.userCreateBy;
-    todoData.todoapp_reg_created_at = todo?.todoapp_reg_created_at || taskUpdated;
-    todoData.company_id = company.id;
-    todoData.deadline = taskDeadLine;
-    todoData.is_done = todoTask.percentComplete === COMPLETED;
-    todoData.is_reminded = false;
-    todoData.is_closed = false;
-    todoData.delayed_count = todo?.delayed_count || 0;
-    todoData.reminded_count = todo?.reminded_count || 0;
+    const todoData = new Todo(todoTask, company, todoapp, todo, null, primaryDomain);
 
     //set first update task
     if (taskDeadLine) {

@@ -382,32 +382,9 @@ export default class NotionRepository {
   ): Promise<void> {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
-    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
-    const deadline = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
-    const todoData = new Todo();
-    todoData.id = todo?.id ?? null;
-    todoData.name = todoTask.name;
-    todoData.todoapp_id = todoapp.id;
-    todoData.todoapp_reg_id = todoTask.todoappRegId;
-    todoData.todoapp_reg_url = todoTask.todoappRegUrl;
-    todoData.todoapp_reg_created_by = todoTask.createdById;
-    todoData.todoapp_reg_created_at = toJapanDateTime(todoTask.createdAt);
-    todoData.company_id = company.id;
-    todoData.deadline = deadline;
-    todoData.is_done = todoTask.isDone;
-    todoData.is_reminded = todo?.is_reminded ?? false;
-    todoData.is_closed = todoTask.isClosed;
-    todoData.delayed_count = todo?.delayed_count ?? 0;
-    todoData.reminded_count = todo?.reminded_count ?? 0;
-
-    if (users.length) {
-      dataTodoUsers.push({ todoId: todoTask.todoappRegId, users });
-    }
-
-    if (sections.length) {
-      dataTodoSections.push({ todoId: todoTask.todoappRegId, sections });
-    }
+    users.length ? dataTodoUsers.push({ todoId: todoTask.todoappRegId, users }) : null;
+    sections.length ? dataTodoSections.push({ todoId: todoTask.todoappRegId, sections }) : null;
 
     dataTodoHistories.push({
       todoId: todoTask.todoappRegId,
@@ -420,7 +397,9 @@ export default class NotionRepository {
       editedBy: todoTask.lastEditedById,
     });
 
-    dataTodos.push(todoData);
+    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
+    const dataTodo = new Todo(todoTask, company, todoapp, todo);
+    dataTodos.push(dataTodo);
   }
 
   updateTodo = async (
