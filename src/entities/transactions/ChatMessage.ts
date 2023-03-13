@@ -103,7 +103,7 @@ export default class ChatMessage extends BaseEntity {
   todo: Todo;
 
   constructor(
-    chatTool: ChatTool,
+    chatTool: ChatTool | number,
     message: string,
     messageTriggerId: number,
     messageType: number,
@@ -117,7 +117,7 @@ export default class ChatMessage extends BaseEntity {
   ) {
     super();
     if (chatTool && message && messageTriggerId && messageType) {
-      this.chattool_id = chatTool.id;
+      this.chattool_id = typeof chatTool === "number" ? chatTool : chatTool.id;
       this.body = message;
       this.message_trigger_id = messageTriggerId;
       this.message_type_id = messageType;
@@ -129,7 +129,7 @@ export default class ChatMessage extends BaseEntity {
       this.send_at = toJapanDateTime(moment().utc().toDate());
 
       // Prefer
-      this.user_id = typeof user === "number" ? user : user.id;
+      this.user_id = typeof user === "number" ? user : user?.id;
       this.channel_id = channelId ?? this.channel_id;
       this.thread_id = threadId ?? this.thread_id;
       this.remind_type = remindTypes?.remindType ?? RemindType.NOT_REMIND;
