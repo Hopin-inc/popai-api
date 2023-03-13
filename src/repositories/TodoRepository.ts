@@ -1,11 +1,18 @@
 import dataSource from "@/config/data-source";
 import Todo from "@/entities/transactions/Todo";
-import { MAX_REMIND_COUNT } from "@/consts/common";
+import {
+  MAX_REMIND_COUNT,
+  NOT_UPDATED_DAYS,
+  TodoHistoryAction as Action,
+  TodoHistoryProperty as Property,
+} from "@/consts/common";
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
-import { Brackets, SelectQueryBuilder } from "typeorm";
+import { Between, Brackets, In, LessThan, SelectQueryBuilder } from "typeorm";
 import AppDataSource from "@/config/data-source";
 import TodoUser from "@/entities/transactions/TodoUser";
+import dayjs from "dayjs";
+import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
@@ -21,6 +28,71 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       .where("todos.todoapp_reg_id IN (:...todoIds)", { todoIds })
       .getMany();
   },
+
+  async getTodosCompletedYesterday(company: Company): Promise<Todo[]> {
+    const yesterday = dayjs().subtract(1, "d");
+    const targetHistories = await TodoHistoryRepository.getHistoriesCompletedYesterday(company, yesterday);
+    const targetTodoIds = targetHistories.map(history => history.todo_id);
+    const todos = this.find({
+      where: { id: In(targetTodoIds) },
+      relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
+    });
+    return todos.filter(todo => {
+      if (todo.histories) {
+        const histories = todo.histories
+          .filter(h => h.property === Property.IS_DONE)
+          .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
+        return histories && histories.length && histories.slice(-1)[0].action === Action.CREATE;
+      } else {
+        return false;
+      }
+    });
+  },
+
+  async getTodosDelayed(company: Company): Promise<Todo[]> {
+    const startOfToday = dayjs().startOf("d").toDate();
+    const delayedTodos = this.find({
+      where: {
+        company_id: company.id,
+        deadline: LessThan(startOfToday),
+        is_closed: false,
+        is_done: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section", "todoapp"],
+    });
+
+    return this.getNotArchivedTodos(delayedTodos);
+  },
+
+  async getTodosOngoing(company: Company): Promise<Todo[]> {
+    const startOfToday = dayjs().startOf("d").toDate();
+    const endOfToday = dayjs().endOf("d").toDate();
+    const onGoingTodos = this.find({
+      where: {
+        company_id: company.id,
+        deadline: Between(startOfToday, endOfToday),
+        is_closed: false,
+        is_done: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section", "todoapp"],
+    });
+
+    return this.getNotArchivedTodos(onGoingTodos);
+  },
+
+  async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
+    const thresholdDate = dayjs().subtract(NOT_UPDATED_DAYS, "d").startOf("d").toDate();
+    return this.find({
+      where: {
+        company_id: company.id,
+        updated_at: LessThan(thresholdDate),
+        is_done: false,
+        is_closed: false,
+      },
+      relations: ["todoUsers.user", "todoSections.section"],
+    });
+  },
+
   async getRemindTodos(
     company: Company,
     minDate: Date,
@@ -41,6 +113,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       .andWhere(user ? "todo_users.user_id = :user_id" : "1=1", { user_id: user?.id })
       .getMany();
   },
+
   async getNoDeadlineOrUnassignedTodos(companyId: number): Promise<Todo[]> {
     const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
       `not exists (${builder.getQuery()})`;
@@ -67,5 +140,4 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       )
       .getMany();
   },
-
 });

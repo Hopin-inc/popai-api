@@ -5,10 +5,10 @@ import LineRepository from "@/repositories/LineRepository";
 import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 
 import Company from "@/entities/settings/Company";
-import { ChatToolCode, DocumentToolCode } from "@/consts/common";
+import { ChatToolCode, DocumentToolCode, NOT_UPDATED_DAYS } from "@/consts/common";
 import logger from "@/logger/winston";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
-import { Repository } from "typeorm";
+import { LessThan, Repository } from "typeorm";
 import AppDataSource from "@/config/data-source";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
@@ -19,6 +19,8 @@ import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
+import dayjs from "dayjs";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class DailyReportService {
@@ -78,8 +80,8 @@ export default class DailyReportService {
         }
       });
       const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-        this.commonRepository.getDailyReportItems(company),
-        this.commonRepository.getNotUpdatedTodos(company),
+        this.getDailyReportItems(company),
+        TodoRepository.getNotUpdatedTodos(company),
       ]);
 
       const usersByDocApp = company.users.filter(u => u.documentTools.some(t => t.tool_code === DocumentToolCode.NOTION));
@@ -104,6 +106,15 @@ export default class DailyReportService {
       console.error(error);
       logger.error(new LoggerError(error.message));
     }
+  }
+
+  private async getDailyReportItems(company: Company): Promise<IDailyReportItems> {
+    const [completedYesterday, delayed, ongoing] = await Promise.all([
+      TodoRepository.getTodosCompletedYesterday(company),
+      TodoRepository.getTodosDelayed(company),
+      TodoRepository.getTodosOngoing(company),
+    ]);
+    return { completedYesterday, delayed, ongoing };
   }
 
   private async sendDailyReportForChannel(
