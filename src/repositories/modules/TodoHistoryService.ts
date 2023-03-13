@@ -21,19 +21,18 @@ import {
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
 import CommonRepository from "@/repositories/modules/CommonRepository";
+import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
-export default class TodoHistoryRepository {
-  private todoHistoryRepository: Repository<TodoHistory>;
+export default class TodoHistoryService {
   private todoAppUserRepository: Repository<TodoAppUser>;
   private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
   private commonRepository: CommonRepository;
 
   constructor() {
-    this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
@@ -51,7 +50,7 @@ export default class TodoHistoryRepository {
 
   private async saveTodoHistory(savedTodo: Todo, history: ITodoHistory, notify: boolean = false) {
     try {
-      const todoHistoryExists = await this.todoHistoryRepository.countBy({
+      const todoHistoryExists = await TodoHistoryRepository.countBy({
         todo_id: savedTodo.id,
         property: Property.NAME,
         action: Action.CREATE,
@@ -90,11 +89,11 @@ export default class TodoHistoryRepository {
         }
       } else {
         const [latestDelayedHistory, latestRecoveredHistory] = await Promise.all([
-          this.todoHistoryRepository.findOne({
+          TodoHistoryRepository.findOne({
             where: { todo_id: savedTodo.id, property: Property.IS_DELAYED },
             order: { created_at: "DESC" },
           }),
-          this.todoHistoryRepository.findOne({
+          TodoHistoryRepository.findOne({
             where: { todo_id: savedTodo.id, property: Property.IS_RECOVERED },
             order: { created_at: "DESC" },
           }),
@@ -136,7 +135,7 @@ export default class TodoHistoryRepository {
       }
 
       await Promise.all(argsList.map(([property, action, info, notification]) =>
-        this.todoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
+        TodoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
             notification && savedTodo.company?.chatTools?.map(chatTool =>
               this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id).then(archivedPage =>
                   archivedPage.archived === false && this.todoAppUserRepository.findOneBy({

@@ -18,12 +18,13 @@ import PropertyOption from "@/entities/settings/PropertyOption";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import TodoHistoryRepository from "@/repositories/modules/TodoHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
+import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
@@ -54,8 +55,8 @@ export default class NotionRepository {
   private propertyOptionRepository: Repository<PropertyOption>;
   private sectionRepository: Repository<Section>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
+  private todoHistoryService: TodoHistoryService;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
-  private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
@@ -71,12 +72,12 @@ export default class NotionRepository {
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
-    this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.notionPageBuilder = Container.get(NotionPageBuilder);
     this.commonRepository = Container.get(CommonRepository);
+    this.todoHistoryService = Container.get(TodoHistoryService);
   }
 
   public async syncTaskByUserBoards(company: Company, todoapp: TodoApp, notify: boolean = false): Promise<void> {
@@ -178,7 +179,7 @@ export default class NotionRepository {
     for (const todoAppUser of boardAdminUser.todoAppUsers) {
       if (section.board_id) {
         try {
-          const lastUpdatedDate = await this.commonRepository.getLastUpdatedDate(company, todoapp);
+          const lastUpdatedDate = await TodoHistoryRepository.getLastUpdatedDate(company, todoapp);
 
           let response = await this.notionRequest.databases.query({
             database_id: section.board_id,
@@ -362,7 +363,7 @@ export default class NotionRepository {
       const savedTodos = await TodoRepository.getTodoHistories(todoIds);
       await TodoRepository.upsert(todos, []);
       await Promise.all([
-        this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
+        this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
         this.todoUserRepository.saveTodoUsers(dataTodoUsers),
         this.todoSectionRepository.saveTodoSections(dataTodoSections),
         // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),

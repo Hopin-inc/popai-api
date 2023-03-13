@@ -10,7 +10,6 @@ import User from "@/entities/settings/User";
 
 import TodoUserRepository from "./modules/TodoUserRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import TodoHistoryRepository from "./modules/TodoHistoryRepository";
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
@@ -23,27 +22,28 @@ import { LoggerError } from "@/exceptions";
 import { ITodoTask, ITodoUserUpdate, ITodoUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
 @Service()
 export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
-  private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private todoUserRepository: TodoUserRepository;
   private todoSectionRepository: TodoSectionRepository;
+  private todoHistoryService: TodoHistoryService;
   private commonRepository: CommonRepository;
 
   constructor() {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
-    this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.todoUserRepository = Container.get(TodoUserRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.commonRepository = Container.get(CommonRepository);
+    this.todoHistoryService = Container.get(TodoHistoryService);
   }
 
   public async syncTaskByUserBoards(company: Company, todoapp: TodoApp, notify: boolean = false): Promise<void> {
@@ -224,7 +224,7 @@ export default class TrelloRepository {
       const savedTodos = await TodoRepository.getTodoHistories(todoIds);
       await TodoRepository.upsert(dataTodos, []);
       await Promise.all([
-        this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
+        this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
         this.todoUserRepository.saveTodoUsers(dataTodoUsers),
         this.todoSectionRepository.saveTodoSections(dataTodoSections),
         // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
