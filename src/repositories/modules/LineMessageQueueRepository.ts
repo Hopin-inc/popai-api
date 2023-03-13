@@ -13,28 +13,27 @@ import CommonRepository from "./CommonRepository";
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } from "@/consts/common";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class LineMessageQueueRepository {
   private lineQueueRepository: Repository<LineMessageQueue>;
-  private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
 
   constructor() {
     this.lineQueueRepository = AppDataSource.getRepository(LineMessageQueue);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.commonRepository = Container.get(CommonRepository);
   }
 
   public async updateStatusOfOldQueueTask(): Promise<void> {
     await this.updateStatusOldQueueTask(
       LineMessageQueueStatus.WAITING,
-      LineMessageQueueStatus.TIMEOUT_NOT_SENT
+      LineMessageQueueStatus.TIMEOUT_NOT_SENT,
     );
 
     await this.updateStatusOldQueueTask(
       LineMessageQueueStatus.UNREPLIED,
-      LineMessageQueueStatus.TIMEOUT_NO_REPLY
+      LineMessageQueueStatus.TIMEOUT_NO_REPLY,
     );
   }
 
@@ -43,10 +42,10 @@ export default class LineMessageQueueRepository {
     await this.createLineQueueMessage(company, chattoolUsers, todos);
   }
 
-  public async createTodayQueueTaskForUser (
+  public async createTodayQueueTaskForUser(
     chattoolUsers: ChatToolUser[],
     user: User,
-    company: Company
+    company: Company,
   ): Promise<any> {
     const todos: Todo[] = await this.getTodosToRemind(company, user);
     await this.createLineQueueMessage(company, chattoolUsers, todos);
@@ -55,10 +54,10 @@ export default class LineMessageQueueRepository {
   private async createLineQueueMessage(
     company: Company,
     chattoolUsers: ChatToolUser[],
-    todos: Todo[]
+    todos: Todo[],
   ): Promise<void> {
     const dayReminds: number[] = await this.commonRepository.getDayReminds(
-      company.companyConditions
+      company.companyConditions,
     );
     const today = toJapanDateTime(new Date());
 
@@ -72,7 +71,7 @@ export default class LineMessageQueueRepository {
           company.chatTools.forEach(async chatTool => {
             if (chatTool.tool_code === ChatToolCode.LINE) {
               const chatToolUser = chattoolUsers.find(
-                chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === user.id
+                chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === user.id,
               );
 
               if (chatToolUser) {
@@ -107,23 +106,7 @@ export default class LineMessageQueueRepository {
     const minDate = moment(today).add(-maxValue, "days").startOf("day").toDate();
     const maxDate = moment(today).add(-minValue + 1, "days").startOf("day").toDate();
 
-    let query = this.todoRepository
-      .createQueryBuilder("todos")
-      .leftJoinAndSelect("todos.todoUsers", "todo_users")
-      .leftJoinAndSelect("todo_users.user", "users")
-      .where("todos.is_done = :done", { done: false })
-      .andWhere("todos.is_closed = :closed", { closed: false })
-      .andWhere("todos.company_id = :company_id", { company_id: company.id })
-      .andWhere("todos.reminded_count < :reminded_count", { reminded_count: MAX_REMIND_COUNT })
-      .andWhere("todos.deadline >= :min_date", { min_date: minDate })
-      .andWhere("todos.deadline <= :max_date", { max_date: maxDate })
-      .andWhere("todo_users.deleted_at IS NULL");
-
-    if (user) {
-      query = query.andWhere("todo_users.user_id = :user_id", { user_id: user.id });
-    }
-
-    return await query.getMany();
+    return await TodoRepository.getRemindTodos(company, minDate, maxDate, user);
   }
 
   public async fetchLineMessageQueue(userId: number): Promise<LineMessageQueue> {
@@ -197,7 +180,7 @@ export default class LineMessageQueueRepository {
         "line_message_queues.todo",
         "todos",
         "line_message_queues.todo_id = todos.id AND todos.reminded_count < :count",
-        { count: MAX_REMIND_COUNT }
+        { count: MAX_REMIND_COUNT },
       )
       .innerJoinAndSelect("line_message_queues.user", "users")
       .where("is_reminded = :is_reminded", { is_reminded: RemindType.NOT_REMIND })

@@ -1,7 +1,6 @@
 import { LoggerError } from "@/exceptions";
 import { Repository } from "typeorm";
 import { Service, Container } from "typedi";
-import moment from "moment";
 import FormData from "form-data";
 
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
@@ -26,12 +25,12 @@ import AppDataSource from "@/config/data-source";
 import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
 import { IMicrosoftRefresh, IMicrosoftTask, IMicrosoftToken } from "@/types/microsoft";
 import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class MicrosoftRepository {
   private todoAppUserRepository: Repository<TodoAppUser>;
   private microsoftRequest: MicrosoftRequest;
-  private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoUserRepository: TodoUserRepository;
@@ -41,7 +40,6 @@ export default class MicrosoftRepository {
   constructor() {
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.microsoftRequest = Container.get(MicrosoftRequest);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoUserRepository = Container.get(TodoUserRepository);
@@ -270,7 +268,7 @@ export default class MicrosoftRepository {
         );
       }));
 
-      const response = await this.todoRepository.upsert(dataTodos, []);
+      const response = await TodoRepository.upsert(dataTodos, []);
 
       if (response) {
         await Promise.all([
@@ -294,7 +292,7 @@ export default class MicrosoftRepository {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    const todo: Todo = await this.todoRepository.findOneBy({
+    const todo: Todo = await TodoRepository.findOneBy({
       todoapp_reg_id: todoTask.id,
     });
 
@@ -374,7 +372,7 @@ export default class MicrosoftRepository {
         task.delayed_count--;
       }
 
-      await this.todoRepository.save(task);
+      await TodoRepository.save(task);
       const todoUpdate: ITodoUpdate = {
         todoId: task.todoapp_reg_id,
         newDueTime: task.deadline,

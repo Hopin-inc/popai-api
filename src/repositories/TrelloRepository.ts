@@ -1,5 +1,4 @@
 import { Repository } from "typeorm";
-import moment from "moment";
 import { Service, Container } from "typedi";
 
 import Todo from "@/entities/transactions/Todo";
@@ -23,11 +22,11 @@ import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { ITodoTask, ITodoUserUpdate, ITodoUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
-  private todoRepository: Repository<Todo>;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private todoHistoryRepository: TodoHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -38,7 +37,6 @@ export default class TrelloRepository {
 
   constructor() {
     this.trelloRequest = Container.get(TrelloRequest);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.todoHistoryRepository = Container.get(TodoHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
@@ -222,17 +220,9 @@ export default class TrelloRepository {
         return this.addDataTodo(taskRemind, dataTodos, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
-      const savedTodos = await this.todoRepository.createQueryBuilder("todos")
-        .leftJoinAndSelect("todos.todoUsers", "todo_users")
-        .leftJoinAndSelect("todo_users.user", "users")
-        .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
-        .leftJoinAndSelect("todos.todoSections", "todo_sections")
-        .leftJoinAndSelect("todo_sections.section", "sections")
-        .leftJoinAndSelect("todos.company", "company")
-        .leftJoinAndSelect("company.implementedChatTools", "implemented_chat_tools")
-        .leftJoinAndSelect("implemented_chat_tools.chattool", "chat_tool")
-        .getMany();
-      await this.todoRepository.upsert(dataTodos, []);
+      const todoIds: string[] = taskReminds.map(t => t.cardTodo.todoTask.id);
+      const savedTodos = await TodoRepository.getTodoHistories(todoIds);
+      await TodoRepository.upsert(dataTodos, []);
       await Promise.all([
         this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
         this.todoUserRepository.saveTodoUsers(dataTodoUsers),
@@ -254,7 +244,7 @@ export default class TrelloRepository {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    const todo: Todo = await this.todoRepository.findOneBy({
+    const todo: Todo = await TodoRepository.findOneBy({
       todoapp_reg_id: todoTask.id,
     });
 
@@ -333,7 +323,7 @@ export default class TrelloRepository {
         task.delayed_count--;
       }
 
-      await this.todoRepository.save(task);
+      await TodoRepository.save(task);
       const todoUpdate: ITodoUpdate = {
         todoId: task.todoapp_reg_id,
         newDueTime: task.deadline,

@@ -32,7 +32,6 @@ import DailyReport from "@/entities/transactions/DailyReport";
 export default class LineRepository {
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
-  private todoRepository: Repository<Todo>;
   private dailyReportRepository: Repository<DailyReport>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
@@ -40,7 +39,6 @@ export default class LineRepository {
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.commonRepository = Container.get(CommonRepository);

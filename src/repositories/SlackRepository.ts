@@ -21,6 +21,8 @@ import Section from "@/entities/settings/Section";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
+import { TodoRepository } from "@/repositories/TodoRepository";
+
 import CommonRepository from "./modules/CommonRepository";
 import logger from "@/logger/winston";
 import {
@@ -49,7 +51,6 @@ import { INotionDailyReport } from "@/types/notion";
 export default class SlackRepository {
   private userRepository: Repository<User>;
   private messageRepository: Repository<ChatMessage>;
-  private todoRepository: Repository<Todo>;
   private commonRepository: CommonRepository;
   private sectionRepository: Repository<Section>;
   private chattoolRepository: Repository<ChatTool>;
@@ -60,7 +61,6 @@ export default class SlackRepository {
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.commonRepository = Container.get(CommonRepository);
     this.sectionRepository = AppDataSource.getRepository(Section);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
@@ -361,7 +361,7 @@ export default class SlackRepository {
       todo_id: Not(IsNull()),
     });
     if (message) {
-      return await this.todoRepository.findOne({
+      return await TodoRepository.findOne({
         where: { id: message.todo_id },
         relations: ["todoapp", "company", "company.sections"],
       });
@@ -485,7 +485,7 @@ export default class SlackRepository {
 
     if (channelId) {
       const chattoolUsers = await this.commonRepository.getChatToolUsers();
-      const needRemindTasks = await this.commonRepository.getNoDeadlineOrUnassignedTodos(company.id);
+      const needRemindTasks = await TodoRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
       // 期日未設定のタスクがない旨のメッセージが管理者に送られること
       if (needRemindTasks.length) {
@@ -663,7 +663,7 @@ export default class SlackRepository {
     const todoDatas = todos.map(todo => {
       return { ...todo, reminded_count: todo.reminded_count + 1 };
     });
-    return await this.todoRepository.upsert(todoDatas, []);
+    return await TodoRepository.upsert(todoDatas, []);
   }
 
   private async getTodayRemindTasks(company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> {
@@ -716,23 +716,7 @@ export default class SlackRepository {
       .startOf("day")
       .toDate();
 
-    const query = this.todoRepository
-      .createQueryBuilder("todos")
-      .leftJoinAndSelect("todos.todoUsers", "todo_users")
-      .leftJoinAndSelect("todo_users.user", "users")
-      .where("todos.is_done = :done", { done: false })
-      .andWhere("todos.is_closed = :closed", { closed: false })
-      .andWhere("todos.company_id = :company_id", { company_id: company.id })
-      .andWhere("todos.reminded_count < :reminded_count", { reminded_count: MAX_REMIND_COUNT })
-      .andWhere("todos.deadline >= :min_date", { min_date: minDate })
-      .andWhere("todos.deadline <= :max_date", { max_date: maxDate })
-      .andWhere("todo_users.deleted_at IS NULL");
-
-    if (user) {
-      query.andWhere("todo_users.user_id = :user_id", { user_id: user.id });
-    }
-
-    return await query.getMany();
+    return await TodoRepository.getRemindTodos(company, minDate, maxDate, user);
   }
 
   public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool, editUser: TodoAppUser, channelId: string) {
@@ -901,7 +885,7 @@ export default class SlackRepository {
 
   public async shareReliefCommentAndUpdateDailyReport(viewId: string, comment: string, prospectRecord: Prospect) {
     const [todo, user] = await Promise.all([
-      this.todoRepository.findOne({
+      TodoRepository.findOne({
         where: { id: prospectRecord.todo_id },
         relations: [
           "company.implementedChatTools.chattool",

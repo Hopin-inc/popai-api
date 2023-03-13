@@ -8,15 +8,14 @@ import Section from "@/entities/settings/Section";
 import AppDataSource from "@/config/data-source";
 import { extractArrayDifferences } from "@/utils/common";
 import { ITodoSectionUpdate } from "@/types";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class TodoSectionRepository {
   private todoSectionRepository: Repository<TodoSection>;
-  private todoRepository: Repository<Todo>;
 
   constructor() {
     this.todoSectionRepository = AppDataSource.getRepository(TodoSection);
-    this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
   public async updateTodoSection(todo: Todo, sections: Section[]): Promise<void> {
@@ -53,7 +52,7 @@ export default class TodoSectionRepository {
     const updatedTodoSections: TodoSection[] = [];
     const deletedTodoSections: TodoSection[] = [];
     await Promise.all(dataTodoSections.map(async dataTodoSection => {
-      const todo: Todo = await this.todoRepository.findOneBy({
+      const todo: Todo = await TodoRepository.findOneBy({
         todoapp_reg_id: dataTodoSection.todoId,
       });
       if (todo) {

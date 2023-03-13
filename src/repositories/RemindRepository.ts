@@ -18,19 +18,18 @@ import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { ITodoLines } from "@/types";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class RemindRepository {
   private lineRepository: LineRepository;
   private commonRepository: CommonRepository;
-  private todoRepository: Repository<Todo>;
   private lineQueueRepository: LineMessageQueueRepository;
   private chattoolRepository: Repository<ChatTool>;
 
   constructor() {
     this.lineRepository = Container.get(LineRepository);
     this.commonRepository = Container.get(CommonRepository);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
@@ -259,7 +258,7 @@ export default class RemindRepository {
     });
 
     if (todoData.length) {
-      return await this.todoRepository.upsert(todoData, []);
+      return await TodoRepository.upsert(todoData, []);
     }
   }
 }

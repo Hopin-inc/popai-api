@@ -5,7 +5,6 @@ import {
   UpdatePageParameters,
 } from "@notionhq/client/build/src/api-endpoints";
 import { Container, Service } from "typedi";
-import moment from "moment";
 
 import Todo from "@/entities/transactions/Todo";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
@@ -23,6 +22,8 @@ import TodoHistoryRepository from "@/repositories/modules/TodoHistoryRepository"
 import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
+
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
@@ -47,7 +48,6 @@ import { valueOf } from "../../dist/types";
 @Service()
 export default class NotionRepository {
   private notionRequest: Client;
-  private todoRepository: Repository<Todo>;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
@@ -64,7 +64,6 @@ export default class NotionRepository {
 
   constructor() {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
@@ -359,17 +358,9 @@ export default class NotionRepository {
         return this.addDataTodo(taskRemind, todos, dataTodoHistories, dataTodoUsers, dataTodoSections);
       }));
 
-      const savedTodos = await this.todoRepository.createQueryBuilder("todos")
-        .leftJoinAndSelect("todos.todoUsers", "todo_users")
-        .leftJoinAndSelect("todo_users.user", "users")
-        .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
-        .leftJoinAndSelect("todos.todoSections", "todo_sections")
-        .leftJoinAndSelect("todo_sections.section", "sections")
-        .leftJoinAndSelect("todos.company", "company")
-        .leftJoinAndSelect("company.implementedChatTools", "implemented_chat_tools")
-        .leftJoinAndSelect("implemented_chat_tools.chattool", "chat_tool")
-        .getMany();
-      await this.todoRepository.upsert(todos, []);
+      const todoIds: string[] = taskReminds.map(t => t.cardTodo.todoTask.todoappRegId);
+      const savedTodos = await TodoRepository.getTodoHistories(todoIds);
+      await TodoRepository.upsert(todos, []);
       await Promise.all([
         this.todoHistoryRepository.saveTodoHistories(savedTodos, dataTodoHistories, notify),
         this.todoUserRepository.saveTodoUsers(dataTodoUsers),
@@ -390,7 +381,7 @@ export default class NotionRepository {
   ): Promise<void> {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
-    const todo: Todo = await this.todoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
+    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
     const deadline = todoTask.deadline ? toJapanDateTime(todoTask.deadline) : null;
 
     const todoData = new Todo();
@@ -457,7 +448,7 @@ export default class NotionRepository {
         task.delayed_count--;
       }
 
-      await this.todoRepository.save(task);
+      await TodoRepository.save(task);
       const todoUpdate: ITodoUpdate = {
         todoId: task.todoapp_reg_id,
         newDueTime: task.deadline,

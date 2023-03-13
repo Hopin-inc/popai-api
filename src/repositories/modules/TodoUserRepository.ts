@@ -8,15 +8,14 @@ import User from "@/entities/settings/User";
 import AppDataSource from "@/config/data-source";
 import { extractArrayDifferences } from "@/utils/common";
 import { ITodoUserUpdate } from "@/types";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class TodoUserRepository {
   private todoUserRepository: Repository<TodoUser>;
-  private todoRepository: Repository<Todo>;
 
   constructor() {
     this.todoUserRepository = AppDataSource.getRepository(TodoUser);
-    this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
   public async updateTodoUser(todo: Todo, users: User[]): Promise<void> {
@@ -53,7 +52,7 @@ export default class TodoUserRepository {
     const updatedTodoUsers: TodoUser[] = [];
     const deletedTodoUsers: TodoUser[] = [];
     await Promise.all(dataTodoUsers.map(async dataTodoUser => {
-      const todo: Todo = await this.todoRepository.findOneBy({
+      const todo: Todo = await TodoRepository.findOneBy({
         todoapp_reg_id: dataTodoUser.todoId,
       });
       if (todo) {

@@ -27,7 +27,6 @@ type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 @Service()
 export default class TodoHistoryRepository {
   private todoHistoryRepository: Repository<TodoHistory>;
-  private todoRepository: Repository<Todo>;
   private todoAppUserRepository: Repository<TodoAppUser>;
   private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
@@ -35,7 +34,6 @@ export default class TodoHistoryRepository {
 
   constructor() {
     this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
