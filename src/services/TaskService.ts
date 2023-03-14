@@ -23,13 +23,13 @@ import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
 import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 
 @Service()
 export default class TaskService {
   private trelloRepository: TrelloRepository;
   private microsoftRepository: MicrosoftRepository;
   private notionRepository: NotionRepository;
-  private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private slackRepository: SlackRepository;
@@ -40,7 +40,6 @@ export default class TaskService {
     this.trelloRepository = Container.get(TrelloRepository);
     this.microsoftRepository = Container.get(MicrosoftRepository);
     this.notionRepository = Container.get(NotionRepository);
-    this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.slackRepository = Container.get(SlackRepository);
@@ -58,7 +57,7 @@ export default class TaskService {
 
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
-      const companies = await this.companyRepository.find({
+      const companies = await CompanyRepository.find({
         relations: [
           "implementedTodoApps.todoApp",
           "implementedChatTools.chattool",
@@ -105,7 +104,7 @@ export default class TaskService {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
       const chattoolUsers = await ChatToolUserRepository.find();
-      const companies = await this.companyRepository.find({
+      const companies = await CompanyRepository.find({
         relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
       });
 
@@ -177,7 +176,7 @@ export default class TaskService {
       job.status = RemindUserJobStatus.PROCESSING;
       await this.remindUserJobRepository.save(job);
 
-      const userCompany = await this.companyRepository.findOne({
+      const userCompany = await CompanyRepository.findOne({
         relations: ["implementedTodoApps.todoapp", "implementedChatTools.chattool", "adminUser", "companyConditions"],
         where: { id: user.company_id, is_demo: true },
       });

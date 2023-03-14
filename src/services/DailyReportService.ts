@@ -8,8 +8,6 @@ import Company from "@/entities/settings/Company";
 import { ChatToolCode, DocumentToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
-import { Repository } from "typeorm";
-import AppDataSource from "@/config/data-source";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
@@ -18,6 +16,7 @@ import ChatTool from "@/entities/masters/ChatTool";
 import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 
 @Service()
 export default class DailyReportService {
@@ -25,20 +24,18 @@ export default class DailyReportService {
   private lineRepository: LineRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private notionRepository: NotionRepository;
-  private companyRepository: Repository<Company>;
 
   constructor() {
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.notionRepository = Container.get(NotionRepository);
-    this.companyRepository = AppDataSource.getRepository(Company);
   }
 
   public async sendDailyReport(): Promise<any> {
     try {
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
-      const companies = await this.companyRepository.find({
+      const companies = await CompanyRepository.find({
         relations: [
           "sections",
           "users.chattoolUsers.chattool",

@@ -1,4 +1,3 @@
-import { Repository } from "typeorm";
 import { Service, Container } from "typedi";
 
 import ChatTool from "@/entities/masters/ChatTool";
@@ -14,7 +13,6 @@ import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts/common";
-import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { ITodoLines } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
