@@ -1,5 +1,5 @@
-import { Container, Service } from "typedi";
-import { In, Repository } from "typeorm";
+import { Service } from "typedi";
+import { In } from "typeorm";
 import { FlexComponent, Message } from "@line/bot-sdk";
 
 import ChatMessage from "@/entities/transactions/ChatMessage";
@@ -7,8 +7,6 @@ import ChatTool from "@/entities/masters/ChatTool";
 import ReportingLine from "@/entities/settings/ReportingLine";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
-import DailyReportConfig from "@/entities/settings/DailyReportConfig";
-
 
 import { LoggerError } from "@/exceptions";
 import LineMessageBuilder from "@/common/LineMessageBuilder";
@@ -32,12 +30,6 @@ import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRe
 
 @Service()
 export default class LineRepository {
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
-
-  constructor() {
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
-  }
-
   public async reportByCompany(
     dailyReportTodos: IDailyReportItems,
     company: Company,

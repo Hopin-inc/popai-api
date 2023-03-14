@@ -5,22 +5,19 @@ import LineRepository from "@/repositories/LineRepository";
 import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 
 import Company from "@/entities/settings/Company";
-import { ChatToolCode, DocumentToolCode, NOT_UPDATED_DAYS } from "@/consts/common";
+import { ChatToolCode, DocumentToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
-import { LessThan, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import AppDataSource from "@/config/data-source";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 import ChatTool from "@/entities/masters/ChatTool";
-import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
-import dayjs from "dayjs";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
-import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 @Service()
 export default class DailyReportService {
@@ -28,7 +25,6 @@ export default class DailyReportService {
   private lineRepository: LineRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private notionRepository: NotionRepository;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private companyRepository: Repository<Company>;
 
   constructor() {
@@ -36,7 +32,6 @@ export default class DailyReportService {
     this.lineRepository = Container.get(LineRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.notionRepository = Container.get(NotionRepository);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.companyRepository = AppDataSource.getRepository(Company);
   }
 

@@ -49,6 +49,7 @@ import { CompanyConditionRepository } from "@/repositories/settings/CompanyCondi
 import { PropertyRepository } from "@/repositories/settings/PropertyRepository";
 import { OptionRepository } from "@/repositories/settings/OptionRepository";
 import { PropertyOptionRepository } from "@/repositories/settings/PropertyOptionRepository";
+import { DailyReportConfigRepository } from "@/repositories/settings/DailyReportConfigRepository";
 
 @Service()
 export default class NotionRepository {
@@ -56,7 +57,6 @@ export default class NotionRepository {
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private todoHistoryService: TodoHistoryService;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -68,7 +68,6 @@ export default class NotionRepository {
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
@@ -445,7 +444,7 @@ export default class NotionRepository {
   ): Promise<INotionDailyReport[]> {
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const configRecord = await this.dailyReportConfigRepository.findOneBy({ company_id: company.id });
+      const configRecord = await DailyReportConfigRepository.findOneBy({ company_id: company.id });
       const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; //TODO:DBに格納して取得できるようにする
 
       const postOperations = [];

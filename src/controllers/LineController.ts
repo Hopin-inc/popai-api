@@ -1,4 +1,3 @@
-import { Repository } from "typeorm";
 import { Controller } from "tsoa";
 import Container from "typedi";
 import { FlexMessage, MessageAPIResponseBase, TextMessage, WebhookEvent } from "@line/bot-sdk";
@@ -23,7 +22,6 @@ import {
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { diffDays, toJapanDateTime } from "@/utils/common";
-import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 

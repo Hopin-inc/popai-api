@@ -1,4 +1,4 @@
-import { Container, Service } from "typedi";
+import { Service } from "typedi";
 import { In, IsNull, Not, Repository } from "typeorm";
 import {
   Block,
@@ -44,7 +44,6 @@ import Prospect from "@/entities/transactions/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
-import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { INotionDailyReport } from "@/types/notion";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
@@ -56,11 +55,9 @@ import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRe
 @Service()
 export default class SlackRepository {
   private prospectRepository: Repository<Prospect>;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
     this.prospectRepository = AppDataSource.getRepository(Prospect);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
   }
 
   public async reportByUser(
