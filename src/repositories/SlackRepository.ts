@@ -22,6 +22,7 @@ import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
 
 import CommonRepository from "./modules/CommonRepository";
 import logger from "@/logger/winston";
@@ -482,7 +483,7 @@ export default class SlackRepository {
     const channelId = await this.getSendChannel(company);
 
     if (channelId) {
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+      const chattoolUsers = await ChatToolUserRepository.find();
       const needRemindTasks = await TodoRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
       // 期日未設定のタスクがない旨のメッセージが管理者に送られること
@@ -643,7 +644,7 @@ export default class SlackRepository {
 
   public async remindTodayTaskForUser(company: Company): Promise<void> {
     const channelId = await this.getSendChannel(company);
-    const chatToolUsers = await this.commonRepository.getChatToolUsers();
+    const chatToolUsers = await ChatToolUserRepository.find();
     const remindTasks: Todo[] = await this.getTodayRemindTasks(company, chatToolUsers);
     const chatTool = await this.chattoolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
     const userTodoMap = this.mapUserRemindTaskList(remindTasks, chatTool, chatToolUsers);

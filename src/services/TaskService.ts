@@ -15,6 +15,8 @@ import SlackRepository from "@/repositories/SlackRepository";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
+import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
+
 import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import AppDataSource from "@/config/data-source";
@@ -104,7 +106,7 @@ export default class TaskService {
     try {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+      const chattoolUsers = await ChatToolUserRepository.find();
       const companies = await this.companyRepository.find({
         relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
       });
@@ -191,7 +193,7 @@ export default class TaskService {
 
       // update old line queue
       await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+      const chattoolUsers = await ChatToolUserRepository.find();
 
       // create queue for user
       await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);

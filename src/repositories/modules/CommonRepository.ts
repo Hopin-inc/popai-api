@@ -42,7 +42,6 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 @Service()
 export default class CommonRepository {
   private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
-  private chatToolUserRepository: Repository<ChatToolUser>;
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
   private boardPropertyRepository: Repository<BoardProperty>;
@@ -53,7 +52,6 @@ export default class CommonRepository {
 
   constructor() {
     this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
-    this.chatToolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
@@ -75,25 +73,6 @@ export default class CommonRepository {
       ));
     }
     return implementTodoApp;
-  }
-
-  public async getChatToolUsers(): Promise<ChatToolUser[]> {
-    return await this.chatToolUserRepository.find();
-  }
-
-  public async getChatToolUser(userId: number, chatToolId: number): Promise<ChatToolUser> {
-    const chatToolUser = await this.chatToolUserRepository.findOneBy({
-      user_id: userId,
-      chattool_id: chatToolId,
-      auth_key: Not(IsNull()),
-    });
-
-    if (!chatToolUser) {
-      logger.error(new LoggerError(
-        `chat_tool_usersのデータ(user_id=${userId}, chattool_id=${chatToolId})がありません。`,
-      ));
-    }
-    return chatToolUser;
   }
 
   public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {

@@ -19,6 +19,7 @@ import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { ITodoLines } from "@/types";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
 
 @Service()
 export default class RemindRepository {
@@ -40,7 +41,7 @@ export default class RemindRepository {
 
     const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks(user);
 
-    const chattoolUsers = await this.commonRepository.getChatToolUsers();
+    const chattoolUsers = await ChatToolUserRepository.find();
     const chattool = await this.chattoolRepository.findOneBy({
       tool_code: ChatToolCode.LINE,
     });
@@ -68,14 +69,14 @@ export default class RemindRepository {
   private mapUserQueueTaskList(
     todoAllTodayQueueTasks: LineMessageQueue[],
     chatTool: ChatTool,
-    chatToolUsers: ChatToolUser[]
+    chatToolUsers: ChatToolUser[],
   ): Map<number, ITodoLines[]> {
     const map = new Map<number, ITodoLines[]>();
 
     for (const lineQueues of todoAllTodayQueueTasks) {
       const remindDays = diffDays(toJapanDateTime(lineQueues.todo.deadline), toJapanDateTime(new Date()));
       const chatToolUser = chatToolUsers.find(chatToolUser =>
-        chatTool && chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === lineQueues.user.id
+        chatTool && chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === lineQueues.user.id,
       );
 
       if (chatToolUser) {
@@ -114,7 +115,7 @@ export default class RemindRepository {
       logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
     }
 
-    const chatToolUsers = await this.commonRepository.getChatToolUsers();
+    const chatToolUsers = await ChatToolUserRepository.find();
     const needRemindTasks = await TodoRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
     // 期日未設定のタスクがない旨のメッセージが管理者に送られること
@@ -133,7 +134,7 @@ export default class RemindRepository {
             if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chatToolUsers.find(
-                chatToolUser => chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === adminUser.id
+                chatToolUser => chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === adminUser.id,
               );
 
               if (chatToolUser) {
@@ -149,7 +150,7 @@ export default class RemindRepository {
           if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
             const adminUser = company.adminUser;
             const chatToolUser = chatToolUsers.find(
-              chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === adminUser.id
+              chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === adminUser.id,
             );
 
             if (chatToolUser) {
@@ -161,7 +162,7 @@ export default class RemindRepository {
 
       // ・期日未設定のタスク一覧が1つのメッセージで担当者に送られること
       const notSetDueDateTasks = needRemindTasks.filter(
-        todo => todo.deadline && todo.users.length && todo.reminded_count < MAX_REMIND_COUNT
+        todo => todo.deadline && todo.users.length && todo.reminded_count < MAX_REMIND_COUNT,
       );
 
       // Send list task to each user
