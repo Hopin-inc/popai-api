@@ -797,7 +797,7 @@ export default class SlackRepository {
     const chatTool = company.chatTools.find(chatTool => chatTool.tool_code === ChatToolCode.SLACK);
     const askedProspects: Prospect[] = [];
     if (chatTool) {
-      const todos = target ? target.todos : await this.commonRepository.getActiveTodos(company);
+      const todos = target ? target.todos : await TodoRepository.getActiveTodos(company);
       await Promise.all(todos.map(async todo => {
         const message = SlackMessageBuilder.createAskProspectMessage(todo);
         const users = target ? [target.user] : todo.users;
@@ -871,7 +871,7 @@ export default class SlackRepository {
   }
 
   public async openPlanModal(user: User, channelId: string, triggerId: string, milestoneText: string) {
-    const todos = await this.commonRepository.getActiveTodos(user.company, user);
+    const todos = await TodoRepository.getActiveTodos(user.company, user);
     const blocks = SlackMessageBuilder.createAskPlanModal(todos, milestoneText);
     await this.openModal(triggerId, "着手するタスクを決める", blocks, SlackModalLabel.PLAN);
   }
@@ -924,7 +924,7 @@ export default class SlackRepository {
     const report = dailyReports.sort(Sorter.byDate<DailyReport>("created_at")).slice(-1)[0];
     const [completedYesterday, delayed, ongoing] = await Promise.all(
       [report.todo_ids_yesterday, report.todo_ids_delayed, report.todo_ids_ongoing].map(ids => {
-        return this.commonRepository.getTodosByIds(ids);
+        return TodoRepository.getTodosByIds(ids);
       }),
     );
     const items: IDailyReportItems = { completedYesterday, delayed, ongoing };

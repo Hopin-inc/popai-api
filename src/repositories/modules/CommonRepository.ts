@@ -98,22 +98,6 @@ export default class CommonRepository {
     return timings.filter(t => t.days_of_week.includes(day));
   }
 
-  public async getActiveTodos(company: Company, user?: User): Promise<Todo[]> {
-    const filterByUser: FindOptionsWhere<Todo> = user ? { todoUsers: { user_id: user.id } } : {};
-    const startDate = dayjs().startOf("day").toDate();
-    const endDate = dayjs().endOf("day").toDate();
-    return await TodoRepository.find({
-      where: {
-        company_id: company.id,
-        deadline: Between(startDate, endDate),
-        is_done: false,
-        is_closed: false,
-        ...filterByUser,
-      },
-      relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],
-    });
-  }
-
   public async getDailyReportsToday(
     company?: Company,
     user?: User,
@@ -134,42 +118,6 @@ export default class CommonRepository {
       dailyReports.filter(report => sections.some(section => report.section_ids.includes(section.id)));
     }
     return dailyReports;
-  }
-
-  public async getTodosByIds(
-    ids: number[],
-    relations: string[] = ["todoUsers.user", "todoSections.section", "prospects"],
-  ): Promise<Todo[]> {
-    return await TodoRepository.find({ where: { id: In(ids) }, relations });
-  }
-
-  public async getNotArchivedTodos(todos: Todo[]): Promise<Todo[]> {
-    const archivedPages: PageObjectResponse[] = [];
-    await Promise.all(todos.map(async todo => {
-      if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
-        const archivedPage = await this.syncArchivedTrue(todo.todoapp_reg_id);
-        if (archivedPage.archived === true) {
-          archivedPages.push(await archivedPage);
-        }
-      }
-    }));
-    if (archivedPages) {
-      return todos.filter(todo => !archivedPages?.some(page => page.id === todo.todoapp_reg_id ?? true));
-    } else {
-      return todos;
-    }
-  }
-
-  public async syncArchivedTrue(todoappRegId: string) {
-    const isPageResponse: GetPageResponse = await this.notionRequest.pages.retrieve({ page_id: todoappRegId });
-    if ("object" in isPageResponse && "properties" in isPageResponse) {
-      const pageResponse: PageObjectResponse = isPageResponse;
-      if (pageResponse.archived === true) {
-        const deletedPageRecord = await TodoRepository.find({ where: { todoapp_reg_id: todoappRegId } });
-        await TodoRepository.softRemove(deletedPageRecord);
-      }
-      return pageResponse;
-    }
   }
 
   public async saveProperty(id: string, name: string, type: number, sectionId: number) {

@@ -2,17 +2,18 @@ import dataSource from "@/config/data-source";
 import Todo from "@/entities/transactions/Todo";
 import {
   MAX_REMIND_COUNT,
-  NOT_UPDATED_DAYS,
+  NOT_UPDATED_DAYS, TodoAppCode,
   TodoHistoryAction as Action,
   TodoHistoryProperty as Property,
 } from "@/consts/common";
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
-import { Between, Brackets, In, LessThan, SelectQueryBuilder } from "typeorm";
+import { Between, Brackets, FindOptionsWhere, In, LessThan, SelectQueryBuilder } from "typeorm";
 import AppDataSource from "@/config/data-source";
 import TodoUser from "@/entities/transactions/TodoUser";
 import dayjs from "dayjs";
 import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
+import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
@@ -61,7 +62,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
 
-    return this.getNotArchivedTodos(delayedTodos);
+    return Promise.all(delayedTodos.map(dt => this.getNotArchivedTodoInNotion(dt)));
   },
 
   async getTodosOngoing(company: Company): Promise<Todo[]> {
@@ -77,7 +78,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
 
-    return this.getNotArchivedTodos(onGoingTodos);
+    return Promise.all(onGoingTodos.map(og => this.getNotArchivedTodoInNotion(og)));
   },
 
   async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
@@ -91,6 +92,46 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       },
       relations: ["todoUsers.user", "todoSections.section"],
     });
+  },
+
+  async getActiveTodos(company: Company, user?: User): Promise<Todo[]> {
+    const filterByUser: FindOptionsWhere<Todo> = user ? { todoUsers: { user_id: user.id } } : {};
+    const startDate = dayjs().startOf("day").toDate();
+    const endDate = dayjs().endOf("day").toDate();
+    return this.find({
+      where: {
+        company_id: company.id,
+        deadline: Between(startDate, endDate),
+        is_done: false,
+        is_closed: false,
+        ...filterByUser,
+      },
+      relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],
+    });
+  },
+
+  async getNotArchivedTodoInNotion(todo: Todo): Promise<Todo> {
+    if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
+      const pageResponse = await this.notionRequest.pages.retrieve({ page_id: todo.todoapp_reg_id });
+      if ("object" in pageResponse && "properties" in pageResponse) {
+        const pageObjectResponse: PageObjectResponse = pageResponse;
+        if (pageObjectResponse.archived === true) {
+          const deletedPageRecord = await this.find({ where: { todoapp_reg_id: todo.todoapp_reg_id } });
+          await this.softRemove(deletedPageRecord);
+        } else {
+          return todo;
+        }
+      }
+    } else {
+      return todo;
+    }
+  },
+
+  async getTodosByIds(
+    ids: number[],
+    relations: string[] = ["todoUsers.user", "todoSections.section", "prospects"],
+  ): Promise<Todo[]> {
+    return this.find({ where: { id: In(ids) }, relations });
   },
 
   async getRemindTodos(

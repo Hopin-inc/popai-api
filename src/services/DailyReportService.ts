@@ -21,6 +21,7 @@ import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
 import dayjs from "dayjs";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 @Service()
 export default class DailyReportService {

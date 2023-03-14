@@ -22,8 +22,8 @@ import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
 import CommonRepository from "@/repositories/modules/CommonRepository";
 import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
-import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
@@ -137,8 +137,8 @@ export default class TodoHistoryService {
       await Promise.all(argsList.map(([property, action, info, notification]) =>
         TodoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
             notification && savedTodo.company?.chatTools?.map(chatTool =>
-              this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id).then(archivedPage =>
-                  archivedPage.archived === false && TodoAppUserRepository.findOneBy({
+              TodoRepository.getNotArchivedTodoInNotion(savedTodo).then(activeTodo =>
+                  activeTodo !== null && TodoAppUserRepository.findOneBy({
                     employee_id: editedBy,
                     todoapp_id: savedTodo.todoapp_id,
                   }).then(editUser =>

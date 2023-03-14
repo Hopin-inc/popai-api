@@ -31,6 +31,7 @@ import { SlackInteractionPayload, SlackView } from "@/types/slack";
 import { PlainTextOption } from "@slack/types";
 
 import { SectionRepository } from "@/repositories/SectionRepository";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -147,7 +148,7 @@ export default class SlackController extends Controller {
           return [
             undefined,
             async () => {
-              const todos = await this.commonRepository.getTodosByIds(todoIds);
+              const todos = await TodoRepository.getTodosByIds(todoIds);
               await this.slackRepository.askProspects(user.company, { user, todos });
             },
           ];
