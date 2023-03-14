@@ -7,7 +7,6 @@ import User from "@/entities/settings/User";
 import Todo from "@/entities/transactions/Todo";
 import Section from "@/entities/settings/Section";
 
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import SlackRepository from "@/repositories/SlackRepository";
 
 import { ChatToolCode, MessageTriggerType, TodoStatus } from "@/consts/common";
@@ -37,13 +36,11 @@ export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
   private chatToolRepository: Repository<ChatTool>;
   private todoRepository: Repository<Todo>;
-  private commonRepository: CommonRepository;
   private taskService: TaskService;
 
   constructor() {
     super();
     this.slackRepository = Container.get(SlackRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.chatToolRepository = AppDataSource.getRepository(ChatTool);
     this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);

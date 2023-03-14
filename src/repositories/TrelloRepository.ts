@@ -8,7 +8,6 @@ import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
 
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
 
@@ -32,14 +31,12 @@ export default class TrelloRepository {
   private lineQueueRepository: LineMessageQueueRepository;
   private todoSectionRepository: TodoSectionRepository;
   private todoHistoryService: TodoHistoryService;
-  private commonRepository: CommonRepository;
 
   constructor() {
     this.trelloRequest = Container.get(TrelloRequest);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.todoHistoryService = Container.get(TodoHistoryService);
   }
 

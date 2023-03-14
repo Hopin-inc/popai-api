@@ -16,7 +16,6 @@ import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 import ChatTool from "@/entities/masters/ChatTool";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
 import dayjs from "dayjs";
@@ -28,7 +27,6 @@ export default class DailyReportService {
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private commonRepository: CommonRepository;
   private notionRepository: NotionRepository;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private companyRepository: Repository<Company>;
@@ -37,7 +35,6 @@ export default class DailyReportService {
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.notionRepository = Container.get(NotionRepository);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.companyRepository = AppDataSource.getRepository(Company);

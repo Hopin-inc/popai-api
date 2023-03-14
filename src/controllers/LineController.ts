@@ -8,7 +8,6 @@ import ChatTool from "@/entities/masters/ChatTool";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import LineRepository from "@/repositories/LineRepository";
 import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 
@@ -35,14 +34,12 @@ export default class LineController extends Controller {
   private readonly chattoolRepository: Repository<ChatTool>;
   private readonly todoRepository: Repository<Todo>;
   private messageRepository: Repository<ChatMessage>;
-  private readonly commonRepository: CommonRepository;
   private readonly lineQueueRepository: LineMessageQueueRepository;
   private readonly taskService: TaskService;
 
   constructor() {
     super();
     this.lineRepository = Container.get(LineRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);

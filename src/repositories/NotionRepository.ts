@@ -17,7 +17,6 @@ import OptionCandidate from "@/entities/settings/OptionCandidate";
 import PropertyOption from "@/entities/settings/PropertyOption";
 
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
 import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
@@ -47,6 +46,9 @@ import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { valueOf } from "../../dist/types";
 import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
+import { PropertyRepository } from "@/repositories/PropertyRepository";
+import { OptionRepository } from "@/repositories/OptionRepository";
+import { PropertyOptionRepository } from "@/repositories/PropertyOptionRepository";
 
 @Service()
 export default class NotionRepository {
@@ -60,7 +62,6 @@ export default class NotionRepository {
   private lineQueueRepository: LineMessageQueueRepository;
   private todoSectionRepository: TodoSectionRepository;
   private notionPageBuilder: NotionPageBuilder;
-  private commonRepository: CommonRepository;
 
   constructor() {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
@@ -72,7 +73,6 @@ export default class NotionRepository {
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.notionPageBuilder = Container.get(NotionPageBuilder);
-    this.commonRepository = Container.get(CommonRepository);
     this.todoHistoryService = Container.get(TodoHistoryService);
   }
 
@@ -129,7 +129,7 @@ export default class NotionRepository {
 
       await Promise.all(updatedProperties.map(async property => {
         const { id, name, type, sectionId } = property;
-        await this.commonRepository.saveProperty(id, name, type, sectionId);
+        await PropertyRepository.saveProperty(id, name, type, sectionId);
         return this.getOptionCandidates(property, sectionId);
       }));
     } catch (error) {
@@ -150,14 +150,14 @@ export default class NotionRepository {
         const typeKey = Object.keys(NotionPropertyType).find(key => NotionPropertyType[key] === property.type);
         const options = property[typeKey.toLowerCase()].options;
         await Promise.all(options.map(option => {
-          this.commonRepository.saveOptionCandidate(propertyRecord.id, option.id, sectionId, option.name);
+          OptionRepository.saveOptionCandidate(propertyRecord.id, option.id, sectionId, option.name);
         }));
         break;
       case NotionPropertyType.RELATION:
-        await this.commonRepository.saveOptionCandidate(propertyRecord.id, property.relation.database_id, sectionId);
+        await OptionRepository.saveOptionCandidate(propertyRecord.id, property.relation.database_id, sectionId);
         break;
       default:
-        await this.commonRepository.savePropertyOption(propertyRecord.id);
+        await PropertyOptionRepository.savePropertyOption(propertyRecord.id);
         break;
     }
   }

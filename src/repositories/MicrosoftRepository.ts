@@ -13,7 +13,6 @@ import TodoApp from "@/entities/masters/TodoApp";
 
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import CommonRepository from "./modules/CommonRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
 
 import { replaceString, toJapanDateTime, diffDays } from "@/utils/common";
@@ -37,14 +36,12 @@ export default class MicrosoftRepository {
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private todoSectionRepository: TodoSectionRepository;
-  private commonRepository: CommonRepository;
 
   constructor() {
     this.microsoftRequest = Container.get(MicrosoftRequest);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
-    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async syncTaskByUserBoards(company: Company, todoapp: TodoApp): Promise<void> {

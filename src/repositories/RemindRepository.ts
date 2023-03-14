@@ -9,7 +9,6 @@ import ChatToolUser from "@/entities/settings/ChatToolUser";
 import Company from "@/entities/settings/Company";
 
 import LineRepository from "./LineRepository";
-import CommonRepository from "./modules/CommonRepository";
 import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
@@ -24,13 +23,11 @@ import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
 @Service()
 export default class RemindRepository {
   private lineRepository: LineRepository;
-  private commonRepository: CommonRepository;
   private lineQueueRepository: LineMessageQueueRepository;
   private chattoolRepository: Repository<ChatTool>;
 
   constructor() {
     this.lineRepository = Container.get(LineRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }

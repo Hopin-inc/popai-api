@@ -24,7 +24,6 @@ import User from "@/entities/settings/User";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
 
-import CommonRepository from "./modules/CommonRepository";
 import logger from "@/logger/winston";
 import {
   ChatToolCode,
@@ -55,14 +54,12 @@ import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepos
 @Service()
 export default class SlackRepository {
   private messageRepository: Repository<ChatMessage>;
-  private commonRepository: CommonRepository;
   private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);

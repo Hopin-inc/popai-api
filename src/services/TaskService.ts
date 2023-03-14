@@ -12,7 +12,6 @@ import TrelloRepository from "@/repositories/TrelloRepository";
 import RemindRepository from "@/repositories/RemindRepository";
 import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 import SlackRepository from "@/repositories/SlackRepository";
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
 import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
@@ -33,7 +32,6 @@ export default class TaskService {
   private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private commonRepository: CommonRepository;
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
   private remindUserJobRepository: Repository<RemindUserJob>;
@@ -45,7 +43,6 @@ export default class TaskService {
     this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
     this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);

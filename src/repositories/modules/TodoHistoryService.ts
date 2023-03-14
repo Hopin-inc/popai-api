@@ -20,7 +20,6 @@ import {
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
 import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
 import { TodoRepository } from "@/repositories/TodoRepository";
@@ -31,12 +30,10 @@ type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 export default class TodoHistoryService {
   private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
-  private commonRepository: CommonRepository;
 
   constructor() {
     this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
-    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async saveTodoHistories(savedTodos: Todo[], todos: ITodoHistory[], notify: boolean = false): Promise<void> {

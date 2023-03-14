@@ -8,7 +8,6 @@ import LineMessageQueue from "@/entities/transactions/LineMessageQueue";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import CommonRepository from "./CommonRepository";
 
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } from "@/consts/common";
 import { diffDays, toJapanDateTime } from "@/utils/common";
@@ -19,11 +18,9 @@ import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepos
 @Service()
 export default class LineMessageQueueRepository {
   private lineQueueRepository: Repository<LineMessageQueue>;
-  private commonRepository: CommonRepository;
 
   constructor() {
     this.lineQueueRepository = AppDataSource.getRepository(LineMessageQueue);
-    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async updateStatusOfOldQueueTask(): Promise<void> {

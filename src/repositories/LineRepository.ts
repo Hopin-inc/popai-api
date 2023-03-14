@@ -9,7 +9,6 @@ import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 
-import CommonRepository from "./modules/CommonRepository";
 
 import { LoggerError } from "@/exceptions";
 import LineMessageBuilder from "@/common/LineMessageBuilder";
@@ -34,12 +33,10 @@ import { DailyReportRepository } from "@/repositories/DailyReportRepository";
 export default class LineRepository {
   private messageRepository: Repository<ChatMessage>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
-  private commonRepository: CommonRepository;
 
   constructor() {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
-    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async reportByCompany(
