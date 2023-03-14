@@ -21,8 +21,8 @@ import Section from "@/entities/settings/Section";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
 import logger from "@/logger/winston";
 import {
@@ -46,20 +46,19 @@ import DailyReport from "@/entities/transactions/DailyReport";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { INotionDailyReport } from "@/types/notion";
-import { UserRepository } from "@/repositories/UserRepository";
-import { SectionRepository } from "@/repositories/SectionRepository";
-import { DailyReportRepository } from "@/repositories/DailyReportRepository";
-import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
-import { ChatToolRepository } from "@/repositories/ChatToolRepository";
+import { UserRepository } from "@/repositories/settings/UserRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { DailyReportRepository } from "@/repositories/transactions/DailyReportRepository";
+import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
 
 @Service()
 export default class SlackRepository {
-  private messageRepository: Repository<ChatMessage>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
-    this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
   }
@@ -149,7 +148,7 @@ export default class SlackRepository {
         todo,
         null,
       );
-      return await this.messageRepository.save(chatMessage);
+      return await ChatMessageRepository.save(chatMessage);
     }
   }
 
@@ -350,7 +349,7 @@ export default class SlackRepository {
   }
 
   public async getSlackTodo(channelId: string, threadId: string): Promise<Todo> {
-    const message = await this.messageRepository.findOneBy({
+    const message = await ChatMessageRepository.findOneBy({
       channel_id: channelId,
       thread_id: threadId,
       todo_id: Not(IsNull()),
@@ -367,7 +366,7 @@ export default class SlackRepository {
 
   public async createMessage(chatMessage: ChatMessage): Promise<ChatMessage> {
     try {
-      return await this.messageRepository.save(chatMessage);
+      return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -375,7 +374,7 @@ export default class SlackRepository {
 
   public async findMessageById(id: number): Promise<ChatMessage> {
     try {
-      return await this.messageRepository.findOneBy({
+      return await ChatMessageRepository.findOneBy({
         id: id,
       });
     } catch (error) {
@@ -416,7 +415,7 @@ export default class SlackRepository {
           channelId,
           ts,
         );
-        await this.messageRepository.save(chatMessage);
+        await ChatMessageRepository.save(chatMessage);
       }
       return response;
     }
@@ -448,7 +447,7 @@ export default class SlackRepository {
           channelId,
           threadId,
         );
-        return await this.messageRepository.save(chatMessage);
+        return await ChatMessageRepository.save(chatMessage);
       }
     }
   }

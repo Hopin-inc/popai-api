@@ -19,7 +19,7 @@ import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
 import dayjs from "dayjs";
-import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 @Service()

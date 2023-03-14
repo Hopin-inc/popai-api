@@ -20,9 +20,9 @@ import {
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
-import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
-import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
-import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
+import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 

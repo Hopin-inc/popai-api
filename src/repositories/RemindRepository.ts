@@ -17,9 +17,9 @@ import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts
 import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { ITodoLines } from "@/types";
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
-import { ChatToolRepository } from "@/repositories/ChatToolRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 
 @Service()
 export default class RemindRepository {

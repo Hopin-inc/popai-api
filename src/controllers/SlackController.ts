@@ -29,9 +29,9 @@ import { Block, KnownBlock } from "@slack/web-api";
 import { SlackInteractionPayload, SlackView } from "@/types/slack";
 import { PlainTextOption } from "@slack/types";
 
-import { SectionRepository } from "@/repositories/SectionRepository";
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { ChatToolRepository } from "@/repositories/ChatToolRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;

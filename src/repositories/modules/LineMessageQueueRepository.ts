@@ -12,8 +12,8 @@ import User from "@/entities/settings/User";
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } from "@/consts/common";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 
 @Service()
 export default class LineMessageQueueRepository {

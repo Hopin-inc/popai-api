@@ -8,7 +8,7 @@ import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { ITodoUpdate } from "@/types";
-import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 @Service()
 export default class TodoUpdateHistoryRepository {

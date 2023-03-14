@@ -23,12 +23,12 @@ import AppDataSource from "@/config/data-source";
 import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
 import { IMicrosoftRefresh, IMicrosoftTask, IMicrosoftToken } from "@/types/microsoft";
 import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { TodoUserRepository } from "@/repositories/TodoUserRepository";
-import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
-import { SectionRepository } from "@/repositories/SectionRepository";
-import { ImplementedTodoAppRepository } from "@/repositories/ImplementedTodoAppRepository";
-import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
+import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 
 @Service()
 export default class MicrosoftRepository {

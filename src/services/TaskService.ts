@@ -14,7 +14,7 @@ import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueR
 import SlackRepository from "@/repositories/SlackRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
-import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
 import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
@@ -22,7 +22,7 @@ import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
-import { EventTimingRepository } from "@/repositories/EventTimingRepository";
+import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
 
 @Service()
 export default class TaskService {

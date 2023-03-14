@@ -17,10 +17,10 @@ import TrelloRequest from "@/services/TrelloRequest";
 import { LoggerError } from "@/exceptions";
 import { ITodoTask, ITodoUserUpdate, ITodoUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { TodoUserRepository } from "@/repositories/TodoUserRepository";
-import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
-import { SectionRepository } from "@/repositories/SectionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
 
 import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 

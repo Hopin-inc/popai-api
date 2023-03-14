@@ -26,16 +26,15 @@ import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import { INotionDailyReport } from "@/types/notion";
 import DailyReport from "@/entities/transactions/DailyReport";
-import { UserRepository } from "@/repositories/UserRepository";
-import { DailyReportRepository } from "@/repositories/DailyReportRepository";
+import { UserRepository } from "@/repositories/settings/UserRepository";
+import { DailyReportRepository } from "@/repositories/transactions/DailyReportRepository";
+import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
 
 @Service()
 export default class LineRepository {
-  private messageRepository: Repository<ChatMessage>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
-    this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
   }
 
@@ -111,7 +110,7 @@ export default class LineRepository {
         todo,
         messageToken,
       );
-      await this.messageRepository.save(chatMessage);
+      await ChatMessageRepository.save(chatMessage);
 
       const messageForSend = LineMessageBuilder.createRemindMessage(
         chatMessage.message_token,
@@ -332,7 +331,7 @@ export default class LineRepository {
 
   public async createMessage(chatMessage: ChatMessage): Promise<ChatMessage> {
     try {
-      return await this.messageRepository.save(chatMessage);
+      return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -340,7 +339,7 @@ export default class LineRepository {
 
   public async findMessageById(id: number): Promise<ChatMessage> {
     try {
-      return await this.messageRepository.findOneBy({ id });
+      return await ChatMessageRepository.findOneBy({ id });
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -370,7 +369,7 @@ export default class LineRepository {
         null,
         linkToken,
       );
-      return await this.messageRepository.save(chatMessage);
+      return await ChatMessageRepository.save(chatMessage);
     }
   }
 
@@ -397,7 +396,7 @@ export default class LineRepository {
       null,
       replyToken,
     );
-    return await this.messageRepository.save(chatMessage);
+    return await ChatMessageRepository.save(chatMessage);
   }
 
   public async pushTodoLine(todoLine: ITodoLines): Promise<ChatMessage> {

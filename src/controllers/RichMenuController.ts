@@ -10,7 +10,7 @@ import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import AppDataSource from "@/config/data-source";
 import LineBot from "@/config/line-bot";
-import { ChatToolRepository } from "@/repositories/ChatToolRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 
 export default class RichMenuController extends Controller {
   private chattoolUserRepository: Repository<ChatToolUser>;

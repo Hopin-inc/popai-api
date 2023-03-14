@@ -1,6 +1,6 @@
 import dataSource from "@/config/data-source";
 import PropertyOption from "@/entities/settings/PropertyOption";
-import { OptionRepository } from "@/repositories/OptionRepository";
+import { OptionRepository } from "@/repositories/settings/OptionRepository";
 
 export const PropertyOptionRepository = dataSource.getRepository(PropertyOption).extend({
   async savePropertyOption(propertyId: number, optionId?: string) {

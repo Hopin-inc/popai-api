@@ -5,7 +5,7 @@ import User from "@/entities/settings/User";
 import { extractArrayDifferences } from "@/utils/common";
 import { In } from "typeorm";
 import { ITodoUserUpdate } from "@/types";
-import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
   async updateTodoUser(todo: Todo, users: User[]): Promise<void> {

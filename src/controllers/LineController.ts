@@ -27,20 +27,19 @@ import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
-import { SectionRepository } from "@/repositories/SectionRepository";
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { ChatToolRepository } from "@/repositories/ChatToolRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
-  private messageRepository: Repository<ChatMessage>;
   private readonly lineQueueRepository: LineMessageQueueRepository;
   private readonly taskService: TaskService;
 
   constructor() {
     super();
     this.lineRepository = Container.get(LineRepository);
-    this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.taskService = Container.get(TaskService);
   }
@@ -223,7 +222,7 @@ export default class LineController extends Controller {
           replyToken,
           messageParentId,
         );
-        await this.messageRepository.save(chatMessage);
+        await ChatMessageRepository.save(chatMessage);
         await this.sendSuperiorMessage(
           chattool,
           superiorUser,

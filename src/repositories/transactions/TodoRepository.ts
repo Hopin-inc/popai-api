@@ -12,7 +12,7 @@ import { Between, Brackets, FindOptionsWhere, In, LessThan, SelectQueryBuilder }
 import AppDataSource from "@/config/data-source";
 import TodoUser from "@/entities/transactions/TodoUser";
 import dayjs from "dayjs";
-import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
+import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({

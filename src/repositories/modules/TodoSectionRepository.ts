@@ -8,7 +8,7 @@ import Section from "@/entities/settings/Section";
 import AppDataSource from "@/config/data-source";
 import { extractArrayDifferences } from "@/utils/common";
 import { ITodoSectionUpdate } from "@/types";
-import { TodoRepository } from "@/repositories/TodoRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 @Service()
 export default class TodoSectionRepository {

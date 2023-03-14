@@ -21,10 +21,10 @@ import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
 import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
 
-import { TodoRepository } from "@/repositories/TodoRepository";
-import { TodoHistoryRepository } from "@/repositories/TodoHistoryRepository";
-import { TodoUserRepository } from "@/repositories/TodoUserRepository";
-import { SectionRepository } from "@/repositories/SectionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
+import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
@@ -45,10 +45,10 @@ import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { valueOf } from "../../dist/types";
-import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
-import { PropertyRepository } from "@/repositories/PropertyRepository";
-import { OptionRepository } from "@/repositories/OptionRepository";
-import { PropertyOptionRepository } from "@/repositories/PropertyOptionRepository";
+import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
+import { PropertyRepository } from "@/repositories/settings/PropertyRepository";
+import { OptionRepository } from "@/repositories/settings/OptionRepository";
+import { PropertyOptionRepository } from "@/repositories/settings/PropertyOptionRepository";
 
 @Service()
 export default class NotionRepository {
