@@ -51,15 +51,10 @@ import { DailyReportRepository } from "@/repositories/transactions/DailyReportRe
 import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
+import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
 
 @Service()
 export default class SlackRepository {
-  private prospectRepository: Repository<Prospect>;
-
-  constructor() {
-    this.prospectRepository = AppDataSource.getRepository(Prospect);
-  }
-
   public async reportByUser(
     items: IDailyReportItems,
     company: Company,
@@ -800,7 +795,7 @@ export default class SlackRepository {
         }));
       }));
     }
-    await this.prospectRepository.upsert(askedProspects, []);
+    await ProspectRepository.upsert(askedProspects, []);
   }
 
   public async askPlans(company: Company, milestone?: string) {
@@ -825,7 +820,7 @@ export default class SlackRepository {
     const [slackProfile] = await Promise.all([
       this.getUserProfile(user.slackId),
       SlackBot.chat.update({ channel: channelId, ts: threadId, text: todo.name, blocks }),
-      this.prospectRepository.update(where, { prospect, prospect_responded_at: new Date() }),
+      await ProspectRepository.update(where, { prospect, prospect_responded_at: new Date() }),
     ]);
     if (prospect >= ProspectLevel.GOOD) {
       await this.updateDailyReportWithProspects(user, slackProfile?.profile?.image_48);
@@ -842,15 +837,15 @@ export default class SlackRepository {
   ) {
     const todo = await this.getSlackTodo(channelId, threadId);
     const where = { todo_id: todo.id, slack_ts: threadId };
-    const { prospect } = await this.prospectRepository.findOneBy(where);
-    await this.prospectRepository.update(where, { action, action_responded_at: new Date() });
+    const { prospect } = await ProspectRepository.findOneBy(where);
+    await ProspectRepository.update(where, { action, action_responded_at: new Date() });
     const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(todo, prospect, action);
     await SlackBot.chat.update({ channel: channelId, ts: threadId, text: todo.name, blocks });
   }
 
   public async openReliefCommentModal(channelId: string, threadId: string, triggerId: string) {
     const where = { slack_channel_id: channelId, slack_ts: threadId };
-    const { action } = await this.prospectRepository.findOneBy(where);
+    const { action } = await ProspectRepository.findOneBy(where);
     const targetAction = reliefActions.find(a => a.value === action);
     const blocks = SlackMessageBuilder.createReliefCommentModal();
     const viewId = await this.openModal(
@@ -859,7 +854,7 @@ export default class SlackRepository {
       blocks,
       SlackModalLabel.RELIEF_COMMENT,
     );
-    await this.prospectRepository.update(where, { slack_view_id: viewId });
+    await ProspectRepository.update(where, { slack_view_id: viewId });
   }
 
   public async openPlanModal(user: User, channelId: string, triggerId: string, milestoneText: string) {
@@ -869,8 +864,8 @@ export default class SlackRepository {
   }
 
   public async receiveReliefComment(viewId: string, comment: string) {
-    const prospectRecord = await this.prospectRepository.findOneBy({ slack_view_id: viewId });
-    await this.prospectRepository.update(prospectRecord.id, { comment, comment_responded_at: new Date() });
+    const prospectRecord = await ProspectRepository.findOneBy({ slack_view_id: viewId });
+    await ProspectRepository.update(prospectRecord.id, { comment, comment_responded_at: new Date() });
     return prospectRecord;
   }
 
