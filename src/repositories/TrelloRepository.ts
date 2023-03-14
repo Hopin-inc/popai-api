@@ -1,4 +1,3 @@
-import { Repository } from "typeorm";
 import { Service, Container } from "typedi";
 
 import Todo from "@/entities/transactions/Todo";
@@ -223,7 +222,7 @@ export default class TrelloRepository {
       await TodoRepository.upsert(dataTodos, []);
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
-        TodoUserRepository.saveTodoUsers(dataTodoUsers),
+        await TodoUserRepository.saveTodoUsers(dataTodoUsers),
         this.todoSectionRepository.saveTodoSections(dataTodoSections),
         // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);

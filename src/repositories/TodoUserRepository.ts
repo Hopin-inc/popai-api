@@ -9,7 +9,7 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 
 export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
   async updateTodoUser(todo: Todo, users: User[]): Promise<void> {
-    const todoUsers: TodoUser[] = await this.todoUserRepository.find({
+    const todoUsers: TodoUser[] = await this.find({
       where: { todo_id: todo.id },
       withDeleted: true,
     });
@@ -46,7 +46,7 @@ export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
         todoapp_reg_id: dataTodoUser.todoId,
       });
       if (todo) {
-        const savedTodoUsers = await this.todoUserRepository.find({
+        const savedTodoUsers = await this.find({
           where: { todo_id: todo.id },
           withDeleted: true,
         });
@@ -65,15 +65,15 @@ export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
             deletedTodoUsers.push(savedTodoUser);
           }
         });
-        await this.todoUserRepository.restore({
+        await this.restore({
           todo_id: todo.id,
           user_id: In(restoredUserIds),
         });
       }
     }));
     await Promise.all([
-      this.todoUserRepository.upsert(updatedTodoUsers, []),
-      this.todoUserRepository.softRemove(deletedTodoUsers),
+      this.upsert(updatedTodoUsers, []),
+      this.softRemove(deletedTodoUsers),
     ]);
   },
 
