@@ -23,6 +23,7 @@ import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
+import { EventTimingRepository } from "@/repositories/EventTimingRepository";
 
 @Service()
 export default class TaskService {
@@ -135,7 +136,7 @@ export default class TaskService {
 
   public async askProspects(): Promise<any> {
     try {
-      const timings = await this.commonRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
+      const timings = await EventTimingRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
       await Promise.all(timings.map(async t => {
         const { company, ask_plan: askPlan, ask_plan_milestone: milestone } = t;
         for (const chatTool of company.chatTools) {

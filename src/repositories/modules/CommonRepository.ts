@@ -35,7 +35,6 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class CommonRepository {
-  private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
@@ -44,7 +43,6 @@ export default class CommonRepository {
   private notionRequest: Client;
 
   constructor() {
-    this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
@@ -57,23 +55,6 @@ export default class CommonRepository {
     return companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
-  }
-
-  public async getEventTargetCompanies(significance: number, event: valueOf<typeof EventType>): Promise<EventTiming[]> {
-    const now = toJapanDateTime(new Date());
-    const executedTimeRounded = roundMinutes(now, significance, "floor");
-    const time = dayjs(executedTimeRounded).format("HH:mm:ss");
-    const day = dayjs(now).day();
-    const timings = await this.eventTimingRepository.find({
-      where: { time, event },
-      relations: [
-        "company.sections",
-        "company.users.chattoolUsers.chattool",
-        "company.implementedChatTools.chattool",
-        "company.adminUser.chattoolUsers.chattool",
-      ],
-    });
-    return timings.filter(t => t.days_of_week.includes(day));
   }
 
   public async getDailyReportsToday(
