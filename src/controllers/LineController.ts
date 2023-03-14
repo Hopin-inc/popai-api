@@ -28,11 +28,11 @@ import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
 import { SectionRepository } from "@/repositories/SectionRepository";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
   private readonly chattoolRepository: Repository<ChatTool>;
-  private readonly todoRepository: Repository<Todo>;
   private messageRepository: Repository<ChatMessage>;
   private readonly lineQueueRepository: LineMessageQueueRepository;
   private readonly taskService: TaskService;
@@ -43,7 +43,6 @@ export default class LineController extends Controller {
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);
   }
 
@@ -191,7 +190,7 @@ export default class LineController extends Controller {
         todo.reminded_count += 1;
       }
 
-      await this.todoRepository.save(todo);
+      await TodoRepository.save(todo);
     }
   }
 

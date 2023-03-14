@@ -6,19 +6,18 @@ import Todo from "@/entities/transactions/Todo";
 
 import AppDataSource from "@/config/data-source";
 import { toJapanDateTime } from "@/utils/common";
+import { TodoRepository } from "@/repositories/TodoRepository";
 
 export default class MessageController extends Controller {
   private messageRepository: Repository<ChatMessage>;
-  private todoRepository: Repository<Todo>;
 
   constructor() {
     super();
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
   public async handleRedirect(todoId: number, messageToken: string): Promise<string> {
-    const todo = await this.todoRepository.findOneBy({
+    const todo = await TodoRepository.findOneBy({
       id: todoId,
     });
 

@@ -35,14 +35,12 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
   private chatToolRepository: Repository<ChatTool>;
-  private todoRepository: Repository<Todo>;
   private taskService: TaskService;
 
   constructor() {
     super();
     this.slackRepository = Container.get(SlackRepository);
     this.chatToolRepository = AppDataSource.getRepository(ChatTool);
-    this.todoRepository = AppDataSource.getRepository(Todo);
     this.taskService = Container.get(TaskService);
   }
 
