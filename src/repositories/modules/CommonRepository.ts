@@ -1,10 +1,6 @@
 import {
   Between,
   FindOptionsWhere,
-  In,
-  IsNull,
-  LessThan,
-  Not,
   Repository,
 } from "typeorm";
 import { Service } from "typedi";
@@ -12,9 +8,7 @@ import dayjs from "dayjs";
 
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import Company from "@/entities/settings/Company";
-import ChatToolUser from "@/entities/settings/ChatToolUser";
 import Section from "@/entities/settings/Section";
-import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 import CompanyCondition from "@/entities/settings/CompanyCondition";
 import PropertyOption from "@/entities/settings/PropertyOption";
@@ -41,7 +35,6 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class CommonRepository {
-  private implementedTodoAppRepository: Repository<ImplementedTodoApp>;
   private eventTimingRepository: Repository<EventTiming>;
   private dailyReportRepository: Repository<DailyReport>;
   private boardPropertyRepository: Repository<BoardProperty>;
@@ -51,7 +44,6 @@ export default class CommonRepository {
   private notionRequest: Client;
 
   constructor() {
-    this.implementedTodoAppRepository = AppDataSource.getRepository(ImplementedTodoApp);
     this.eventTimingRepository = AppDataSource.getRepository(EventTiming);
     this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
@@ -59,20 +51,6 @@ export default class CommonRepository {
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-  }
-
-  public async getImplementTodoApp(companyId: number, todoappId: number): Promise<ImplementedTodoApp> {
-    const implementTodoApp = await this.implementedTodoAppRepository.findOneBy({
-      company_id: companyId,
-      todoapp_id: todoappId,
-    });
-
-    if (!implementTodoApp) {
-      logger.error(new LoggerError(
-        `implemented_todo_appsのデータ(company_id=${companyId}, todoapp_id=${todoappId})がありません。`,
-      ));
-    }
-    return implementTodoApp;
   }
 
   public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {
