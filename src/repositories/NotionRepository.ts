@@ -280,7 +280,7 @@ export default class NotionRepository {
       };
 
       const [sectionIds, createdById, lastEditedById] = await Promise.all([
-        SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
+        await SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
         this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
         this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
       ]);

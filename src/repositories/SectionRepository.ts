@@ -10,9 +10,9 @@ export const SectionRepository = dataSource.getRepository(Section).extend({
     company: Company,
     todoApp: TodoApp,
     labelIds: string[],
-  ) {
+  ): Promise<number[]> {
     if (labelIds) {
-      const registeredLabelRecords = this.find({
+      const registeredLabelRecords: Section[] = await this.find({
         where: {
           company_id: company.id,
           todoapp_id: todoApp.id,
