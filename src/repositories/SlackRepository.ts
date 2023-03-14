@@ -49,6 +49,7 @@ import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { INotionDailyReport } from "@/types/notion";
 import { UserRepository } from "@/repositories/UserRepository";
 import { SectionRepository } from "@/repositories/SectionRepository";
+import { DailyReportRepository } from "@/repositories/DailyReportRepository";
 
 @Service()
 export default class SlackRepository {
@@ -56,7 +57,6 @@ export default class SlackRepository {
   private commonRepository: CommonRepository;
   private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
-  private dailyReportRepository: Repository<DailyReport>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
@@ -64,7 +64,6 @@ export default class SlackRepository {
     this.commonRepository = Container.get(CommonRepository);
     this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
-    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
   }
 
@@ -87,7 +86,7 @@ export default class SlackRepository {
       ts = ts ?? res?.ts;
       const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
       const dailyReport = new DailyReport(user, company, sections, items, channel, ts, filteredRes.pageId, filteredRes.docAppRegUrl);
-      await this.dailyReportRepository.save(dailyReport);
+      await DailyReportRepository.save(dailyReport);
     }
   }
 
@@ -920,7 +919,7 @@ export default class SlackRepository {
   }
 
   private async updateDailyReportWithProspects(user: User, iconUrl: string) {
-    const dailyReports = await this.commonRepository.getDailyReportsToday(user.company, user);
+    const dailyReports = await DailyReportRepository.getDailyReportsToday(user.company, user);
     const report = dailyReports.sort(Sorter.byDate<DailyReport>("created_at")).slice(-1)[0];
     const [completedYesterday, delayed, ongoing] = await Promise.all(
       [report.todo_ids_yesterday, report.todo_ids_delayed, report.todo_ids_ongoing].map(ids => {

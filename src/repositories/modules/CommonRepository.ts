@@ -35,7 +35,6 @@ import { TodoRepository } from "@/repositories/TodoRepository";
 
 @Service()
 export default class CommonRepository {
-  private dailyReportRepository: Repository<DailyReport>;
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
@@ -43,7 +42,6 @@ export default class CommonRepository {
   private notionRequest: Client;
 
   constructor() {
-    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
@@ -55,28 +53,6 @@ export default class CommonRepository {
     return companyConditions
       .map((s) => s.remind_before_days)
       .filter(Number.isFinite);
-  }
-
-  public async getDailyReportsToday(
-    company?: Company,
-    user?: User,
-    date: Date = new Date(),
-    sections?: Section[],
-  ): Promise<DailyReport[]> {
-    const start = dayjs(date).startOf("day").toDate();
-    const end = dayjs(date).endOf("day").toDate();
-    const findByCompany: FindOptionsWhere<DailyReport> = company ? { company_id: company.id } : {};
-    const findByUser: FindOptionsWhere<DailyReport> = user ? { user_id: user.id } : {};
-    const where: FindOptionsWhere<DailyReport> = {
-      ...findByCompany,
-      ...findByUser,
-      created_at: Between(start, end),
-    };
-    const dailyReports = await this.dailyReportRepository.find({ where, relations: ["user"] });
-    if (sections) {
-      dailyReports.filter(report => sections.some(section => report.section_ids.includes(section.id)));
-    }
-    return dailyReports;
   }
 
   public async saveProperty(id: string, name: string, type: number, sectionId: number) {

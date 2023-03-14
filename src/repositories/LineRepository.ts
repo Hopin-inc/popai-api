@@ -28,17 +28,16 @@ import Section from "@/entities/settings/Section";
 import { INotionDailyReport } from "@/types/notion";
 import DailyReport from "@/entities/transactions/DailyReport";
 import { UserRepository } from "@/repositories/UserRepository";
+import { DailyReportRepository } from "@/repositories/DailyReportRepository";
 
 @Service()
 export default class LineRepository {
   private messageRepository: Repository<ChatMessage>;
-  private dailyReportRepository: Repository<DailyReport>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private commonRepository: CommonRepository;
 
   constructor() {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.commonRepository = Container.get(CommonRepository);
   }
@@ -80,7 +79,7 @@ export default class LineRepository {
     users.map(async user => {
       const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
       const dailyReport = new DailyReport(user, company, sections, dailyReportTodos, channel, null, filteredRes.pageId, filteredRes.docAppRegUrl);
-      await this.dailyReportRepository.save(dailyReport);
+      await DailyReportRepository.save(dailyReport);
     });
   }
 
