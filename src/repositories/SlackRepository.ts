@@ -50,17 +50,16 @@ import { UserRepository } from "@/repositories/UserRepository";
 import { SectionRepository } from "@/repositories/SectionRepository";
 import { DailyReportRepository } from "@/repositories/DailyReportRepository";
 import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
+import { ChatToolRepository } from "@/repositories/ChatToolRepository";
 
 @Service()
 export default class SlackRepository {
   private messageRepository: Repository<ChatMessage>;
-  private chattoolRepository: Repository<ChatTool>;
   private prospectRepository: Repository<Prospect>;
   private dailyReportConfigRepository: Repository<DailyReportConfig>;
 
   constructor() {
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.prospectRepository = AppDataSource.getRepository(Prospect);
     this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
   }
@@ -643,7 +642,7 @@ export default class SlackRepository {
     const channelId = await this.getSendChannel(company);
     const chatToolUsers = await ChatToolUserRepository.find();
     const remindTasks: Todo[] = await this.getTodayRemindTasks(company, chatToolUsers);
-    const chatTool = await this.chattoolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
+    const chatTool = await ChatToolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
     const userTodoMap = this.mapUserRemindTaskList(remindTasks, chatTool, chatToolUsers);
 
     const remindPerTodo = async (todoSlacks: ITodoSlack[]): Promise<void> => {

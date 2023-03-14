@@ -31,22 +31,21 @@ import { PlainTextOption } from "@slack/types";
 
 import { SectionRepository } from "@/repositories/SectionRepository";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { ChatToolRepository } from "@/repositories/ChatToolRepository";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
-  private chatToolRepository: Repository<ChatTool>;
   private taskService: TaskService;
 
   constructor() {
     super();
     this.slackRepository = Container.get(SlackRepository);
-    this.chatToolRepository = AppDataSource.getRepository(ChatTool);
     this.taskService = Container.get(TaskService);
   }
 
   async handleEvent(payload: SlackInteractionPayload): Promise<[any, (...args) => unknown | undefined]> {
     try {
-      const chatTool = await this.chatToolRepository.findOneBy({
+      const chatTool = await ChatToolRepository.findOneBy({
         tool_code: ChatToolCode.SLACK,
       });
 

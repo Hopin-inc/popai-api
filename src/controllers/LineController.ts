@@ -29,10 +29,10 @@ import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
 import { SectionRepository } from "@/repositories/SectionRepository";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { ChatToolRepository } from "@/repositories/ChatToolRepository";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
-  private readonly chattoolRepository: Repository<ChatTool>;
   private messageRepository: Repository<ChatMessage>;
   private readonly lineQueueRepository: LineMessageQueueRepository;
   private readonly taskService: TaskService;
@@ -40,7 +40,6 @@ export default class LineController extends Controller {
   constructor() {
     super();
     this.lineRepository = Container.get(LineRepository);
-    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.messageRepository = AppDataSource.getRepository(ChatMessage);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.taskService = Container.get(TaskService);
@@ -53,7 +52,7 @@ export default class LineController extends Controller {
 
   private async handleEvent(event: WebhookEvent): Promise<any> {
     try {
-      const chattool = await this.chattoolRepository.findOneBy({
+      const chattool = await ChatToolRepository.findOneBy({
         tool_code: ChatToolCode.LINE,
       });
       if (!chattool) {

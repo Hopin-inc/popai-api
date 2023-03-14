@@ -19,17 +19,16 @@ import { LoggerError } from "@/exceptions";
 import { ITodoLines } from "@/types";
 import { TodoRepository } from "@/repositories/TodoRepository";
 import { ChatToolUserRepository } from "@/repositories/ChatToolUserRepository";
+import { ChatToolRepository } from "@/repositories/ChatToolRepository";
 
 @Service()
 export default class RemindRepository {
   private lineRepository: LineRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private chattoolRepository: Repository<ChatTool>;
 
   constructor() {
     this.lineRepository = Container.get(LineRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
   }
 
   public async remindTodayTaskForUser(user: User = null): Promise<void> {
@@ -39,7 +38,7 @@ export default class RemindRepository {
     const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks(user);
 
     const chattoolUsers = await ChatToolUserRepository.find();
-    const chattool = await this.chattoolRepository.findOneBy({
+    const chattool = await ChatToolRepository.findOneBy({
       tool_code: ChatToolCode.LINE,
     });
 
