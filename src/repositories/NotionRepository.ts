@@ -1,4 +1,4 @@
-import { In, IsNull, Not, Repository } from "typeorm";
+import { In, IsNull, Not } from "typeorm";
 import { Client } from "@notionhq/client";
 import {
   PageObjectResponse,
@@ -12,8 +12,6 @@ import TodoApp from "@/entities/masters/TodoApp";
 import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
-import BoardProperty from "@/entities/settings/BoardProperty";
-import OptionCandidate from "@/entities/settings/OptionCandidate";
 import PropertyOption from "@/entities/settings/PropertyOption";
 
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
@@ -28,7 +26,6 @@ import { SectionRepository } from "@/repositories/settings/SectionRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
-import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import {
   IDailyReportItems,
@@ -43,7 +40,6 @@ import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, NotionPropertyType, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
-import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { valueOf } from "../../dist/types";
 import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 import { PropertyRepository } from "@/repositories/settings/PropertyRepository";
@@ -54,9 +50,6 @@ import { DailyReportConfigRepository } from "@/repositories/settings/DailyReport
 @Service()
 export default class NotionRepository {
   private notionRequest: Client;
-  private boardPropertyRepository: Repository<BoardProperty>;
-  private optionCandidateRepository: Repository<OptionCandidate>;
-  private propertyOptionRepository: Repository<PropertyOption>;
   private todoHistoryService: TodoHistoryService;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -65,9 +58,6 @@ export default class NotionRepository {
 
   constructor() {
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-    this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
-    this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
-    this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
@@ -137,7 +127,7 @@ export default class NotionRepository {
   }
 
   private async getOptionCandidates(property, sectionId: number) {
-    const propertyRecord = await this.boardPropertyRepository.findOneBy({
+    const propertyRecord = await PropertyRepository.findOneBy({
       section_id: sectionId,
       property_id: property.id,
     });
@@ -195,7 +185,7 @@ export default class NotionRepository {
             pages.push(...response.results);
           }
 
-          const usagePropertyOptions = await this.propertyOptionRepository.find({
+          const usagePropertyOptions = await PropertyOptionRepository.find({
             relations: ["boardProperty", "optionCandidate"],
             where: {
               boardProperty: { section_id: section.id },
@@ -404,7 +394,7 @@ export default class NotionRepository {
     correctDelayedCount: boolean = false,
   ): Promise<void> => {
     try {
-      const isDoneProperty = await this.boardPropertyRepository.findOneBy({
+      const isDoneProperty = await PropertyRepository.findOneBy({
         section_id: In(task.company.sections.map(section => section.id)),
         // usage: UsageType.IS_DONE,
       });
@@ -554,7 +544,7 @@ export default class NotionRepository {
         case "formula":
           return property.formula.type === "boolean" ? property.formula.boolean : null;
         case "status":
-          return !!(await this.propertyOptionRepository.findOne({
+          return !!(await PropertyOptionRepository.findOne({
             relations: ["optionCandidate"],
             where: {
               optionCandidate: { option_id: property.status?.id },
@@ -562,7 +552,7 @@ export default class NotionRepository {
             },
           }));
         case "select":
-          return !!(await this.propertyOptionRepository.findOne({
+          return !!(await PropertyOptionRepository.findOne({
             relations: ["optionCandidate"],
             where: {
               optionCandidate: { option_id: property.select?.id },
