@@ -1,4 +1,4 @@
-import { Repository, FindOptionsWhere } from "typeorm";
+import { FindOptionsWhere } from "typeorm";
 import { Service, Container } from "typedi";
 
 import Company from "@/entities/settings/Company";
@@ -18,12 +18,12 @@ import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepo
 
 import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
 import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
 
 @Service()
 export default class TaskService {
@@ -34,7 +34,6 @@ export default class TaskService {
   private lineQueueRepository: LineMessageQueueRepository;
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
-  private remindUserJobRepository: Repository<RemindUserJob>;
 
   constructor() {
     this.trelloRepository = Container.get(TrelloRepository);
@@ -44,7 +43,6 @@ export default class TaskService {
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
-    this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);
   }
 
   /**
@@ -161,7 +159,7 @@ export default class TaskService {
    */
   public async remindForDemoUser(user: User): Promise<number> {
     try {
-      const processingJobs = await this.remindUserJobRepository.findBy({
+      const processingJobs = await RemindUserJobRepository.findBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
       });
@@ -174,7 +172,7 @@ export default class TaskService {
       const job = new RemindUserJob();
       job.user_id = user.id;
       job.status = RemindUserJobStatus.PROCESSING;
-      await this.remindUserJobRepository.save(job);
+      await RemindUserJobRepository.save(job);
 
       const userCompany = await CompanyRepository.findOne({
         relations: ["implementedTodoApps.todoapp", "implementedChatTools.chattool", "adminUser", "companyConditions"],
@@ -199,14 +197,14 @@ export default class TaskService {
       await this.remindRepository.remindTodayTaskForUser(user);
 
       // update job status
-      const processingJob = await this.remindUserJobRepository.findOneBy({
+      const processingJob = await RemindUserJobRepository.findOneBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
       });
 
       if (processingJob) {
         processingJob.status = RemindUserJobStatus.DONE;
-        await this.remindUserJobRepository.save(processingJob);
+        await RemindUserJobRepository.save(processingJob);
       }
 
       return RemindUserJobResult.OK;
