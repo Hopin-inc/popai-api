@@ -14,6 +14,7 @@ import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } fr
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import AppDataSource from "@/config/data-source";
 import { TodoRepository } from "@/repositories/TodoRepository";
+import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
 
 @Service()
 export default class LineMessageQueueRepository {
@@ -56,7 +57,7 @@ export default class LineMessageQueueRepository {
     chattoolUsers: ChatToolUser[],
     todos: Todo[],
   ): Promise<void> {
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(
+    const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(
       company.companyConditions,
     );
     const today = toJapanDateTime(new Date());
@@ -94,7 +95,7 @@ export default class LineMessageQueueRepository {
 
   private async getTodosToRemind(company: Company, user?: User): Promise<Todo[]> {
     const today = toJapanDateTime(new Date());
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+    const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
 
     const minValue = dayReminds.reduce(function(prev, curr) {
       return prev < curr ? prev : curr;

@@ -46,6 +46,7 @@ import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { valueOf } from "../../dist/types";
+import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
 
 @Service()
 export default class NotionRepository {
@@ -100,7 +101,7 @@ export default class NotionRepository {
         }
       }
 
-      const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+      const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(todoTasks, notify);
       console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {

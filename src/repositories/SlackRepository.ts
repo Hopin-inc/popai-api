@@ -50,6 +50,7 @@ import { INotionDailyReport } from "@/types/notion";
 import { UserRepository } from "@/repositories/UserRepository";
 import { SectionRepository } from "@/repositories/SectionRepository";
 import { DailyReportRepository } from "@/repositories/DailyReportRepository";
+import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
 
 @Service()
 export default class SlackRepository {
@@ -665,7 +666,7 @@ export default class SlackRepository {
   }
 
   private async getTodayRemindTasks(company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> {
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+    const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
 
     const todayRemindTasks: Todo[] = [];
 
@@ -695,7 +696,7 @@ export default class SlackRepository {
 
   private async getRemindTodoTask(company: Company, user?: User): Promise<Todo[]> {
     const today = toJapanDateTime(new Date());
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+    const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
 
     const minValue = dayReminds.reduce(function(prev, curr) {
       return prev < curr ? prev : curr;

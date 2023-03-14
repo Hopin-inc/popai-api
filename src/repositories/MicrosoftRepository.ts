@@ -29,6 +29,7 @@ import { TodoUserRepository } from "@/repositories/TodoUserRepository";
 import { TodoAppUserRepository } from "@/repositories/TodoAppUserRepository";
 import { SectionRepository } from "@/repositories/SectionRepository";
 import { ImplementedTodoAppRepository } from "@/repositories/ImplementedTodoAppRepository";
+import { CompanyConditionRepository } from "@/repositories/CompanyConditionRepository";
 
 @Service()
 export default class MicrosoftRepository {
@@ -68,7 +69,7 @@ export default class MicrosoftRepository {
       }
       console.log(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
 
-      const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+      const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       const implementedTodoApp = await ImplementedTodoAppRepository.getImplementTodoApp(company.id, todoapp.id);
       if (implementedTodoApp) {
         await this.filterUpdateTask(dayReminds, todoTasks, implementedTodoApp);

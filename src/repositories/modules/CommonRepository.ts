@@ -38,21 +38,13 @@ export default class CommonRepository {
   private boardPropertyRepository: Repository<BoardProperty>;
   private optionCandidateRepository: Repository<OptionCandidate>;
   private propertyOptionRepository: Repository<PropertyOption>;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
   private notionRequest: Client;
 
   constructor() {
     this.boardPropertyRepository = AppDataSource.getRepository(BoardProperty);
     this.optionCandidateRepository = AppDataSource.getRepository(OptionCandidate);
     this.propertyOptionRepository = AppDataSource.getRepository(PropertyOption);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
     this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-  }
-
-  public async getDayReminds(companyConditions: CompanyCondition[]): Promise<number[]> {
-    return companyConditions
-      .map((s) => s.remind_before_days)
-      .filter(Number.isFinite);
   }
 
   public async saveProperty(id: string, name: string, type: number, sectionId: number) {
