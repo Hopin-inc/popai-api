@@ -42,7 +42,7 @@ router.get("/report", async (req, res) => {
   try {
     const monthly = !!req.query.monthly;
     const controller = new TaskController();
-    await controller.syncTodos();
+    // await controller.syncTodos();
     const response = await controller.sendPerformanceReport(monthly);
     ApiResponse.successRes(res, response);
   } catch (err) {

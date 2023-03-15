@@ -5,7 +5,7 @@ import * as process from "process";
 import TaskService from "@/services/TaskService";
 import { getProcessTime } from "@/utils/common";
 import DailyReportService from "@/services/DailyReportService";
-import PerformanceReportService from "@/services/PerformanceReport";
+import PerformanceReportService from "@/services/PerformanceReportService";
 
 export default class TaskController extends Controller {
   private taskService: TaskService;

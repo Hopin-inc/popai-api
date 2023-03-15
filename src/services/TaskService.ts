@@ -67,17 +67,15 @@ export default class TaskService {
       });
 
       const syncOperations = (company: Company, todoApp: TodoApp, notify) => {
-        if (company.id === 1) {
-          switch (todoApp.todo_app_code) {
-            case TodoAppCode.TRELLO:
-              return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
-            case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
-              return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
-            case TodoAppCode.NOTION:
-              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notify);
-            default:
-              return;
-          }
+        switch (todoApp.todo_app_code) {
+          case TodoAppCode.TRELLO:
+            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
+          case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
+            return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
+          case TodoAppCode.NOTION:
+            return this.notionRepository.syncTaskByUserBoards(company, todoApp, notify);
+          default:
+            return;
         }
       };
       const companyTodoApps: [Company, TodoApp][] = [];

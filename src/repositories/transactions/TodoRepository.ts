@@ -1,5 +1,6 @@
 import dataSource from "@/config/data-source";
 import notionClient from "@/config/notion-client";
+import { IPerformanceReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
 import {
   MAX_REMIND_COUNT,
@@ -17,6 +18,7 @@ import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRe
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
+import { valueOf } from "@/types";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
@@ -38,27 +40,48 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     }
   },
 
-  async getTodosCompletedLastWeek(company: Company): Promise<Todo[]> {
+  async getLastWeekTodosByStatus(company: Company): Promise<IPerformanceReportItems> {
     const lastWeek = dayjs().subtract(1, "w");
-    const targetHistories = await TodoHistoryRepository.getHistoriesCompletedLastWeek(company, lastWeek);
-    const targetTodoIds = targetHistories.map(history => history.todo_id);
-    const todos = await this.find({
-      where: { id: In(targetTodoIds) },
-      relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
-    });
+    const [statusChangedHistories, planedHistories] = await Promise.all([
+      TodoHistoryRepository.getHistoriesLastWeek(company, lastWeek),
+      TodoHistoryRepository.getHistoriesPlanedLastWeek(company, lastWeek),
+    ]);
 
+    const statusChangedTodoIds = statusChangedHistories.map(history => history.todo_id);
+    const planedTodoIds = planedHistories.map(history => history.todo_id);
+
+    const [statusChangedTodos, planedTodos] = await Promise.all([
+      this.find({
+        where: { id: In(statusChangedTodoIds) },
+        relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
+      }),
+      this.find({
+        where: { id: In(planedTodoIds) },
+        relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
+      }),
+    ]);
+
+    const [planed, completed, delayed, closed] = await Promise.all([
+      this.filterTodosByProperty(planedTodos, Property.DEADLINE),
+      this.filterTodosByProperty(statusChangedTodos, Property.IS_DONE),
+      this.filterTodosByProperty(statusChangedTodos, Property.IS_DELAYED),
+      this.filterTodosByProperty(statusChangedTodos, Property.IS_CLOSED),
+    ]);
+    return { planed, completed, delayed, closed };
+  },
+
+  async filterTodosByProperty(
+    todos: Todo[],
+    property: valueOf<typeof Property>,
+  ): Promise<Todo[]> {
     return todos.filter(todo => {
       if (todo.histories) {
         const histories = todo.histories
-          .filter(h => h.property === Property.IS_DONE)
-          .filter(h => h.action === Action.CREATE)
-          .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
-        // return histories && histories.length && histories.slice(-1)[0].created_at?.isAfter(lastWeek.startOf("day"));
-        console.log(histories);
-        return histories && histories.length;
-      } else {
-        return false;
+          .filter(h => h.property === property)
+          .sort((a, b) => a.todoapp_reg_updated_at > b.todoapp_reg_updated_at ? 1 : -1);
+        return histories && histories.length && histories.slice(-1)[0].action === Action.CREATE;
       }
+      return false;
     });
   },
 

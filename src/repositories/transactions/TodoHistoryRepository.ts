@@ -20,6 +20,30 @@ export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).exten
       .getMany();
   },
 
+  async getHistoriesLastWeek(company: Company, lastWeek: dayjs.Dayjs) {
+    return this
+      .createQueryBuilder("history")
+      .innerJoinAndSelect("history.todo", "todo")
+      .where("todo.company_id = :companyId", { companyId: company.id })
+      .andWhere(
+        "history.created_at BETWEEN :start AND :end",
+        { start: lastWeek.startOf("week").toDate(), end: lastWeek.endOf("week").toDate() },
+      )
+      .getMany();
+  },
+
+  async getHistoriesPlanedLastWeek(company: Company, lastWeek: dayjs.Dayjs) {
+    return this
+      .createQueryBuilder("history")
+      .innerJoinAndSelect("history.todo", "todo")
+      .where("todo.company_id = :companyId", { companyId: company.id })
+      .andWhere(
+        "history.deadline BETWEEN :start AND :end",
+        { start: lastWeek.startOf("week").toDate(), end: lastWeek.endOf("week").toDate() },
+      )
+      .getMany();
+  },
+
   async getLastUpdatedDate(company: Company, todoapp: TodoApp): Promise<Date> {
     const companyId = company.id;
     const todoAppId = todoapp.id;
