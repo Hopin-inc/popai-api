@@ -139,7 +139,7 @@ export default class Todo extends BaseEntity {
     todoByApi: ITask,
     company: Company | number,
     todoApp: TodoApp,
-    todoByDb: Todo,
+    todoByDb?: Todo,
     trelloCreatedBy?: number,
     microSoftPrimaryDomain?: string,
   ) {
@@ -148,7 +148,7 @@ export default class Todo extends BaseEntity {
       this.company_id = typeof company === "number" ? company : company.id;
       this.todoapp_id = todoApp.id;
 
-      this.id = todoByDb.id ?? null;
+      this.id = todoByDb?.id ?? null;
       this.is_reminded = todoByDb?.is_reminded ?? false;
       this.delayed_count = todoByDb?.delayed_count ?? 0;
       this.reminded_count = todoByDb?.reminded_count ?? 0;
@@ -172,7 +172,7 @@ export default class Todo extends BaseEntity {
           this.todoapp_reg_url = trelloTodo.shortUrl;
           this.todoapp_reg_created_by = trelloCreatedBy;
           this.todoapp_reg_created_at = toJapanDateTime(trelloTodo.createdAt) || toJapanDateTime(trelloTodo.dateLastActivity);
-          this.deadline = trelloTodo.due;
+          this.deadline = trelloTodo.due ? toJapanDateTime(trelloTodo.due) : null;
           this.is_done = trelloTodo.dueComplete;
           this.is_closed = trelloTodo.closed;
           break;

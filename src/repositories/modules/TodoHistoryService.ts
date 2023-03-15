@@ -131,15 +131,15 @@ export default class TodoHistoryService {
         }
       }
 
-      await Promise.all(argsList.map(([property, action, info, notification]) =>
+      await Promise.all(argsList.map(([property, action, info]) =>
         TodoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
-            notification && savedTodo.company?.chatTools?.map(chatTool =>
+            notify && savedTodo.company?.implementedChatTools?.map(chatTool =>
               TodoRepository.getNotArchivedTodoInNotion(savedTodo).then(activeTodo =>
                   activeTodo !== null && TodoAppUserRepository.findOneBy({
                     employee_id: editedBy,
                     todoapp_id: savedTodo.todoapp_id,
                   }).then(editUser =>
-                    this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser),
+                    this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool.chattool, editUser),
                   ),
               ),
             ),
