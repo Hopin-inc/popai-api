@@ -1,5 +1,5 @@
 import { In, IsNull, Not } from "typeorm";
-import { Client } from "@notionhq/client";
+import notionClient from "@/config/notion-client";
 import {
   PageObjectResponse,
   UpdatePageParameters,
@@ -49,7 +49,6 @@ import { DailyReportConfigRepository } from "@/repositories/settings/DailyReport
 
 @Service()
 export default class NotionRepository {
-  private notionRequest: Client;
   private todoHistoryService: TodoHistoryService;
   private todoUpdateRepository: TodoUpdateHistoryRepository;
   private lineQueueRepository: LineMessageQueueRepository;
@@ -57,7 +56,6 @@ export default class NotionRepository {
   private notionPageBuilder: NotionPageBuilder;
 
   constructor() {
-    this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
     this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.todoSectionRepository = Container.get(TodoSectionRepository);
@@ -100,7 +98,7 @@ export default class NotionRepository {
 
   private async getProperties(section: Section): Promise<void> {
     try {
-      const response = await this.notionRequest.databases.retrieve({ database_id: section.board_id });
+      const response = await notionClient.databases.retrieve({ database_id: section.board_id });
       const properties = Object.values(response.properties);
 
       const updatedProperties = properties.map(({ id, name, type, ...rest }) => {
@@ -166,7 +164,7 @@ export default class NotionRepository {
         try {
           const lastUpdatedDate = await TodoHistoryRepository.getLastUpdatedDate(company, todoapp);
 
-          let response = await this.notionRequest.databases.query({
+          let response = await notionClient.databases.query({
             database_id: section.board_id,
             filter: lastUpdatedDate
               ? {
@@ -178,7 +176,7 @@ export default class NotionRepository {
 
           const pages = response.results;
           while (response.has_more) {
-            response = await this.notionRequest.databases.query({
+            response = await notionClient.databases.query({
               database_id: section.board_id,
               start_cursor: response.next_cursor,
             });
@@ -224,7 +222,7 @@ export default class NotionRepository {
     todoapp: TodoApp,
     usagePropertyOptions: PropertyOption[],
   ): Promise<void> {
-    const pageInfo = await this.notionRequest.pages.retrieve({ page_id: pageId }) as PageObjectResponse;
+    const pageInfo = await notionClient.pages.retrieve({ page_id: pageId }) as PageObjectResponse;
     const pageProperty = Object.keys(pageInfo.properties).map((key) => pageInfo.properties[key]) as Record<any, any>;
     if (pageProperty) {
       const pagePropertyIds = pageProperty.map((obj) => obj.id);
@@ -365,26 +363,30 @@ export default class NotionRepository {
     dataTodoUsers: ITodoUserUpdate[],
     dataTodoSections: ITodoSectionUpdate[],
   ): Promise<void> {
-    const cardTodo = taskRemind.cardTodo;
-    const { users, todoTask, todoapp, company, sections } = cardTodo;
+    try {
+      const cardTodo = taskRemind.cardTodo;
+      const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    users.length ? dataTodoUsers.push({ todoId: todoTask.todoappRegId, users }) : null;
-    sections.length ? dataTodoSections.push({ todoId: todoTask.todoappRegId, sections }) : null;
+      users.length ? dataTodoUsers.push({ todoId: todoTask.todoappRegId, users }) : null;
+      sections.length ? dataTodoSections.push({ todoId: todoTask.todoappRegId, sections }) : null;
 
-    dataTodoHistories.push({
-      todoId: todoTask.todoappRegId,
-      name: todoTask.name,
-      deadline: todoTask.deadline,
-      users: users,
-      isDone: todoTask.isDone,
-      isClosed: todoTask.isClosed,
-      todoappRegUpdatedAt: todoTask.lastEditedAt,
-      editedBy: todoTask.lastEditedById,
-    });
+      dataTodoHistories.push({
+        todoId: todoTask.todoappRegId,
+        name: todoTask.name,
+        deadline: todoTask.deadline,
+        users: users,
+        isDone: todoTask.isDone,
+        isClosed: todoTask.isClosed,
+        todoappRegUpdatedAt: todoTask.lastEditedAt,
+        editedBy: todoTask.lastEditedById,
+      });
 
-    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
-    const dataTodo = new Todo(todoTask, company, todoapp, todo);
-    dataTodos.push(dataTodo);
+      const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.todoappRegId });
+      const dataTodo = new Todo(todoTask, company, todoapp, todo);
+      dataTodos.push(dataTodo);
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
   }
 
   updateTodo = async (
@@ -407,7 +409,7 @@ export default class NotionRepository {
           },
         },
       };
-      await this.notionRequest.pages.update(payload);
+      await notionClient.pages.update(payload);
 
       if (correctDelayedCount && task.delayed_count > 0) {
         task.delayed_count--;
@@ -443,7 +445,7 @@ export default class NotionRepository {
         const docToolUsers = user.documentToolUsers.find((du) => du.documentTool.tool_code === DocumentToolCode.NOTION);
         postOperations.push(
           this.notionPageBuilder.createDailyReportByUser(configRecord.database, docToolUsers, itemsByUser, today, reportId)
-            .then((page) => this.notionRequest.pages.create(page)),
+            .then((page) => notionClient.pages.create(page)),
         );
       });
       const response = await Promise.all(postOperations) as PageObjectResponse[];

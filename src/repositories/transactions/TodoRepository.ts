@@ -1,4 +1,5 @@
 import dataSource from "@/config/data-source";
+import notionClient from "@/config/notion-client";
 import Todo from "@/entities/transactions/Todo";
 import {
   MAX_REMIND_COUNT,
@@ -14,20 +15,51 @@ import TodoUser from "@/entities/transactions/TodoUser";
 import dayjs from "dayjs";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import logger from "@/logger/winston";
+import { LoggerError } from "@/exceptions";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
-    return this.createQueryBuilder("todos")
-      .leftJoinAndSelect("todos.todoUsers", "todo_users")
-      .leftJoinAndSelect("todo_users.user", "users")
-      .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
-      .leftJoinAndSelect("todos.todoSections", "todo_sections")
-      .leftJoinAndSelect("todo_sections.section", "sections")
-      .leftJoinAndSelect("todos.company", "company")
-      .leftJoinAndSelect("company.implementedChatTools", "implemented_chat_tools")
-      .leftJoinAndSelect("implemented_chat_tools.chattool", "chat_tool")
-      .where("todos.todoapp_reg_id IN (:...todoIds)", { todoIds })
-      .getMany();
+    try {
+      return this.createQueryBuilder("todos")
+        .leftJoinAndSelect("todos.todoUsers", "todo_users")
+        .leftJoinAndSelect("todo_users.user", "users")
+        .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
+        .leftJoinAndSelect("todos.todoSections", "todo_sections")
+        .leftJoinAndSelect("todo_sections.section", "sections")
+        .leftJoinAndSelect("todos.todoapp", "todoapp")
+        .leftJoinAndSelect("todos.company", "company")
+        .leftJoinAndSelect("company.implementedChatTools", "implemented_chat_tools")
+        .leftJoinAndSelect("implemented_chat_tools.chattool", "chat_tools")
+        .where("todos.todoapp_reg_id IN (:...todoIds)", { todoIds })
+        .getMany();
+    } catch (error) {
+      logger.error(new LoggerError(error.message));
+    }
+  },
+
+  async getTodosCompletedLastWeek(company: Company): Promise<Todo[]> {
+    const lastWeek = dayjs().subtract(1, "w");
+    const targetHistories = await TodoHistoryRepository.getHistoriesCompletedLastWeek(company, lastWeek);
+    const targetTodoIds = targetHistories.map(history => history.todo_id);
+    const todos = await this.find({
+      where: { id: In(targetTodoIds) },
+      relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
+    });
+
+    return todos.filter(todo => {
+      if (todo.histories) {
+        const histories = todo.histories
+          .filter(h => h.property === Property.IS_DONE)
+          .filter(h => h.action === Action.CREATE)
+          .sort((a, b) => a.created_at > b.created_at ? 1 : -1);
+        // return histories && histories.length && histories.slice(-1)[0].created_at?.isAfter(lastWeek.startOf("day"));
+        console.log(histories);
+        return histories && histories.length;
+      } else {
+        return false;
+      }
+    });
   },
 
   async getTodosCompletedYesterday(company: Company): Promise<Todo[]> {
@@ -112,7 +144,8 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
 
   async getNotArchivedTodoInNotion(todo: Todo): Promise<Todo> {
     if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
-      const pageResponse = await this.notionRequest.pages.retrieve({ page_id: todo.todoapp_reg_id });
+      const pageResponse = await notionClient.pages.retrieve({ page_id: todo.todoapp_reg_id });
+      console.log(pageResponse);
       if ("object" in pageResponse && "properties" in pageResponse) {
         const pageObjectResponse: PageObjectResponse = pageResponse;
         if (pageObjectResponse.archived === true) {
