@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc --build && tsc-alias -p tsconfig.json",
-    "dev": "ts-node-dev -r tsconfig-paths/register src/index.ts",
+    "dev": "export NODE_HTTPS=false && ts-node-dev -r tsconfig-paths/register src/index.ts",
+    "dev:https": "export NODE_HTTPS=true && ts-node-dev -r tsconfig-paths/register src/index.ts",
     "swagger": "tsoa spec",
     "clean": "tsc --build --clean",
     "test": "echo \"Error: no test specified\" && exit 1",

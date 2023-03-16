@@ -12,9 +12,13 @@ const options: InstallProviderOptions = {
   stateSecret: process.env.SLACK_STATE_SECRET,
   installationStore: {
     storeInstallation: async installation => {
-      console.log(JSON.stringify(installation));
+      const teamId = installation.team.id;
+      const userId = installation.user.id;
+      console.log(teamId, userId);
     },
-    fetchInstallation: async _query => {
+    fetchInstallation: async query => {
+      const { teamId } = query;
+      console.log(teamId);
       return {
         authVersion: "v2",
         enterprise: undefined,
@@ -45,11 +49,14 @@ export default class SlackOAuthService {
     this.implementedChatToolRepository = AppDataSource.getRepository(ImplementedChatTool);
   }
 
-  public async generateInstallUrl(state: string) {
-    return await this.slackInstaller.generateInstallUrl({ scopes }, true, state);
+  public async handleInstallPath(req: Request, res: Response) {
+    return await this.slackInstaller.handleInstallPath(req, res, {}, {
+      scopes,
+      metadata: req.session.id,
+    });
   }
 
   public async handleCallback(req: Request, res: Response) {
-    await this.slackInstaller.handleCallback(req, res, {});
+    await this.slackInstaller.handleCallback(req, res, {}, { scopes });
   }
 }

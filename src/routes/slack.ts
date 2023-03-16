@@ -31,8 +31,8 @@ router.post("/webhook", async (req, res) => {
 router.get("/install", authRequired, async (req, res) => {
   try {
     const controller = new SlackController();
-    const url = await controller.generateInstallUrl(req.session.uid);
-    ApiResponse.successRes(res, { url });
+    await controller.handleInstallPath(req, res);
+    ApiResponse.successRawRes(res);
   } catch (err) {
     ApiResponse.errRes(res, err.message, err.status);
   }

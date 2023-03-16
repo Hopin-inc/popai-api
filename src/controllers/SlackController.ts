@@ -52,8 +52,8 @@ export default class SlackController extends Controller {
     this.slackOAuthService = Container.get(SlackOAuthService);
   }
 
-  public async generateInstallUrl(state: string) {
-    return await this.slackOAuthService.generateInstallUrl(state);
+  public async handleInstallPath(req: Request, res: Response) {
+    return await this.slackOAuthService.handleInstallPath(req, res);
   }
 
   public async handleCallback(req: Request, res: Response) {

@@ -4,6 +4,7 @@ import { StatusCodes } from "@/common/StatusCodes";
 import dayjs from "dayjs";
 
 export const authRequired = (req: Request, res: Response, next: NextFunction) => {
+  console.log(req.headers.origin, req.session.cookie.secure);
   console.log(req.session);
   const { cookie, uid } = req.session;
   if (!cookie.expires || !dayjs(cookie.expires).isAfter(dayjs())) {

@@ -4,6 +4,7 @@ import { RequestHandler } from "express";
 import AppDataSource from "@/config/data-source";
 import Session from "@/entities/transactions/Session";
 import { TypeormStore } from "connect-typeorm";
+import * as process from "process";
 
 declare module "express-session" {
   interface SessionData {
@@ -21,9 +22,9 @@ export const session: RequestHandler = expressSession({
   store: new TypeormStore().connect(sessionRepository),
   cookie: {
     path: "/",
-    secure: process.env.ENV !== "LOCAL",
+    secure: process.env.ENV !== "LOCAL" || process.env.NODE_HTTPS === "true",
     httpOnly: true,
     maxAge: 1000 * 60 * 30, // 30 minutes
-    sameSite: process.env.ENV !== "LOCAL",
+    sameSite: process.env.ENV !== "LOCAL" ? true : "none",
   },
 });
