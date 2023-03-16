@@ -1,24 +1,12 @@
 import { Controller } from "tsoa";
-import { Repository } from "typeorm";
 
-import ChatMessage from "@/entities/transactions/ChatMessage";
-import Todo from "@/entities/transactions/Todo";
-
-import AppDataSource from "@/config/data-source";
 import { toJapanDateTime } from "@/utils/common";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
 
 export default class MessageController extends Controller {
-  private messageRepository: Repository<ChatMessage>;
-  private todoRepository: Repository<Todo>;
-
-  constructor() {
-    super();
-    this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.todoRepository = AppDataSource.getRepository(Todo);
-  }
-
   public async handleRedirect(todoId: number, messageToken: string): Promise<string> {
-    const todo = await this.todoRepository.findOneBy({
+    const todo = await TodoRepository.findOneBy({
       id: todoId,
     });
 
@@ -26,7 +14,7 @@ export default class MessageController extends Controller {
       return "";
     }
 
-    const message = await this.messageRepository.findOneBy({
+    const message = await ChatMessageRepository.findOneBy({
       todo_id: todoId,
       message_token: messageToken,
     });
@@ -41,7 +29,7 @@ export default class MessageController extends Controller {
       message.url_clicked_at = toJapanDateTime(new Date());
     }
 
-    await this.messageRepository.save(message);
+    await ChatMessageRepository.save(message);
 
     return todo.todoapp_reg_url;
   }

@@ -1,26 +1,15 @@
-import { Service } from "typedi";
-import { In, Repository } from "typeorm";
-
-import Todo from "@/entities/transactions/Todo";
+import dataSource from "@/config/data-source";
 import TodoUser from "@/entities/transactions/TodoUser";
+import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
-
-import AppDataSource from "@/config/data-source";
 import { extractArrayDifferences } from "@/utils/common";
+import { In } from "typeorm";
 import { ITodoUserUpdate } from "@/types";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
-@Service()
-export default class TodoUserRepository {
-  private todoUserRepository: Repository<TodoUser>;
-  private todoRepository: Repository<Todo>;
-
-  constructor() {
-    this.todoUserRepository = AppDataSource.getRepository(TodoUser);
-    this.todoRepository = AppDataSource.getRepository(Todo);
-  }
-
-  public async updateTodoUser(todo: Todo, users: User[]): Promise<void> {
-    const todoUsers: TodoUser[] = await this.todoUserRepository.find({
+export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
+  async updateTodoUser(todo: Todo, users: User[]): Promise<void> {
+    const todoUsers: TodoUser[] = await this.find({
       where: { todo_id: todo.id },
       withDeleted: true,
     });
@@ -47,17 +36,17 @@ export default class TodoUserRepository {
       }),
       this.todoUserRepository.softRemove(deletedTodoUsers),
     ]);
-  }
+  },
 
-  public async saveTodoUsers(dataTodoUsers: ITodoUserUpdate[]): Promise<void> {
+  async saveTodoUsers(dataTodoUsers: ITodoUserUpdate[]): Promise<void> {
     const updatedTodoUsers: TodoUser[] = [];
     const deletedTodoUsers: TodoUser[] = [];
     await Promise.all(dataTodoUsers.map(async dataTodoUser => {
-      const todo: Todo = await this.todoRepository.findOneBy({
+      const todo: Todo = await TodoRepository.findOneBy({
         todoapp_reg_id: dataTodoUser.todoId,
       });
       if (todo) {
-        const savedTodoUsers = await this.todoUserRepository.find({
+        const savedTodoUsers = await this.find({
           where: { todo_id: todo.id },
           withDeleted: true,
         });
@@ -76,19 +65,19 @@ export default class TodoUserRepository {
             deletedTodoUsers.push(savedTodoUser);
           }
         });
-        await this.todoUserRepository.restore({
+        await this.restore({
           todo_id: todo.id,
           user_id: In(restoredUserIds),
         });
       }
     }));
     await Promise.all([
-      this.todoUserRepository.upsert(updatedTodoUsers, []),
-      this.todoUserRepository.softRemove(deletedTodoUsers),
+      this.upsert(updatedTodoUsers, []),
+      this.softRemove(deletedTodoUsers),
     ]);
-  }
+  },
 
-  public async getUserAssignTask(usersCompany: User[], idMembers: string[]): Promise<User[]> {
+  async getUserAssignTask(usersCompany: User[], idMembers: string[]): Promise<User[]> {
     return usersCompany.filter((user) => {
       const userLineIds = user?.todoAppUsers.reduce(function(userAppIds: string[], todoAppUser) {
         userAppIds.push(todoAppUser.user_app_id);
@@ -97,5 +86,5 @@ export default class TodoUserRepository {
 
       return idMembers.filter((value) => userLineIds.includes(value)).length;
     });
-  }
-}
+  },
+});

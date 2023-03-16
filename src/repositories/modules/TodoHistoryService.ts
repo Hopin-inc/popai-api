@@ -20,26 +20,20 @@ import {
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
 import SlackRepository from "@/repositories/SlackRepository";
-import CommonRepository from "@/repositories/modules/CommonRepository";
+import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
+import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
-export default class TodoHistoryRepository {
-  private todoHistoryRepository: Repository<TodoHistory>;
-  private todoRepository: Repository<Todo>;
-  private todoAppUserRepository: Repository<TodoAppUser>;
+export default class TodoHistoryService {
   private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
-  private commonRepository: CommonRepository;
 
   constructor() {
-    this.todoHistoryRepository = AppDataSource.getRepository(TodoHistory);
-    this.todoRepository = AppDataSource.getRepository(Todo);
-    this.todoAppUserRepository = AppDataSource.getRepository(TodoAppUser);
     this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
-    this.commonRepository = Container.get(CommonRepository);
   }
 
   public async saveTodoHistories(savedTodos: Todo[], todos: ITodoHistory[], notify: boolean = false): Promise<void> {
@@ -53,7 +47,7 @@ export default class TodoHistoryRepository {
 
   private async saveTodoHistory(savedTodo: Todo, history: ITodoHistory, notify: boolean = false) {
     try {
-      const todoHistoryExists = await this.todoHistoryRepository.countBy({
+      const todoHistoryExists = await TodoHistoryRepository.countBy({
         todo_id: savedTodo.id,
         property: Property.NAME,
         action: Action.CREATE,
@@ -92,11 +86,11 @@ export default class TodoHistoryRepository {
         }
       } else {
         const [latestDelayedHistory, latestRecoveredHistory] = await Promise.all([
-          this.todoHistoryRepository.findOne({
+          TodoHistoryRepository.findOne({
             where: { todo_id: savedTodo.id, property: Property.IS_DELAYED },
             order: { created_at: "DESC" },
           }),
-          this.todoHistoryRepository.findOne({
+          TodoHistoryRepository.findOne({
             where: { todo_id: savedTodo.id, property: Property.IS_RECOVERED },
             order: { created_at: "DESC" },
           }),
@@ -136,52 +130,24 @@ export default class TodoHistoryRepository {
           }
         }
       }
-      await Promise.all(argsList.map(([property, action, info, notification]) => {
-        return this.saveTodo(savedTodo, assignees, property, action, new Date(), info, notification, editedBy);
-      }));
+
+      await Promise.all(argsList.map(([property, action, info]) =>
+        TodoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
+            notify && savedTodo.company?.implementedChatTools?.map(chatTool =>
+              TodoRepository.getNotArchivedTodoInNotion(savedTodo).then(activeTodo =>
+                  activeTodo !== null && TodoAppUserRepository.findOneBy({
+                    employee_id: editedBy,
+                    todoapp_id: savedTodo.todoapp_id,
+                  }).then(editUser =>
+                    this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool.chattool, editUser),
+                  ),
+              ),
+            ),
+        ),
+      ));
     } catch (error) {
       console.log(error);
       logger.error(new LoggerError(error.message));
-    }
-  }
-
-  public async saveTodo(
-    savedTodo: Todo,
-    assignees: User[],
-    property: valueOf<typeof Property>,
-    action: valueOf<typeof Action>,
-    updatedAt: Date,
-    info: Info | null,
-    notify?: boolean,
-    editedBy?: number,
-  ) {
-    const todoHistory = new TodoHistory();
-    todoHistory.todo_id = savedTodo.id;
-    todoHistory.property = property;
-    todoHistory.action = action;
-    todoHistory.todoapp_reg_updated_at = updatedAt;
-    todoHistory.deadline = info?.deadline ?? null;
-    todoHistory.days_diff = info?.daysDiff ?? null;
-    todoHistory.edited_by = editedBy;
-
-    if (info?.assignee) {
-      todoHistory.user_id = info?.assignee.id;
-    }
-
-    await this.todoHistoryRepository.save(todoHistory);
-
-    if (notify) {
-      await Promise.all(savedTodo.company?.chatTools?.map(async chatTool => {
-          const archivedPage = await this.commonRepository.syncArchivedTrue(savedTodo.todoapp_reg_id);
-          if (archivedPage.archived === false) {
-            const editUser = await this.todoAppUserRepository.findOneBy({
-              employee_id: editedBy,
-              todoapp_id: savedTodo.todoapp_id,
-            });
-            return this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool, editUser);
-          }
-        },
-      ));
     }
   }
 

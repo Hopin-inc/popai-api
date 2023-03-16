@@ -5,17 +5,13 @@ import { Request, Response } from "express";
 
 import ChatTool from "@/entities/masters/ChatTool";
 import User from "@/entities/settings/User";
-import Todo from "@/entities/transactions/Todo";
-import Section from "@/entities/settings/Section";
 
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import SlackRepository from "@/repositories/SlackRepository";
 
 import { ChatToolCode, MessageTriggerType, TodoStatus } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { toJapanDateTime } from "@/utils/common";
-import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";
@@ -32,22 +28,18 @@ import { SlackInteractionPayload, SlackView } from "@/types/slack";
 import { PlainTextOption } from "@slack/types";
 import SlackOAuthService from "@/services/SlackOAuthService";
 
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
-  private chatToolRepository: Repository<ChatTool>;
-  private todoRepository: Repository<Todo>;
-  private sectionRepository: Repository<Section>;
-  private commonRepository: CommonRepository;
   private taskService: TaskService;
   private readonly slackOAuthService: SlackOAuthService;
 
   constructor() {
     super();
     this.slackRepository = Container.get(SlackRepository);
-    this.commonRepository = Container.get(CommonRepository);
-    this.chatToolRepository = AppDataSource.getRepository(ChatTool);
-    this.todoRepository = AppDataSource.getRepository(Todo);
-    this.sectionRepository = AppDataSource.getRepository(Section);
     this.taskService = Container.get(TaskService);
     this.slackOAuthService = Container.get(SlackOAuthService);
   }
@@ -62,7 +54,7 @@ export default class SlackController extends Controller {
 
   async handleEvent(payload: SlackInteractionPayload): Promise<[any, (...args) => unknown | undefined]> {
     try {
-      const chatTool = await this.chatToolRepository.findOneBy({
+      const chatTool = await ChatToolRepository.findOneBy({
         tool_code: ChatToolCode.SLACK,
       });
 
@@ -159,7 +151,7 @@ export default class SlackController extends Controller {
           return [
             undefined,
             async () => {
-              const todos = await this.commonRepository.getTodosByIds(todoIds);
+              const todos = await TodoRepository.getTodosByIds(todoIds);
               await this.slackRepository.askProspects(user.company, { user, todos });
             },
           ];
@@ -205,7 +197,7 @@ export default class SlackController extends Controller {
     const sections = slackTodo.sections;
     const sectionId = sections.length ? sections[0].id : null;
     const todoAppId = slackTodo.todoapp_id;
-    const boardAdminUser = await this.commonRepository.getBoardAdminUser(sectionId);
+    const boardAdminUser = await SectionRepository.getBoardAdminUser(sectionId);
     const todoAppAdminUser = boardAdminUser.todoAppUsers.find(tau => tau.todoapp_id === todoAppId);
     const doneActions = replyActions.filter(m => m.status === TodoStatus.DONE).map(m => m.text);
     if (doneActions.includes(repliedMessage)) {

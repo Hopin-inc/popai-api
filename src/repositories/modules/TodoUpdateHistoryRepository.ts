@@ -8,15 +8,14 @@ import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { ITodoUpdate } from "@/types";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 @Service()
 export default class TodoUpdateHistoryRepository {
   private todoUpdateRepository: Repository<TodoUpdateHistory>;
-  private todoRepository: Repository<Todo>;
 
   constructor() {
     this.todoUpdateRepository = AppDataSource.getRepository(TodoUpdateHistory);
-    this.todoRepository = AppDataSource.getRepository(Todo);
   }
 
   public async saveTodoUpdateHistories(dataTodoIDUpdates: ITodoUpdate[]): Promise<void> {
@@ -24,7 +23,7 @@ export default class TodoUpdateHistoryRepository {
       for (const dataUpdate of dataTodoIDUpdates) {
         const { todoId } = dataUpdate;
 
-        const todo: Todo = await this.todoRepository.findOneBy({
+        const todo: Todo = await TodoRepository.findOneBy({
           todoapp_reg_id: todoId,
         });
 

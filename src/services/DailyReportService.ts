@@ -8,42 +8,34 @@ import Company from "@/entities/settings/Company";
 import { ChatToolCode, DocumentToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
-import { Repository } from "typeorm";
-import AppDataSource from "@/config/data-source";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 import ChatTool from "@/entities/masters/ChatTool";
-import DailyReportConfig from "@/entities/settings/DailyReportConfig";
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 
 @Service()
 export default class DailyReportService {
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private commonRepository: CommonRepository;
   private notionRepository: NotionRepository;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
-  private companyRepository: Repository<Company>;
 
   constructor() {
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.notionRepository = Container.get(NotionRepository);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
-    this.companyRepository = AppDataSource.getRepository(Company);
   }
 
   public async sendDailyReport(): Promise<any> {
     try {
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
-      const companies = await this.companyRepository.find({
+      const companies = await CompanyRepository.find({
         relations: [
           "sections",
           "users.chattoolUsers.chattool",
@@ -78,8 +70,8 @@ export default class DailyReportService {
         }
       });
       const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-        this.commonRepository.getDailyReportItems(company),
-        this.commonRepository.getNotUpdatedTodos(company),
+        this.getDailyReportItems(company),
+        TodoRepository.getNotUpdatedTodos(company),
       ]);
 
       const usersByDocApp = company.users.filter(u => u.documentTools.some(t => t.tool_code === DocumentToolCode.NOTION));
@@ -104,6 +96,15 @@ export default class DailyReportService {
       console.error(error);
       logger.error(new LoggerError(error.message));
     }
+  }
+
+  private async getDailyReportItems(company: Company): Promise<IDailyReportItems> {
+    const [completedYesterday, delayed, ongoing] = await Promise.all([
+      TodoRepository.getTodosCompletedYesterday(company),
+      TodoRepository.getTodosDelayed(company),
+      TodoRepository.getTodosOngoing(company),
+    ]);
+    return { completedYesterday, delayed, ongoing };
   }
 
   private async sendDailyReportForChannel(

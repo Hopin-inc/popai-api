@@ -1,4 +1,4 @@
-import { Repository, FindOptionsWhere } from "typeorm";
+import { FindOptionsWhere } from "typeorm";
 import { Service, Container } from "typedi";
 
 import Company from "@/entities/settings/Company";
@@ -12,40 +12,37 @@ import TrelloRepository from "@/repositories/TrelloRepository";
 import RemindRepository from "@/repositories/RemindRepository";
 import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 import SlackRepository from "@/repositories/SlackRepository";
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
+
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
 import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import AppDataSource from "@/config/data-source";
 import { InternalServerErrorException, LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
+import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
 
 @Service()
 export default class TaskService {
   private trelloRepository: TrelloRepository;
   private microsoftRepository: MicrosoftRepository;
   private notionRepository: NotionRepository;
-  private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
   private lineQueueRepository: LineMessageQueueRepository;
-  private commonRepository: CommonRepository;
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
-  private remindUserJobRepository: Repository<RemindUserJob>;
 
   constructor() {
     this.trelloRepository = Container.get(TrelloRepository);
     this.microsoftRepository = Container.get(MicrosoftRepository);
     this.notionRepository = Container.get(NotionRepository);
-    this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
     this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
-    this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);
   }
 
   /**
@@ -58,7 +55,7 @@ export default class TaskService {
 
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
-      const companies = await this.companyRepository.find({
+      const companies = await CompanyRepository.find({
         relations: [
           "implementedTodoApps.todoApp",
           "implementedChatTools.chattool",
@@ -102,8 +99,8 @@ export default class TaskService {
     try {
       // update old line queue
       await this.lineQueueRepository.updateStatusOfOldQueueTask();
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
-      const companies = await this.companyRepository.find({
+      const chattoolUsers = await ChatToolUserRepository.find();
+      const companies = await CompanyRepository.find({
         relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
       });
 
@@ -131,7 +128,7 @@ export default class TaskService {
 
   public async askProspects(): Promise<any> {
     try {
-      const timings = await this.commonRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
+      const timings = await EventTimingRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
       await Promise.all(timings.map(async t => {
         const { company, ask_plan: askPlan, ask_plan_milestone: milestone } = t;
         for (const chatTool of company.chatTools) {
@@ -160,7 +157,7 @@ export default class TaskService {
    */
   public async remindForDemoUser(user: User): Promise<number> {
     try {
-      const processingJobs = await this.remindUserJobRepository.findBy({
+      const processingJobs = await RemindUserJobRepository.findBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
       });
@@ -173,9 +170,9 @@ export default class TaskService {
       const job = new RemindUserJob();
       job.user_id = user.id;
       job.status = RemindUserJobStatus.PROCESSING;
-      await this.remindUserJobRepository.save(job);
+      await RemindUserJobRepository.save(job);
 
-      const userCompany = await this.companyRepository.findOne({
+      const userCompany = await CompanyRepository.findOne({
         relations: ["implementedTodoApps.todoapp", "implementedChatTools.chattool", "adminUser", "companyConditions"],
         where: { id: user.company_id, is_demo: true },
       });
@@ -189,7 +186,7 @@ export default class TaskService {
 
       // update old line queue
       await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+      const chattoolUsers = await ChatToolUserRepository.find();
 
       // create queue for user
       await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
@@ -198,14 +195,14 @@ export default class TaskService {
       await this.remindRepository.remindTodayTaskForUser(user);
 
       // update job status
-      const processingJob = await this.remindUserJobRepository.findOneBy({
+      const processingJob = await RemindUserJobRepository.findOneBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
       });
 
       if (processingJob) {
         processingJob.status = RemindUserJobStatus.DONE;
-        await this.remindUserJobRepository.save(processingJob);
+        await RemindUserJobRepository.save(processingJob);
       }
 
       return RemindUserJobResult.OK;

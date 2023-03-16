@@ -40,10 +40,12 @@ export default class OptionCandidate extends BaseEntity {
     name: string,
   ) {
     super();
-    if (property && optionId && name) {
+    if (property && optionId) {
       this.property_id = typeof property === "number" ? property : property.id;
       this.option_id = optionId;
-      this.name = name;
+
+      //Prefer
+      this.name = name ? name : this.name;
     }
   }
 }

@@ -1,8 +1,8 @@
 import { Service } from "typedi";
+import notionClient from "@/config/notion-client";
 import { BlockObjectRequest, CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { IDailyReportItems } from "@/types";
 import { TodoAppCode } from "@/consts/common";
-import { Client } from "@notionhq/client";
 import Todo from "@/entities/transactions/Todo";
 import DocumentToolUser from "@/entities/settings/DocumentToolUser";
 import logger from "@/logger/winston";
@@ -10,12 +10,6 @@ import { LoggerError } from "@/exceptions";
 
 @Service()
 export default class NotionPageBuilder {
-  private notionRequest: Client;
-
-  constructor() {
-    this.notionRequest = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
-  }
-
   public async createDailyReportByUser(
     databaseId: string,
     user: DocumentToolUser,
@@ -64,13 +58,13 @@ export default class NotionPageBuilder {
     try {
       switch (todo.todoapp.todo_app_code) {
         case TodoAppCode.NOTION:
-          // if (isDelayed) {
-          //   await this.notionRequest.pages.update(
-          //     {
-          //       page_id: todo.todoapp_reg_id,
-          //       icon: { type: "emoji", emoji: "🚨" },
-          //     });
-          // }
+          if (isDelayed) {
+            await notionClient.pages.update(
+              {
+                page_id: todo.todoapp_reg_id,
+                icon: { type: "emoji", emoji: "🚨" },
+              });
+          }
           return {
             object: "block", type: "bulleted_list_item",
             bulleted_list_item: {
