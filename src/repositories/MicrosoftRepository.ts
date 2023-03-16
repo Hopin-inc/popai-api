@@ -1,5 +1,4 @@
 import { LoggerError } from "@/exceptions";
-import { Repository } from "typeorm";
 import { Service, Container } from "typedi";
 import FormData from "form-data";
 
@@ -15,14 +14,13 @@ import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
 import TodoSectionRepository from "./modules/TodoSectionRepository";
 
-import { replaceString, toJapanDateTime, diffDays } from "@/utils/common";
+import { toJapanDateTime, diffDays } from "@/utils/common";
 import MicrosoftRequest from "@/services/MicrosoftRequest";
 import logger from "@/logger/winston";
 import { fetchApi } from "@/libs/request";
-import AppDataSource from "@/config/data-source";
 import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
 import { IMicrosoftRefresh, IMicrosoftTask, IMicrosoftToken } from "@/types/microsoft";
-import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
+import { COMPLETED } from "@/consts/microsoft";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";

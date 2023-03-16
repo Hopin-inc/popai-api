@@ -11,10 +11,10 @@ import Section from "../settings/Section";
 import TodoHistory from "./TodoHistory";
 import Prospect from "./Prospect";
 import { replaceString, Sorter, toJapanDateTime } from "../../utils/common";
-import { IRemindTask, ITask } from "@/types";
+import { ITask } from "@/types";
 import { INotionTask } from "@/types/notion";
 import { IMicrosoftTask } from "@/types/microsoft";
-import { ITrelloList, ITrelloTask } from "@/types/trello";
+import { ITrelloTask } from "@/types/trello";
 import { TodoAppCode } from "@/consts/common";
 import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
 

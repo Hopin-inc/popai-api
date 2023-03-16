@@ -1,13 +1,9 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import {
-  ActionsBlock,
   Button,
-  ContextBlock,
   KnownBlock,
   MessageAttachment,
-  MrkdwnElement,
-  SectionBlock,
 } from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
@@ -25,7 +21,7 @@ import {
   SlackActionLabel,
 } from "@/consts/slack";
 import { diffDays, formatDatetime, relativeRemindDays, Sorter, toJapanDateTime, truncate } from "@/utils/common";
-import { ITodoSlack, SlackInteractionPayload } from "@/types/slack";
+import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, valueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
 import { PlainTextOption } from "@slack/types";

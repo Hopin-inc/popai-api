@@ -1,5 +1,5 @@
 import { Service } from "typedi";
-import { In, IsNull, Not, Repository } from "typeorm";
+import { In, IsNull, Not } from "typeorm";
 import {
   Block,
   ChatPostMessageArguments,

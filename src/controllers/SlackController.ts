@@ -1,11 +1,8 @@
 import { Controller } from "tsoa";
 import Container from "typedi";
-import { Repository } from "typeorm";
 
 import ChatTool from "@/entities/masters/ChatTool";
 import User from "@/entities/settings/User";
-import Todo from "@/entities/transactions/Todo";
-import Section from "@/entities/settings/Section";
 
 import SlackRepository from "@/repositories/SlackRepository";
 
@@ -13,7 +10,6 @@ import { ChatToolCode, MessageTriggerType, TodoStatus } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { toJapanDateTime } from "@/utils/common";
-import AppDataSource from "@/config/data-source";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import SlackBot from "@/config/slack-bot";

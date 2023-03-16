@@ -1,4 +1,4 @@
-import Container, { Service } from "typedi";
+import { Service } from "typedi";
 import { Repository } from "typeorm";
 import moment from "moment";
 

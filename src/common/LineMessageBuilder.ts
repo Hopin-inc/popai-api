@@ -2,9 +2,7 @@ import {
   FlexBox,
   FlexBubble,
   FlexCarousel,
-  FlexComponent,
   FlexMessage,
-  Message,
   Profile,
   TextMessage,
 } from "@line/bot-sdk";

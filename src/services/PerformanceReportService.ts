@@ -21,7 +21,7 @@ export default class PerformanceReportService {
     this.trelloRepository = Container.get(TrelloRepository);
   }
 
-  public async sendPerformanceReport(monthly: boolean = false): Promise<any> {
+  public async sendPerformanceReport(_monthly: boolean = false): Promise<any> {
     const companies = await CompanyRepository.find({});
 
     const sendOperations = async (company: Company) => {

@@ -41,7 +41,6 @@ import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, NotionPropertyType, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
-import { valueOf } from "../../dist/types";
 import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 import { PropertyRepository } from "@/repositories/settings/PropertyRepository";
 import { OptionRepository } from "@/repositories/settings/OptionRepository";
