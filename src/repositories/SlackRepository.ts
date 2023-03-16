@@ -1,5 +1,5 @@
-import { Container, Service } from "typedi";
-import { In, IsNull, Not, Repository } from "typeorm";
+import { Service } from "typedi";
+import { In, IsNull, Not } from "typeorm";
 import {
   Block,
   ChatPostMessageArguments,
@@ -21,17 +21,18 @@ import Section from "@/entities/settings/Section";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import CommonRepository from "./modules/CommonRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
+
 import logger from "@/logger/winston";
 import {
   ChatToolCode,
   MAX_REMIND_COUNT,
   MessageTriggerType,
   MessageType,
-  OpenStatus, ProspectLevel,
+  ProspectLevel,
   RemindType,
-  ReplyStatus,
-  SenderType, TodoHistoryAction,
+  TodoHistoryAction,
 } from "@/consts/common";
 import { diffDays, getItemRandomly, getUniqueArray, Sorter, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
@@ -43,33 +44,17 @@ import Prospect from "@/entities/transactions/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
 import DailyReport from "@/entities/transactions/DailyReport";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
-import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { INotionDailyReport } from "@/types/notion";
+import { UserRepository } from "@/repositories/settings/UserRepository";
+import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { DailyReportRepository } from "@/repositories/transactions/DailyReportRepository";
+import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
+import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
 
 @Service()
 export default class SlackRepository {
-  private userRepository: Repository<User>;
-  private messageRepository: Repository<ChatMessage>;
-  private todoRepository: Repository<Todo>;
-  private commonRepository: CommonRepository;
-  private sectionRepository: Repository<Section>;
-  private chattoolRepository: Repository<ChatTool>;
-  private prospectRepository: Repository<Prospect>;
-  private dailyReportRepository: Repository<DailyReport>;
-  private dailyReportConfigRepository: Repository<DailyReportConfig>;
-
-  constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
-    this.messageRepository = AppDataSource.getRepository(ChatMessage);
-    this.todoRepository = AppDataSource.getRepository(Todo);
-    this.commonRepository = Container.get(CommonRepository);
-    this.sectionRepository = AppDataSource.getRepository(Section);
-    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
-    this.prospectRepository = AppDataSource.getRepository(Prospect);
-    this.dailyReportRepository = AppDataSource.getRepository(DailyReport);
-    this.dailyReportConfigRepository = AppDataSource.getRepository(DailyReportConfig);
-  }
-
   public async reportByUser(
     items: IDailyReportItems,
     company: Company,
@@ -89,7 +74,7 @@ export default class SlackRepository {
       ts = ts ?? res?.ts;
       const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
       const dailyReport = new DailyReport(user, company, sections, items, channel, ts, filteredRes.pageId, filteredRes.docAppRegUrl);
-      await this.dailyReportRepository.save(dailyReport);
+      await DailyReportRepository.save(dailyReport);
     }
   }
 
@@ -143,16 +128,19 @@ export default class SlackRepository {
       blocks: message.blocks,
     });
     if (result.ok) {
-      return await this.saveChatMessage(
+      const chatMessage = new ChatMessage(
         chatTool,
-        message,
+        this.getTextFromSendMessage(message),
         MessageTriggerType.REMIND,
+        MessageType.TEXT,
+        user,
         conversationId,
         result.ts,
-        user,
-        undefined,
+        null,
         todo,
+        null,
       );
+      return await ChatMessageRepository.save(chatMessage);
     }
   }
 
@@ -329,7 +317,7 @@ export default class SlackRepository {
   }
 
   public async getSuperiorUsers(slackId: string): Promise<User[]> {
-    const users = await this.commonRepository.getChatToolUserByUserId(slackId);
+    const users = await UserRepository.getChatToolUserByUserId(slackId);
 
     if (!users.length) {
       return Promise.resolve([]);
@@ -346,20 +334,20 @@ export default class SlackRepository {
       return Promise.resolve([]);
     }
 
-    return await this.userRepository.find({
+    return await UserRepository.find({
       where: { id: In(reportingLines.map(record => record.superior_user_id)) },
       relations: ["chattoolUsers.chattool"],
     });
   }
 
   public async getSlackTodo(channelId: string, threadId: string): Promise<Todo> {
-    const message = await this.messageRepository.findOneBy({
+    const message = await ChatMessageRepository.findOneBy({
       channel_id: channelId,
       thread_id: threadId,
       todo_id: Not(IsNull()),
     });
     if (message) {
-      return await this.todoRepository.findOne({
+      return await TodoRepository.findOne({
         where: { id: message.todo_id },
         relations: ["todoapp", "company", "company.sections"],
       });
@@ -370,7 +358,7 @@ export default class SlackRepository {
 
   public async createMessage(chatMessage: ChatMessage): Promise<ChatMessage> {
     try {
-      return await this.messageRepository.save(chatMessage);
+      return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
@@ -378,7 +366,7 @@ export default class SlackRepository {
 
   public async findMessageById(id: number): Promise<ChatMessage> {
     try {
-      return await this.messageRepository.findOneBy({
+      return await ChatMessageRepository.findOneBy({
         id: id,
       });
     } catch (error) {
@@ -410,7 +398,16 @@ export default class SlackRepository {
       const response = await SlackBot.chat.postMessage(props);
       if (response.ok) {
         const ts = threadId ? threadId : response.ts;
-        await this.saveChatMessage(chatTool, message, messageTriggerId, channelId, ts, user);
+        const chatMessage = new ChatMessage(
+          chatTool,
+          this.getTextFromSendMessage(message),
+          messageTriggerId,
+          MessageType.TEXT,
+          user,
+          channelId,
+          ts,
+        );
+        await ChatMessageRepository.save(chatMessage);
       }
       return response;
     }
@@ -433,13 +430,22 @@ export default class SlackRepository {
         blocks: message.blocks,
       });
       if (response.ok) {
-        return await this.saveChatMessage(chatTool, message, MessageTriggerType.RESPONSE, channelId, threadId, user);
+        const chatMessage = new ChatMessage(
+          chatTool,
+          this.getTextFromSendMessage(message),
+          MessageTriggerType.RESPONSE,
+          MessageType.TEXT,
+          user,
+          channelId,
+          threadId,
+        );
+        return await ChatMessageRepository.save(chatMessage);
       }
     }
   }
 
   public async getUserFromSlackId(slackId: string): Promise<User> {
-    const users = await this.commonRepository.getChatToolUserByUserId(slackId);
+    const users = await UserRepository.getChatToolUserByUserId(slackId);
     return users.length ? users[0] : null;
   }
 
@@ -448,39 +454,9 @@ export default class SlackRepository {
     return await this.pushMessageRemind(chatTool, user, todo, remindDays, channelId);
   }
 
-  private async saveChatMessage(
-    chatTool: ChatTool,
-    message: MessageAttachment,
-    messageTriggerId: number,
-    channelId: string,
-    threadId: string,
-    user?: User,
-    remindTypes?: IRemindType,
-    todo?: Todo,
-  ): Promise<ChatMessage> {
-    const remindType = remindTypes?.remindType ?? RemindType.NOT_REMIND;
-    const remindDays = remindTypes?.remindDays ?? null;
-    const chatMessage = new ChatMessage();
-    chatMessage.is_from_user = SenderType.FROM_BOT;
-    chatMessage.chattool_id = chatTool.id;
-    chatMessage.is_opened = OpenStatus.OPENED;
-    chatMessage.is_replied = ReplyStatus.NOT_REPLIED;
-    chatMessage.message_trigger_id = messageTriggerId; // batch
-    chatMessage.message_type_id = MessageType.TEXT;
-    chatMessage.channel_id = channelId;
-    chatMessage.thread_id = threadId;
-    chatMessage.body = this.getTextFromSendMessage(message);
-    chatMessage.todo_id = todo?.id;
-    chatMessage.send_at = toJapanDateTime(moment().utc().toDate());
-    chatMessage.user_id = user?.id;
-    chatMessage.remind_type = remindType;
-    chatMessage.remind_before_days = remindDays;
-    return await this.messageRepository.save(chatMessage);
-  }
-
   private async getSendChannel(company: Company): Promise<string> {
     const companyId = company.id;
-    const section = await this.sectionRepository.findOneBy({
+    const section = await SectionRepository.findOneBy({
       company_id: companyId,
       channel_id: Not(IsNull()),
     });
@@ -494,8 +470,8 @@ export default class SlackRepository {
     const channelId = await this.getSendChannel(company);
 
     if (channelId) {
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
-      const needRemindTasks = await this.commonRepository.getNoDeadlineOrUnassignedTodos(company.id);
+      const chattoolUsers = await ChatToolUserRepository.find();
+      const needRemindTasks = await TodoRepository.getNoDeadlineOrUnassignedTodos(company.id);
 
       // 期日未設定のタスクがない旨のメッセージが管理者に送られること
       if (needRemindTasks.length) {
@@ -655,9 +631,9 @@ export default class SlackRepository {
 
   public async remindTodayTaskForUser(company: Company): Promise<void> {
     const channelId = await this.getSendChannel(company);
-    const chatToolUsers = await this.commonRepository.getChatToolUsers();
+    const chatToolUsers = await ChatToolUserRepository.find();
     const remindTasks: Todo[] = await this.getTodayRemindTasks(company, chatToolUsers);
-    const chatTool = await this.chattoolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
+    const chatTool = await ChatToolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
     const userTodoMap = this.mapUserRemindTaskList(remindTasks, chatTool, chatToolUsers);
 
     const remindPerTodo = async (todoSlacks: ITodoSlack[]): Promise<void> => {
@@ -673,11 +649,11 @@ export default class SlackRepository {
     const todoDatas = todos.map(todo => {
       return { ...todo, reminded_count: todo.reminded_count + 1 };
     });
-    return await this.todoRepository.upsert(todoDatas, []);
+    return await TodoRepository.upsert(todoDatas, []);
   }
 
   private async getTodayRemindTasks(company: Company, chatToolUsers: ChatToolUser[]): Promise<Todo[]> {
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+    const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
 
     const todayRemindTasks: Todo[] = [];
 
@@ -707,7 +683,7 @@ export default class SlackRepository {
 
   private async getRemindTodoTask(company: Company, user?: User): Promise<Todo[]> {
     const today = toJapanDateTime(new Date());
-    const dayReminds: number[] = await this.commonRepository.getDayReminds(company.companyConditions);
+    const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
 
     const minValue = dayReminds.reduce(function(prev, curr) {
       return prev < curr ? prev : curr;
@@ -726,23 +702,7 @@ export default class SlackRepository {
       .startOf("day")
       .toDate();
 
-    const query = this.todoRepository
-      .createQueryBuilder("todos")
-      .leftJoinAndSelect("todos.todoUsers", "todo_users")
-      .leftJoinAndSelect("todo_users.user", "users")
-      .where("todos.is_done = :done", { done: false })
-      .andWhere("todos.is_closed = :closed", { closed: false })
-      .andWhere("todos.company_id = :company_id", { company_id: company.id })
-      .andWhere("todos.reminded_count < :reminded_count", { reminded_count: MAX_REMIND_COUNT })
-      .andWhere("todos.deadline >= :min_date", { min_date: minDate })
-      .andWhere("todos.deadline <= :max_date", { max_date: maxDate })
-      .andWhere("todo_users.deleted_at IS NULL");
-
-    if (user) {
-      query.andWhere("todo_users.user_id = :user_id", { user_id: user.id });
-    }
-
-    return await query.getMany();
+    return await TodoRepository.getRemindTodos(company, minDate, maxDate, user);
   }
 
   public async notifyOnCreated(savedTodo: Todo, assignees: User[], chatTool: ChatTool, editUser: TodoAppUser, channelId: string) {
@@ -824,7 +784,7 @@ export default class SlackRepository {
     const chatTool = company.chatTools.find(chatTool => chatTool.tool_code === ChatToolCode.SLACK);
     const askedProspects: Prospect[] = [];
     if (chatTool) {
-      const todos = target ? target.todos : await this.commonRepository.getActiveTodos(company);
+      const todos = target ? target.todos : await TodoRepository.getActiveTodos(company);
       await Promise.all(todos.map(async todo => {
         const message = SlackMessageBuilder.createAskProspectMessage(todo);
         const users = target ? [target.user] : todo.users;
@@ -835,7 +795,7 @@ export default class SlackRepository {
         }));
       }));
     }
-    await this.prospectRepository.upsert(askedProspects, []);
+    await ProspectRepository.upsert(askedProspects, []);
   }
 
   public async askPlans(company: Company, milestone?: string) {
@@ -860,7 +820,7 @@ export default class SlackRepository {
     const [slackProfile] = await Promise.all([
       this.getUserProfile(user.slackId),
       SlackBot.chat.update({ channel: channelId, ts: threadId, text: todo.name, blocks }),
-      this.prospectRepository.update(where, { prospect, prospect_responded_at: new Date() }),
+      await ProspectRepository.update(where, { prospect, prospect_responded_at: new Date() }),
     ]);
     if (prospect >= ProspectLevel.GOOD) {
       await this.updateDailyReportWithProspects(user, slackProfile?.profile?.image_48);
@@ -877,15 +837,15 @@ export default class SlackRepository {
   ) {
     const todo = await this.getSlackTodo(channelId, threadId);
     const where = { todo_id: todo.id, slack_ts: threadId };
-    const { prospect } = await this.prospectRepository.findOneBy(where);
-    await this.prospectRepository.update(where, { action, action_responded_at: new Date() });
+    const { prospect } = await ProspectRepository.findOneBy(where);
+    await ProspectRepository.update(where, { action, action_responded_at: new Date() });
     const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(todo, prospect, action);
     await SlackBot.chat.update({ channel: channelId, ts: threadId, text: todo.name, blocks });
   }
 
   public async openReliefCommentModal(channelId: string, threadId: string, triggerId: string) {
     const where = { slack_channel_id: channelId, slack_ts: threadId };
-    const { action } = await this.prospectRepository.findOneBy(where);
+    const { action } = await ProspectRepository.findOneBy(where);
     const targetAction = reliefActions.find(a => a.value === action);
     const blocks = SlackMessageBuilder.createReliefCommentModal();
     const viewId = await this.openModal(
@@ -894,31 +854,31 @@ export default class SlackRepository {
       blocks,
       SlackModalLabel.RELIEF_COMMENT,
     );
-    await this.prospectRepository.update(where, { slack_view_id: viewId });
+    await ProspectRepository.update(where, { slack_view_id: viewId });
   }
 
   public async openPlanModal(user: User, channelId: string, triggerId: string, milestoneText: string) {
-    const todos = await this.commonRepository.getActiveTodos(user.company, user);
+    const todos = await TodoRepository.getActiveTodos(user.company, user);
     const blocks = SlackMessageBuilder.createAskPlanModal(todos, milestoneText);
     await this.openModal(triggerId, "着手するタスクを決める", blocks, SlackModalLabel.PLAN);
   }
 
   public async receiveReliefComment(viewId: string, comment: string) {
-    const prospectRecord = await this.prospectRepository.findOneBy({ slack_view_id: viewId });
-    await this.prospectRepository.update(prospectRecord.id, { comment, comment_responded_at: new Date() });
+    const prospectRecord = await ProspectRepository.findOneBy({ slack_view_id: viewId });
+    await ProspectRepository.update(prospectRecord.id, { comment, comment_responded_at: new Date() });
     return prospectRecord;
   }
 
   public async shareReliefCommentAndUpdateDailyReport(viewId: string, comment: string, prospectRecord: Prospect) {
     const [todo, user] = await Promise.all([
-      this.todoRepository.findOne({
+      TodoRepository.findOne({
         where: { id: prospectRecord.todo_id },
         relations: [
           "company.implementedChatTools.chattool",
           "todoSections.section",
         ],
       }),
-      this.userRepository.findOne({
+      UserRepository.findOne({
         where: { id: prospectRecord.user_id },
         relations: ["chattoolUsers.chattool"],
       }),
@@ -947,11 +907,11 @@ export default class SlackRepository {
   }
 
   private async updateDailyReportWithProspects(user: User, iconUrl: string) {
-    const dailyReports = await this.commonRepository.getDailyReportsToday(user.company, user);
+    const dailyReports = await DailyReportRepository.getDailyReportsToday(user.company, user);
     const report = dailyReports.sort(Sorter.byDate<DailyReport>("created_at")).slice(-1)[0];
     const [completedYesterday, delayed, ongoing] = await Promise.all(
       [report.todo_ids_yesterday, report.todo_ids_delayed, report.todo_ids_ongoing].map(ids => {
-        return this.commonRepository.getTodosByIds(ids);
+        return TodoRepository.getTodosByIds(ids);
       }),
     );
     const items: IDailyReportItems = { completedYesterday, delayed, ongoing };

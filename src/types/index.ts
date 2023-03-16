@@ -29,7 +29,7 @@ export type ITodoHistory = {
   isDone: boolean;
   isClosed: boolean;
   todoappRegUpdatedAt: Date;
-  editedBy?:number;
+  editedBy?: number;
 };
 
 export type ITodoUserUpdate = {
@@ -76,4 +76,11 @@ export type IDailyReportItems = {
   completedYesterday: Todo[];
   delayed: Todo[];
   ongoing: Todo[];
+};
+
+export type IPerformanceReportItems = {
+  planed: Todo[];
+  completed: Todo[];
+  delayed: Todo[];
+  closed: Todo[];
 };

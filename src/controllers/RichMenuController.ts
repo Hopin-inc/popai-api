@@ -1,7 +1,6 @@
 import { Controller } from "tsoa";
 import { Repository } from "typeorm";
 
-import ChatTool from "@/entities/masters/ChatTool";
 import ChatToolUser from "@/entities/settings/ChatToolUser";
 import User from "@/entities/settings/User";
 
@@ -10,21 +9,20 @@ import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import AppDataSource from "@/config/data-source";
 import LineBot from "@/config/line-bot";
+import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 
 export default class RichMenuController extends Controller {
-  private chattoolRepository: Repository<ChatTool>;
   private chattoolUserRepository: Repository<ChatToolUser>;
   private userRepository: Repository<User>;
 
   constructor() {
     super();
-    this.chattoolRepository = AppDataSource.getRepository(ChatTool);
     this.chattoolUserRepository = AppDataSource.getRepository(ChatToolUser);
     this.userRepository = AppDataSource.getRepository(User);
   }
 
   public async updateRichMenu(demoRichMenuId: string): Promise<any> {
-    const chattool = await this.chattoolRepository.findOneBy({
+    const chattool = await ChatToolRepository.findOneBy({
       tool_code: ChatToolCode.LINE,
     });
 

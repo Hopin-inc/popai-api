@@ -38,6 +38,18 @@ router.get("/daily", async (req, res) => {
   }
 });
 
+router.get("/report", async (req, res) => {
+  try {
+    const monthly = !!req.query.monthly;
+    const controller = new TaskController();
+    // await controller.syncTodos();
+    const response = await controller.sendPerformanceReport(monthly);
+    ApiResponse.successRes(res, response);
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
 router.get("/prospect", async (req, res) => {
   try {
     const controller = new TaskController();

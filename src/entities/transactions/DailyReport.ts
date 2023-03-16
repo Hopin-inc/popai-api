@@ -73,18 +73,12 @@ export default class DailyReport extends BaseEntity {
       this.todo_ids_delayed = items.delayed.map(todo => todo.id);
       this.todo_ids_ongoing = items.ongoing.map(todo => todo.id);
       this.section_ids = sections.map(section => typeof section === "number" ? section : section.id);
-      if (slackChannelId) {
-        this.slack_channel_id = slackChannelId;
-      }
-      if (slackTs) {
-        this.slack_ts = slackTs;
-      }
-      if (docAppRegId) {
-        this.doc_app_reg_id = docAppRegId;
-      }
-      if (docAppRegUrl) {
-        this.doc_app_reg_url = docAppRegUrl;
-      }
+
+      // Prefer
+      this.slack_channel_id = slackChannelId ? slackChannelId : this.slack_channel_id;
+      this.slack_ts = slackTs ? slackTs : this.slack_ts;
+      this.doc_app_reg_id = docAppRegId ? docAppRegId : this.doc_app_reg_id;
+      this.doc_app_reg_url = docAppRegUrl ? docAppRegUrl : this.doc_app_reg_url;
     }
   }
 }

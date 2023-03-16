@@ -5,23 +5,26 @@ import * as process from "process";
 import TaskService from "@/services/TaskService";
 import { getProcessTime } from "@/utils/common";
 import DailyReportService from "@/services/DailyReportService";
+import PerformanceReportService from "@/services/PerformanceReportService";
 
 export default class TaskController extends Controller {
   private taskService: TaskService;
   private dailyReportService: DailyReportService;
+  private performanceReportService: PerformanceReportService;
 
   constructor() {
     super();
     this.taskService = Container.get(TaskService);
     this.dailyReportService = Container.get(DailyReportService);
+    this.performanceReportService = Container.get(PerformanceReportService);
   }
 
   public async syncTodos(notify: boolean = false): Promise<any> {
-    console.log(`TaskController#syncTodos(notify = ${ notify }) - START`);
+    console.log(`TaskController#syncTodos(notify = ${notify}) - START`);
     const start = process.hrtime();
     await this.taskService.syncTodos(null, notify);
     const end = process.hrtime(start);
-    console.log(`TaskController#syncTodos(notify = ${ notify }) - END - ${ getProcessTime(end) }`);
+    console.log(`TaskController#syncTodos(notify = ${notify}) - END - ${getProcessTime(end)}`);
     return;
   }
 
@@ -30,7 +33,7 @@ export default class TaskController extends Controller {
     const start = process.hrtime();
     await this.taskService.remind();
     const end = process.hrtime(start);
-    console.log(`TaskController#remind - END - ${ getProcessTime(end) }`);
+    console.log(`TaskController#remind - END - ${getProcessTime(end)}`);
     return;
   }
 
@@ -39,7 +42,15 @@ export default class TaskController extends Controller {
     const start = process.hrtime();
     await this.dailyReportService.sendDailyReport();
     const end = process.hrtime(start);
-    console.log(`TaskController#sendDailyReport - END - ${ getProcessTime(end) }`);
+    console.log(`TaskController#sendDailyReport - END - ${getProcessTime(end)}`);
+  }
+
+  public async sendPerformanceReport(monthly: boolean = true): Promise<any> {
+    console.log(`TaskController#sendPerformanceReport(monthly = ${monthly}) - START`);
+    const start = process.hrtime();
+    await this.performanceReportService.sendPerformanceReport(monthly);
+    const end = process.hrtime(start);
+    console.log(`TaskController#sendPerformanceReport(monthly = ${monthly}) - END - ${getProcessTime(end)}`);
   }
 
   public async askProspects(): Promise<any> {
@@ -47,6 +58,6 @@ export default class TaskController extends Controller {
     const start = process.hrtime();
     await this.taskService.askProspects();
     const end = process.hrtime(start);
-    console.log(`TaskController#askProspects - END - ${ getProcessTime(end) }`);
+    console.log(`TaskController#askProspects - END - ${getProcessTime(end)}`);
   }
 }

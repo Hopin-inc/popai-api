@@ -2,6 +2,10 @@ import { Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Column } from "t
 import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
 import User from "../settings/User";
+import { valueOf } from "@/types";
+import { TodoHistoryAction as Action, TodoHistoryProperty as Property } from "@/consts/common";
+
+type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Entity("t_todo_histories")
 export default class TodoHistory extends BaseEntity {
@@ -47,4 +51,28 @@ export default class TodoHistory extends BaseEntity {
   )
   @JoinColumn({ name: "user_id" })
   user: User;
+
+  constructor(
+    todo: Todo | number,
+    assignees: User[],
+    property: valueOf<typeof Property>,
+    action: valueOf<typeof Action>,
+    updatedAt: Date,
+    info?: Info | null,
+    editedBy?: number,
+  ) {
+    super();
+    if (todo && assignees && property && action && updatedAt) {
+      this.todo_id = typeof todo === "number" ? todo : todo.id;
+      this.property = property;
+      this.action = action;
+      this.todoapp_reg_updated_at = updatedAt;
+
+      //Prefer
+      this.deadline = info?.deadline ?? null;
+      this.days_diff = info?.daysDiff ?? null;
+      this.user_id = info?.assignee ? info.assignee.id : null;
+      this.edited_by = editedBy ? editedBy : null;
+    }
+  }
 }
