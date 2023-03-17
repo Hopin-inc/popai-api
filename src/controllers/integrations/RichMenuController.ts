@@ -1,26 +1,13 @@
 import { Controller } from "tsoa";
-import { Repository } from "typeorm";
-
-import ChatToolUser from "@/entities/settings/ChatToolUser";
-import User from "@/entities/settings/User";
 
 import { ChatToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import AppDataSource from "@/config/data-source";
 import LineBot from "@/config/line-bot";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
 export default class RichMenuController extends Controller {
-  private chattoolUserRepository: Repository<ChatToolUser>;
-  private userRepository: Repository<User>;
-
-  constructor() {
-    super();
-    this.chattoolUserRepository = AppDataSource.getRepository(ChatToolUser);
-    this.userRepository = AppDataSource.getRepository(User);
-  }
-
   public async updateRichMenu(demoRichMenuId: string): Promise<any> {
     const chattool = await ChatToolRepository.findOneBy({
       tool_code: ChatToolCode.LINE,
@@ -39,7 +26,7 @@ export default class RichMenuController extends Controller {
       throw new Error("Demo rich menu id not found!");
     }
     // get demo users
-    const lineUsers = await this.chattoolUserRepository
+    const lineUsers = await ChatToolUserRepository
       .createQueryBuilder("chat_tool_users")
       .innerJoinAndSelect("chat_tool_users.user", "user")
       .innerJoinAndSelect("user.company", "company")

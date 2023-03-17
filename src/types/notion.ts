@@ -27,3 +27,13 @@ export type INotionDailyReport = {
 }
 
 export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;
+
+export type INotionOAuthToken = {
+  access_token: string;
+  bot_id: string;
+  duplicated_template_id?: string;
+  owner: object;
+  workspace_icon?: string;
+  workspace_id: string;
+  workspace_name?: string;
+};

@@ -1,29 +1,21 @@
 import express from "express";
 
 import { validationError } from "@/middleware/validate";
-import { allowOnlyCloudScheduler } from "@/middleware/user-agent";
-import AuthRouter from "./auth";
-import AccountRouter from "./accounts";
-import LineRouter from "./line";
-import SlackRouter from "./slack";
-import TaskRoute from "./tasks";
-import MessageRoute from "./message";
 import { session } from "@/middleware/session";
+import integrationRouters from "@/routes/integrations";
+import jobRouters from "@/routes/jobs";
+import appRouters from "@/routes/app";
 
 const router = express();
+
 router.use(session);
 if (process.env.ENV !== "LOCAL") {
   router.set("trust proxy", 1);
 }
-
-router.use("/auth", AuthRouter);
-router.use("/accounts", AccountRouter);
-
-
-router.use("/line", LineRouter);
-router.use("/slack", SlackRouter);
-router.use("/tasks", allowOnlyCloudScheduler, TaskRoute);
-router.use("/message", MessageRoute);
 router.use(validationError);
+
+router.use(integrationRouters);
+router.use(jobRouters);
+router.use(appRouters);
 
 export default router;

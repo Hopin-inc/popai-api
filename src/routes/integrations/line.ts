@@ -1,7 +1,7 @@
 import express from "express";
 import ApiResponse from "@/common/ApiResponse";
-import LineController from "@/controllers/LineController";
-import RichMenuController from "@/controllers/RichMenuController";
+import LineController from "@/controllers/integrations/LineController";
+import RichMenuController from "@/controllers/integrations/RichMenuController";
 import { StatusCodes } from "@/common/StatusCodes";
 
 const router = express();

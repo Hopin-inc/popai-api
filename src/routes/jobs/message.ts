@@ -1,6 +1,6 @@
 import express from "express";
 
-import MessageController from "@/controllers/MessageController";
+import MessageController from "@/controllers/jobs/MessageController";
 import { StatusCodes } from "@/common/StatusCodes";
 
 const router = express();

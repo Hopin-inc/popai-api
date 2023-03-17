@@ -7,7 +7,7 @@ import dotenvExpand from "dotenv-expand";
 import express, { Application } from "express";
 import moment from "moment";
 
-import AppDataSource from "./config/data-source";
+import dataSource from "./config/data-source";
 import { toJapanDateTime } from "./utils/common";
 import Router from "./routes";
 import { createServer } from "https";
@@ -52,7 +52,7 @@ server.listen(PORT, () => {
 });
 
 // establish database connection
-AppDataSource.initialize()
+dataSource.initialize()
   .then(() => {
     console.log("Data Source has been initialized!");
     app.use("/api", Router);

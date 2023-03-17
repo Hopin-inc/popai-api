@@ -103,9 +103,20 @@ export const OpenStatus = {
   CLOSED: false,
 };
 
+export const ChatToolId = {
+  LINE: 1,
+  SLACK: 2,
+};
+
 export const ChatToolCode = {
   LINE: "line",
   SLACK: "slack",
+};
+
+export const TodoAppId = {
+  TRELLO: 1,
+  MICROSOFT: 2,
+  NOTION: 3,
 };
 
 export const TodoAppCode = {

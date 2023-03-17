@@ -1,6 +1,6 @@
 import express from "express";
 import ApiResponse from "@/common/ApiResponse";
-import SlackController from "@/controllers/SlackController";
+import SlackController from "@/controllers/integrations/SlackController";
 import { authRequired } from "@/middleware/auth";
 
 const router = express();

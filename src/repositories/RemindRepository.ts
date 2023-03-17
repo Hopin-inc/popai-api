@@ -8,7 +8,6 @@ import ChatToolUser from "@/entities/settings/ChatToolUser";
 import Company from "@/entities/settings/Company";
 
 import LineRepository from "./LineRepository";
-import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
@@ -18,22 +17,21 @@ import { ITodoLines } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
 
 @Service()
 export default class RemindRepository {
   private lineRepository: LineRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
 
   constructor() {
     this.lineRepository = Container.get(LineRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
   }
 
   public async remindTodayTaskForUser(user: User = null): Promise<void> {
     const remindTasks: Todo[] = [];
     const todoQueueTasks: LineMessageQueue[] = [];
 
-    const todoAllTodayQueueTasks = await this.lineQueueRepository.getTodayQueueTasks(user);
+    const todoAllTodayQueueTasks = await LineMessageQueueRepository.getTodayQueueTasks(user);
 
     const chattoolUsers = await ChatToolUserRepository.find();
     const chattool = await ChatToolRepository.findOneBy({
@@ -237,7 +235,7 @@ export default class RemindRepository {
     });
 
     if (lineQueueDatas.length) {
-      return await this.lineQueueRepository.insertOrUpdate(lineQueueDatas);
+      return await LineMessageQueueRepository.insertOrUpdate(lineQueueDatas);
     }
   }
 

@@ -16,7 +16,6 @@ import ChatTool from "@/entities/masters/ChatTool";
 import ChatToolUser from "@/entities/settings/ChatToolUser";
 import Company from "@/entities/settings/Company";
 import ChatMessage from "@/entities/transactions/ChatMessage";
-import ReportingLine from "@/entities/settings/ReportingLine";
 import Section from "@/entities/settings/Section";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
@@ -36,7 +35,6 @@ import {
 } from "@/consts/common";
 import { diffDays, getItemRandomly, getUniqueArray, Sorter, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
-import AppDataSource from "@/config/data-source";
 import { LoggerError } from "@/exceptions";
 import { IDailyReportItems, IRemindType, valueOf } from "@/types";
 import { ITodoSlack, SlackInteractionPayload } from "@/types/slack";
@@ -52,6 +50,7 @@ import { CompanyConditionRepository } from "@/repositories/settings/CompanyCondi
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
 import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
+import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
 
 @Service()
 export default class SlackRepository {
@@ -325,8 +324,7 @@ export default class SlackRepository {
 
     const userIds: number[] = users.map((user) => user.id).filter(Number);
 
-    const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
-    const reportingLines = await reportingLineRepository.findBy({
+    const reportingLines = await ReportingLineRepository.findBy({
       subordinate_user_id: In(userIds),
     });
 

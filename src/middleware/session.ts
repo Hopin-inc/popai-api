@@ -1,10 +1,9 @@
 import expressSession from "express-session";
 import Company from "@/entities/settings/Company";
 import { RequestHandler } from "express";
-import AppDataSource from "@/config/data-source";
-import Session from "@/entities/transactions/Session";
 import { TypeormStore } from "connect-typeorm";
 import * as process from "process";
+import { SessionRepository } from "@/repositories/transactions/SessionRepository";
 
 declare module "express-session" {
   interface SessionData {
@@ -13,13 +12,11 @@ declare module "express-session" {
   }
 }
 
-const sessionRepository = AppDataSource.getRepository(Session);
-
 export const session: RequestHandler = expressSession({
   secret: process.env.EXPRESS_SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  store: new TypeormStore().connect(sessionRepository),
+  store: new TypeormStore().connect(SessionRepository),
   cookie: {
     path: "/",
     secure: process.env.ENV !== "LOCAL" || process.env.NODE_HTTPS === "true",

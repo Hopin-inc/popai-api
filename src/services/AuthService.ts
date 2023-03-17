@@ -1,17 +1,10 @@
 import { Service } from "typedi";
-import { Repository } from "typeorm";
 import { auth } from "@/libs/firebase";
-import AppDataSource from "@/config/data-source";
 import Account from "@/entities/settings/Account";
+import { AccountRepository } from "@/repositories/settings/AccountRepository";
 
 @Service()
 export default class AuthService {
-  private readonly accountRepository: Repository<Account>;
-
-  constructor() {
-    this.accountRepository = AppDataSource.getRepository(Account);
-  }
-
   public async verifyIdToken(authHeader: string): Promise<string> {
     const chunkedAuthHeader = authHeader.split(" ");
     if (chunkedAuthHeader[0] === "Bearer") {
@@ -23,7 +16,7 @@ export default class AuthService {
   }
 
   public async getAccount(uid: string): Promise<Account> {
-    return await this.accountRepository.findOne({
+    return await AccountRepository.findOne({
       where: { uid },
       relations: ["company"],
     });

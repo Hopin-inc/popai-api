@@ -21,7 +21,7 @@ export default class TodoAppUser extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   avatar: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci"})
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
   email: string;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })

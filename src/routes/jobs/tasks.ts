@@ -1,6 +1,6 @@
 import express from "express";
 
-import TaskController from "@/controllers/TaskController";
+import TaskController from "@/controllers/jobs/TaskController";
 import ApiResponse from "@/common/ApiResponse";
 
 const router = express();

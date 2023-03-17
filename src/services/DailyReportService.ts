@@ -2,7 +2,6 @@ import { Container, Service } from "typedi";
 
 import SlackRepository from "@/repositories/SlackRepository";
 import LineRepository from "@/repositories/LineRepository";
-import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 
 import Company from "@/entities/settings/Company";
 import { ChatToolCode, DocumentToolCode } from "@/consts/common";
@@ -17,24 +16,23 @@ import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
 
 @Service()
 export default class DailyReportService {
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
   private notionRepository: NotionRepository;
 
   constructor() {
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.notionRepository = Container.get(NotionRepository);
   }
 
   public async sendDailyReport(): Promise<any> {
     try {
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
       const companies = await CompanyRepository.find({
         relations: [
           "sections",

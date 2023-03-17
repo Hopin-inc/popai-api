@@ -8,7 +8,6 @@ import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
 import LineRepository from "@/repositories/LineRepository";
-import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 
 import LineMessageBuilder from "@/common/LineMessageBuilder";
 import {
@@ -27,18 +26,17 @@ import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
 
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
 
 export default class LineController extends Controller {
   private readonly lineRepository: LineRepository;
-  private readonly lineQueueRepository: LineMessageQueueRepository;
   private readonly taskService: TaskService;
 
   constructor() {
     super();
     this.lineRepository = Container.get(LineRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.taskService = Container.get(TaskService);
   }
 
@@ -138,7 +136,7 @@ export default class LineController extends Controller {
       return;
     }
 
-    const lineMessageQueue = await this.lineQueueRepository.fetchLineMessageQueue(user.id);
+    const lineMessageQueue = await LineMessageQueueRepository.fetchLineMessageQueue(user.id);
     if (!lineMessageQueue) {
       return;
     }
@@ -157,7 +155,7 @@ export default class LineController extends Controller {
       const correctDelayedCount = todo.deadline < lineMessageQueue.remind_date;
       await this.taskService.update(todo.todoapp_reg_id, todo, todoAppAdminUser, correctDelayedCount);
     }
-    await this.lineQueueRepository.saveQueue(lineMessageQueue);
+    await LineMessageQueueRepository.saveQueue(lineMessageQueue);
     await this.updateRepliedFlag(lineMessageQueue.message_id);
 
     await this.reportSuperiorUsersOnReplied(
@@ -171,7 +169,7 @@ export default class LineController extends Controller {
       lineMessageQueue.message_id,
     );
 
-    const nextQueue = await this.lineQueueRepository.getFirstQueueTaskForSendLine(user.id);
+    const nextQueue = await LineMessageQueueRepository.getFirstQueueTaskForSendLine(user.id);
 
     if (nextQueue && nextQueue.todo) {
       const todo = nextQueue.todo;
@@ -182,7 +180,7 @@ export default class LineController extends Controller {
       // change status
       nextQueue.status = LineMessageQueueStatus.UNREPLIED;
       nextQueue.message_id = chatMessage?.id;
-      await this.lineQueueRepository.saveQueue(nextQueue);
+      await LineMessageQueueRepository.saveQueue(nextQueue);
 
       // reminded_count をカウントアップするのを「期日後のリマインドを送ったとき」のみに限定していただくことは可能でしょうか？
       // 他の箇所（期日前のリマインドを送ったときなど）で reminded_count をカウントアップする処理は、コメントアウトする形で残しておいていただけますと幸いです。

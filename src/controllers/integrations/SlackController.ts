@@ -1,6 +1,5 @@
 import { Controller } from "tsoa";
 import Container from "typedi";
-import { Repository } from "typeorm";
 import { Request, Response } from "express";
 
 import ChatTool from "@/entities/masters/ChatTool";

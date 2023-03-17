@@ -14,14 +14,12 @@ import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
 import PropertyOption from "@/entities/settings/PropertyOption";
 
-import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
-import TodoSectionRepository from "./modules/TodoSectionRepository";
-import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
+import TodoHistoryService from "@/services/TodoHistoryService";
 
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import { TodoSectionRepository } from "@/repositories/transactions/TodoSectionRepository";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
@@ -33,7 +31,6 @@ import {
   ITodoHistory,
   ITodoSectionUpdate,
   ITodoTask,
-  ITodoUpdate,
   ITodoUserUpdate,
   valueOf,
 } from "@/types";
@@ -50,15 +47,9 @@ import { DailyReportConfigRepository } from "@/repositories/settings/DailyReport
 @Service()
 export default class NotionRepository {
   private todoHistoryService: TodoHistoryService;
-  private todoUpdateRepository: TodoUpdateHistoryRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
-  private todoSectionRepository: TodoSectionRepository;
   private notionPageBuilder: NotionPageBuilder;
 
   constructor() {
-    this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.notionPageBuilder = Container.get(NotionPageBuilder);
     this.todoHistoryService = Container.get(TodoHistoryService);
   }
@@ -348,8 +339,8 @@ export default class NotionRepository {
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
         TodoUserRepository.saveTodoUsers(dataTodoUsers),
-        this.todoSectionRepository.saveTodoSections(dataTodoSections),
-        // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
+        TodoSectionRepository.saveTodoSections(dataTodoSections),
+        // await LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -416,13 +407,6 @@ export default class NotionRepository {
       }
 
       await TodoRepository.save(task);
-      const todoUpdate: ITodoUpdate = {
-        todoId: task.todoapp_reg_id,
-        newDueTime: task.deadline,
-        newIsDone: task.is_done,
-        updateTime: toJapanDateTime(new Date()),
-      };
-      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

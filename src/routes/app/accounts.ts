@@ -1,6 +1,6 @@
 import express from "express";
 import ApiResponse from "@/common/ApiResponse";
-import AccountController from "@/controllers/AccountController";
+import AccountController from "@/controllers/app/AccountController";
 
 const router = express();
 

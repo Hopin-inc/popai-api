@@ -1,14 +1,11 @@
 import { Container, Service } from "typedi";
-import { Repository } from "typeorm";
 
 import Todo from "@/entities/transactions/Todo";
 import TodoHistory from "@/entities/transactions/TodoHistory";
 import User from "@/entities/settings/User";
 import ChatTool from "@/entities/masters/ChatTool";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
-import NotifyConfig from "@/entities/settings/NotifyConfig";
 
-import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { ITodoHistory, valueOf } from "@/types";
@@ -23,16 +20,15 @@ import SlackRepository from "@/repositories/SlackRepository";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { NotifyConfigRepository } from "@/repositories/settings/NotifyConfigRepository";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Service()
 export default class TodoHistoryService {
-  private notifyConfigRepository: Repository<NotifyConfig>;
   private slackRepository: SlackRepository;
 
   constructor() {
-    this.notifyConfigRepository = AppDataSource.getRepository(NotifyConfig);
     this.slackRepository = Container.get(SlackRepository);
   }
 
@@ -161,7 +157,7 @@ export default class TodoHistoryService {
     editUser: TodoAppUser,
   ) {
     const code = chatTool.tool_code;
-    const configRecord = await this.notifyConfigRepository.findOneBy({
+    const configRecord = await NotifyConfigRepository.findOneBy({
       company_id: savedTodo.company_id,
       enabled: true,
     });

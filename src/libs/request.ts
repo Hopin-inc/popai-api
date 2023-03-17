@@ -47,8 +47,12 @@ export async function fetchApi<Req extends Record<string, any>, Res>(
   }
 
   try {
-    const response = await fetch(url, options).then((res) => res);
-    return response.json();
+    const response = await fetch(url, options);
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw new Error(JSON.stringify(await response.json()));
+    }
   } catch (error) {
     logger.error(new LoggerError(error.message));
     throw new Error(error.message);

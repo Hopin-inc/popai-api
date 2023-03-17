@@ -11,14 +11,13 @@ import {
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
 import { Between, Brackets, FindOptionsWhere, In, LessThan, SelectQueryBuilder } from "typeorm";
-import AppDataSource from "@/config/data-source";
-import TodoUser from "@/entities/transactions/TodoUser";
 import dayjs from "dayjs";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { valueOf } from "@/types";
+import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
@@ -227,7 +226,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
         new Brackets((qb) => {
           qb.where("todos.deadline IS NULL").orWhere(
             notExistsQuery(
-              AppDataSource.getRepository(TodoUser)
+              TodoUserRepository
                 .createQueryBuilder("todo_users")
                 .where("todo_users.todo_id = todos.id")
                 .andWhere("todo_users.user_id IS NOT NULL"),

@@ -1,33 +1,11 @@
 import { Service } from "typedi";
 import { InstallProvider, InstallProviderOptions } from "@slack/oauth";
 import { Request, Response } from "express";
+import { SessionRepository } from "@/repositories/transactions/SessionRepository";
+import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
 import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
-import { Repository } from "typeorm";
-import AppDataSource from "@/config/data-source";
+import { ChatToolId } from "@/consts/common";
 
-const options: InstallProviderOptions = {
-  authVersion: "v2",
-  clientId: process.env.SLACK_CLIENT_ID,
-  clientSecret: process.env.SLACK_CLIENT_SECRET,
-  stateSecret: process.env.SLACK_STATE_SECRET,
-  installationStore: {
-    storeInstallation: async installation => {
-      const teamId = installation.team.id;
-      const userId = installation.user.id;
-      console.log(teamId, userId);
-    },
-    fetchInstallation: async query => {
-      const { teamId } = query;
-      console.log(teamId);
-      return {
-        authVersion: "v2",
-        enterprise: undefined,
-        team: { id: "" },
-        user: { id: "", scopes: [], token: "" },
-      };
-    },
-  },
-};
 const scopes: string [] = [
   "channels:history", "channels:join", "channels:read",
   "chat:write",
@@ -42,11 +20,41 @@ const scopes: string [] = [
 @Service()
 export default class SlackOAuthService {
   private readonly slackInstaller: InstallProvider;
-  private readonly implementedChatToolRepository: Repository<ImplementedChatTool>;
 
   constructor() {
+    const options: InstallProviderOptions = {
+      authVersion: "v2",
+      clientId: process.env.SLACK_CLIENT_ID,
+      clientSecret: process.env.SLACK_CLIENT_SECRET,
+      stateSecret: process.env.SLACK_STATE_SECRET,
+      installationStore: {
+        storeInstallation: async installation => {
+          const sessionId = installation.metadata;
+          const session = await SessionRepository.getSessionDataById(sessionId);
+          if (session) {
+            const implementedChatTool = new ImplementedChatTool(session.company, ChatToolId.SLACK, installation);
+            await ImplementedChatToolRepository.upsert(implementedChatTool, []);
+          }
+        },
+        fetchInstallation: async query => {
+          const { teamId } = query;
+          const implementedChatTool = await ImplementedChatToolRepository.findOneBy({ app_team_id: teamId });
+          if (implementedChatTool) {
+            return {
+              authVersion: "v2",
+              enterprise: undefined,
+              team: { id: teamId },
+              user: {
+                id: implementedChatTool.installation.user.id,
+                scopes: implementedChatTool.installation.bot.scopes,
+                token: implementedChatTool.access_token,
+              },
+            };
+          }
+        },
+      },
+    };
     this.slackInstaller = new InstallProvider(options);
-    this.implementedChatToolRepository = AppDataSource.getRepository(ImplementedChatTool);
   }
 
   public async handleInstallPath(req: Request, res: Response) {
@@ -57,6 +65,13 @@ export default class SlackOAuthService {
   }
 
   public async handleCallback(req: Request, res: Response) {
-    await this.slackInstaller.handleCallback(req, res, {}, { scopes });
+    await this.slackInstaller.handleCallback(req, res, {
+      success() {
+        res.redirect(`${ process.env.CLIENT_BASE_URL }/settings/connect/chat-tool`);
+      },
+      failure() {
+        res.redirect(`${ process.env.CLIENT_BASE_URL }/settings/connect/chat-tool`);
+      },
+    }, { scopes });
   }
 }

@@ -1,25 +1,15 @@
-import { Service } from "typedi";
-import { In, Repository } from "typeorm";
-
-import Todo from "@/entities/transactions/Todo";
+import dataSource from "@/config/data-source";
 import TodoSection from "@/entities/transactions/TodoSection";
+import Todo from "@/entities/transactions/Todo";
 import Section from "@/entities/settings/Section";
-
-import AppDataSource from "@/config/data-source";
 import { extractArrayDifferences } from "@/utils/common";
+import { In } from "typeorm";
 import { ITodoSectionUpdate } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
-@Service()
-export default class TodoSectionRepository {
-  private todoSectionRepository: Repository<TodoSection>;
-
-  constructor() {
-    this.todoSectionRepository = AppDataSource.getRepository(TodoSection);
-  }
-
-  public async updateTodoSection(todo: Todo, sections: Section[]): Promise<void> {
-    const todoSections: TodoSection[] = await this.todoSectionRepository.find({
+export const TodoSectionRepository = dataSource.getRepository(TodoSection).extend({
+  async updateTodoSection(todo: Todo, sections: Section[]): Promise<void> {
+    const todoSections: TodoSection[] = await this.find({
       where: { todo_id: todo.id },
       withDeleted: true,
     });
@@ -39,16 +29,15 @@ export default class TodoSectionRepository {
       }
     });
     await Promise.all([
-      this.todoSectionRepository.upsert(addedTodoSections, []),
-      this.todoSectionRepository.restore({
+      this.upsert(addedTodoSections, []),
+      this.restore({
         todo_id: todo.id,
         section_id: In(restoredSectionIds),
       }),
-      this.todoSectionRepository.softRemove(deletedTodoSections),
+      this.softRemove(deletedTodoSections),
     ]);
-  }
-
-  public async saveTodoSections(dataTodoSections: ITodoSectionUpdate[]): Promise<void> {
+  },
+  async saveTodoSections(dataTodoSections: ITodoSectionUpdate[]): Promise<void> {
     const updatedTodoSections: TodoSection[] = [];
     const deletedTodoSections: TodoSection[] = [];
     await Promise.all(dataTodoSections.map(async dataTodoSection => {
@@ -56,7 +45,7 @@ export default class TodoSectionRepository {
         todoapp_reg_id: dataTodoSection.todoId,
       });
       if (todo) {
-        const savedTodoSections = await this.todoSectionRepository.find({
+        const savedTodoSections = await this.find({
           where: { todo_id: todo.id },
           withDeleted: true,
         });
@@ -75,15 +64,15 @@ export default class TodoSectionRepository {
             deletedTodoSections.push(savedTodoSection);
           }
         });
-        await this.todoSectionRepository.restore({
+        await this.restore({
           todo_id: todo.id,
           section_id: In(restoredSectionIds),
         });
       }
     }));
     await Promise.all([
-      this.todoSectionRepository.upsert(updatedTodoSections, []),
-      this.todoSectionRepository.softRemove(deletedTodoSections),
+      this.upsert(updatedTodoSections, []),
+      this.softRemove(deletedTodoSections),
     ]);
   }
-}
+});

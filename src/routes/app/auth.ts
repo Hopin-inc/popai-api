@@ -1,6 +1,6 @@
 import express from "express";
 import ApiResponse from "@/common/ApiResponse";
-import AuthController from "@/controllers/AuthController";
+import AuthController from "@/controllers/app/AuthController";
 import { StatusCodes } from "@/common/StatusCodes";
 import { AccountInfo } from "@/types/auth";
 import { authRequired } from "@/middleware/auth";
@@ -24,7 +24,6 @@ router.get("/", async (req, res) => {
       ApiResponse.errRes(res, "No logged-in session.", StatusCodes.UNAUTHORIZED);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -39,7 +38,6 @@ router.get("/login", async (req, res) => {
         const { uid, company, name } = account;
         req.session.uid = uid;
         req.session.company = company;
-        console.log(req.session);
         const response: AccountInfo = { organization: company.name, name };
         ApiResponse.successRes(res, response);
       } else {
@@ -49,7 +47,6 @@ router.get("/login", async (req, res) => {
       ApiResponse.errRes(res, "Bad auth request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -58,7 +55,6 @@ router.get("/logout", authRequired, async (req, res) => {
   try {
     req.session.destroy(_err => ApiResponse.successRes(res, null));
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });

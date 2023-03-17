@@ -10,7 +10,6 @@ import TodoAppUser from "@/entities/settings/TodoAppUser";
 import MicrosoftRepository from "@/repositories/MicrosoftRepository";
 import TrelloRepository from "@/repositories/TrelloRepository";
 import RemindRepository from "@/repositories/RemindRepository";
-import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 import SlackRepository from "@/repositories/SlackRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
@@ -24,6 +23,7 @@ import LineRepository from "@/repositories/LineRepository";
 import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
+import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
 
 @Service()
 export default class TaskService {
@@ -31,7 +31,6 @@ export default class TaskService {
   private microsoftRepository: MicrosoftRepository;
   private notionRepository: NotionRepository;
   private remindRepository: RemindRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
 
@@ -40,7 +39,6 @@ export default class TaskService {
     this.microsoftRepository = Container.get(MicrosoftRepository);
     this.notionRepository = Container.get(NotionRepository);
     this.remindRepository = Container.get(RemindRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
   }
@@ -51,7 +49,7 @@ export default class TaskService {
   public async syncTodos(company: Company = null, notify: boolean = false): Promise<any> {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
 
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
@@ -98,7 +96,7 @@ export default class TaskService {
   public async remind(): Promise<any> {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
       const chattoolUsers = await ChatToolUserRepository.find();
       const companies = await CompanyRepository.find({
         relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
@@ -108,7 +106,7 @@ export default class TaskService {
         for (const chatTool of company.chatTools) {
           switch (chatTool.tool_code) {
             case ChatToolCode.LINE:
-              await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
+              await LineMessageQueueRepository.createTodayQueueTask(company, chattoolUsers);
               await this.remindRepository.remindTaskForAdminCompany(company);
               break;
             case ChatToolCode.SLACK:
@@ -185,11 +183,11 @@ export default class TaskService {
       await this.syncTodos(userCompany);
 
       // update old line queue
-      await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
+      await LineMessageQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
       const chattoolUsers = await ChatToolUserRepository.find();
 
       // create queue for user
-      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
+      await LineMessageQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
 
       //remind task for user by queue
       await this.remindRepository.remindTodayTaskForUser(user);
