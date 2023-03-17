@@ -6,8 +6,8 @@ import User from "../settings/User";
 import ChatTool from "../masters/ChatTool";
 import Todo from "./Todo";
 import { IRemindType } from "@/types";
-import { OpenStatus, RemindType, ReplyStatus, SenderType } from "@/consts/common";
-import { toJapanDateTime } from "@/utils/common";
+import { OpenStatus, RemindType, ReplyStatus, SenderType } from "../../consts/common";
+import { toJapanDateTime } from "../../utils/common";
 import moment from "moment/moment";
 
 @Entity("t_messages")

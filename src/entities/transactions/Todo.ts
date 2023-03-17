@@ -15,8 +15,8 @@ import { ITask } from "@/types";
 import { INotionTask } from "@/types/notion";
 import { IMicrosoftTask } from "@/types/microsoft";
 import { ITrelloTask } from "@/types/trello";
-import { TodoAppCode } from "@/consts/common";
-import { COMPLETED, MICROSOFT_BASE_URL } from "@/consts/microsoft";
+import { TodoAppCode } from "../../consts/common";
+import { COMPLETED, MICROSOFT_BASE_URL } from "../../consts/microsoft";
 
 @Entity("t_todos")
 export default class Todo extends BaseEntity {
