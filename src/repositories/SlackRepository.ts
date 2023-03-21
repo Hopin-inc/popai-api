@@ -36,7 +36,7 @@ import {
 import { diffDays, getItemRandomly, getUniqueArray, Sorter, toJapanDateTime } from "@/utils/common";
 import SlackBot from "@/config/slack-bot";
 import { LoggerError } from "@/exceptions";
-import { IDailyReportItems, IRemindType, valueOf } from "@/types";
+import { IDailyReportItems, IRemindType, ValueOf } from "@/types";
 import { ITodoSlack, SlackInteractionPayload } from "@/types/slack";
 import Prospect from "@/entities/transactions/Prospect";
 import { reliefActions, SlackModalLabel } from "@/consts/slack";
@@ -727,7 +727,7 @@ export default class SlackRepository {
 
   public async notifyOnAssigneeUpdated(
     savedTodo: Todo,
-    action: valueOf<typeof TodoHistoryAction>,
+    action: ValueOf<typeof TodoHistoryAction>,
     assignees: User[],
     chatTool: ChatTool,
     editUser: TodoAppUser,
@@ -745,7 +745,7 @@ export default class SlackRepository {
 
   public async notifyOnDeadlineUpdated(
     savedTodo: Todo,
-    action: valueOf<typeof TodoHistoryAction>,
+    action: ValueOf<typeof TodoHistoryAction>,
     deadline: Date,
     chatTool: ChatTool,
     editUser: TodoAppUser,
@@ -763,7 +763,7 @@ export default class SlackRepository {
 
   public async notifyOnClosedUpdated(
     savedTodo: Todo,
-    action: valueOf<typeof TodoHistoryAction>,
+    action: ValueOf<typeof TodoHistoryAction>,
     chatTool: ChatTool,
     editUser: TodoAppUser,
     channelId: string,

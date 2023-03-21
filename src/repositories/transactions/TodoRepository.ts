@@ -16,7 +16,7 @@ import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRe
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { valueOf } from "@/types";
+import { ValueOf } from "@/types";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
@@ -71,7 +71,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
 
   async filterTodosByProperty(
     todos: Todo[],
-    property: valueOf<typeof Property>,
+    property: ValueOf<typeof Property>,
   ): Promise<Todo[]> {
     return todos.filter(todo => {
       if (todo.histories) {

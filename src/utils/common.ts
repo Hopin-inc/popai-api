@@ -69,12 +69,12 @@ export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], 
 export const extractArrayDifferences = <T>(arrA: T[], arrB: T[]): [T[], T[]] => {
   return [
     extractArrayMembersOfANotInB(arrA, arrB),
-    extractArrayMembersOfANotInB(arrB, arrA)
+    extractArrayMembersOfANotInB(arrB, arrA),
   ];
 };
 
 export const extractArrayMembersOfANotInB = <T>(arrA: T[], arrB: T[]): T[] => {
-  return arrA?.filter(a => !arrB.some(b => a === b)) ?? [];
+  return arrA?.filter(a => !arrB.includes(a)) ?? [];
 };
 
 export const roundMinutes = (dt: Date, significance: number, method?: "floor" | "ceil" | "round"): Date => {

@@ -1,9 +1,26 @@
-import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import ProspectConfig from "./ProspectConfig";
 
 @Entity("s_prospect_timings")
 export default class ProspectTiming extends BaseEntity {
+  constructor(
+    config: ProspectConfig | number,
+    time: string,
+    askPlan: boolean,
+    askPlanMilestone?: string,
+  ) {
+    super();
+    if (config) {
+      this.config_id = typeof config === "number" ? config : config.id;
+      this.time = time;
+      this.ask_plan = askPlan;
+      if (askPlanMilestone) {
+        this.ask_plan_milestone = askPlanMilestone;
+      }
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -19,7 +36,7 @@ export default class ProspectTiming extends BaseEntity {
   @Column({ type: "time", nullable: true })
   ask_plan_milestone: string;
 
-  @OneToMany(
+  @ManyToOne(
     () => ProspectConfig,
     config => config.timings,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },

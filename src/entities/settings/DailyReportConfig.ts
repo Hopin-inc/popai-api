@@ -8,6 +8,29 @@ import DocumentTool from "../masters/DocumentTool";
 
 @Entity("s_daily_report_configs")
 export default class DailyReportConfig extends BaseEntity {
+  constructor(
+    company: Company | number,
+    enabled: boolean,
+    chatTool?: ChatTool | number,
+    channel?: string,
+    section?: Section | number,
+  ) {
+    super();
+    if (company) {
+      this.company_id = typeof company === "number" ? company : company.id;
+      this.enabled = enabled;
+      if (chatTool) {
+        this.chat_tool_id = typeof chatTool === "number" ? chatTool : chatTool.id;
+      }
+      if (channel) {
+        this.channel = channel;
+      }
+      if (section) {
+        this.section_id = typeof section === "number" ? section : section.id;
+      }
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 

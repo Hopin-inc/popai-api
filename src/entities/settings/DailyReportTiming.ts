@@ -4,6 +4,19 @@ import DailyReportConfig from "./DailyReportConfig";
 
 @Entity("s_daily_report_timings")
 export default class DailyReportTiming extends BaseEntity {
+  constructor(
+    config: DailyReportConfig | number,
+    time: string,
+    enablePending: boolean,
+  ) {
+    super();
+    if (config) {
+      this.config_id = typeof config === "number" ? config : config.id;
+      this.time = time;
+      this.enable_pending = enablePending;
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 

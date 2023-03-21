@@ -8,7 +8,7 @@ import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { ITodoHistory, valueOf } from "@/types";
+import { ITodoHistory, ValueOf } from "@/types";
 import {
   TodoHistoryProperty as Property,
   TodoHistoryAction as Action,
@@ -57,8 +57,8 @@ export default class TodoHistoryService {
         ? diffDays(toJapanDateTime(savedTodo.deadline), toJapanDateTime(deadline))
         : null;
       type Args = [
-        valueOf<typeof Property>,
-        valueOf<typeof Action>,
+        ValueOf<typeof Property>,
+        ValueOf<typeof Action>,
         (Info | null),    // New assignees & deadline
         boolean,        // Send notification?
       ];
@@ -151,8 +151,8 @@ export default class TodoHistoryService {
     savedTodo: Todo,
     assignees: User[],
     deadline: Date,
-    property: valueOf<typeof Property>,
-    action: valueOf<typeof Action>,
+    property: ValueOf<typeof Property>,
+    action: ValueOf<typeof Action>,
     chatTool: ChatTool,
     editUser: TodoAppUser,
   ) {

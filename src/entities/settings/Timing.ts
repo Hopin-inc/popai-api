@@ -6,6 +6,25 @@ import Timezone from "../masters/Timezone";
 
 @Entity("s_timings")
 export default class Timing extends BaseEntity {
+  constructor(
+    company: Company | number,
+    disabledOnHolidaysJp: boolean,
+    daysOfWeek: number[] = [],
+    section?: Section | number,
+    timezone: Timezone | string = "Asia/Tokyo",
+  ) {
+    super();
+    if (company && daysOfWeek) {
+      this.company_id = typeof company === "number" ? company : company.id;
+      this.disabled_on_holidays_jp = disabledOnHolidaysJp;
+      this.days_of_week = daysOfWeek;
+      this.timezone_name = typeof timezone === "string" ? timezone : timezone.zone_name;
+      if (section) {
+        this.section_id = typeof section === "number" ? section : section.id;
+      }
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 

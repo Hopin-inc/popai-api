@@ -1,6 +1,6 @@
 import dataSource from "@/config/data-source";
 import EventTiming from "@/entities/settings/EventTiming";
-import { valueOf } from "@/types";
+import { ValueOf } from "@/types";
 import { EventType } from "@/consts/common";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import dayjs from "dayjs";
@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 export const EventTimingRepository = dataSource.getRepository(EventTiming).extend({
   async getEventTargetCompanies(
     significance: number,
-    event: valueOf<typeof EventType>,
+    event: ValueOf<typeof EventType>,
   ): Promise<EventTiming[]> {
     const now = toJapanDateTime(new Date());
     const executedTimeRounded = roundMinutes(now, significance, "floor");

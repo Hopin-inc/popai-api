@@ -1,8 +1,10 @@
 import { Service } from "typedi";
-import { TodoAppId } from "@/consts/common";
+import { NotionPropertyType, TodoAppId } from "@/consts/common";
 import { ISelectItem } from "@/types/app";
 import { Client } from "@notionhq/client";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
+import { StatusCodes } from "@/common/StatusCodes";
+import { SearchParameters } from "@notionhq/client/build/src/api-endpoints";
 
 @Service()
 export default class NotionService {
@@ -13,23 +15,83 @@ export default class NotionService {
       company_id: companyId,
       todoapp_id: TodoAppId.NOTION,
     });
-    const accessToken = notionInfo?.access_token ?? process.env.NOTION_ACCESS_TOKEN;
+    const accessToken = notionInfo?.access_token;
     const service = new NotionService();
     service.client = new Client({ auth: accessToken });
     return service;
   }
 
   public async getUsers(): Promise<ISelectItem<string>[]> {
-    let response = await this.client.users.list({});
-    const users = response.results;
-    while (response.has_more) {
-      response = await this.client.users.list({
-        start_cursor: response.next_cursor,
-      });
-      users.push(...response.results);
+    try {
+      let response = await this.client.users.list({});
+      const users = response.results;
+      while (response.has_more) {
+        response = await this.client.users.list({
+          start_cursor: response.next_cursor,
+        });
+        users.push(...response.results);
+      }
+      return users
+        .filter(user => user.type === "person")
+        .map(user => ({ id: user.id, name: user.name }));
+    } catch (err) {
+      if (err.status === 401) {
+        err.status = StatusCodes.BAD_REQUEST;
+      }
+      throw new Error(err);
     }
-    return users
-      .filter(user => user.type === "person")
-      .map(user => ({ id: user.id, name: user.name }));
+  }
+
+  public async getWorkspaces(): Promise<ISelectItem<string>[]> {
+    try {
+      const conditions: SearchParameters = {
+        filter: { property: "object", value: "database" },
+      };
+      let response = await this.client.search(conditions);
+      const workspaces = response.results;
+      while (response.has_more) {
+        response = await this.client.search({
+          ...conditions,
+          start_cursor: response.next_cursor,
+        });
+        workspaces.push(...response.results);
+      }
+      return workspaces.map(workspace => ({
+        id: workspace.id,
+        name: workspace["title"] && workspace["title"].length && workspace["title"][0]
+          ? workspace["title"][0]["plain_text"]
+          : `(${workspace.id})`,
+      }));
+    } catch (err) {
+      if (err.status === 401) {
+        err.status = StatusCodes.BAD_REQUEST;
+      }
+      throw new Error(err);
+    }
+  }
+
+  public async getProperties(databaseId: string): Promise<ISelectItem<string>[]> {
+    try {
+      const response = await this.client.databases.retrieve({ database_id: databaseId });
+      return Object.keys(response.properties).map(name => {
+        const property = response.properties[name];
+        const options =
+          property.type === "select" ? { availableOptions: property.select.options }
+            : property.type === "multi_select" ? { availableOptions: property.multi_select.options }
+              : property.type === "status" ? { availableOptions: property.status.options }
+                : {};
+        return {
+          id: property.id,
+          name: name,
+          type: NotionPropertyType[property.type.toUpperCase()],
+          ...options,
+        };
+      });
+    } catch (err) {
+      if (err.status === 401) {
+        err.status = StatusCodes.BAD_REQUEST;
+      }
+      throw new Error(err);
+    }
   }
 }

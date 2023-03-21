@@ -5,6 +5,8 @@ import Company from "./Company";
 import Section from "./Section";
 import ChatToolUser from "./ChatToolUser";
 import TodoAppUser from "./TodoAppUser";
+import DocumentToolUser from "./DocumentToolUser";
+import ReportingLine from "./ReportingLine";
 import TodoUser from "../transactions/TodoUser";
 import ChatTool from "../masters/ChatTool";
 import Todo from "../transactions/Todo";
@@ -12,10 +14,17 @@ import TodoApp from "../masters/TodoApp";
 import Prospect from "../transactions/Prospect";
 import { ChatToolCode, DocumentToolCode } from "../../consts/common";
 import DocumentTool from "../masters/DocumentTool";
-import DocumentToolUser from "../settings/DocumentToolUser";
 
 @Entity("s_users")
 export default class User extends BaseEntity {
+  constructor(name: string, company?: Company | number) {
+    super();
+    this.name = name;
+    if (company) {
+      this.company_id = typeof company === "number" ? company : company.id;
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -100,6 +109,30 @@ export default class User extends BaseEntity {
   get todos(): Todo[] {
     const todoUsers = this.todoUsers;
     return todoUsers ? todoUsers.filter(tu => !tu.deleted_at).map(tu => tu.todo) : [];
+  }
+
+  @OneToMany(
+    () => ReportingLine,
+    reportingLine => reportingLine.superiorUser,
+    { cascade: true },
+  )
+  subordinateUserRefs: ReportingLine[];
+
+  get subordinateUsers(): User[] {
+    const refs = this.subordinateUserRefs;
+    return refs ? refs.filter(ref => !ref.deleted_at).map(ref => ref.subordinateUser) : [];
+  }
+
+  @OneToMany(
+    () => ReportingLine,
+    reportingLine => reportingLine.subordinateUser,
+    { cascade: true },
+  )
+  superiorUserRefs: ReportingLine[];
+
+  get superiorUsers(): User[] {
+    const refs = this.superiorUserRefs;
+    return refs ? refs.filter(ref => !ref.deleted_at).map(ref => ref.superiorUser) : [];
   }
 
   @OneToMany(

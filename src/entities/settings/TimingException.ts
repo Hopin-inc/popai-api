@@ -5,6 +5,23 @@ import Section from "./Section";
 
 @Entity("s_timing_exceptions")
 export default class TimingException extends BaseEntity {
+  constructor(
+    company: Company | number,
+    date: Date | string,
+    excluded: boolean,
+    section?: Section | number,
+  ) {
+    super();
+    if (company) {
+      this.company_id = typeof company === "number" ? company : company.id;
+      this.date = typeof date === "string" ? new Date(date) : date;
+      this.excluded = excluded;
+      if (section) {
+        this.section_id = typeof section === "number" ? section : section.id;
+      }
+    }
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 

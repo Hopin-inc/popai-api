@@ -22,7 +22,7 @@ import {
 } from "@/consts/slack";
 import { diffDays, formatDatetime, relativeRemindDays, Sorter, toJapanDateTime, truncate } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
-import { IDailyReportItems, valueOf } from "@/types";
+import { IDailyReportItems, ValueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
 import { PlainTextOption } from "@slack/types";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
@@ -249,7 +249,7 @@ export default class SlackMessageBuilder {
 
   public static createNotifyOnAssigneeUpdatedMessage(
     todo: Todo,
-    action: valueOf<typeof TodoHistoryAction>,
+    action: ValueOf<typeof TodoHistoryAction>,
     assignees: User[],
     editUser: TodoAppUser,
   ) {
@@ -286,7 +286,7 @@ export default class SlackMessageBuilder {
 
   public static createNotifyOnDeadlineUpdatedMessage(
     todo: Todo,
-    action: valueOf<typeof TodoHistoryAction>,
+    action: ValueOf<typeof TodoHistoryAction>,
     deadline: Date,
     editUser: TodoAppUser) {
     const message = action === TodoHistoryAction.CREATE ? `${Icons.DEADLINE} 期日が設定されました。`
@@ -322,7 +322,7 @@ export default class SlackMessageBuilder {
 
   public static createNotifyOnClosedUpdatedMessage(
     todo: Todo,
-    action: valueOf<typeof TodoHistoryAction>,
+    action: ValueOf<typeof TodoHistoryAction>,
     editUser: TodoAppUser) {
     const message = action === TodoHistoryAction.CREATE
       ? `${Icons.CLOSED} 保留されました。`

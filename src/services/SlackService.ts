@@ -13,7 +13,7 @@ export default class SlackService {
       company_id: companyId,
       chattool_id: ChatToolId.SLACK,
     });
-    const accessToken = slackInfo?.access_token ?? process.env.SLACK_ACCESS_TOKEN;
+    const accessToken = slackInfo?.access_token;
     const service = new SlackService();
     service.client = new WebClient(accessToken);
     return service;
@@ -30,7 +30,7 @@ export default class SlackService {
     }
   }
 
-  public async getChannels(): Promise<ISelectItem<string>[]> {
+  public async getChannels(): Promise<any> {
     const response = await this.client.conversations.list();
     if (response.ok && response.channels) {
       return response.channels

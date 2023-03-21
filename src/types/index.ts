@@ -11,15 +11,10 @@ import { ITrelloTask } from "@/types/trello";
 import { IMicrosoftTask } from "@/types/microsoft";
 import { INotionTask } from "@/types/notion";
 
-export type valueOf<T> = T[keyof T];
+export type ValueOf<T> = T[keyof T];
 
-export type ITodoUpdate = {
-  todoId: string;
-  dueTime?: Date;
-  newDueTime: Date;
-  newIsDone?: boolean;
-  updateTime: Date;
-};
+export type PartialWithId<T extends { id: any }> = Partial<T> & { id: T["id"] };
+export type IdOptional<T extends { id: any }> = Omit<T, "id"> & { id?: T["id"] };
 
 export type ITodoHistory = {
   todoId: string;

@@ -32,7 +32,7 @@ import {
   ITodoSectionUpdate,
   ITodoTask,
   ITodoUserUpdate,
-  valueOf,
+  ValueOf,
 } from "@/types";
 import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, NotionPropertyType, UsageType } from "@/consts/common";
@@ -519,7 +519,7 @@ export default class NotionRepository {
   private async getIsStatus(
     pageProperty: Record<PropertyKey, any>,
     propId: string,
-    usageId: valueOf<typeof UsageType>,
+    usageId: ValueOf<typeof UsageType>,
   ): Promise<boolean> {
     try {
       const property = pageProperty.find(prop => prop.id === propId);

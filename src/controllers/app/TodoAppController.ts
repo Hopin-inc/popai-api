@@ -1,20 +1,17 @@
 import { Controller } from "tsoa";
-import { FindOptionsWhere } from "typeorm";
-import Company from "@/entities/settings/Company";
-import { ISelectItem, ITodoAppInfo } from "@/types/app";
+import { IsNull, Not } from "typeorm";
+import { IPropertyUsage, ISelectItem, ITodoAppInfo } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
-import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
-import { valueOf } from "@/types";
+import { ValueOf } from "@/types";
 import { TodoAppId } from "@/consts/common";
 import NotionService from "@/services/NotionService";
 
 export default class TodoAppController extends Controller {
   private notionService: NotionService;
 
-  public async getList(company?: Company): Promise<ITodoAppInfo[]> {
-    const where: FindOptionsWhere<ImplementedTodoApp> = company ? { company_id: company.id } : {};
+  public async getList(companyId: number): Promise<ITodoAppInfo[]> {
     const implementedTodoApps = await ImplementedTodoAppRepository.find({
-      where,
+      where: { company_id: companyId, access_token: Not(IsNull()) },
       order: { todoapp_id: "asc" },
     });
     return implementedTodoApps.map(ict => ({
@@ -23,7 +20,7 @@ export default class TodoAppController extends Controller {
     }));
   }
 
-  public async getUsers(todoAppId: valueOf<typeof TodoAppId>, companyId: number): Promise<ISelectItem<string>[]> {
+  public async getUsers(todoAppId: ValueOf<typeof TodoAppId>, companyId: number): Promise<ISelectItem<string>[]> {
     switch (todoAppId) {
       case TodoAppId.NOTION:
         this.notionService = await NotionService.init(companyId);
@@ -31,5 +28,46 @@ export default class TodoAppController extends Controller {
       default:
         return [];
     }
+  }
+
+  public async getBoards(todoAppId: ValueOf<typeof TodoAppId>, companyId: number): Promise<ISelectItem<string>[]> {
+    switch (todoAppId) {
+      case TodoAppId.NOTION:
+        this.notionService = await NotionService.init(companyId);
+        return this.notionService.getWorkspaces();
+      default:
+        return [];
+    }
+  }
+
+  public async getProperties(
+    todoAppId: ValueOf<typeof TodoAppId>,
+    companyId: number,
+    boardId: string,
+  ): Promise<ISelectItem<string>[]> {
+    switch (todoAppId) {
+      case TodoAppId.NOTION:
+        this.notionService = await NotionService.init(companyId);
+        return this.notionService.getProperties(boardId);
+      default:
+        return [];
+    }
+  }
+
+  public async getUsages(
+    _todoAppId: ValueOf<typeof TodoAppId>,
+    _companyId: number,
+    _boardId: string,
+  ): Promise<IPropertyUsage[]> {
+    return []; // FIXME
+  }
+
+  public async updateUsages(
+    _data: Partial<IPropertyUsage>,
+    _todoAppId: ValueOf<typeof TodoAppId>,
+    _companyId: number,
+    _boardId: string,
+  ): Promise<any> {
+    return; // FIXME
   }
 }
