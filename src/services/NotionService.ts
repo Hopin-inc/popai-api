@@ -21,7 +21,11 @@ export default class NotionService {
     return service;
   }
 
-  public async getUsers(): Promise<ISelectItem<string>[]> {
+  public async getUsers<IncludeEmail extends boolean = boolean>(
+    includeEmail?: IncludeEmail,
+  ): Promise<
+    (IncludeEmail extends true ? ISelectItem<string> & { email?: string } : ISelectItem<string>)[]
+  > {
     try {
       let response = await this.client.users.list({});
       const users = response.results;
@@ -33,7 +37,10 @@ export default class NotionService {
       }
       return users
         .filter(user => user.type === "person")
-        .map(user => ({ id: user.id, name: user.name }));
+        .map(user => {
+          const email = includeEmail && user.type === "person" ? { email: user.person.email } : {};
+          return { id: user.id, name: user.name, ...email, };
+        });
     } catch (err) {
       if (err.status === 401) {
         err.status = StatusCodes.BAD_REQUEST;

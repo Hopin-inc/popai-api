@@ -17,7 +17,6 @@ router.get("/", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -34,7 +33,6 @@ router.patch("/", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -50,7 +48,6 @@ router.get("/daily-report", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -67,7 +64,6 @@ router.patch("/daily-report", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -83,7 +79,6 @@ router.get("/notify", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -100,7 +95,6 @@ router.patch("/notify", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -116,7 +110,6 @@ router.get("/prospect", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -133,7 +126,6 @@ router.patch("/prospect", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });

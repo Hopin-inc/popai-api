@@ -36,6 +36,57 @@ router.get("/:todoAppId/accounts", async (req, res) => {
   }
 });
 
+router.patch("/:todoAppId/users/:userId", async (req, res) => {
+  try {
+    const todoAppId: number = parseInt(req.params.todoAppId);
+    const userId: number = parseInt(req.params.userId);
+    const { id }: { id: string } = req.body;
+    const controller = new TodoAppController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.updateTodoAppUser(todoAppId, company.id, userId, id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+    }
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
+router.get("/:todoAppId/board", async (req, res) => {
+  try {
+    const todoAppId: number = parseInt(req.params.todoAppId);
+    const controller = new TodoAppController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.getBoardConfig(todoAppId, company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+    }
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
+router.patch("/:todoAppId/board", async (req, res) => {
+  try {
+    const todoAppId: number = parseInt(req.params.todoAppId);
+    const boardId: string = req.body.boardId;
+    const controller = new TodoAppController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.updateBoardConfig(todoAppId, company.id, boardId);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+    }
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
 router.get("/:todoAppId/boards", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);

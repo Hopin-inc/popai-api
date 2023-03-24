@@ -183,7 +183,7 @@ export default class MicrosoftRepository {
         formData.append("grant_type", "refresh_token");
         formData.append("client_secret", clientSecret);
 
-        const response = await fetchApi<FormData, IMicrosoftToken>(url, "POST", formData, true);
+        const response = await fetchApi<IMicrosoftToken>(url, "POST", formData, true);
 
         if (response.access_token) {
           const todoAppUser: TodoAppUser = await TodoAppUserRepository.findOneBy({

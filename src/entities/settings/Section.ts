@@ -10,6 +10,7 @@ import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
+import BoardConfig from "./BoardConfig";
 
 @Entity("s_sections")
 export default class Section extends BaseEntity {
@@ -100,4 +101,11 @@ export default class Section extends BaseEntity {
     { cascade: true }
   )
   notifyConfig?: NotifyConfig;
+
+  @OneToOne(
+    () => BoardConfig,
+    config => config.section,
+    { cascade: true }
+  )
+  boardConfig?: BoardConfig;
 }

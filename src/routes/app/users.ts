@@ -17,7 +17,6 @@ router.patch("/", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -34,7 +33,6 @@ router.delete("/:userId", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -52,7 +50,6 @@ router.get("/configs", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -68,7 +65,6 @@ router.get("/reporting-lines", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });
@@ -76,7 +72,7 @@ router.get("/reporting-lines", async (req, res) => {
 router.patch("/reporting-lines/:userId", async (req, res) => {
   try {
     const userId = parseInt(req.params.userId);
-    const data: number[] = req.body;
+    const data: number[] = req.body as number[];
     const controller = new UserController();
     const { company } = req.session;
     if (company && userId) {
@@ -86,7 +82,6 @@ router.patch("/reporting-lines/:userId", async (req, res) => {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });

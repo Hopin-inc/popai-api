@@ -10,7 +10,6 @@ router.post("/", async (req, res) => {
     await controller.signUp(req.body);
     ApiResponse.successRawRes(res);
   } catch (err) {
-    console.error(err);
     ApiResponse.errRes(res, err.message, err.status);
   }
 });

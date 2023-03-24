@@ -5,6 +5,9 @@ import { IChatToolInfo, ISelectItem } from "@/types/app";
 import { ValueOf } from "@/types";
 import { ChatToolId } from "@/consts/common";
 import SlackService from "@/services/SlackService";
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
+import ChatToolUser from "@/entities/settings/ChatToolUser";
+import { UserRepository } from "@/repositories/settings/UserRepository";
 
 export default class ChatToolController extends Controller {
   private slackService: SlackService;
@@ -27,6 +30,18 @@ export default class ChatToolController extends Controller {
         return this.slackService.getUsers();
       default:
         return [];
+    }
+  }
+
+  public async updateChatToolUser(
+    chatToolId: ValueOf<typeof ChatToolId>,
+    companyId: number,
+    userId: number,
+    appUserId: string,
+  ): Promise<any> {
+    const user = await UserRepository.findOneBy({ id: userId, company_id: companyId });
+    if (user) {
+      await ChatToolUserRepository.upsert(new ChatToolUser(chatToolId, userId, appUserId), []);
     }
   }
 

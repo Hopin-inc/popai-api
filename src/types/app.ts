@@ -17,7 +17,8 @@ export type ITodoAppInfo = {
 };
 
 export type IPropertyUsage = {
-  id: string;
+  id: number;
+  property: string;
   usage: ValueOf<typeof UsageType>;
   type: ValueOf<typeof NotionPropertyType>;
   options?: string[];

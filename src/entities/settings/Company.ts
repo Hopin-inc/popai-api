@@ -15,6 +15,7 @@ import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
 import Account from "./Account";
+import BoardConfig from "./BoardConfig";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
@@ -137,4 +138,11 @@ export default class Company extends BaseEntity {
     { cascade: true }
   )
   notifyConfig: NotifyConfig;
+
+  @OneToOne(
+    () => BoardConfig,
+    config => config.company,
+    { cascade: true }
+  )
+  boardConfigs: BoardConfig[];
 }
