@@ -17,6 +17,7 @@ import { INotionDailyReport } from "@/types/notion";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
+import NotionService from "@/services/NotionService";
 
 @Service()
 export default class DailyReportService {
@@ -33,7 +34,7 @@ export default class DailyReportService {
   public async sendDailyReport(): Promise<any> {
     try {
       await LineMessageQueueRepository.updateStatusOfOldQueueTask();
-      const companies = await CompanyRepository.find({
+      const companies: Company[] = await CompanyRepository.find({
         relations: [
           "sections",
           "users.chattoolUsers.chattool",
@@ -48,7 +49,17 @@ export default class DailyReportService {
         ],
       });
       const sendOperations = async (company: Company) => {
-        await this.sendDailyReportByChannel(company, company.dailyReportConfig.chat_tool, company.dailyReportConfig.channel);
+        if (company.dailyReportConfig) {
+          const notionClient = await NotionService.init(company.id);
+          if (notionClient) {
+            await this.sendDailyReportByChannel(
+              company,
+              company.dailyReportConfig.chat_tool,
+              company.dailyReportConfig.channel,
+              notionClient,
+            );
+          }
+        }
       };
       await Promise.all(companies.map(company => sendOperations(company)));
     } catch (error) {
@@ -57,7 +68,7 @@ export default class DailyReportService {
     }
   }
 
-  private async sendDailyReportByChannel(company: Company, chatTool: ChatTool, channelId: string) {
+  private async sendDailyReportByChannel(company: Company, chatTool: ChatTool, channelId: string, notionClient: NotionService) {
     try {
       const channelSectionsMap: Map<string, Section[]> = new Map();
       company.sections.forEach(section => {
@@ -67,13 +78,14 @@ export default class DailyReportService {
           channelSectionsMap.set(channelId, [section]);
         }
       });
-      const [dailyReportTodos, notUpdatedTodos] = await Promise.all([
-        this.getDailyReportItems(company),
+      const [dailyReportTodos, notUpdatedTodos]: [IDailyReportItems, Todo[]] = await Promise.all([
+        this.getDailyReportItems(company, notionClient),
         TodoRepository.getNotUpdatedTodos(company),
       ]);
 
       const usersByDocApp = company.users.filter(u => u.documentTools.some(t => t.tool_code === DocumentToolCode.NOTION));
-      const response = await this.notionRepository.postDailyReportByUser(dailyReportTodos, company, company.sections, usersByDocApp);
+      const response = await this.notionRepository.postDailyReportByUser(
+        dailyReportTodos, company, company.sections, usersByDocApp, notionClient);
 
       const usersByChatTool = company.users.filter(u => u.chatTools.some(c => c.tool_code === chatTool.tool_code));
       const sendOperations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
@@ -91,16 +103,15 @@ export default class DailyReportService {
       });
       await Promise.all(sendOperations);
     } catch (error) {
-      console.error(error);
       logger.error(new LoggerError(error.message));
     }
   }
 
-  private async getDailyReportItems(company: Company): Promise<IDailyReportItems> {
+  private async getDailyReportItems(company: Company, notionClient: NotionService): Promise<IDailyReportItems> {
     const [completedYesterday, delayed, ongoing] = await Promise.all([
       TodoRepository.getTodosCompletedYesterday(company),
-      TodoRepository.getTodosDelayed(company),
-      TodoRepository.getTodosOngoing(company),
+      TodoRepository.getTodosDelayed(company, notionClient),
+      TodoRepository.getTodosOngoing(company, notionClient),
     ]);
     return { completedYesterday, delayed, ongoing };
   }

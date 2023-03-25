@@ -12,7 +12,7 @@ import { ITodoHistory, ValueOf } from "@/types";
 import {
   TodoHistoryProperty as Property,
   TodoHistoryAction as Action,
-  ChatToolCode,
+  ChatToolCode, TodoAppId,
 } from "@/consts/common";
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
@@ -21,6 +21,7 @@ import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRe
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { NotifyConfigRepository } from "@/repositories/settings/NotifyConfigRepository";
+import NotionService from "@/services/NotionService";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
@@ -126,23 +127,29 @@ export default class TodoHistoryService {
           }
         }
       }
-
-      await Promise.all(argsList.map(([property, action, info]) =>
-        TodoHistoryRepository.save(new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy)).then(() =>
-            notify && savedTodo.company?.implementedChatTools?.map(chatTool =>
-              TodoRepository.getNotArchivedTodoInNotion(savedTodo).then(activeTodo =>
-                  activeTodo !== null && TodoAppUserRepository.findOneBy({
-                    employee_id: editedBy,
-                    todoapp_id: savedTodo.todoapp_id,
-                  }).then(editUser =>
-                    this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool.chattool, editUser),
-                  ),
-              ),
-            ),
-        ),
-      ));
+      if (savedTodo.todoapp_id === TodoAppId.NOTION) {  // TODO: Add operations in case of Microsoft and Trello.
+        const notionClient = await NotionService.init(savedTodo.company_id);
+        if (notionClient) {
+          await Promise.all(argsList.map(async (args) => {
+            const [property, action, info] = args;
+            const history = new TodoHistory(savedTodo, assignees, property, action, new Date(), info, editedBy);
+            await TodoHistoryRepository.save(history);
+            if (notify) {
+              await Promise.all(savedTodo.company?.implementedChatTools?.map(async (chatTool) => {
+                const activeTodo: Todo = await TodoRepository.getNotArchivedTodoInNotion(savedTodo, notionClient);
+                if (activeTodo) {
+                  const editUser: TodoAppUser = await TodoAppUserRepository.findOne({
+                    where: { employee_id: editedBy, todoapp_id: savedTodo.todoapp_id },
+                    relations: ["user"],
+                  });
+                  await this.notifyOnUpdate(savedTodo, assignees, info?.deadline, property, action, chatTool.chattool, editUser);
+                }
+              }));
+            }
+          }));
+        }
+      }
     } catch (error) {
-      console.log(error);
       logger.error(new LoggerError(error.message));
     }
   }

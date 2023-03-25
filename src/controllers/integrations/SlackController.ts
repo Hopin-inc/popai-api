@@ -13,7 +13,6 @@ import { LoggerError } from "@/exceptions";
 import { toJapanDateTime } from "@/utils/common";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
-import SlackBot from "@/config/slack-bot";
 import {
   AskPlanModalItems,
   ReliefCommentModalItems,
@@ -30,6 +29,7 @@ import SlackOAuthService from "@/services/SlackOAuthService";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
+import SlackService from "@/services/SlackService";
 
 export default class SlackController extends Controller {
   private slackRepository: SlackRepository;
@@ -88,7 +88,7 @@ export default class SlackController extends Controller {
         logger.error(new LoggerError("Unknown Response"));
       }
     } catch (error) {
-      console.error(error);
+      logger.error(new LoggerError(error.message));
     }
   }
 
@@ -114,13 +114,13 @@ export default class SlackController extends Controller {
         await this.slackRepository.respondToReliefAction(chatTool, user, slackId, parseInt(value), channelId, threadId);
         break;
       case SlackActionLabel.OPEN_RELIEF_COMMENT_MODAL:
-        await this.slackRepository.openReliefCommentModal(channelId, threadId, triggerId);
+        await this.slackRepository.openReliefCommentModal(user.company_id, channelId, threadId, triggerId);
         break;
       case SlackActionLabel.OPEN_PLAN_MODAL:
         await this.slackRepository.openPlanModal(user, channelId, triggerId, value);
         break;
       default:
-        await this.respondToRemindReply(chatTool, slackId, repliedMessage, channelId, threadId);
+        await this.respondToRemindReply(user.company_id, chatTool, slackId, repliedMessage, channelId, threadId);
         break;
     }
   }
@@ -178,6 +178,7 @@ export default class SlackController extends Controller {
   }
 
   private async respondToRemindReply(
+    companyId: number,
     chatTool: ChatTool,
     slackId: string,
     repliedMessage: string,
@@ -186,7 +187,8 @@ export default class SlackController extends Controller {
   ) {
     const slackTodo = await this.slackRepository.getSlackTodo(channelId, threadId);
 
-    await SlackBot.chat.update({
+    const slackBot = await SlackService.init(companyId);
+    await slackBot.updateMessage({
       channel: channelId,
       ts: threadId,
       text: repliedMessage,

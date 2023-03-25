@@ -5,7 +5,7 @@ import { EventType } from "@/consts/common";
 import { roundMinutes, toJapanDateTime } from "@/utils/common";
 import dayjs from "dayjs";
 
-export const EventTimingRepository = dataSource.getRepository(EventTiming).extend({
+export const EventTimingRepository = dataSource.getRepository<EventTiming>(EventTiming).extend({
   async getEventTargetCompanies(
     significance: number,
     event: ValueOf<typeof EventType>,
@@ -25,5 +25,4 @@ export const EventTimingRepository = dataSource.getRepository(EventTiming).exten
     });
     return timings.filter(t => t.days_of_week.includes(day));
   },
-
 });

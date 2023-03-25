@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import TodoApp from "@/entities/masters/TodoApp";
 import TodoHistory from "@/entities/transactions/TodoHistory";
 
-export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).extend({
+export const TodoHistoryRepository = dataSource.getRepository<TodoHistory>(TodoHistory).extend({
   async getHistoriesCompletedYesterday(company: Company, yesterday: dayjs.Dayjs) {
     return this
       .createQueryBuilder("history")

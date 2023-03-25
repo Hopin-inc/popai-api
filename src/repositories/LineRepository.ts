@@ -119,8 +119,6 @@ export default class LineRepository {
 
       return chatMessage;
     } catch (error) {
-      console.log("user", user);
-      console.log("todo", todo);
       logger.error(new LoggerError(error.message));
     }
   }

@@ -6,7 +6,7 @@ import Section from "@/entities/settings/Section";
 import dayjs from "dayjs";
 import { Between, FindOptionsWhere } from "typeorm";
 
-export const DailyReportRepository = dataSource.getRepository(DailyReport).extend({
+export const DailyReportRepository = dataSource.getRepository<DailyReport>(DailyReport).extend({
   async getDailyReportsToday(
     company?: Company,
     user?: User,

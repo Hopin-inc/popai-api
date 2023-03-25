@@ -6,8 +6,6 @@ import { StatusCodes } from "@/common/StatusCodes";
 const router = express();
 
 router.get("/redirect/:todoId/:messageToken", async function(req, res) {
-  console.log(req.params);
-
   const todoId: number = +req.params.todoId;
   const messageToken = req.params.messageToken;
 

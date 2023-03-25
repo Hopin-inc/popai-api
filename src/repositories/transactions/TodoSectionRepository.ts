@@ -7,7 +7,7 @@ import { In } from "typeorm";
 import { ITodoSectionUpdate } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
-export const TodoSectionRepository = dataSource.getRepository(TodoSection).extend({
+export const TodoSectionRepository = dataSource.getRepository<TodoSection>(TodoSection).extend({
   async updateTodoSection(todo: Todo, sections: Section[]): Promise<void> {
     const todoSections: TodoSection[] = await this.find({
       where: { todo_id: todo.id },

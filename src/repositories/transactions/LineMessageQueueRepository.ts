@@ -10,7 +10,7 @@ import { diffDays, toJapanDateTime } from "@/utils/common";
 import moment from "moment/moment";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
-export const LineMessageQueueRepository = dataSource.getRepository(LineMessageQueue).extend({
+export const LineMessageQueueRepository = dataSource.getRepository<LineMessageQueue>(LineMessageQueue).extend({
   async updateStatusOfOldQueueTask(): Promise<void> {
     await this.updateStatusOldQueueTask(LineMessageQueueStatus.WAITING, LineMessageQueueStatus.TIMEOUT_NOT_SENT);
     await this.updateStatusOldQueueTask(LineMessageQueueStatus.UNREPLIED, LineMessageQueueStatus.TIMEOUT_NO_REPLY);

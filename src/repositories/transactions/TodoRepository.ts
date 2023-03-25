@@ -1,5 +1,4 @@
 import dataSource from "@/config/data-source";
-import notionClient from "@/config/notion-client";
 import { IPerformanceReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
 import {
@@ -18,8 +17,9 @@ import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import { ValueOf } from "@/types";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import NotionService from "@/services/NotionService";
 
-export const TodoRepository = dataSource.getRepository(Todo).extend({
+export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
     try {
       return this.createQueryBuilder("todos")
@@ -88,7 +88,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     const yesterday = dayjs().subtract(1, "d");
     const targetHistories = await TodoHistoryRepository.getHistoriesCompletedYesterday(company, yesterday);
     const targetTodoIds = targetHistories.map(history => history.todo_id);
-    const todos = this.find({
+    const todos = await this.find({
       where: { id: In(targetTodoIds) },
       relations: ["histories", "todoUsers.user", "todoSections.section", "todoapp"],
     });
@@ -104,9 +104,9 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     });
   },
 
-  async getTodosDelayed(company: Company): Promise<Todo[]> {
+  async getTodosDelayed(company: Company, notionClient: NotionService): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
-    const delayedTodos = this.find({
+    const delayedTodos = await this.find({
       where: {
         company_id: company.id,
         deadline: LessThan(startOfToday),
@@ -115,14 +115,13 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       },
       relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
-
-    return Promise.all(delayedTodos.map(dt => this.getNotArchivedTodoInNotion(dt)));
+    return Promise.all(delayedTodos.map((todo) => this.getNotArchivedTodoInNotion(todo, notionClient)));
   },
 
-  async getTodosOngoing(company: Company): Promise<Todo[]> {
+  async getTodosOngoing(company: Company, notionClient: NotionService): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
     const endOfToday = dayjs().endOf("d").toDate();
-    const onGoingTodos = this.find({
+    const onGoingTodos = await this.find({
       where: {
         company_id: company.id,
         deadline: Between(startOfToday, endOfToday),
@@ -131,8 +130,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       },
       relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
-
-    return Promise.all(onGoingTodos.map(og => this.getNotArchivedTodoInNotion(og)));
+    return Promise.all(onGoingTodos.map(todo => this.getNotArchivedTodoInNotion(todo, notionClient)));
   },
 
   async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
@@ -164,10 +162,9 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     });
   },
 
-  async getNotArchivedTodoInNotion(todo: Todo): Promise<Todo> {
+  async getNotArchivedTodoInNotion(todo: Todo, notionClient: NotionService): Promise<Todo> {
     if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
-      const pageResponse = await notionClient.pages.retrieve({ page_id: todo.todoapp_reg_id });
-      console.log(pageResponse);
+      const pageResponse = await notionClient.retrievePage({ page_id: todo.todoapp_reg_id });
       if ("object" in pageResponse && "properties" in pageResponse) {
         const pageObjectResponse: PageObjectResponse = pageResponse;
         if (pageObjectResponse.archived === true) {

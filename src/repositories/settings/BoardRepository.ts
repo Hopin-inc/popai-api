@@ -3,7 +3,7 @@ import Board from "@/entities/settings/Board";
 import { FindOptionsWhere, In, IsNull } from "typeorm";
 import BoardConfig from "@/entities/settings/BoardConfig";
 
-export const BoardRepository = dataSource.getRepository(Board).extend({
+export const BoardRepository = dataSource.getRepository<Board>(Board).extend({
   async findByConfig(
     todoAppId: number,
     companyId: number,

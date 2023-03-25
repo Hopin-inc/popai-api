@@ -4,21 +4,29 @@ import { ISelectItem } from "@/types/app";
 import { Client } from "@notionhq/client";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { StatusCodes } from "@/common/StatusCodes";
-import { SearchParameters } from "@notionhq/client/build/src/api-endpoints";
+import {
+  CreatePageParameters,
+  GetDatabaseParameters, GetPageParameters,
+  QueryDatabaseParameters,
+  SearchParameters, UpdatePageParameters,
+} from "@notionhq/client/build/src/api-endpoints";
+import { IsNull, Not } from "typeorm";
 
 @Service()
 export default class NotionService {
   private client: Client;
 
-  public static async init(companyId?: number): Promise<NotionService> {
+  public static async init(companyId: number): Promise<NotionService> {
     const notionInfo = await ImplementedTodoAppRepository.findOneBy({
       company_id: companyId,
       todoapp_id: TodoAppId.NOTION,
+      access_token: Not(IsNull()),
     });
-    const accessToken = notionInfo?.access_token;
-    const service = new NotionService();
-    service.client = new Client({ auth: accessToken });
-    return service;
+    if (notionInfo) {
+      const service = new NotionService();
+      service.client = new Client({ auth: notionInfo.access_token });
+      return service;
+    }
   }
 
   public async getUsers<IncludeEmail extends boolean = boolean>(
@@ -100,5 +108,25 @@ export default class NotionService {
       }
       throw new Error(err);
     }
+  }
+
+  public async retrieveDatabase(options: GetDatabaseParameters) {
+    return this.client.databases.retrieve(options);
+  }
+
+  public async queryDatabase(options: QueryDatabaseParameters) {
+    return this.client.databases.query(options);
+  }
+
+  public async retrievePage(options: GetPageParameters) {
+    return this.client.pages.retrieve(options);
+  }
+
+  public async updatePage(options: UpdatePageParameters) {
+    return this.client.pages.update(options);
+  }
+
+  public async createPage(options: CreatePageParameters) {
+    return this.client.pages.create(options);
   }
 }

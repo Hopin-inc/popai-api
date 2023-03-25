@@ -17,13 +17,14 @@ import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepo
 
 import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { InternalServerErrorException, LoggerError } from "@/exceptions";
+import { LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
 import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
 import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
+import NotionService from "@/services/NotionService";
 
 @Service()
 export default class TaskService {
@@ -64,14 +65,19 @@ export default class TaskService {
         where,
       });
 
-      const syncOperations = (company: Company, todoApp: TodoApp, notify) => {
+      const syncOperations = async (company: Company, todoApp: TodoApp, notify) => {
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
             return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
           case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
             return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
           case TodoAppCode.NOTION:
-            return this.notionRepository.syncTaskByUserBoards(company, todoApp, notify);
+            const notionClient = await NotionService.init(company.id);
+            if (notionClient) {
+              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, notify);
+            } else {
+              return;
+            }
           default:
             return;
         }
@@ -86,7 +92,6 @@ export default class TaskService {
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -120,7 +125,6 @@ export default class TaskService {
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -146,7 +150,6 @@ export default class TaskService {
       }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -206,7 +209,6 @@ export default class TaskService {
       return RemindUserJobResult.OK;
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -224,7 +226,10 @@ export default class TaskService {
         await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
       case TodoAppCode.NOTION:
-        await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
+        const notionClient = await NotionService.init(todo.company_id);
+        if (notionClient) {
+          await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, notionClient, correctDelayedCount);
+        }
         return;
     }
   }

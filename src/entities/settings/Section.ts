@@ -5,7 +5,6 @@ import User from "./User";
 import Company from "./Company";
 import TodoApp from "../masters/TodoApp";
 import TodoSection from "../transactions/TodoSection";
-import Property from "./BoardProperty";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
@@ -70,9 +69,6 @@ export default class Section extends BaseEntity {
     const todoSections = this.todoSections;
     return todoSections ? todoSections.filter(ts => !ts.deleted_at).map(ts => ts.section) : [];
   }
-
-  @OneToMany(() => Property, property => property.section)
-  properties: Property[];
 
   @OneToOne(
     () => Timing,

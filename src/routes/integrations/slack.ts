@@ -2,6 +2,8 @@ import express from "express";
 import ApiResponse from "@/common/ApiResponse";
 import SlackController from "@/controllers/integrations/SlackController";
 import { authRequired } from "@/middleware/auth";
+import logger from "@/logger/winston";
+import { LoggerError } from "@/exceptions";
 
 const router = express();
 
@@ -23,7 +25,7 @@ router.post("/webhook", async (req, res) => {
     if (!responded) {
       ApiResponse.errRes(res, err.message, err.status);
     } else {
-      console.error(err);
+      logger.error(new LoggerError(err.message));
     }
   }
 });

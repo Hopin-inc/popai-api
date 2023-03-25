@@ -121,7 +121,7 @@ export default class LineController extends Controller {
           return;
       }
     } catch (error) {
-      console.error(error);
+      logger.error(new LoggerError(error.message));
     }
   }
 
