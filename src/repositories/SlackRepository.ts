@@ -1,8 +1,8 @@
 import { Service } from "typedi";
-import { In, IsNull, Not } from "typeorm";
+import { In, IsNull, Not, UpdateResult } from "typeorm";
 import {
   Block,
-  ChatPostMessageArguments, ChatPostMessageResponse,
+  ChatPostMessageArguments, ChatPostMessageResponse, ChatUpdateResponse,
   ContextBlock,
   KnownBlock,
   MessageAttachment, MrkdwnElement,
@@ -815,7 +815,7 @@ export default class SlackRepository {
     const todo = await this.getSlackTodo(channelId, threadId);
     const where = { todo_id: todo.id, slack_ts: threadId };
     const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(todo, prospect);
-    const [slackProfile]: [UsersProfileGetResponse, never, never] = await Promise.all([
+    const [slackProfile]: [UsersProfileGetResponse, ChatUpdateResponse, UpdateResult] = await Promise.all([
       this.getUserProfile(user.company_id, user.slackId),
       slackBot.updateMessage({ channel: channelId, ts: threadId, text: todo.name, blocks }),
       ProspectRepository.update(where, { prospect, prospect_responded_at: new Date() }),
@@ -902,10 +902,12 @@ export default class SlackRepository {
     const sharedChannels = getUniqueArray(todo.sections.map(section => section.channel_id));
     const shareMsg = SlackMessageBuilder.createShareReliefMessage(todo, user, prospect, action, comment, iconUrl);
     const chatTool = todo.company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-    const [_, superiorUsers, pushedMessages]: [never, User[], ChatPostMessageResponse[]] = await Promise.all([
+    const [_, superiorUsers, pushedMessages]: [ChatUpdateResponse, User[], ChatPostMessageResponse[]] = await Promise.all([
       slackBot.updateMessage({ channel, ts, text: todo.name, blocks: editedMsg }),
       this.getSuperiorUsers(user.slackId),
-      sharedChannels.map(ch => this.pushSlackMessage(chatTool, user, shareMsg, MessageTriggerType.REPORT, ch)),
+      Promise.all<ChatPostMessageResponse>(sharedChannels.map((channel) => {
+        return this.pushSlackMessage(chatTool, user, shareMsg, MessageTriggerType.REPORT, channel);
+      })),
     ]);
     const promptMsg = SlackMessageBuilder.createPromptDiscussionMessage(superiorUsers);
     await Promise.all(pushedMessages.map(m => {

@@ -380,7 +380,8 @@ export default class NotionRepository {
         return notionClient.createPage(pageOption);
       }));
       return response.map((page) => {
-        const { properties, url } = page;
+        const properties = page["properties"];
+        const url = page["url"];
         for (const key in properties) {
           const prop = properties[key];
           if (prop.type === "people") {
