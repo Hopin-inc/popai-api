@@ -82,7 +82,7 @@ export default class SlackController extends Controller {
         ];
       } else if (payload.type === "view_submission") {
         const { user, view } = payload;
-        const slackUser = await this.slackRepository.getUserFromSlackId(user.id);
+        const slackUser = await this.slackRepository.getUserFromSlackId(user.id, ["prospectConfig"]);
         return await this.handleViewSubmissions(slackUser, view);
       } else {
         logger.error(new LoggerError("Unknown Response"));

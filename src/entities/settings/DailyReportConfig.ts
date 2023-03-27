@@ -76,7 +76,7 @@ export default class DailyReportConfig extends BaseEntity {
     { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "chat_tool_id" })
-  chat_tool: ChatTool;
+  chatTool: ChatTool;
 
   @ManyToOne(
     () => DocumentTool,

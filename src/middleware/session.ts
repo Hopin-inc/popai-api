@@ -22,6 +22,6 @@ export const session: RequestHandler = expressSession({
     secure: process.env.ENV !== "LOCAL" || process.env.NODE_HTTPS === "true",
     httpOnly: true,
     maxAge: 1000 * 60 * 30, // 30 minutes
-    sameSite: process.env.ENV !== "LOCAL" ? true : "none",
+    sameSite: true,
   },
 });

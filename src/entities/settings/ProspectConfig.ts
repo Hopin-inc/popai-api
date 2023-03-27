@@ -76,7 +76,7 @@ export default class ProspectConfig extends BaseEntity {
 
   @OneToOne(
     () => Company,
-    company => company.notifyConfig,
+    company => company.prospectConfig,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })

@@ -9,13 +9,13 @@ import ImplementedTodoApp from "./ImplementedTodoApp";
 import ImplementedChatTool from "./ImplementedChatTool";
 import TodoApp from "../masters/TodoApp";
 import ChatTool from "../masters/ChatTool";
-import EventTiming from "./EventTiming";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
 import Account from "./Account";
 import BoardConfig from "./BoardConfig";
+import ProspectConfig from "./ProspectConfig";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
@@ -104,13 +104,6 @@ export default class Company extends BaseEntity {
   )
   accounts: Account[];
 
-  @OneToMany(
-    () => EventTiming,
-    timing => timing.company,
-    { cascade: true }
-  )
-  eventTimings: EventTiming[];
-
   @OneToOne(
     () => Timing,
     timing => timing.company,
@@ -138,6 +131,13 @@ export default class Company extends BaseEntity {
     { cascade: true }
   )
   notifyConfig: NotifyConfig;
+
+  @OneToOne(
+    () => ProspectConfig,
+    config => config.company,
+    { cascade: true }
+  )
+  prospectConfig: ProspectConfig;
 
   @OneToOne(
     () => BoardConfig,

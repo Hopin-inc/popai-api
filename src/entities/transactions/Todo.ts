@@ -45,6 +45,9 @@ export default class Todo extends BaseEntity {
   todoapp_reg_created_at: Date;
 
   @Column({ type: "datetime", nullable: true, default: null })
+  start_date: Date;
+
+  @Column({ type: "datetime", nullable: true, default: null })
   deadline: Date;
 
   @Column({ nullable: true })

@@ -51,6 +51,9 @@ import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRe
 import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
 import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
 import SlackService from "@/services/SlackService";
+import ProspectConfig from "@/entities/settings/ProspectConfig";
+import { ProspectConfigRepository } from "@/repositories/settings/ProspectConfigRepository";
+import { filterProspectTargetTodos } from "@/utils/tasks";
 
 @Service()
 export default class SlackRepository {
@@ -441,8 +444,8 @@ export default class SlackRepository {
     }
   }
 
-  public async getUserFromSlackId(slackId: string): Promise<User> {
-    const users = await UserRepository.getChatToolUserByUserId(slackId);
+  public async getUserFromSlackId(slackId: string, relations: string[] = []): Promise<User> {
+    const users = await UserRepository.getChatToolUserByUserId(slackId, relations);
     return users.length ? users[0] : null;
   }
 
@@ -778,21 +781,24 @@ export default class SlackRepository {
   }
 
   public async askProspects(company: Company, target?: { todos: Todo[], user: User }) {
-    const chatTool = company.chatTools.find(chatTool => chatTool.tool_code === ChatToolCode.SLACK);
+    const { chatTool } = company.prospectConfig;
     const askedProspects: Prospect[] = [];
-    if (chatTool) {
-      const todos = target ? target.todos : await TodoRepository.getActiveTodos(company);
-      await Promise.all(todos.map(async todo => {
-        const message = SlackMessageBuilder.createAskProspectMessage(todo);
-        const users = target ? [target.user] : todo.users;
-        await Promise.all(users.map(async user => {
-          const { thread_id: ts, channel_id: channelId } = await this.sendDirectMessage(chatTool, user, message, todo);
-          const prospect = new Prospect(todo.id, user.id, company.id, ts, channelId);
-          askedProspects.push(prospect);
-        }));
+    const todos = target ? target.todos : await this.getProspectTodos(company);
+    await Promise.all(todos.map(async todo => {
+      const message = SlackMessageBuilder.createAskProspectMessage(todo);
+      const users = target ? [target.user] : todo.users;
+      await Promise.all(users.map(async user => {
+        const { thread_id: ts, channel_id: channelId } = await this.sendDirectMessage(chatTool, user, message, todo);
+        const prospect = new Prospect(todo.id, user.id, company.id, ts, channelId);
+        askedProspects.push(prospect);
       }));
-    }
+    }));
     await ProspectRepository.upsert(askedProspects, []);
+  }
+
+  private async getProspectTodos(company: Company): Promise<Todo[]> {
+    const todos = await TodoRepository.getActiveTodos(company);
+    return filterProspectTargetTodos(todos, company.prospectConfig);
   }
 
   public async askPlans(company: Company, milestone?: string) {
@@ -858,8 +864,12 @@ export default class SlackRepository {
   }
 
   public async openPlanModal(user: User, channelId: string, triggerId: string, milestoneText: string) {
-    const todos = await TodoRepository.getActiveTodos(user.company, user);
-    const blocks = SlackMessageBuilder.createAskPlanModal(todos, milestoneText);
+    const [todos, prospectConfig]: [Todo[], ProspectConfig] = await Promise.all([
+      TodoRepository.getActiveTodos(user.company, user),
+      ProspectConfigRepository.findOneBy({ company_id: user.company_id }),
+    ]);
+    const targetTodos = filterProspectTargetTodos(todos, prospectConfig);
+    const blocks = SlackMessageBuilder.createAskPlanModal(targetTodos, milestoneText);
     await this.openModal(user.company_id, triggerId, "着手するタスクを決める", blocks, SlackModalLabel.PLAN);
   }
 

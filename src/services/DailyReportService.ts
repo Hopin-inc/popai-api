@@ -6,7 +6,7 @@ import LineRepository from "@/repositories/LineRepository";
 import Company from "@/entities/settings/Company";
 import { ChatToolCode, DocumentToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { InternalServerErrorException, LoggerError } from "@/exceptions";
+import { LoggerError } from "@/exceptions";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
@@ -16,8 +16,9 @@ import NotionRepository from "@/repositories/NotionRepository";
 import { INotionDailyReport } from "@/types/notion";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
-import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
 import NotionService from "@/services/NotionService";
+import { findMatchedTiming, includesDayOfToday, isHolidayToday, toJapanDateTime } from "@/utils/common";
+import { PROSPECT_BATCH_INTERVAL } from "@/consts/scheduler";
 
 @Service()
 export default class DailyReportService {
@@ -33,7 +34,6 @@ export default class DailyReportService {
 
   public async sendDailyReport(): Promise<any> {
     try {
-      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
       const companies: Company[] = await CompanyRepository.find({
         relations: [
           "sections",
@@ -44,27 +44,34 @@ export default class DailyReportService {
           "implementedChatTools.chattool",
           "adminUser.chattoolUsers.chattool",
           "companyConditions",
-          "dailyReportConfig",
-          "dailyReportConfig.chat_tool",
+          "timing",
+          "timingExceptions",
+          "dailyReportConfig.timings",
+          "dailyReportConfig.chatTool",
         ],
       });
-      const sendOperations = async (company: Company) => {
-        if (company.dailyReportConfig) {
-          const notionClient = await NotionService.init(company.id);
-          if (notionClient) {
-            await this.sendDailyReportByChannel(
-              company,
-              company.dailyReportConfig.chat_tool,
-              company.dailyReportConfig.channel,
-              notionClient,
-            );
+      await Promise.all(companies.map(async company => {
+        const { dailyReportConfig, timing, timingExceptions } = company;
+        if (dailyReportConfig && timing) {
+          const { enabled, timings, chatTool, channel } = dailyReportConfig;
+          const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+          const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
+          if (
+            enabled
+            && matchedTiming
+            && includesDayOfToday(timing.days_of_week)
+            && (!timing.disabled_on_holidays_jp || !isHolidayToday())
+            && (!timingException || (!timingException.excluded))
+          ) {
+            const notionClient = await NotionService.init(company.id);
+            if (notionClient) {
+              await this.sendDailyReportByChannel(company, chatTool, channel, notionClient);
+            }
           }
         }
-      };
-      await Promise.all(companies.map(company => sendOperations(company)));
+      }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 

@@ -158,12 +158,6 @@ export enum TodoStatus {
   WITHDRAWN = "STATUS_WITHDRAWN",
 }
 
-export const EventType = {
-  NOTIFY_ON_UPDATE: 1,
-  DAILY_REPORT: 2,
-  ASK_PROSPECTS: 3,
-};
-
 export const ProspectLevel = {
   VERY_GOOD: 5,
   GOOD: 4,

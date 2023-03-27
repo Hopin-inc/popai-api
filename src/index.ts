@@ -40,7 +40,7 @@ app.get("/_ah/warmup", (req, res) => {
   res.send("warmup");
 });
 
-const server = process.env.ENV === "LOCAL" && process.env.NODE_HTTPS === "true"
+const server = process.env.NODE_HTTPS === "true"
   ? createServer({
       key: fs.readFileSync("./.misc/localhost-key.pem"),
       cert: fs.readFileSync("./.misc/localhost.pem")

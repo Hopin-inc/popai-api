@@ -6,15 +6,18 @@ import TaskService from "@/services/TaskService";
 import { getProcessTime } from "@/utils/common";
 import DailyReportService from "@/services/DailyReportService";
 import PerformanceReportService from "@/services/PerformanceReportService";
+import ProspectService from "@/services/ProspectService";
 
 export default class TaskController extends Controller {
   private taskService: TaskService;
+  private prospectService: ProspectService;
   private dailyReportService: DailyReportService;
   private performanceReportService: PerformanceReportService;
 
   constructor() {
     super();
     this.taskService = Container.get(TaskService);
+    this.prospectService = Container.get(ProspectService);
     this.dailyReportService = Container.get(DailyReportService);
     this.performanceReportService = Container.get(PerformanceReportService);
   }
@@ -56,7 +59,7 @@ export default class TaskController extends Controller {
   public async askProspects(): Promise<any> {
     console.log("TaskController#askProspects - START");
     const start = process.hrtime();
-    await this.taskService.askProspects();
+    await this.prospectService.askProspects();
     const end = process.hrtime(start);
     console.log(`TaskController#askProspects - END - ${getProcessTime(end)}`);
   }

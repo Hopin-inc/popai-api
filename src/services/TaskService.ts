@@ -15,12 +15,11 @@ import NotionRepository from "@/repositories/NotionRepository";
 
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
-import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
+import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
-import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
 import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
@@ -123,31 +122,6 @@ export default class TaskService {
       };
       await Promise.all(companies.map(company => remindOperations(company)));
       await this.remindRepository.remindTodayTaskForUser();
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-    }
-  }
-
-  public async askProspects(): Promise<any> {
-    try {
-      const timings = await EventTimingRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
-      await Promise.all(timings.map(async t => {
-        const { company, ask_plan: askPlan, ask_plan_milestone: milestone } = t;
-        for (const chatTool of company.chatTools) {
-          switch (chatTool.tool_code) {
-            case ChatToolCode.SLACK:
-              if (askPlan) {
-                await this.slackRepository.askPlans(company, milestone);
-              } else {
-                await this.slackRepository.askProspects(company);
-              }
-              break;
-            case ChatToolCode.LINE:
-            default:
-              break;
-          }
-        }
-      }));
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
