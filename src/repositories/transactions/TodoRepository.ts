@@ -22,7 +22,7 @@ import NotionService from "@/services/NotionService";
 export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
     try {
-      return this.createQueryBuilder("todos")
+      return await this.createQueryBuilder("todos")
         .leftJoinAndSelect("todos.todoUsers", "todo_users")
         .leftJoinAndSelect("todo_users.user", "users")
         .leftJoinAndSelect("users.chattoolUsers", "chat_tool_users")
@@ -135,7 +135,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
 
   async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
     const thresholdDate = dayjs().subtract(NOT_UPDATED_DAYS, "d").startOf("d").toDate();
-    return this.find({
+    return await this.find({
       where: {
         company_id: company.id,
         updated_at: LessThan(thresholdDate),
@@ -150,7 +150,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
     const filterByUser: FindOptionsWhere<Todo> = user ? { todoUsers: { user_id: user.id } } : {};
     const startDate = dayjs().startOf("day").toDate();
     const endDate = dayjs().endOf("day").toDate();
-    return this.find({
+    return await this.find({
       where: {
         company_id: company.id,
         deadline: Between(startDate, endDate),
@@ -183,7 +183,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
     ids: number[],
     relations: string[] = ["todoUsers.user", "todoSections.section", "prospects"],
   ): Promise<Todo[]> {
-    return this.find({ where: { id: In(ids) }, relations });
+    return await this.find({ where: { id: In(ids) }, relations });
   },
 
   async getRemindTodos(
@@ -192,7 +192,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
     maxDate: Date,
     user?: User,
   ): Promise<Todo[]> {
-    return this
+    return await this
       .createQueryBuilder("todos")
       .leftJoinAndSelect("todos.todoUsers", "todo_users")
       .leftJoinAndSelect("todo_users.user", "users")
@@ -210,7 +210,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
   async getNoDeadlineOrUnassignedTodos(companyId: number): Promise<Todo[]> {
     const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
       `not exists (${builder.getQuery()})`;
-    return this
+    return await this
       .createQueryBuilder("todos")
       .leftJoinAndSelect("todos.todoUsers", "todo_users")
       .leftJoinAndSelect("todo_users.user", "users")
