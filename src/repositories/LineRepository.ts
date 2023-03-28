@@ -4,14 +4,12 @@ import { FlexComponent, Message } from "@line/bot-sdk";
 
 import ChatMessage from "@/entities/transactions/ChatMessage";
 import ChatTool from "@/entities/masters/ChatTool";
-import ReportingLine from "@/entities/settings/ReportingLine";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
 import { LoggerError } from "@/exceptions";
 import LineMessageBuilder from "@/common/LineMessageBuilder";
 import LineBot from "@/config/line-bot";
-import AppDataSource from "@/config/data-source";
 import logger from "@/logger/winston";
 import {
   MessageTriggerType,
@@ -27,6 +25,7 @@ import DailyReport from "@/entities/transactions/DailyReport";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import { DailyReportRepository } from "@/repositories/transactions/DailyReportRepository";
 import { ChatMessageRepository } from "@/repositories/transactions/ChatMessageRepository";
+import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
 
 @Service()
 export default class LineRepository {
@@ -120,8 +119,6 @@ export default class LineRepository {
 
       return chatMessage;
     } catch (error) {
-      console.log("user", user);
-      console.log("todo", todo);
       logger.error(new LoggerError(error.message));
     }
   }
@@ -309,8 +306,7 @@ export default class LineRepository {
 
     const userIds: number[] = users.map((user) => user.id).filter(Number);
 
-    const reportingLineRepository = AppDataSource.getRepository(ReportingLine);
-    const superiorUserIds = await reportingLineRepository.findBy({
+    const superiorUserIds = await ReportingLineRepository.findBy({
       subordinate_user_id: In(userIds),
     });
 

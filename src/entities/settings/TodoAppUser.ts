@@ -6,6 +6,27 @@ import TodoApp from "../masters/TodoApp";
 
 @Entity("s_todo_app_users")
 export default class TodoAppUser extends BaseEntity {
+  constructor(
+    todoApp: TodoApp | number,
+    user: User | number,
+    userAppId: string,
+    userAppName: string, // TODO: Set this optional.
+    email: string, // TODO: Set this optional.
+  ) {
+    super();
+    if (todoApp && user) {
+      this.todoapp_id = typeof todoApp === "number" ? todoApp : todoApp.id;
+      this.employee_id = typeof user === "number" ? user : user.id;
+      this.user_app_id = userAppId;
+      if (userAppName) {
+        this.user_app_name = userAppName;
+      }
+      if (email) {
+        this.email = email;
+      }
+    }
+  }
+
   @PrimaryColumn()
   employee_id: number;
 
@@ -21,7 +42,7 @@ export default class TodoAppUser extends BaseEntity {
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   avatar: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci"})
+  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
   email: string;
 
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })

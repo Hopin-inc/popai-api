@@ -6,6 +6,14 @@ import Todo from "./Todo";
 
 @Entity("t_todo_sections")
 export default class TodoSection extends BaseEntity {
+  constructor(todo: Todo | number, section: Section | number) {
+    super();
+    if (todo && section) {
+      this.todo_id = typeof todo === "number" ? todo : todo.id;
+      this.section_id = typeof section === "number" ? section : section.id;
+    }
+  }
+
   @PrimaryColumn()
   todo_id: number;
 
@@ -27,12 +35,4 @@ export default class TodoSection extends BaseEntity {
   )
   @JoinColumn({ name: "section_id" })
   section: Section;
-
-  constructor(todo: Todo | number, section: Section | number) {
-    super();
-    if (todo && section) {
-      this.todo_id = typeof todo === "number" ? todo : todo.id;
-      this.section_id = typeof section === "number" ? section : section.id;
-    }
-  }
 }

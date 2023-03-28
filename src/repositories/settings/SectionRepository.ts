@@ -5,7 +5,7 @@ import Company from "@/entities/settings/Company";
 import TodoApp from "@/entities/masters/TodoApp";
 import User from "@/entities/settings/User";
 
-export const SectionRepository = dataSource.getRepository(Section).extend({
+export const SectionRepository = dataSource.getRepository<Section>(Section).extend({
   async getSectionIds(
     company: Company,
     todoApp: TodoApp,

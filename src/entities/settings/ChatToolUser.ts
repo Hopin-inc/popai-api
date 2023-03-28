@@ -6,6 +6,15 @@ import ChatTool from "../masters/ChatTool";
 
 @Entity("s_chat_tool_users")
 export default class ChatToolUser extends BaseEntity {
+  constructor(chatTool: ChatTool | number, user: User | number, userAppId: string) {
+    super();
+    if (chatTool && user) {
+      this.chattool_id = typeof chatTool === "number" ? chatTool : chatTool.id;
+      this.user_id = typeof user === "number" ? user : user.id;
+      this.auth_key = userAppId;
+    }
+  }
+
   @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
   auth_key: string;
 

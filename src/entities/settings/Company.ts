@@ -9,14 +9,22 @@ import ImplementedTodoApp from "./ImplementedTodoApp";
 import ImplementedChatTool from "./ImplementedChatTool";
 import TodoApp from "../masters/TodoApp";
 import ChatTool from "../masters/ChatTool";
-import EventTiming from "./EventTiming";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
+import Account from "./Account";
+import BoardConfig from "./BoardConfig";
+import ProspectConfig from "./ProspectConfig";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
+  constructor(name: string) {
+    super();
+    this.name = name;
+    this.is_demo = false;
+  }
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -90,11 +98,11 @@ export default class Company extends BaseEntity {
   todos: Todo[];
 
   @OneToMany(
-    () => EventTiming,
-    timing => timing.company,
+    () => Account,
+    account => account.company,
     { cascade: true }
   )
-  eventTimings: EventTiming[];
+  accounts: Account[];
 
   @OneToOne(
     () => Timing,
@@ -123,4 +131,18 @@ export default class Company extends BaseEntity {
     { cascade: true }
   )
   notifyConfig: NotifyConfig;
+
+  @OneToOne(
+    () => ProspectConfig,
+    config => config.company,
+    { cascade: true }
+  )
+  prospectConfig: ProspectConfig;
+
+  @OneToOne(
+    () => BoardConfig,
+    config => config.company,
+    { cascade: true }
+  )
+  boardConfigs: BoardConfig[];
 }

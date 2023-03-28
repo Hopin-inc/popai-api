@@ -1,5 +1,4 @@
 import dataSource from "@/config/data-source";
-import notionClient from "@/config/notion-client";
 import { IPerformanceReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
 import {
@@ -11,16 +10,16 @@ import {
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
 import { Between, Brackets, FindOptionsWhere, In, LessThan, SelectQueryBuilder } from "typeorm";
-import AppDataSource from "@/config/data-source";
-import TodoUser from "@/entities/transactions/TodoUser";
 import dayjs from "dayjs";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
-import { valueOf } from "@/types";
+import { ValueOf } from "@/types";
+import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import NotionService from "@/services/NotionService";
 
-export const TodoRepository = dataSource.getRepository(Todo).extend({
+export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
   async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
     try {
       return await this.createQueryBuilder("todos")
@@ -72,7 +71,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
 
   async filterTodosByProperty(
     todos: Todo[],
-    property: valueOf<typeof Property>,
+    property: ValueOf<typeof Property>,
   ): Promise<Todo[]> {
     return todos.filter(todo => {
       if (todo.histories) {
@@ -105,7 +104,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     });
   },
 
-  async getTodosDelayed(company: Company): Promise<Todo[]> {
+  async getTodosDelayed(company: Company, notionClient: NotionService): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
     const delayedTodos = await this.find({
       where: {
@@ -116,11 +115,10 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       },
       relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
-
-    return Promise.all(delayedTodos.map(dt => this.getNotArchivedTodoInNotion(dt)));
+    return Promise.all(delayedTodos.map((todo) => this.getNotArchivedTodoInNotion(todo, notionClient)));
   },
 
-  async getTodosOngoing(company: Company): Promise<Todo[]> {
+  async getTodosOngoing(company: Company, notionClient: NotionService): Promise<Todo[]> {
     const startOfToday = dayjs().startOf("d").toDate();
     const endOfToday = dayjs().endOf("d").toDate();
     const onGoingTodos = await this.find({
@@ -132,8 +130,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       },
       relations: ["todoUsers.user", "todoSections.section", "todoapp"],
     });
-
-    return Promise.all(onGoingTodos.map(og => this.getNotArchivedTodoInNotion(og)));
+    return Promise.all(onGoingTodos.map(todo => this.getNotArchivedTodoInNotion(todo, notionClient)));
   },
 
   async getNotUpdatedTodos(company: Company): Promise<Todo[]> {
@@ -165,9 +162,9 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     });
   },
 
-  async getNotArchivedTodoInNotion(todo: Todo): Promise<Todo> {
+  async getNotArchivedTodoInNotion(todo: Todo, notionClient: NotionService): Promise<Todo> {
     if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
-      const pageResponse = await notionClient.pages.retrieve({ page_id: todo.todoapp_reg_id });
+      const pageResponse = await notionClient.retrievePage({ page_id: todo.todoapp_reg_id });
       if ("object" in pageResponse && "properties" in pageResponse) {
         const pageObjectResponse: PageObjectResponse = pageResponse;
         if (pageObjectResponse.archived === true) {
@@ -226,7 +223,7 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
         new Brackets((qb) => {
           qb.where("todos.deadline IS NULL").orWhere(
             notExistsQuery(
-              AppDataSource.getRepository(TodoUser)
+              TodoUserRepository
                 .createQueryBuilder("todo_users")
                 .where("todo_users.todo_id = todos.id")
                 .andWhere("todo_users.user_id IS NOT NULL"),

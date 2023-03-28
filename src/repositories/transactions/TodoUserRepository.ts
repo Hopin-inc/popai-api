@@ -7,7 +7,7 @@ import { In } from "typeorm";
 import { ITodoUserUpdate } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
-export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
+export const TodoUserRepository = dataSource.getRepository<TodoUser>(TodoUser).extend({
   async updateTodoUser(todo: Todo, users: User[]): Promise<void> {
     const todoUsers: TodoUser[] = await this.find({
       where: { todo_id: todo.id },
@@ -29,12 +29,12 @@ export const TodoUserRepository = dataSource.getRepository(TodoUser).extend({
       }
     });
     await Promise.all([
-      this.todoUserRepository.upsert(addedTodoUsers, []),
-      this.todoUserRepository.restore({
+      this.upsert(addedTodoUsers, []),
+      this.restore({
         todo_id: todo.id,
         user_id: In(restoredUserIds),
       }),
-      this.todoUserRepository.softRemove(deletedTodoUsers),
+      this.softRemove(deletedTodoUsers),
     ]);
   },
 

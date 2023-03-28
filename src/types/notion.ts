@@ -1,5 +1,5 @@
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
-import { valueOf } from "@/types/index";
+import { ValueOf } from "@/types/index";
 
 export type INotionTask = {
   name: string;
@@ -26,4 +26,14 @@ export type INotionDailyReport = {
   assignee: string,
 }
 
-export type INotionProperty = valueOf<Pick<PageObjectResponse, "properties">>;
+export type INotionProperty = ValueOf<Pick<PageObjectResponse, "properties">>;
+
+export type INotionOAuthToken = {
+  access_token: string;
+  bot_id: string;
+  duplicated_template_id?: string;
+  owner: object;
+  workspace_icon?: string;
+  workspace_id: string;
+  workspace_name?: string;
+};

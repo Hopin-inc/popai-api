@@ -103,9 +103,20 @@ export const OpenStatus = {
   CLOSED: false,
 };
 
+export const ChatToolId = {
+  LINE: 1,
+  SLACK: 2,
+};
+
 export const ChatToolCode = {
   LINE: "line",
   SLACK: "slack",
+};
+
+export const TodoAppId = {
+  TRELLO: 1,
+  MICROSOFT: 2,
+  NOTION: 3,
 };
 
 export const TodoAppCode = {
@@ -146,12 +157,6 @@ export enum TodoStatus {
   NOT_YET = "STATUS_NOT_YET",
   WITHDRAWN = "STATUS_WITHDRAWN",
 }
-
-export const EventType = {
-  NOTIFY_ON_UPDATE: 1,
-  DAILY_REPORT: 2,
-  ASK_PROSPECTS: 3,
-};
 
 export const ProspectLevel = {
   VERY_GOOD: 5,

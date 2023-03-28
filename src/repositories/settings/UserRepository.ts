@@ -2,11 +2,11 @@ import dataSource from "@/config/data-source";
 import User from "@/entities/settings/User";
 import ReportingLine from "@/entities/settings/ReportingLine";
 
-export const UserRepository = dataSource.getRepository(User).extend({
-  async getChatToolUserByUserId(authKey: string): Promise<User[]> {
+export const UserRepository = dataSource.getRepository<User>(User).extend({
+  async getChatToolUserByUserId(authKey: string, relations: string[] = []): Promise<User[]> {
     return await this.find({
       where: { chattoolUsers: { auth_key: authKey } },
-      relations: ["chattoolUsers.chattool", "company.implementedChatTools.chattool"],
+      relations: ["chattoolUsers.chattool", "company.implementedChatTools.chattool", ...relations],
     });
   },
 

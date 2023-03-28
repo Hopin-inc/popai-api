@@ -2,7 +2,7 @@ import { Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Column } from "t
 import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
 import User from "../settings/User";
-import { valueOf } from "@/types";
+import { ValueOf } from "@/types";
 import { TodoHistoryAction as Action, TodoHistoryProperty as Property } from "@/consts/common";
 
 type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
@@ -55,8 +55,8 @@ export default class TodoHistory extends BaseEntity {
   constructor(
     todo: Todo | number,
     assignees: User[],
-    property: valueOf<typeof Property>,
-    action: valueOf<typeof Action>,
+    property: ValueOf<typeof Property>,
+    action: ValueOf<typeof Action>,
     updatedAt: Date,
     info?: Info | null,
     editedBy?: number,

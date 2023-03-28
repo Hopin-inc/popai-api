@@ -5,11 +5,11 @@ import User from "./User";
 import Company from "./Company";
 import TodoApp from "../masters/TodoApp";
 import TodoSection from "../transactions/TodoSection";
-import Property from "./BoardProperty";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
 import DailyReportConfig from "./DailyReportConfig";
 import NotifyConfig from "./NotifyConfig";
+import BoardConfig from "./BoardConfig";
 
 @Entity("s_sections")
 export default class Section extends BaseEntity {
@@ -70,9 +70,6 @@ export default class Section extends BaseEntity {
     return todoSections ? todoSections.filter(ts => !ts.deleted_at).map(ts => ts.section) : [];
   }
 
-  @OneToMany(() => Property, property => property.section)
-  properties: Property[];
-
   @OneToOne(
     () => Timing,
     timing => timing.section,
@@ -100,4 +97,11 @@ export default class Section extends BaseEntity {
     { cascade: true }
   )
   notifyConfig?: NotifyConfig;
+
+  @OneToOne(
+    () => BoardConfig,
+    config => config.section,
+    { cascade: true }
+  )
+  boardConfig?: BoardConfig;
 }

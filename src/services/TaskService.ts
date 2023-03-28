@@ -10,20 +10,20 @@ import TodoAppUser from "@/entities/settings/TodoAppUser";
 import MicrosoftRepository from "@/repositories/MicrosoftRepository";
 import TrelloRepository from "@/repositories/TrelloRepository";
 import RemindRepository from "@/repositories/RemindRepository";
-import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 import SlackRepository from "@/repositories/SlackRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
-import { ChatToolCode, EventType, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
+import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { InternalServerErrorException, LoggerError } from "@/exceptions";
+import { LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
-import { EventTimingRepository } from "@/repositories/settings/EventTimingRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
+import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
+import NotionService from "@/services/NotionService";
 
 @Service()
 export default class TaskService {
@@ -31,7 +31,6 @@ export default class TaskService {
   private microsoftRepository: MicrosoftRepository;
   private notionRepository: NotionRepository;
   private remindRepository: RemindRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
   private slackRepository: SlackRepository;
   private lineRepository: LineRepository;
 
@@ -40,7 +39,6 @@ export default class TaskService {
     this.microsoftRepository = Container.get(MicrosoftRepository);
     this.notionRepository = Container.get(NotionRepository);
     this.remindRepository = Container.get(RemindRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
     this.slackRepository = Container.get(SlackRepository);
     this.lineRepository = Container.get(LineRepository);
   }
@@ -51,7 +49,7 @@ export default class TaskService {
   public async syncTodos(company: Company = null, notify: boolean = false): Promise<any> {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
 
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
@@ -66,14 +64,19 @@ export default class TaskService {
         where,
       });
 
-      const syncOperations = (company: Company, todoApp: TodoApp, notify) => {
+      const syncOperations = async (company: Company, todoApp: TodoApp, notify) => {
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
             return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
           case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
             return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
           case TodoAppCode.NOTION:
-            return this.notionRepository.syncTaskByUserBoards(company, todoApp, notify);
+            const notionClient = await NotionService.init(company.id);
+            if (notionClient) {
+              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, notify);
+            } else {
+              return;
+            }
           default:
             return;
         }
@@ -88,7 +91,6 @@ export default class TaskService {
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -98,7 +100,7 @@ export default class TaskService {
   public async remind(): Promise<any> {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
       const chattoolUsers = await ChatToolUserRepository.find();
       const companies = await CompanyRepository.find({
         relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
@@ -108,7 +110,7 @@ export default class TaskService {
         for (const chatTool of company.chatTools) {
           switch (chatTool.tool_code) {
             case ChatToolCode.LINE:
-              await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
+              await LineMessageQueueRepository.createTodayQueueTask(company, chattoolUsers);
               await this.remindRepository.remindTaskForAdminCompany(company);
               break;
             case ChatToolCode.SLACK:
@@ -122,33 +124,6 @@ export default class TaskService {
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
-    }
-  }
-
-  public async askProspects(): Promise<any> {
-    try {
-      const timings = await EventTimingRepository.getEventTargetCompanies(15, EventType.ASK_PROSPECTS);
-      await Promise.all(timings.map(async t => {
-        const { company, ask_plan: askPlan, ask_plan_milestone: milestone } = t;
-        for (const chatTool of company.chatTools) {
-          switch (chatTool.tool_code) {
-            case ChatToolCode.SLACK:
-              if (askPlan) {
-                await this.slackRepository.askPlans(company, milestone);
-              } else {
-                await this.slackRepository.askProspects(company);
-              }
-              break;
-            case ChatToolCode.LINE:
-            default:
-              break;
-          }
-        }
-      }));
-    } catch (error) {
-      logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -185,11 +160,11 @@ export default class TaskService {
       await this.syncTodos(userCompany);
 
       // update old line queue
-      await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
+      await LineMessageQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
       const chattoolUsers = await ChatToolUserRepository.find();
 
       // create queue for user
-      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
+      await LineMessageQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
 
       //remind task for user by queue
       await this.remindRepository.remindTodayTaskForUser(user);
@@ -208,7 +183,6 @@ export default class TaskService {
       return RemindUserJobResult.OK;
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -226,7 +200,10 @@ export default class TaskService {
         await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
       case TodoAppCode.NOTION:
-        await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
+        const notionClient = await NotionService.init(todo.company_id);
+        if (notionClient) {
+          await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, notionClient, correctDelayedCount);
+        }
         return;
     }
   }

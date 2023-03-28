@@ -69,17 +69,17 @@ export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], 
 export const extractArrayDifferences = <T>(arrA: T[], arrB: T[]): [T[], T[]] => {
   return [
     extractArrayMembersOfANotInB(arrA, arrB),
-    extractArrayMembersOfANotInB(arrB, arrA)
+    extractArrayMembersOfANotInB(arrB, arrA),
   ];
 };
 
 export const extractArrayMembersOfANotInB = <T>(arrA: T[], arrB: T[]): T[] => {
-  return arrA?.filter(a => !arrB.some(b => a === b)) ?? [];
+  return arrA?.filter(a => !arrB.includes(a)) ?? [];
 };
 
-export const roundMinutes = (dt: Date, significance: number, method?: "floor" | "ceil" | "round"): Date => {
+export const roundMinutes = (dt: Date, interval: number, method?: "floor" | "ceil" | "round"): Date => {
   const time = dayjs(dt);
-  const newMinutes = (t: typeof time, s: typeof significance, m: typeof method) => {
+  const newMinutes = (t: typeof time, s: typeof interval, m: typeof method) => {
     const minutes = t.minute();
     switch (m) {
       case "floor":
@@ -91,7 +91,7 @@ export const roundMinutes = (dt: Date, significance: number, method?: "floor" | 
         return Math.round(minutes / s) * s;
     }
   };
-  return time.set("m", newMinutes(time, significance, method)).set("s", 0).set("ms", 0).toDate();
+  return time.set("m", newMinutes(time, interval, method)).set("s", 0).set("ms", 0).toDate();
 };
 
 export const Sorter = {
@@ -128,7 +128,8 @@ export const truncate = (str: string, max: number, countHalfAs: number = 1, coun
 };
 
 export const isHolidayToday = (country: string = "JP", state?: string, region?: string): boolean => {
-  const holidays = listHolidays(new Date(), country, state, region);
+  const now = toJapanDateTime(new Date());
+  const holidays = listHolidays(now, country, state, region);
   return holidays.length > 0;
 };
 
@@ -136,3 +137,24 @@ export const listHolidays = (date: Date, country: string, state?: string, region
   const hd = new Holidays(country, state, region);
   return hd.isHoliday(date) || [];
 };
+
+export const includesDayOfToday = (days: number[]): boolean => {
+  const now = toJapanDateTime(new Date());
+  const day = dayjs(now).day();
+  return days.includes(day);
+};
+
+export const matchesTiming = (timings: string[], interval: number): boolean => {
+  const now = toJapanDateTime(new Date());
+  const executedTimeRounded = roundMinutes(now, interval, "floor");
+  const time = dayjs(executedTimeRounded).format("HH:mm:ss");
+  return timings.includes(time);
+};
+
+export const findMatchedTiming = <T extends { time: string }>(timings: T[], interval: number): T | null => {
+  const now = toJapanDateTime(new Date());
+  const executedTimeRounded = roundMinutes(now, interval, "floor");
+  const time = dayjs(executedTimeRounded).format("HH:mm:ss");
+  return timings.find(timing => timing.time === time);
+};
+

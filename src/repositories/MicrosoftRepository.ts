@@ -10,19 +10,16 @@ import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import TodoApp from "@/entities/masters/TodoApp";
 
-import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
-import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import TodoSectionRepository from "./modules/TodoSectionRepository";
-
 import { toJapanDateTime, diffDays } from "@/utils/common";
 import MicrosoftRequest from "@/services/MicrosoftRequest";
 import logger from "@/logger/winston";
 import { fetchApi } from "@/libs/request";
-import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUpdate, ITodoUserUpdate } from "@/types";
+import { IRemindTask, ITodoSectionUpdate, ITodoTask, ITodoUserUpdate } from "@/types";
 import { IMicrosoftRefresh, IMicrosoftTask, IMicrosoftToken } from "@/types/microsoft";
 import { COMPLETED } from "@/consts/microsoft";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
+import { TodoSectionRepository } from "@/repositories/transactions/TodoSectionRepository";
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
@@ -31,15 +28,9 @@ import { CompanyConditionRepository } from "@/repositories/settings/CompanyCondi
 @Service()
 export default class MicrosoftRepository {
   private microsoftRequest: MicrosoftRequest;
-  private todoUpdateRepository: TodoUpdateHistoryRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
-  private todoSectionRepository: TodoSectionRepository;
 
   constructor() {
     this.microsoftRequest = Container.get(MicrosoftRequest);
-    this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoSectionRepository = Container.get(TodoSectionRepository);
   }
 
   public async syncTaskByUserBoards(company: Company, todoapp: TodoApp): Promise<void> {
@@ -192,7 +183,7 @@ export default class MicrosoftRepository {
         formData.append("grant_type", "refresh_token");
         formData.append("client_secret", clientSecret);
 
-        const response = await fetchApi<FormData, IMicrosoftToken>(url, "POST", formData, true);
+        const response = await fetchApi<IMicrosoftToken>(url, "POST", formData, true);
 
         if (response.access_token) {
           const todoAppUser: TodoAppUser = await TodoAppUserRepository.findOneBy({
@@ -268,8 +259,8 @@ export default class MicrosoftRepository {
       if (response) {
         await Promise.all([
           TodoUserRepository.saveTodoUsers(dataTodoUsers),
-          this.todoSectionRepository.saveTodoSections(dataTodoSections),
-          // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
+          TodoSectionRepository.saveTodoSections(dataTodoSections),
+          // LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
         ]);
       }
     } catch (error) {
@@ -319,7 +310,7 @@ export default class MicrosoftRepository {
     //Update user
     if (todo) {
       await TodoUserRepository.updateTodoUser(todo, users);
-      await this.todoSectionRepository.updateTodoSection(todo, sections);
+      await TodoSectionRepository.updateTodoSection(todo, sections);
     }
   }
 
@@ -349,13 +340,6 @@ export default class MicrosoftRepository {
       }
 
       await TodoRepository.save(task);
-      const todoUpdate: ITodoUpdate = {
-        todoId: task.todoapp_reg_id,
-        newDueTime: task.deadline,
-        newIsDone: task.is_done,
-        updateTime: toJapanDateTime(new Date()),
-      };
-      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }

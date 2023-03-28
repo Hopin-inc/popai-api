@@ -1,5 +1,4 @@
 import { Service } from "typedi";
-import notionClient from "@/config/notion-client";
 import { BlockObjectRequest, CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { IDailyReportItems } from "@/types";
 import { TodoAppCode } from "@/consts/common";
@@ -7,6 +6,7 @@ import Todo from "@/entities/transactions/Todo";
 import DocumentToolUser from "@/entities/settings/DocumentToolUser";
 import logger from "@/logger/winston";
 import { LoggerError } from "@/exceptions";
+import NotionService from "@/services/NotionService";
 
 @Service()
 export default class NotionPageBuilder {
@@ -16,6 +16,7 @@ export default class NotionPageBuilder {
     items: IDailyReportItems,
     createdAt: string,
     reportId: string,
+    notionClient: NotionService,
   ): Promise<CreatePageParameters> {
     try {
       const sentences: Array<BlockObjectRequest> = [
@@ -32,9 +33,15 @@ export default class NotionPageBuilder {
         }];
 
       await Promise.all([
-        ...items.completedYesterday.map(async (cy) => sentences.splice(1, 0, await this.createTodoSentence(cy))),
-        ...items.ongoing.map(async (og) => sentences.push(await this.createTodoSentence(og))),
-        ...items.delayed.map(async (d) => sentences.push(await this.createTodoSentence(d, true))),
+        ...items.completedYesterday.map(async (todo) => {
+          return sentences.splice(1, 0, await this.createTodoSentence(todo, notionClient));
+        }),
+        ...items.ongoing.map(async (todo) => {
+          return sentences.push(await this.createTodoSentence(todo, notionClient));
+        }),
+        ...items.delayed.map(async (todo) => {
+          return sentences.push(await this.createTodoSentence(todo, notionClient, true));
+        }),
       ]);
 
       return {
@@ -49,17 +56,16 @@ export default class NotionPageBuilder {
         children: sentences,
       };
     } catch (error) {
-      console.error(error);
       logger.error(new LoggerError(error.message));
     }
   }
 
-  private async createTodoSentence(todo: Todo, isDelayed?: boolean): Promise<BlockObjectRequest> {
+  private async createTodoSentence(todo: Todo, notionClient: NotionService, isDelayed?: boolean): Promise<BlockObjectRequest> {
     try {
       switch (todo.todoapp.todo_app_code) {
         case TodoAppCode.NOTION:
           if (isDelayed) {
-            await notionClient.pages.update(
+            await notionClient.updatePage(
               {
                 page_id: todo.todoapp_reg_id,
                 icon: { type: "emoji", emoji: "🚨" },
@@ -95,7 +101,6 @@ export default class NotionPageBuilder {
           }
       }
     } catch (error) {
-      console.error(error);
       logger.error(new LoggerError(error.message));
     }
   }

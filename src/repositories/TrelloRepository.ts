@@ -7,36 +7,27 @@ import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
 
-import TodoUpdateHistoryRepository from "./modules/TodoUpdateHistoryRepository";
-import LineMessageQueueRepository from "./modules/LineMessageQueueRepository";
-import TodoSectionRepository from "./modules/TodoSectionRepository";
-
 import { toJapanDateTime, diffDays } from "@/utils/common";
 import logger from "@/logger/winston";
 import TrelloRequest from "@/services/TrelloRequest";
 import { LoggerError } from "@/exceptions";
-import { ITodoTask, ITodoUserUpdate, ITodoUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
+import { ITodoTask, ITodoUserUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
+import { TodoSectionRepository } from "@/repositories/transactions/TodoSectionRepository";
 
-import TodoHistoryService from "@/repositories/modules/TodoHistoryService";
+import TodoHistoryService from "@/services/TodoHistoryService";
 
 @Service()
 export default class TrelloRepository {
   private trelloRequest: TrelloRequest;
-  private todoUpdateRepository: TodoUpdateHistoryRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
-  private todoSectionRepository: TodoSectionRepository;
   private todoHistoryService: TodoHistoryService;
 
   constructor() {
     this.trelloRequest = Container.get(TrelloRequest);
-    this.todoUpdateRepository = Container.get(TodoUpdateHistoryRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.todoSectionRepository = Container.get(TodoSectionRepository);
     this.todoHistoryService = Container.get(TodoHistoryService);
   }
 
@@ -220,8 +211,8 @@ export default class TrelloRepository {
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
         await TodoUserRepository.saveTodoUsers(dataTodoUsers),
-        this.todoSectionRepository.saveTodoSections(dataTodoSections),
-        // await this.lineQueueRepository.pushTodoLineQueues(dataLineQueues),
+        TodoSectionRepository.saveTodoSections(dataTodoSections),
+        // await LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
     } catch (error) {
       logger.error(new LoggerError(error.message));
@@ -302,13 +293,6 @@ export default class TrelloRepository {
       }
 
       await TodoRepository.save(task);
-      const todoUpdate: ITodoUpdate = {
-        todoId: task.todoapp_reg_id,
-        newDueTime: task.deadline,
-        newIsDone: task.is_done,
-        updateTime: toJapanDateTime(new Date()),
-      };
-      await this.todoUpdateRepository.saveTodoUpdateHistory(task, todoUpdate);
     } catch (error) {
       logger.error(new LoggerError(error.message));
     }
