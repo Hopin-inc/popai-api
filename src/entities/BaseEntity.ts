@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn } from "typeorm";
 
 export default abstract class BaseEntity {
   @CreateDateColumn({ type: "datetime" })
@@ -7,6 +7,6 @@ export default abstract class BaseEntity {
   @Column({ type: "datetime", nullable: true, onUpdate: "CURRENT_TIMESTAMP" })
   readonly updated_at: Date;
 
-  @Column({ type: "datetime", nullable: true })
+  @DeleteDateColumn({ type: "datetime", nullable: true })
   deleted_at: Date;
 }

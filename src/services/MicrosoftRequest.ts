@@ -7,35 +7,35 @@ import { IMicrosoftErrorResponse, IMicrosoftRefresh, IMicrosoftTask } from "@/ty
 
 @Service()
 export default class MicrosoftRequest {
-  private async fetchApi<Req, Res>(
+  private async fetchApi<Res>(
     uri: string,
     method: string,
-    params = {},
+    params: any,
     dataRefresh: IMicrosoftRefresh,
     etag?: string,
-    isRefresh: boolean = false
+    isRefresh: boolean = false,
   ) {
     const { todoAppUser } = dataRefresh;
     const baseUrl = `${ process.env.MICROSOFT_GRAPH_API_URL }/${ uri }`;
-    const response = await fetchApi<Req, Res | IMicrosoftErrorResponse>(baseUrl, method, params, false, todoAppUser.api_token);
+    const response = await fetchApi<IMicrosoftErrorResponse>(baseUrl, method, params, false, todoAppUser.api_token);
 
     if (!isRefresh && (response as IMicrosoftErrorResponse)?.error?.code === "InvalidAuthenticationToken") {
       const microsoftRepository = new MicrosoftRepository();
       const todoAppUser = await microsoftRepository.refreshToken(dataRefresh);
       if (todoAppUser) {
         dataRefresh.todoAppUser = todoAppUser;
-        return await this.fetchApi<Req, Res>(uri, method, params, dataRefresh, etag, true);
+        return await this.fetchApi<Res>(uri, method, params, dataRefresh, etag, true);
       }
     }
     return response;
   }
 
   public async getAllTasksFromPlan(boardId: string, dataRefresh: IMicrosoftRefresh) {
-    return await this.fetchApi(`planner/plans/${ boardId }/tasks`, "GET", {}, dataRefresh);
+    return await this.fetchApi(`planner/plans/${ boardId }/tasks`, "GET", undefined, dataRefresh);
   }
 
   public async getMyInfo(dataRefresh: IMicrosoftRefresh) {
-    return await this.fetchApi("me", "GET", {}, dataRefresh);
+    return await this.fetchApi("me", "GET", undefined, dataRefresh);
   }
 
   public async updateTask(id: string, task: Partial<IMicrosoftTask>, dataRefresh: IMicrosoftRefresh) {

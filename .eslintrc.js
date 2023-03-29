@@ -20,12 +20,10 @@ module.exports = {
     node: true,
   },
   rules: {
-    camelcase: "off",
-    quotes: [
-      "error", "double", { avoidEscape: true },
-    ],
-    semi: ["error", "always"],
-    "semi-spacing": ["error", { "after": true, "before": false }],
+    "quotes": ["error", "double", { avoidEscape: true }],
+    "semi": ["error", "always"],
+    "semi-spacing": ["error", { after: true, before: false }],
+    "object-curly-spacing": ["error", "always"],
     "semi-style": ["error", "last"],
     "no-cond-assign": "off",
     "no-case-declarations": "off",

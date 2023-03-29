@@ -30,5 +30,5 @@ const databaseConfig: DataSourceOptions = {
 
 console.log("DB-HOST:" + envString(process.env.DB_HOST, ""));
 
-const AppDataSource = new DataSource(databaseConfig);
-export default AppDataSource;
+const dataSource = new DataSource(databaseConfig);
+export default dataSource;

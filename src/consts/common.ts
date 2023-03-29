@@ -1,20 +1,28 @@
 export const MAX_REMIND_COUNT = 2;
 
+export const NOT_UPDATED_DAYS = 5;
+
 export const TodoHistoryProperty = {
+  // CREATE | MODIFIED | ------
   NAME: 1,
+  // CREATE | MODIFIED | DELETE
   DEADLINE: 2,
+  // CREATE | -------- | DELETE
   ASSIGNEE: 3,
+  // CREATE | -------- | DELETE
   IS_DONE: 4,
+  // CREATE | -------- | DELETE
   IS_CLOSED: 5,
+  // CREATE | -------- | DELETE
   IS_DELAYED: 6,
+  // CREATE | -------- | DELETE
   IS_RECOVERED: 7,
 };
 
 export const TodoHistoryAction = {
   CREATE: 1,
-  USER_CHANGE: 2,
-  SYSTEM_CHANGE: 3,
-  DELETE: 4,
+  MODIFIED: 2,
+  DELETE: 3,
 };
 
 export const MessageType = {
@@ -36,6 +44,40 @@ export const MessageTriggerType = {
   REPORT: 4,
   PRAISE: 5,
   RESPONSE: 6,
+  NOTIFY: 7,
+  DAILY_REPORT: 8,
+};
+
+export const NotionPropertyType = {
+  TITLE: 1,
+  NUMBER: 2,
+  SELECT: 3,
+  MULTI_SELECT: 4,
+  URL: 5,
+  STATUS: 6,
+  PEOPLE: 7,
+  DATE: 8,
+  EMAIL: 9,
+  PHONE_NUMBER: 10,
+  CHECKBOX: 11,
+  FILES: 12,
+  RICH_TEXT: 13,
+  FORMULA: 14,
+  RELATION: 15,
+  ROLLUP: 16,
+  CREATED_BY: 17,
+  CREATED_TIME: 18,
+  LAST_EDITED_BY: 19,
+  LAST_EDITED_TIME: 20,
+};
+
+export const UsageType = {
+  TITLE: 1,
+  SECTION: 2,
+  ASSIGNEE: 3,
+  DUE: 4,
+  IS_DONE: 5,
+  IS_CLOSED: 6,
 };
 
 export const RemindType = {
@@ -61,14 +103,29 @@ export const OpenStatus = {
   CLOSED: false,
 };
 
+export const ChatToolId = {
+  LINE: 1,
+  SLACK: 2,
+};
+
 export const ChatToolCode = {
   LINE: "line",
   SLACK: "slack",
 };
 
+export const TodoAppId = {
+  TRELLO: 1,
+  MICROSOFT: 2,
+  NOTION: 3,
+};
+
 export const TodoAppCode = {
   TRELLO: "trello",
   MICROSOFT: "microsoft",
+  NOTION: "notion",
+};
+
+export const DocumentToolCode = {
   NOTION: "notion",
 };
 
@@ -100,3 +157,43 @@ export enum TodoStatus {
   NOT_YET = "STATUS_NOT_YET",
   WITHDRAWN = "STATUS_WITHDRAWN",
 }
+
+export const ProspectLevel = {
+  VERY_GOOD: 5,
+  GOOD: 4,
+  NEUTRAL: 3,
+  BAD: 2,
+  VERY_BAD: 1,
+};
+
+export const ReliefAction = {
+  SUBTASKS: 1,
+  ASSIGNEES: 2,
+  DEADLINE: 3,
+  PURPOSE: 4,
+  OUTPUT: 5,
+};
+
+export const GreetingMessage = [
+  "おはようございます🌞\n\n転んでもただで起きるのがニャンコみたいにかわいくないですか？\n今日も笑って過ごしましょう！",
+  "おはようございます💤\n\nまだ眠いですが、今日も一日がんばりましょう！",
+  "おはようございます🌈\n\n今日は何かハッピーなことが起きますように！",
+  "おはようございます☕️\n\nコーヒーをのんでカフェインパワー全開で、今日もいけます！",
+  "おはようございます🌹\n\n今日は愛と感謝の気持ちを伝える1日にしませんか？",
+];
+
+export const PraiseMessage = [
+  "💯 タスクを計画的にこなすあなたは、完璧です！",
+  "🌟 タスクの処理方法が素晴らしく光りますね！",
+  "💪 タスクをこなすあなたの力強い姿勢に、励まされます！",
+  "🎉 タスクの計画力は、まるでお祭りのように楽しいです！",
+  "🌈 タスクをこなすあなたの姿勢は、本当に美しく輝いています",
+];
+
+export const ActivateMessage = [
+  "💯 タスクを計画的にこなすあなたは、完璧です！",
+  "🌟 タスクの処理方法が素晴らしく光りますね！",
+  "💪 タスクをこなすあなたの力強い姿勢に、励まされます！",
+  "🎉 タスクの計画力は、まるでお祭りのように楽しいです！",
+  "🌈 タスクをこなすあなたの姿勢は、本当に美しく輝いています",
+];

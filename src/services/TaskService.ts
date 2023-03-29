@@ -1,79 +1,82 @@
-import { Repository, FindOptionsWhere } from "typeorm";
+import { FindOptionsWhere } from "typeorm";
 import { Service, Container } from "typedi";
 
-import Company from "@/entities/Company";
-import RemindUserJob from "@/entities/RemindUserJob";
-import Todo from "@/entities/Todo";
-import User from "@/entities/User";
-import TodoAppUser from "@/entities/TodoAppUser";
+import Company from "@/entities/settings/Company";
+import RemindUserJob from "@/entities/transactions/RemindUserJob";
+import Todo from "@/entities/transactions/Todo";
+import User from "@/entities/settings/User";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import MicrosoftRepository from "@/repositories/MicrosoftRepository";
 import TrelloRepository from "@/repositories/TrelloRepository";
 import RemindRepository from "@/repositories/RemindRepository";
-import LineMessageQueueRepository from "@/repositories/modules/LineMessageQueueRepository";
 import SlackRepository from "@/repositories/SlackRepository";
-import CommonRepository from "@/repositories/modules/CommonRepository";
 import NotionRepository from "@/repositories/NotionRepository";
+
+import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
 import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import AppDataSource from "@/config/data-source";
-import { InternalServerErrorException, LoggerError } from "@/exceptions";
-import TodoApp from "@/entities/TodoApp";
+import { LoggerError } from "@/exceptions";
+import TodoApp from "@/entities/masters/TodoApp";
+import LineRepository from "@/repositories/LineRepository";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
+import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
+import NotionService from "@/services/NotionService";
 
 @Service()
 export default class TaskService {
   private trelloRepository: TrelloRepository;
   private microsoftRepository: MicrosoftRepository;
   private notionRepository: NotionRepository;
-  private companyRepository: Repository<Company>;
   private remindRepository: RemindRepository;
-  private lineQueueRepository: LineMessageQueueRepository;
-  private commonRepository: CommonRepository;
   private slackRepository: SlackRepository;
-  private remindUserJobRepository: Repository<RemindUserJob>;
+  private lineRepository: LineRepository;
 
   constructor() {
     this.trelloRepository = Container.get(TrelloRepository);
     this.microsoftRepository = Container.get(MicrosoftRepository);
     this.notionRepository = Container.get(NotionRepository);
-    this.companyRepository = AppDataSource.getRepository(Company);
     this.remindRepository = Container.get(RemindRepository);
-    this.lineQueueRepository = Container.get(LineMessageQueueRepository);
-    this.commonRepository = Container.get(CommonRepository);
     this.slackRepository = Container.get(SlackRepository);
-    this.remindUserJobRepository = AppDataSource.getRepository(RemindUserJob);
+    this.lineRepository = Container.get(LineRepository);
   }
 
   /**
    * Update todos
    */
-  public async syncTodos(company: Company = null): Promise<any> {
+  public async syncTodos(company: Company = null, notify: boolean = false): Promise<any> {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
 
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
 
-      const companies = await this.companyRepository.find({
+      const companies = await CompanyRepository.find({
         relations: [
           "implementedTodoApps.todoApp",
           "implementedChatTools.chattool",
           "adminUser",
           "companyConditions",
-          "users.todoAppUsers"
+          "users.todoAppUsers",
         ],
         where,
       });
 
-      const syncOperations = (company: Company, todoApp: TodoApp) => {
+      const syncOperations = async (company: Company, todoApp: TodoApp, notify) => {
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
-            return this.trelloRepository.syncTaskByUserBoards(company, todoApp);
-          case TodoAppCode.MICROSOFT:
+            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
+          case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
             return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
           case TodoAppCode.NOTION:
-            return this.notionRepository.syncTaskByUserBoards(company, todoApp);
+            const notionClient = await NotionService.init(company.id);
+            if (notionClient) {
+              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, notify);
+            } else {
+              return;
+            }
           default:
             return;
         }
@@ -82,11 +85,12 @@ export default class TaskService {
       companies.forEach(company => {
         company.todoApps.forEach(todoApp => companyTodoApps.push([company, todoApp]));
       });
-      await Promise.all(companyTodoApps.map(([company, todoApp]) => syncOperations(company, todoApp)));
+      await Promise.all(companyTodoApps.map(
+        ([company, todoApp]) => syncOperations(company, todoApp, notify)),
+      );
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -96,9 +100,9 @@ export default class TaskService {
   public async remind(): Promise<any> {
     try {
       // update old line queue
-      await this.lineQueueRepository.updateStatusOfOldQueueTask();
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
-      const companies = await this.companyRepository.find({
+      await LineMessageQueueRepository.updateStatusOfOldQueueTask();
+      const chattoolUsers = await ChatToolUserRepository.find();
+      const companies = await CompanyRepository.find({
         relations: ["implementedChatTools.chattool", "adminUser.chattoolUsers.chattool", "companyConditions"],
       });
 
@@ -106,7 +110,7 @@ export default class TaskService {
         for (const chatTool of company.chatTools) {
           switch (chatTool.tool_code) {
             case ChatToolCode.LINE:
-              await this.lineQueueRepository.createTodayQueueTask(company, chattoolUsers);
+              await LineMessageQueueRepository.createTodayQueueTask(company, chattoolUsers);
               await this.remindRepository.remindTaskForAdminCompany(company);
               break;
             case ChatToolCode.SLACK:
@@ -120,7 +124,6 @@ export default class TaskService {
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -129,9 +132,7 @@ export default class TaskService {
    */
   public async remindForDemoUser(user: User): Promise<number> {
     try {
-      console.log("remindTaskForDemoUser - START");
-
-      const processingJobs = await this.remindUserJobRepository.findBy({
+      const processingJobs = await RemindUserJobRepository.findBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
       });
@@ -144,9 +145,9 @@ export default class TaskService {
       const job = new RemindUserJob();
       job.user_id = user.id;
       job.status = RemindUserJobStatus.PROCESSING;
-      await this.remindUserJobRepository.save(job);
+      await RemindUserJobRepository.save(job);
 
-      const userCompany = await this.companyRepository.findOne({
+      const userCompany = await CompanyRepository.findOne({
         relations: ["implementedTodoApps.todoapp", "implementedChatTools.chattool", "adminUser", "companyConditions"],
         where: { id: user.company_id, is_demo: true },
       });
@@ -159,32 +160,29 @@ export default class TaskService {
       await this.syncTodos(userCompany);
 
       // update old line queue
-      await this.lineQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
-      const chattoolUsers = await this.commonRepository.getChatToolUsers();
+      await LineMessageQueueRepository.updateStatusOldQueueTaskOfUser(user.id);
+      const chattoolUsers = await ChatToolUserRepository.find();
 
       // create queue for user
-      await this.lineQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
+      await LineMessageQueueRepository.createTodayQueueTaskForUser(chattoolUsers, user, userCompany);
 
       //remind task for user by queue
       await this.remindRepository.remindTodayTaskForUser(user);
 
       // update job status
-      const processingJob = await this.remindUserJobRepository.findOneBy({
+      const processingJob = await RemindUserJobRepository.findOneBy({
         user_id: user.id,
         status: RemindUserJobStatus.PROCESSING,
       });
 
       if (processingJob) {
         processingJob.status = RemindUserJobStatus.DONE;
-        await this.remindUserJobRepository.save(processingJob);
+        await RemindUserJobRepository.save(processingJob);
       }
-
-      console.log("remindTaskForDemoUser - END");
 
       return RemindUserJobResult.OK;
     } catch (error) {
       logger.error(new LoggerError(error.message));
-      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -192,7 +190,7 @@ export default class TaskService {
     todoappRegId: string,
     todo: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false
+    correctDelayedCount: boolean = false,
   ) {
     switch (todo.todoapp.todo_app_code) {
       case TodoAppCode.TRELLO:
@@ -202,7 +200,10 @@ export default class TaskService {
         await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
       case TodoAppCode.NOTION:
-        await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
+        const notionClient = await NotionService.init(todo.company_id);
+        if (notionClient) {
+          await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, notionClient, correctDelayedCount);
+        }
         return;
     }
   }

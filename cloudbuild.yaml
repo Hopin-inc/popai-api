@@ -20,7 +20,7 @@ steps:
       - |-
         cat <<EOF > ./app.yaml
         runtime: nodejs16
-        instance_class: F2
+        instance_class: $_GAE_INSTANCE_CLASS
         env_variables:
           HOST: $_HOST
           PORT: 8080
@@ -37,10 +37,21 @@ steps:
           MICROSOFT_GRAPH_API_URL: https://graph.microsoft.com/v1.0
           MICROSOFT_CLIENT_ID: $$MICROSOFT_CLIENT_ID
           MICROSOFT_CLIENT_SECRET: $$MICROSOFT_CLIENT_SECRET
-          NOTION_ACCESS_TOKEN: $$NOTION_ACCESS_TOKEN
+          NOTION_CLIENT_ID: $$NOTION_CLIENT_ID
+          NOTION_CLIENT_SECRET: $$NOTION_CLIENT_SECRET
           LINE_CHANNEL_ACCESS_TOKEN: $$LINE_CHANNEL_ACCESS_TOKEN
           LINE_CHANNEL_SECRET: $$LINE_CHANNEL_SECRET
-          SLACK_ACCESS_TOKEN: $$SLACK_ACCESS_TOKEN
+          SLACK_CLIENT_ID: $$SLACK_CLIENT_ID
+          SLACK_CLIENT_SECRET: $$SLACK_CLIENT_SECRET
+          SLACK_SIGNING_SECRET: $$SLACK_SIGNING_SECRET
+          SLACK_VERIFICATION_TOKEN: $$SLACK_VERIFICATION_TOKEN
+          SLACK_STATE_SECRET: $$SLACK_STATE_SECRET
+          FIREBASE_PROJECT_ID: $_FIREBASE_PROJECT_ID
+          FIREBASE_PRIVATE_KEY: '$$FIREBASE_PRIVATE_KEY'
+          FIREBASE_CLIENT_EMAIL: $_FIREBASE_CLIENT_EMAIL
+          EXPRESS_SESSION_SECRET: $$SLACK_STATE_SECRET
+          ALLOWED_ORIGINS: $_ALLOWED_ORIGINS
+          CLIENT_BASE_URL: $_CLIENT_BASE_URL
         vpc_access_connector:
           name: projects/$PROJECT_ID/locations/asia-northeast2/connectors/connect-to-mysql
           egress_setting: private-ranges-only
@@ -53,10 +64,17 @@ steps:
       - DB_PASSWORD
       - MICROSOFT_CLIENT_ID
       - MICROSOFT_CLIENT_SECRET
-      - NOTION_ACCESS_TOKEN
+      - NOTION_CLIENT_ID
+      - NOTION_CLIENT_SECRET
       - LINE_CHANNEL_ACCESS_TOKEN
       - LINE_CHANNEL_SECRET
-      - SLACK_ACCESS_TOKEN
+      - SLACK_CLIENT_ID
+      - SLACK_CLIENT_SECRET
+      - SLACK_SIGNING_SECRET
+      - SLACK_VERIFICATION_TOKEN
+      - SLACK_STATE_SECRET
+      - FIREBASE_PRIVATE_KEY
+      - EXPRESS_SESSION_SECRET
   - id: Deploy app
     name: gcr.io/cloud-builders/gcloud
     args:
@@ -70,12 +88,26 @@ availableSecrets:
       env: MICROSOFT_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/MICROSOFT_CLIENT_SECRET/versions/latest
       env: MICROSOFT_CLIENT_SECRET
-    - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_ACCESS_TOKEN/versions/latest
-      env: NOTION_ACCESS_TOKEN
+    - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_CLIENT_ID/versions/latest
+      env: NOTION_CLIENT_ID
+    - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_CLIENT_SECRET/versions/latest
+      env: NOTION_CLIENT_SECRET
     - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_ACCESS_TOKEN/versions/latest
       env: LINE_CHANNEL_ACCESS_TOKEN
     - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_SECRET/versions/latest
       env: LINE_CHANNEL_SECRET
-    - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_ACCESS_TOKEN/versions/latest
-      env: SLACK_ACCESS_TOKEN
+    - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_CLIENT_ID/versions/latest
+      env: SLACK_CLIENT_ID
+    - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_CLIENT_SECRET/versions/latest
+      env: SLACK_CLIENT_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_SIGNING_SECRET/versions/latest
+      env: SLACK_SIGNING_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_VERIFICATION_TOKEN/versions/latest
+      env: SLACK_VERIFICATION_TOKEN
+    - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_STATE_SECRET/versions/latest
+      env: SLACK_STATE_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/FIREBASE_PRIVATE_KEY/versions/latest
+      env: FIREBASE_PRIVATE_KEY
+    - versionName: projects/$PROJECT_NUMBER/secrets/EXPRESS_SESSION_SECRET/versions/latest
+      env: EXPRESS_SESSION_SECRET
 timeout: 1600s

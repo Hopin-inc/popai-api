@@ -1,25 +1,20 @@
-import ChatTool from "@/entities/ChatTool";
-import LineMessageQueue from "@/entities/LineMessageQueue";
-import TodoAppUser from "@/entities/TodoAppUser";
-import Company from "@/entities/Company";
-import Section from "@/entities/Section";
-import User from "@/entities/User";
-import TodoApp from "@/entities/TodoApp";
-import Todo from "@/entities/Todo";
+import ChatTool from "@/entities/masters/ChatTool";
+import LineMessageQueue from "@/entities/transactions/LineMessageQueue";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
+import Company from "@/entities/settings/Company";
+import Section from "@/entities/settings/Section";
+import User from "@/entities/settings/User";
+import TodoApp from "@/entities/masters/TodoApp";
+import Todo from "@/entities/transactions/Todo";
 
 import { ITrelloTask } from "@/types/trello";
 import { IMicrosoftTask } from "@/types/microsoft";
 import { INotionTask } from "@/types/notion";
 
-export type valueOf<T> = T[keyof T];
+export type ValueOf<T> = T[keyof T];
 
-export type ITodoUpdate = {
-  todoId: string;
-  dueTime?: Date;
-  newDueTime: Date;
-  newIsDone?: boolean;
-  updateTime: Date;
-};
+export type PartialWithId<T extends { id: any }> = Partial<T> & { id: T["id"] };
+export type IdOptional<T extends { id: any }> = Omit<T, "id"> & { id?: T["id"] };
 
 export type ITodoHistory = {
   todoId: string;
@@ -29,6 +24,7 @@ export type ITodoHistory = {
   isDone: boolean;
   isClosed: boolean;
   todoappRegUpdatedAt: Date;
+  editedBy?: number;
 };
 
 export type ITodoUserUpdate = {
@@ -69,4 +65,17 @@ export type ITodoLines = {
   chattool: ChatTool;
   user: User;
   todoQueueTask?: LineMessageQueue;
+};
+
+export type IDailyReportItems = {
+  completedYesterday: Todo[];
+  delayed: Todo[];
+  ongoing: Todo[];
+};
+
+export type IPerformanceReportItems = {
+  planed: Todo[];
+  completed: Todo[];
+  delayed: Todo[];
+  closed: Todo[];
 };
