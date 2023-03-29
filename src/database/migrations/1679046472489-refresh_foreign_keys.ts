@@ -48,8 +48,8 @@ export class refreshForeignKeys1679046472489 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE \`t_remind_user_jobs\` DROP FOREIGN KEY \`FK_63db03d83b05fc0432e206a0f1b\``);
         await queryRunner.query(`ALTER TABLE \`t_daily_reports\` DROP FOREIGN KEY \`FK_5bc9073f7de177a46352701adeb\``);
         await queryRunner.query(`ALTER TABLE \`t_daily_reports\` DROP FOREIGN KEY \`FK_d260f5edfb269aa9b85b906ba25\``);
-        await queryRunner.query(`DROP INDEX \`IDX_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\``);
-        await queryRunner.query(`DROP INDEX \`REL_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\``);
+        // await queryRunner.query(`DROP INDEX \`IDX_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\``);
+        // await queryRunner.query(`DROP INDEX \`REL_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\``);
         await queryRunner.query(`ALTER TABLE \`s_properties\` DROP COLUMN \`usage\``);
         await queryRunner.query(`ALTER TABLE \`t_line_message_queues\` ADD UNIQUE INDEX \`IDX_392dab9b1e396a8b68faf36227\` (\`message_id\`)`);
         await queryRunner.query(`CREATE UNIQUE INDEX \`REL_392dab9b1e396a8b68faf36227\` ON \`t_line_message_queues\` (\`message_id\`)`);
@@ -149,8 +149,8 @@ export class refreshForeignKeys1679046472489 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX \`REL_392dab9b1e396a8b68faf36227\` ON \`t_line_message_queues\``);
         await queryRunner.query(`ALTER TABLE \`t_line_message_queues\` DROP INDEX \`IDX_392dab9b1e396a8b68faf36227\``);
         await queryRunner.query(`ALTER TABLE \`s_properties\` ADD \`usage\` int NULL`);
-        await queryRunner.query(`CREATE UNIQUE INDEX \`REL_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\` (\`message_id\`)`);
-        await queryRunner.query(`CREATE UNIQUE INDEX \`IDX_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\` (\`message_id\`)`);
+        // await queryRunner.query(`CREATE UNIQUE INDEX \`REL_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\` (\`message_id\`)`);
+        // await queryRunner.query(`CREATE UNIQUE INDEX \`IDX_df8d608ee34ce8816a96a80502\` ON \`t_line_message_queues\` (\`message_id\`)`);
         await queryRunner.query(`ALTER TABLE \`t_daily_reports\` ADD CONSTRAINT \`FK_d260f5edfb269aa9b85b906ba25\` FOREIGN KEY (\`user_id\`) REFERENCES \`s_users\`(\`id\`) ON DELETE CASCADE ON UPDATE RESTRICT`);
         await queryRunner.query(`ALTER TABLE \`t_daily_reports\` ADD CONSTRAINT \`FK_5bc9073f7de177a46352701adeb\` FOREIGN KEY (\`company_id\`) REFERENCES \`s_companies\`(\`id\`) ON DELETE CASCADE ON UPDATE RESTRICT`);
         await queryRunner.query(`ALTER TABLE \`t_remind_user_jobs\` ADD CONSTRAINT \`FK_63db03d83b05fc0432e206a0f1b\` FOREIGN KEY (\`user_id\`) REFERENCES \`s_users\`(\`id\`) ON DELETE SET NULL ON UPDATE RESTRICT`);

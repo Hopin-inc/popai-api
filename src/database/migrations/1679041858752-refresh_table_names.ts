@@ -4,7 +4,8 @@ export class refreshTableNames1679041858752 implements MigrationInterface {
     name = 'refreshTableNames1679041858752'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE \`company_conditions\` RENAME TO \`s_company_conditions\``);
+        // await queryRunner.query(`ALTER TABLE \`company_conditions\` RENAME TO \`s_company_conditions\``);
+        await queryRunner.query(`ALTER TABLE \`m_company_conditions\` RENAME TO \`s_company_conditions\``);
         await queryRunner.query(`ALTER TABLE \`todo_update_histories\` RENAME TO \`t_todo_update_histories\``);
         await queryRunner.query(`ALTER TABLE \`todo_users\` RENAME TO \`t_todo_users\``);
         await queryRunner.query(`ALTER TABLE \`todo_sections\` RENAME TO \`t_todo_sections\``);
@@ -33,7 +34,8 @@ export class refreshTableNames1679041858752 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE \`s_company_conditions\` RENAME TO \`company_conditions\``);
+        // await queryRunner.query(`ALTER TABLE \`s_company_conditions\` RENAME TO \`company_conditions\``);
+        await queryRunner.query(`ALTER TABLE \`s_company_conditions\` RENAME TO \`m_company_conditions\``);
         await queryRunner.query(`ALTER TABLE \`t_todo_update_histories\` RENAME TO \`todo_update_histories\``);
         await queryRunner.query(`ALTER TABLE \`t_todo_users\` RENAME TO \`todo_users\``);
         await queryRunner.query(`ALTER TABLE \`t_todo_sections\` RENAME TO \`todo_sections\``);
