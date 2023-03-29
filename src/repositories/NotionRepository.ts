@@ -362,8 +362,6 @@ export default class NotionRepository {
     try {
       const today = new Date().toISOString().slice(0, 10);
       const configRecord = await DailyReportConfigRepository.findOneBy({ company_id: company.id });
-      const reportId = "a167f832-53af-467e-80ce-f0ae1afb361d"; // TODO: DBに格納して取得できるようにする
-
       const response: CreatePageResponse[] = await Promise.all(users.map(async (user) => {
         const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
         const docToolUsers = user.documentToolUsers.find(
@@ -374,7 +372,6 @@ export default class NotionRepository {
           docToolUsers,
           itemsByUser,
           today,
-          reportId,
           notionClient,
         );
         return notionClient.createPage(pageOption);

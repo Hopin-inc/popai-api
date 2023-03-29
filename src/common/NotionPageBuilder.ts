@@ -15,7 +15,6 @@ export default class NotionPageBuilder {
     user: DocumentToolUser,
     items: IDailyReportItems,
     createdAt: string,
-    reportId: string,
     notionClient: NotionService,
   ): Promise<CreatePageParameters> {
     try {
@@ -51,7 +50,6 @@ export default class NotionPageBuilder {
           "タイトル": { title: [{ text: { content: `${user.user_name} ${createdAt}` } }] },
           "担当者": { people: [{ object: "user", id: user.auth_key }] },
           "日付": { date: { start: createdAt } },
-          "種類": { select: { id: reportId } },
         },
         children: sentences,
       };
