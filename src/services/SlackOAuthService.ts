@@ -60,6 +60,7 @@ export default class SlackOAuthService {
   public async handleInstallPath(req: Request, res: Response) {
     return await this.slackInstaller.handleInstallPath(req, res, {}, {
       scopes,
+      redirectUri: `${ req.protocol }://${ req.get("host") }/api/slack/oauth_redirect`,
       metadata: req.session.id,
     });
   }
