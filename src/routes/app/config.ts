@@ -2,7 +2,6 @@ import express from "express";
 import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import ConfigController from "@/controllers/app/ConfigController";
-import { IConfigCommon, IConfigDailyReport } from "@/types/app";
 
 const router = express();
 
@@ -25,7 +24,7 @@ router.patch("/", async (req, res) => {
   try {
     const controller = new ConfigController();
     const { company } = req.session;
-    const data: Partial<IConfigCommon> = req.body;
+    const data = req.body;
     if (company) {
       const response = await controller.updateCommonConfig(data, company.id);
       ApiResponse.successRes(res, response);
@@ -56,7 +55,7 @@ router.patch("/daily-report", async (req, res) => {
   try {
     const controller = new ConfigController();
     const { company } = req.session;
-    const data: Partial<IConfigDailyReport> = req.body;
+    const data = req.body;
     if (company) {
       const response = await controller.updateDailyReportConfig(data, company.id);
       ApiResponse.successRes(res, response);

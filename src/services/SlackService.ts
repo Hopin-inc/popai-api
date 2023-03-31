@@ -3,7 +3,9 @@ import {
   Block,
   ChatPostMessageArguments,
   ChatUpdateArguments,
-  KnownBlock, UsersProfileGetArguments,
+  ConversationsJoinArguments,
+  KnownBlock,
+  UsersProfileGetArguments,
   ViewsOpenArguments,
   WebClient,
 } from "@slack/web-api";
@@ -74,5 +76,9 @@ export default class SlackService {
 
   public async getProfile(options: UsersProfileGetArguments) {
     return this.client.users.profile.get(options);
+  }
+
+  public async joinChannel(options: ConversationsJoinArguments) {
+    return this.client.conversations.join(options);
   }
 }

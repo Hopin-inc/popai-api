@@ -17,6 +17,8 @@ import DailyReportConfig from "@/entities/settings/DailyReportConfig";
 import { ProspectTimingRepository } from "@/repositories/settings/ProspectTimingRepository";
 import ProspectConfig from "@/entities/settings/ProspectConfig";
 import ProspectTiming from "@/entities/settings/ProspectTiming";
+import { ChatToolId } from "@/consts/common";
+import SlackService from "@/services/SlackService";
 
 export default class ConfigController extends Controller {
   public async getCommonConfig(companyId: number): Promise<IConfigCommon | null> {
@@ -40,12 +42,12 @@ export default class ConfigController extends Controller {
     data: Partial<IConfigCommon>,
     companyId: number,
   ): Promise<any> {
+    const { excludedDates, ...sentData } = data;
     // FIXME: excluded = falseのケースには対応していない。
     const [config, exceptions]: [Timing, TimingException[]] = await Promise.all([
       TimingRepository.findOneBy({ company_id: companyId, section_id: IsNull() }),
       TimingExceptionRepository.findBy({ company_id: companyId, section_id: IsNull() }),
     ]);
-    const { excludedDates, ...sentData } = data;
     if (config) {
       const updatedConfig: Timing = { ...config, ...snakecaseKeys(sentData, { deep: true }) };
       if (excludedDates) {
@@ -103,29 +105,36 @@ export default class ConfigController extends Controller {
     data: Partial<IConfigDailyReport>,
     companyId: number,
   ): Promise<any> {
+    const { timings: sentTimings, ...sentConfig } = data;
     const config = await DailyReportConfigRepository.findOneBy({ company_id: companyId, section_id: IsNull() });
-    const timings = await DailyReportTimingRepository.findBy({ config_id: config.id });
     if (config) {
-      const { timings: _, ...sentConfig } = data;
+      const operations: Promise<any>[] = [];
+      const timings = await DailyReportTimingRepository.findBy({ config_id: config.id });
       const updatedConfig: DailyReportConfig = { ...config, ...snakecaseKeys(sentConfig, { deep: true }) };
-      const storedTimes = timings.map(t => t.time);
-      const [addedTimes, deletedTimes] = extractArrayDifferences(data.timings?.map(t => t.time) ?? [], storedTimes);
-      const addedTimings: DailyReportTiming[] = addedTimes.map(time => {
-        const timing = data.timings.find(t => t.time === time);
-        return new DailyReportTiming(companyId, time, timing?.enablePending);
-      });
-      const deletedTimings: DailyReportTiming[] = timings.filter(t => deletedTimes.includes(t.time));
-      const modifiedTimings: DailyReportTiming[] = timings
-        .filter(t => ![...addedTimes, ...deletedTimes].includes(t.time))
-        .map(timing => ({
-          ...timing,
-          ...snakecaseKeys(data.timings.find(t => t.time === timing.time)),
-        }));
-      await Promise.all([
-        DailyReportConfigRepository.upsert(updatedConfig, []),
-        DailyReportTimingRepository.upsert([...addedTimings, ...modifiedTimings], []),
-        deletedTimings.length ? DailyReportTimingRepository.softDelete(deletedTimings.map(e => e.id)) : null,
-      ]);
+      operations.push(DailyReportConfigRepository.upsert(updatedConfig, []));
+      if (sentConfig.channel) {
+        operations.push(this.joinChannel(companyId, sentConfig.chatToolId ?? config.chat_tool_id, sentConfig.channel));
+      }
+      if (sentTimings) {
+        const storedTimes = timings.map(t => t.time);
+        const [addedTimes, deletedTimes] = extractArrayDifferences(sentTimings?.map(t => t.time) ?? [], storedTimes);
+        const addedTimings: DailyReportTiming[] = addedTimes.map(time => {
+          const timing = sentTimings?.find(t => t.time === time);
+          return new DailyReportTiming(companyId, time, timing?.enablePending);
+        });
+        const deletedTimings: DailyReportTiming[] = timings.filter(t => deletedTimes.includes(t.time));
+        const modifiedTimings: DailyReportTiming[] = timings
+          .filter(t => ![...addedTimes, ...deletedTimes].includes(t.time))
+          .map(timing => ({
+            ...timing,
+            ...snakecaseKeys(sentTimings?.find(t => t.time === timing.time)),
+          }));
+        operations.push(
+          DailyReportTimingRepository.upsert([...addedTimings, ...modifiedTimings], []),
+          deletedTimings.length ? DailyReportTimingRepository.softDelete(deletedTimings.map(e => e.id)) : null,
+        );
+      }
+      await Promise.all(operations);
     } else {
       const config = new DailyReportConfig(companyId, data.enabled ?? true, data.chatToolId, data.channel);
       const savedConfig = await DailyReportConfigRepository.save(config);
@@ -150,9 +159,14 @@ export default class ConfigController extends Controller {
     companyId: number,
   ): Promise<any> {
     const config = await NotifyConfigRepository.findOneBy({ company_id: companyId, section_id: IsNull() });
+    const operations: Promise<any>[] = [];
     if (config) {
-      await NotifyConfigRepository.update(config.id, data);
+      operations.push(NotifyConfigRepository.update(config.id, snakecaseKeys(data, { deep: true })));
     }
+    if (data.channel) {
+      operations.push(this.joinChannel(companyId, data.chatToolId ?? config?.chat_tool_id, data.channel));
+    }
+    await Promise.all(operations);
   }
 
   public async getProspectConfig(companyId: number): Promise<IConfigProspect | null> {
@@ -188,11 +202,16 @@ export default class ConfigController extends Controller {
     data: Partial<IConfigProspect>,
     companyId: number,
   ): Promise<any> {
-    const config = await ProspectConfigRepository.findOneBy({ company_id: companyId, section_id: IsNull() });
-    const timings = await ProspectTimingRepository.findBy({ config_id: config.id });
     const { timings: sentTimings, ...sentConfig } = data;
+    const config = await ProspectConfigRepository.findOneBy({ company_id: companyId, section_id: IsNull() });
     if (config) {
+      const operations: Promise<any>[] = [];
+      const timings = await ProspectTimingRepository.findBy({ config_id: config.id });
       const updatedConfig: ProspectConfig = { ...config, ...snakecaseKeys(sentConfig, { deep: true }) };
+      operations.push(ProspectConfigRepository.upsert(updatedConfig, []));
+      if (sentConfig.channel) {
+        operations.push(this.joinChannel(companyId, sentConfig.chatToolId ?? config.chat_tool_id, sentConfig.channel));
+      }
       if (sentTimings) {
         const storedTimes = timings.map(t => t.time);
         const [addedTimes, deletedTimes] = extractArrayDifferences(sentTimings?.map(t => t.time) ?? [], storedTimes);
@@ -207,14 +226,12 @@ export default class ConfigController extends Controller {
             ...timing,
             ...snakecaseKeys(sentTimings.find(t => t.time === timing.time)),
           }));
-        await Promise.all([
-          ProspectConfigRepository.upsert(updatedConfig, []),
+        operations.push(
           ProspectTimingRepository.upsert([...addedTimings, ...modifiedTimings], []),
           deletedTimings.length ? ProspectTimingRepository.softDelete(deletedTimings.map(e => e.id)) : null,
-        ]);
-      } else {
-        await ProspectConfigRepository.upsert(updatedConfig, []);
+        );
       }
+      await Promise.all(operations);
     } else {
       const config = new ProspectConfig({
         company: companyId,
@@ -233,6 +250,16 @@ export default class ConfigController extends Controller {
         return new ProspectTiming(savedConfig.id, t.time, t.askPlan, t.askPlanMilestone);
       }) ?? [];
       await ProspectTimingRepository.upsert(timings, []);
+    }
+  }
+
+  private async joinChannel(companyId: number, chatToolId: number, channel: string) {
+    switch (chatToolId) {
+      case ChatToolId.SLACK:
+        const slackBot = await SlackService.init(companyId);
+        return slackBot.joinChannel({ channel });
+      default:
+        return;
     }
   }
 }

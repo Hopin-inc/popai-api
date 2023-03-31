@@ -50,9 +50,7 @@ export default class TaskService {
     try {
       // update old line queue
       await LineMessageQueueRepository.updateStatusOfOldQueueTask();
-
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
-
       const companies = await CompanyRepository.find({
         relations: [
           "implementedTodoApps.todoApp",
@@ -60,34 +58,35 @@ export default class TaskService {
           "adminUser",
           "companyConditions",
           "users.todoAppUsers",
+          "notifyConfig",
         ],
         where,
       });
 
-      const syncOperations = async (company: Company, todoApp: TodoApp, notify) => {
+      const companyTodoApps: [Company, TodoApp, boolean][] = [];
+      companies.forEach(company => {
+        company.todoApps.forEach(todoApp => {
+          companyTodoApps.push([company, todoApp, company.notifyConfig.enabled]);
+        });
+      });
+      await Promise.all(companyTodoApps.map(async ([company, todoApp, notifyEnabled]) => {
+        const enabled = notifyEnabled && notify;
         switch (todoApp.todo_app_code) {
           case TodoAppCode.TRELLO:
-            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, notify);
+            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
           case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
             return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
           case TodoAppCode.NOTION:
             const notionClient = await NotionService.init(company.id);
             if (notionClient) {
-              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, notify);
+              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
             } else {
               return;
             }
           default:
             return;
         }
-      };
-      const companyTodoApps: [Company, TodoApp][] = [];
-      companies.forEach(company => {
-        company.todoApps.forEach(todoApp => companyTodoApps.push([company, todoApp]));
-      });
-      await Promise.all(companyTodoApps.map(
-        ([company, todoApp]) => syncOperations(company, todoApp, notify)),
-      );
+      }));
       return;
     } catch (error) {
       logger.error(new LoggerError(error.message));
