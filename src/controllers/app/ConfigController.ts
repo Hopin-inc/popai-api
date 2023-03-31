@@ -165,7 +165,7 @@ export default class ConfigController extends Controller {
     if (config) {
       operations.push(NotifyConfigRepository.update(config.id, snakecaseKeys(data, { deep: true })));
     } else {
-      operations.push(NotifyConfigRepository.save(snakecaseKeys(data, { deep: true })));
+      operations.push(NotifyConfigRepository.save({ company_id: companyId, ...snakecaseKeys(data, { deep: true }) }));
     }
     if (data.channel) {
       operations.push(this.joinChannel(companyId, data.chatToolId ?? config?.chat_tool_id, data.channel));
@@ -217,23 +217,29 @@ export default class ConfigController extends Controller {
         operations.push(this.joinChannel(companyId, sentConfig.chatToolId ?? config.chat_tool_id, sentConfig.channel));
       }
       if (sentTimings) {
-        const storedTimes = timings.map(t => t.time);
-        const [addedTimes, deletedTimes] = extractArrayDifferences(sentTimings?.map(t => t.time) ?? [], storedTimes);
-        const addedTimings: ProspectTiming[] = addedTimes.map(time => {
-          const timing = sentTimings.find(t => t.time === time);
-          return new ProspectTiming(companyId, time, timing?.askPlan, timing?.askPlanMilestone);
-        });
-        const deletedTimings: ProspectTiming[] = timings.filter(t => deletedTimes.includes(t.time));
-        const modifiedTimings: ProspectTiming[] = timings
-          .filter(t => ![...addedTimes, ...deletedTimes].includes(t.time))
-          .map(timing => ({
-            ...timing,
-            ...snakecaseKeys(sentTimings.find(t => t.time === timing.time)),
-          }));
-        operations.push(
-          ProspectTimingRepository.upsert([...addedTimings, ...modifiedTimings], []),
-          deletedTimings.length ? ProspectTimingRepository.softDelete(deletedTimings.map(e => e.id)) : null,
-        );
+        if (timings.length) {
+          const storedTimes = timings.map(t => t.time);
+          const [addedTimes, deletedTimes] = extractArrayDifferences(sentTimings?.map(t => t.time) ?? [], storedTimes);
+          const addedTimings: ProspectTiming[] = addedTimes.map(time => {
+            const timing = sentTimings.find(t => t.time === time);
+            return new ProspectTiming(config.id, time, timing?.askPlan, timing?.askPlanMilestone);
+          });
+          const deletedTimings: ProspectTiming[] = timings.filter(t => deletedTimes.includes(t.time));
+          const modifiedTimings: ProspectTiming[] = timings
+            .filter(t => ![...addedTimes, ...deletedTimes].includes(t.time))
+            .map(timing => ({
+              ...timing,
+              ...snakecaseKeys(sentTimings.find(t => t.time === timing.time)),
+            }));
+          operations.push(
+            ProspectTimingRepository.upsert([...addedTimings, ...modifiedTimings], []),
+            deletedTimings.length ? ProspectTimingRepository.softDelete(deletedTimings.map(e => e.id)) : null,
+          );
+        } else {
+          operations.push(ProspectTimingRepository.save(sentTimings.map(t => {
+            return new ProspectTiming(config, t.time, t.askPlan, t.askPlanMilestone);
+          })));
+        }
       }
       await Promise.all(operations);
     } else {
