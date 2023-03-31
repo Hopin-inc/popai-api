@@ -31,11 +31,13 @@ export default class ConfigController extends Controller {
         excluded: true,
       }),
     ]);
-    return {
-      daysOfWeek: timing.days_of_week ?? [],
-      disabledOnHolidaysJp: timing.disabled_on_holidays_jp,
-      excludedDates: exceptions.filter(e => e.excluded).map(e => formatDatetime(e.date)),
-    };
+    if (timing) {
+      return {
+        daysOfWeek: timing.days_of_week ?? [],
+        disabledOnHolidaysJp: timing.disabled_on_holidays_jp,
+        excludedDates: exceptions.filter(e => e.excluded).map(e => formatDatetime(e.date)),
+      };
+    }
   }
 
   public async updateCommonConfig(
@@ -162,6 +164,8 @@ export default class ConfigController extends Controller {
     const operations: Promise<any>[] = [];
     if (config) {
       operations.push(NotifyConfigRepository.update(config.id, snakecaseKeys(data, { deep: true })));
+    } else {
+      operations.push(NotifyConfigRepository.save(snakecaseKeys(data, { deep: true })));
     }
     if (data.channel) {
       operations.push(this.joinChannel(companyId, data.chatToolId ?? config?.chat_tool_id, data.channel));

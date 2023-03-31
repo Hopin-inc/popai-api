@@ -25,7 +25,6 @@ export default class ProspectConfig extends BaseEntity {
     super();
     if (options) {
       const { company, section, enabled, chatTool, ...optionalConfigs } = options;
-      super();
       this.company_id = typeof company === "number" ? company : company.id;
       this.enabled = enabled;
       if (section) {
