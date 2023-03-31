@@ -46,6 +46,8 @@ export type IConfigDailyReport = {
   enabled: boolean;
   chatToolId: number;
   channel: string;
+  documentToolId: number;
+  database: string;
   timings: IConfigDailyReportTiming[];
 };
 

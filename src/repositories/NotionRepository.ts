@@ -180,13 +180,14 @@ export default class NotionRepository {
           this.getDefaultDate(pageInfo, "created_time"),
           this.getDefaultDate(pageInfo, "last_edited_time"),
         ]);
-
+      const [startDate, deadline] = this.getDeadline(pageProperty, propertyId.due);
       const pageTodo: INotionTask = {
         todoappRegId: pageId,
         name,
         sections: this.getOptionIds(pageProperty, propertyId.section),
         assignees: this.getOptionIds(pageProperty, propertyId.assignee),
-        deadline: this.getDue(pageProperty, propertyId.due),
+        startDate,
+        deadline,
         isDone: isDone,
         isClosed: isClosed,
         todoappRegUrl: this.getDefaultStr(pageInfo, "url"),
@@ -306,6 +307,7 @@ export default class NotionRepository {
       dataTodoHistories.push({
         todoId: todoTask.todoappRegId,
         name: todoTask.name,
+        startDate: todoTask.startDate,
         deadline: todoTask.deadline,
         users: users,
         isDone: todoTask.isDone,
@@ -409,23 +411,20 @@ export default class NotionRepository {
     }
   }
 
-  private getDue(
-    pageProperty: Record<PropertyKey, any>,
-    dueId: string,
-  ): Date {
+  private getDeadline(pageProperty: Record<PropertyKey, any>, dueId: string): [Date, Date] {
     try {
       const property = pageProperty.find(prop => prop.id === dueId);
       switch (property.type) {
         case "date":
           if (property.date) {
             const date = property.date;
-            return new Date(date.end ? date.end : date.start);
+            return [new Date(date.start), new Date(date.end ? date.end : date.start)];
           }
           break;
         case "formula":
           if (property.formula.type === "date" && property.formula.date) {
             const date = property.formula.date;
-            return new Date(date.end ? date.end : date.start);
+            return [new Date(date.start), new Date(date.end ? date.end : date.start)];
           }
           break;
         default:

@@ -164,6 +164,7 @@ export default class Todo extends BaseEntity {
           this.todoapp_reg_url = notionTodo.todoappRegUrl;
           this.todoapp_reg_created_by = notionTodo.createdById;
           this.todoapp_reg_created_at = toJapanDateTime(notionTodo.createdAt);
+          this.start_date = notionTodo.startDate ? toJapanDateTime(notionTodo.startDate) : null;
           this.deadline = notionTodo.deadline ? toJapanDateTime(notionTodo.deadline) : null;
           this.is_done = notionTodo.isDone;
           this.is_closed = notionTodo.isClosed;
@@ -175,6 +176,7 @@ export default class Todo extends BaseEntity {
           this.todoapp_reg_url = trelloTodo.shortUrl;
           this.todoapp_reg_created_by = trelloCreatedBy;
           this.todoapp_reg_created_at = toJapanDateTime(trelloTodo.createdAt) || toJapanDateTime(trelloTodo.dateLastActivity);
+          this.start_date = trelloTodo.due ? toJapanDateTime(trelloTodo.due) : null;  // FIXME
           this.deadline = trelloTodo.due ? toJapanDateTime(trelloTodo.due) : null;
           this.is_done = trelloTodo.dueComplete;
           this.is_closed = trelloTodo.closed;
@@ -187,6 +189,7 @@ export default class Todo extends BaseEntity {
             MICROSOFT_BASE_URL.concat("/", microSoftTodo.id), "{tenant}", microSoftPrimaryDomain);
           this.todoapp_reg_created_by = microSoftTodo.userCreateBy;
           this.todoapp_reg_created_at = toJapanDateTime(microSoftTodo.createdDateTime);
+          this.start_date = microSoftTodo.dueDateTime;  // FIXME
           this.deadline = microSoftTodo.dueDateTime;
           this.is_done = microSoftTodo.percentComplete === COMPLETED;
           this.is_closed = false;

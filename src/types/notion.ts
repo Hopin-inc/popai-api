@@ -4,6 +4,7 @@ import { ValueOf } from "@/types/index";
 export type INotionTask = {
   name: string;
   assignees: string[];
+  startDate: Date;
   deadline: Date;
   sections: string[];
   sectionIds: number[];
