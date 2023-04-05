@@ -4,10 +4,11 @@ import AuthController from "@/controllers/app/AuthController";
 import { StatusCodes } from "@/common/StatusCodes";
 import { AccountInfo } from "@/types/auth";
 import { authRequired } from "@/middleware/auth";
+import { AccountErrors, SessionErrors } from "@/consts/error-messages";
 
 const router = express();
 
-router.get("/", async (req, res) => {
+router.get("/me", async (req, res) => {
   try {
     const { uid } = req.session;
     if (uid) {
@@ -18,11 +19,32 @@ router.get("/", async (req, res) => {
         const response: AccountInfo = { organization: company.name, name };
         ApiResponse.successRes(res, response);
       } else {
-        ApiResponse.errRes(res, "No matched account.", StatusCodes.UNAUTHORIZED);
+        ApiResponse.errRes(res, AccountErrors.NoMatchedAccount, StatusCodes.UNAUTHORIZED);
       }
     } else {
-      ApiResponse.errRes(res, "No logged-in session.", StatusCodes.UNAUTHORIZED);
+      ApiResponse.errRes(res, SessionErrors.NotLoggedIn, StatusCodes.UNAUTHORIZED);
     }
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
+router.post("/signup", async (req, res) => {
+  try {
+    const controller = new AuthController();
+    const response = await controller.signUp(req.body);
+    ApiResponse.successRes(res, response);
+  } catch (err) {
+    ApiResponse.errRes(res, err.message, err.status);
+  }
+});
+
+router.get("/verify", async (req, res) => {
+  try {
+    const controller = new AuthController();
+    const email = decodeURIComponent(req.query.email as string);
+    await controller.verifyEmail(email);
+    res.redirect(`${process.env.CLIENT_BASE_URL}/login`);
   } catch (err) {
     ApiResponse.errRes(res, err.message, err.status);
   }
@@ -41,10 +63,10 @@ router.get("/login", async (req, res) => {
         const response: AccountInfo = { organization: company.name, name };
         ApiResponse.successRes(res, response);
       } else {
-        ApiResponse.errRes(res, "No matched account.", StatusCodes.UNAUTHORIZED);
+        ApiResponse.errRes(res, AccountErrors.NoMatchedAccount, StatusCodes.UNAUTHORIZED);
       }
     } else {
-      ApiResponse.errRes(res, "Bad auth request.", StatusCodes.BAD_REQUEST);
+      ApiResponse.errRes(res, AccountErrors.InvalidAuthToken, StatusCodes.BAD_REQUEST);
     }
   } catch (err) {
     ApiResponse.errRes(res, err.message, err.status);
@@ -53,7 +75,7 @@ router.get("/login", async (req, res) => {
 
 router.get("/logout", authRequired, async (req, res) => {
   try {
-    req.session.destroy(_err => ApiResponse.successRes(res, null));
+    req.session.destroy(() => ApiResponse.successRawRes(res));
   } catch (err) {
     ApiResponse.errRes(res, err.message, err.status);
   }

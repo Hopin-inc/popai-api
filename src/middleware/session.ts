@@ -14,7 +14,8 @@ declare module "express-session" {
 
 export const session: RequestHandler = expressSession({
   secret: process.env.EXPRESS_SESSION_SECRET,
-  resave: false,
+  resave: true,
+  rolling: true,
   saveUninitialized: false,
   store: new TypeormStore().connect(SessionRepository),
   cookie: {

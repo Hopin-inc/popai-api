@@ -1,20 +1,11 @@
 import { StatusCodes } from "@/common/StatusCodes";
 
-export class HttpException {
-  constructor(message, statusCode?: StatusCodes) {
-    throw { status: statusCode, message: message };
-  }
-}
+export class HttpException extends Error {
+  public status?: number;
 
-export class UnauthorizedException extends HttpException {
-  constructor(message: string = "Unauthorized") {
-    super(message, StatusCodes.UNAUTHORIZED);
-  }
-}
-
-export class InternalServerErrorException extends HttpException {
-  constructor(message: string = "Internal Server Error") {
-    super(message, StatusCodes.INTERNAL_SERVER_ERROR);
+  constructor(message: string, status?: StatusCodes) {
+    super(message);
+    this.status = status;
   }
 }
 

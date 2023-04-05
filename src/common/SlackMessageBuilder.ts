@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import {
+  Block,
   Button,
   KnownBlock,
   MessageAttachment,
@@ -12,19 +13,21 @@ import Section from "@/entities/settings/Section";
 import DailyReport from "@/entities/transactions/DailyReport";
 
 import {
-  AskPlanModalItems, DEFAULT_BULLET,
+  AskPlanModalItems,
+  DEFAULT_BULLET,
   Icons,
   prospects,
-  reliefActions, ReliefCommentModalItems,
+  reliefActions,
+  ReliefCommentModalItems,
   replyActionsAfter,
-  replyActionsBefore, SEPARATOR,
+  replyActionsBefore,
+  SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
 import { diffDays, formatDatetime, relativeRemindDays, Sorter, toJapanDateTime, truncate } from "@/utils/common";
 import { ITodoSlack } from "@/types/slack";
 import { IDailyReportItems, ValueOf } from "@/types";
 import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
-import { PlainTextOption } from "@slack/types";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 dayjs.locale("ja");
@@ -656,7 +659,7 @@ export default class SlackMessageBuilder {
     };
   }
 
-  public static createReliefCommentModal(): KnownBlock[] {
+  public static createReliefCommentModal(): (KnownBlock | Block)[] {
     return [
       {
         type: "section",
@@ -676,13 +679,17 @@ export default class SlackMessageBuilder {
     ];
   }
 
-  public static createAskPlanModal(todos: Todo[], milestoneText: string): KnownBlock[] {
+  public static createAskPlanModal(todos: Todo[], milestoneText: string): (KnownBlock | Block)[] {
     const isDelayed = (ddl: Date): boolean => dayjs(ddl).isBefore(dayjs(), "day");
     const delayedTodos = todos.filter(todo => isDelayed(todo.deadline)).sort(Sorter.byDate<Todo>("deadline"));
     const ongoingTodos = todos.filter(todo => !isDelayed(todo.deadline)).sort(Sorter.byDate<Todo>("deadline"));
-    const getOption = (todo: Todo, prepend: string = ""): PlainTextOption => {
+    const getOption = (todo: Todo, prepend: string = "") => {
       return {
-        text: { type: "plain_text", emoji: true, text: prepend + truncate(todo.name, 48, 1, 2) },
+        text: {
+          type: "plain_text" as const,
+          emoji: true,
+          text: prepend + truncate(todo.name, 48, 1, 2),
+        },
         value: todo.id.toString(),
       };
     };

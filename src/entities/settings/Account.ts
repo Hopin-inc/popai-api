@@ -5,13 +5,20 @@ import Company from "./Company";
 
 @Entity("s_accounts")
 export default class Account extends BaseEntity {
-  constructor(uid: string, email: string, name: string, company: Company | number) {
+  constructor(
+    uid: string,
+    email: string,
+    name: string,
+    company: Company | number,
+    emailVerified: boolean = false,
+  ) {
     super();
     if (company) {
       this.uid = uid;
       this.email = email;
       this.name = name;
       this.company_id = typeof company === "number" ? company : company.id;
+      this.email_verified = emailVerified;
     }
   }
 
@@ -26,6 +33,9 @@ export default class Account extends BaseEntity {
 
   @Column()
   company_id: number;
+
+  @Column({ default: false })
+  email_verified: boolean;
 
   @ManyToOne(
     () => Company,

@@ -2,11 +2,15 @@ import { Service } from "typedi";
 import { In, IsNull, Not, UpdateResult } from "typeorm";
 import {
   Block,
-  ChatPostMessageArguments, ChatPostMessageResponse, ChatUpdateResponse,
+  ChatPostMessageArguments,
+  ChatPostMessageResponse,
+  ChatUpdateResponse,
   ContextBlock,
   KnownBlock,
-  MessageAttachment, MrkdwnElement,
-  SectionBlock, UsersProfileGetResponse,
+  MessageAttachment,
+  MrkdwnElement,
+  SectionBlock,
+  UsersProfileGetResponse,
 } from "@slack/web-api";
 import moment from "moment";
 
@@ -953,7 +957,7 @@ export default class SlackRepository {
     companyId: number,
     triggerId: string,
     title: string,
-    blocks: KnownBlock[],
+    blocks: (KnownBlock | Block)[],
     callbackId: string,
     submit: string = "送信する",
     close: string = "キャンセル",

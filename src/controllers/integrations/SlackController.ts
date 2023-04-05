@@ -21,9 +21,8 @@ import {
   SlackActionLabel,
   SlackModalLabel,
 } from "@/consts/slack";
-import { Block, KnownBlock } from "@slack/web-api";
+import { Block, KnownBlock, Option } from "@slack/web-api";
 import { SlackInteractionPayload, SlackView } from "@/types/slack";
-import { PlainTextOption } from "@slack/types";
 import SlackOAuthService from "@/services/SlackOAuthService";
 
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
@@ -140,7 +139,7 @@ export default class SlackController extends Controller {
             async () => await this.slackRepository.shareReliefCommentAndUpdateDailyReport(view.id, comment, prospect),
           ];
         case SlackModalLabel.PLAN:
-          const selectedOptions = this.getInputValue<PlainTextOption[]>(
+          const selectedOptions = this.getInputValue<Option[]>(
             view,
             AskPlanModalItems.TODOS,
             AskPlanModalItems.TODOS,

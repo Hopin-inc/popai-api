@@ -13,7 +13,7 @@ export default class ApiResponse {
    */
   static successRes(
     res: Response,
-    data: object,
+    data: any,
     status: number = StatusCodes.OK,
     message: string = ""
   ) {
