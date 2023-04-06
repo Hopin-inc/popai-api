@@ -25,11 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("tiny"));
 app.use(cookieParser());
 app.use(express.static("public"));
-// app.use(bodyParser.json());
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS.split(" "),
-  credentials: true,
-}));
+app.use(cors());
 app.get("/_ah/warmup", (req, res) => {
   const currentDate = new Date();
   console.log("current datetime (local) : " + moment(currentDate).format("YYYY/MM/DD HH:mm:ss"));
