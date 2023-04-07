@@ -236,7 +236,7 @@ export default class TrelloRepository {
       user_app_id: todoTask.idMemberCreator,
     });
 
-    const todoData = new Todo(todoTask, company, todoapp, todo, createdBy.employee_id);
+    const todoData = new Todo(todoTask, company, todoapp, todo, createdBy?.employee_id);
 
     //set first update task
     if (taskDeadLine) {

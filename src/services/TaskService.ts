@@ -15,7 +15,13 @@ import NotionRepository from "@/repositories/NotionRepository";
 
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 
-import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
+import {
+  ChatToolId,
+  RemindUserJobResult,
+  RemindUserJobStatus,
+  TodoAppCode,
+  TodoAppId,
+} from "@/consts/common";
 import logger from "@/logger/winston";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
@@ -71,12 +77,12 @@ export default class TaskService {
       await Promise.all(companyTodoApps.map(async ([company, todoApp, notifyEnabled]) => {
         const enabled = notifyEnabled && notify;
         try {
-          switch (todoApp.todo_app_code) {
-            case TodoAppCode.TRELLO:
+          switch (todoApp.id) {
+            case TodoAppId.TRELLO:
               return this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
-            case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
+            case TodoAppId.MICROSOFT: // TODO: Enable notify option.
               return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
-            case TodoAppCode.NOTION:
+            case TodoAppId.NOTION:
               const notionClient = await NotionService.init(company.id);
               if (notionClient) {
                 return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
@@ -111,12 +117,12 @@ export default class TaskService {
       const remindOperations = async (company: Company) => {
         for (const chatTool of company.chatTools) {
           try {
-            switch (chatTool.tool_code) {
-              case ChatToolCode.LINE:
+            switch (chatTool.id) {
+              case ChatToolId.LINE:
                 await LineMessageQueueRepository.createTodayQueueTask(company, chattoolUsers);
                 await this.remindRepository.remindTaskForAdminCompany(company);
                 break;
-              case ChatToolCode.SLACK:
+              case ChatToolId.SLACK:
                 await this.slackRepository.remindTaskForAdminCompany(company);
                 await this.slackRepository.remindTodayTaskForUser(company);
                 break;
