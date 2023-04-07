@@ -82,10 +82,8 @@ export default class NotionRepository {
           await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, sections, notionClient);
         }
       }
-
-      const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
+      // const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(todoTasks, notify);
-      logger.info(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
       logger.error(err);
     }

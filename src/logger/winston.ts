@@ -16,7 +16,7 @@ const errorReport = winston.format((log) => {
   return log;
 });
 
-export default winston.createLogger({
+const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
     winston.format.splat(),
@@ -31,3 +31,4 @@ export default winston.createLogger({
     new winston.transports.Console(),
   ],
 });
+export default logger;
