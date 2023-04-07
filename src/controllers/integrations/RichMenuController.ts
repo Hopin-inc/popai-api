@@ -2,7 +2,6 @@ import { Controller } from "tsoa";
 
 import { ChatToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import LineBot from "@/config/line-bot";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
@@ -14,7 +13,7 @@ export default class RichMenuController extends Controller {
     });
 
     if (!chattool) {
-      logger.error(new LoggerError("LINE is not implemented yet!"));
+      logger.error("LINE is not implemented yet!");
       return;
     }
 
@@ -22,7 +21,7 @@ export default class RichMenuController extends Controller {
     try {
       await LineBot.getRichMenu(demoRichMenuId);
     } catch (err) {
-      logger.error(new LoggerError("Demo rich menu id not found!"));
+      logger.error("Demo rich menu id not found!");
       throw new Error("Demo rich menu id not found!");
     }
     // get demo users

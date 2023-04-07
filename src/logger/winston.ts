@@ -1,4 +1,5 @@
 import winston from "winston";
+import { LoggingWinston } from "@google-cloud/logging-winston";
 
 export default winston.createLogger({
   format: winston.format.combine(
@@ -18,5 +19,7 @@ export default winston.createLogger({
   transports: [
     // display by console
     new winston.transports.Console(),
+    // display by Cloud Logging
+    new LoggingWinston(),
   ],
 });

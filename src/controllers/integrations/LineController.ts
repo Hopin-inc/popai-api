@@ -19,7 +19,6 @@ import {
   TodoStatus,
 } from "@/consts/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import TaskService from "@/services/TaskService";
 import { messageData, REMIND_ME_COMMAND, replyMessages } from "@/consts/line";
@@ -51,7 +50,7 @@ export default class LineController extends Controller {
         tool_code: ChatToolCode.LINE,
       });
       if (!chattool) {
-        logger.error(new LoggerError("LINE is not implemented yet!"));
+        logger.error("LINE is not implemented yet!");
         return;
       }
 
@@ -121,7 +120,7 @@ export default class LineController extends Controller {
           return;
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -364,7 +363,7 @@ export default class LineController extends Controller {
     reportContent: string,
   ): Promise<MessageAPIResponseBase> {
     if (!superiorUser.lineId) {
-      logger.error(new LoggerError(superiorUser.name + "さんのLINE IDが設定されていません。"));
+      logger.error(superiorUser.name + "さんのLINE IDが設定されていません。");
       return;
     }
 

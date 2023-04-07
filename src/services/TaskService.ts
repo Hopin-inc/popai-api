@@ -17,7 +17,6 @@ import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepo
 
 import { ChatToolCode, RemindUserJobResult, RemindUserJobStatus, TodoAppCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
@@ -66,30 +65,34 @@ export default class TaskService {
       const companyTodoApps: [Company, TodoApp, boolean][] = [];
       companies.forEach(company => {
         company.todoApps.forEach(todoApp => {
-          companyTodoApps.push([company, todoApp, company.notifyConfig.enabled]);
+          companyTodoApps.push([company, todoApp, company.notifyConfig?.enabled ?? false]);
         });
       });
       await Promise.all(companyTodoApps.map(async ([company, todoApp, notifyEnabled]) => {
         const enabled = notifyEnabled && notify;
-        switch (todoApp.todo_app_code) {
-          case TodoAppCode.TRELLO:
-            return this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
-          case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
-            return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
-          case TodoAppCode.NOTION:
-            const notionClient = await NotionService.init(company.id);
-            if (notionClient) {
-              return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
-            } else {
+        try {
+          switch (todoApp.todo_app_code) {
+            case TodoAppCode.TRELLO:
+              return this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
+            case TodoAppCode.MICROSOFT: // TODO: Enable notify option.
+              return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
+            case TodoAppCode.NOTION:
+              const notionClient = await NotionService.init(company.id);
+              if (notionClient) {
+                return this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
+              } else {
+                return;
+              }
+            default:
               return;
-            }
-          default:
-            return;
+          }
+        } catch (error) {
+          logger.error(error.message);
         }
       }));
       return;
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -107,22 +110,26 @@ export default class TaskService {
 
       const remindOperations = async (company: Company) => {
         for (const chatTool of company.chatTools) {
-          switch (chatTool.tool_code) {
-            case ChatToolCode.LINE:
-              await LineMessageQueueRepository.createTodayQueueTask(company, chattoolUsers);
-              await this.remindRepository.remindTaskForAdminCompany(company);
-              break;
-            case ChatToolCode.SLACK:
-              await this.slackRepository.remindTaskForAdminCompany(company);
-              await this.slackRepository.remindTodayTaskForUser(company);
-              break;
+          try {
+            switch (chatTool.tool_code) {
+              case ChatToolCode.LINE:
+                await LineMessageQueueRepository.createTodayQueueTask(company, chattoolUsers);
+                await this.remindRepository.remindTaskForAdminCompany(company);
+                break;
+              case ChatToolCode.SLACK:
+                await this.slackRepository.remindTaskForAdminCompany(company);
+                await this.slackRepository.remindTodayTaskForUser(company);
+                break;
+            }
+          } catch (error) {
+            logger.error(error.message);
           }
         }
       };
       await Promise.all(companies.map(company => remindOperations(company)));
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -181,7 +188,7 @@ export default class TaskService {
 
       return RemindUserJobResult.OK;
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 

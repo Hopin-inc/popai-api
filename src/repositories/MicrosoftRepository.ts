@@ -1,4 +1,3 @@
-import { LoggerError } from "@/exceptions";
 import { Service, Container } from "typedi";
 import FormData from "form-data";
 
@@ -62,7 +61,7 @@ export default class MicrosoftRepository {
       }
       console.log(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
     } catch (err) {
-      logger.error(new LoggerError(err.message));
+      logger.error(err.message);
     }
   }
 
@@ -88,7 +87,7 @@ export default class MicrosoftRepository {
             }));
           }
         } catch (err) {
-          logger.error(new LoggerError(err.message));
+          logger.error(err.message);
         }
       }
     }
@@ -160,7 +159,7 @@ export default class MicrosoftRepository {
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
         } catch (err) {
-          logger.error(new LoggerError(err.message));
+          logger.error(err.message);
         }
       }
     }
@@ -200,7 +199,7 @@ export default class MicrosoftRepository {
         }
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
 
     return null;
@@ -264,7 +263,7 @@ export default class MicrosoftRepository {
         ]);
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -341,7 +340,7 @@ export default class MicrosoftRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 }

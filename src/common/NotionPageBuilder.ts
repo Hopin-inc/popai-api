@@ -5,7 +5,6 @@ import { TodoAppCode } from "@/consts/common";
 import Todo from "@/entities/transactions/Todo";
 import DocumentToolUser from "@/entities/settings/DocumentToolUser";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import NotionService from "@/services/NotionService";
 
 @Service()
@@ -54,7 +53,7 @@ export default class NotionPageBuilder {
         children: sentences,
       };
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -99,7 +98,7 @@ export default class NotionPageBuilder {
           }
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 }

@@ -4,7 +4,6 @@ import LineRepository from "@/repositories/LineRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 import { ChatToolId } from "@/consts/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import Company from "@/entities/settings/Company";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { findMatchedTiming, includesDayOfToday, isHolidayToday, toJapanDateTime } from "@/utils/common";
@@ -69,7 +68,7 @@ export default class ProspectService {
         }
       }));
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 }

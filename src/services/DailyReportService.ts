@@ -6,7 +6,6 @@ import LineRepository from "@/repositories/LineRepository";
 import Company from "@/entities/settings/Company";
 import { ChatToolCode, DocumentToolCode } from "@/consts/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
@@ -71,7 +70,7 @@ export default class DailyReportService {
         }
       }));
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -110,7 +109,7 @@ export default class DailyReportService {
       });
       await Promise.all(sendOperations);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 

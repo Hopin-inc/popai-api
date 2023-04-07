@@ -7,7 +7,6 @@ import ChatTool from "@/entities/masters/ChatTool";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
-import { LoggerError } from "@/exceptions";
 import LineMessageBuilder from "@/common/LineMessageBuilder";
 import LineBot from "@/config/line-bot";
 import logger from "@/logger/winston";
@@ -78,7 +77,7 @@ export default class LineRepository {
   ): Promise<ChatMessage> {
     try {
       if (!user.lineId) {
-        logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
+        logger.error(user.name + "がLineIDが設定されていない。");
         return;
       }
 
@@ -119,7 +118,7 @@ export default class LineRepository {
 
       return chatMessage;
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -129,7 +128,7 @@ export default class LineRepository {
       const chatTool = todoLines[0].chattool;
 
       if (!user.lineId) {
-        logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
+        logger.error(user.name + "がLineIDが設定されていない。");
         return;
       }
 
@@ -145,14 +144,14 @@ export default class LineRepository {
         }
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
   public async pushStartReportToSuperior(chatTool: ChatTool, superiorUser: User): Promise<any> {
     try {
       if (!superiorUser.lineId) {
-        logger.error(new LoggerError(superiorUser.name + "がLineIDが設定されていない。"));
+        logger.error(superiorUser.name + "がLineIDが設定されていない。");
       } else {
         const message = LineMessageBuilder.createBeforeReportMessage(superiorUser.name);
         await this.pushLineMessage(chatTool, message, MessageTriggerType.REPORT, superiorUser);
@@ -160,7 +159,7 @@ export default class LineRepository {
 
       return;
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -174,7 +173,7 @@ export default class LineRepository {
   public async pushListTaskMessageToAdmin(chatTool: ChatTool, user: User, todos: Todo[]): Promise<any> {
     try {
       if (!user.lineId) {
-        logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
+        logger.error(user.name + "がLineIDが設定されていない。");
         return;
       }
 
@@ -193,7 +192,7 @@ export default class LineRepository {
         remindTypes,
       );
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -207,7 +206,7 @@ export default class LineRepository {
   public async pushNotAssignListTaskMessageToAdmin(chatTool: ChatTool, user: User, todos: Todo[]): Promise<any> {
     try {
       if (!user.lineId) {
-        logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
+        logger.error(user.name + "がLineIDが設定されていない。");
         return;
       }
 
@@ -226,7 +225,7 @@ export default class LineRepository {
         remindTypes,
       );
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -240,7 +239,7 @@ export default class LineRepository {
   public async pushListTaskMessageToUser(chatTool: ChatTool, user: User, todos: Todo[]): Promise<any> {
     try {
       if (!user.lineId) {
-        logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
+        logger.error(user.name + "がLineIDが設定されていない。");
         return;
       }
 
@@ -259,7 +258,7 @@ export default class LineRepository {
         remindTypes,
       );
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -272,8 +271,7 @@ export default class LineRepository {
   public async pushNoListTaskMessageToAdmin(chatTool: ChatTool, user: User): Promise<any> {
     try {
       if (!user.lineId) {
-        logger.error(new LoggerError(user.name + "がLineIDが設定されていない。"));
-
+        logger.error(user.name + "がLineIDが設定されていない。");
         return;
       }
 
@@ -281,7 +279,7 @@ export default class LineRepository {
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(chatTool, message, MessageTriggerType.REMIND, user);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -321,7 +319,7 @@ export default class LineRepository {
     try {
       return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -329,7 +327,7 @@ export default class LineRepository {
     try {
       return await ChatMessageRepository.findOneBy({ id });
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 

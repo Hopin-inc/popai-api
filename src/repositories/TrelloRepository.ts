@@ -10,7 +10,6 @@ import User from "@/entities/settings/User";
 import { toJapanDateTime, diffDays } from "@/utils/common";
 import logger from "@/logger/winston";
 import TrelloRequest from "@/services/TrelloRequest";
-import { LoggerError } from "@/exceptions";
 import { ITodoTask, ITodoUserUpdate, IRemindTask, ITodoSectionUpdate, ITodoHistory } from "@/types";
 import { ITrelloTask, ITrelloActivityLog, ITrelloList } from "@/types/trello";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
@@ -55,7 +54,7 @@ export default class TrelloRepository {
 
       await this.filterUpdateCards(todoTasks, notify);
     } catch (err) {
-      logger.error(new LoggerError(err.message));
+      logger.error(err.message);
     }
   }
 
@@ -90,7 +89,7 @@ export default class TrelloRepository {
             createCards,
           )));
         } catch (err) {
-          logger.error(new LoggerError(err.message));
+          logger.error(err.message);
         }
       }
     }
@@ -164,7 +163,7 @@ export default class TrelloRepository {
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
         } catch (err) {
-          logger.error(new LoggerError(err.message));
+          logger.error(err.message);
         }
       }
     }
@@ -215,7 +214,7 @@ export default class TrelloRepository {
         // await LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 
@@ -294,7 +293,7 @@ export default class TrelloRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error.message);
     }
   }
 }
