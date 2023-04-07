@@ -24,7 +24,7 @@ router.post("/webhook", async (req, res) => {
     if (!responded) {
       ApiResponse.errRes(res, err.message, err.status);
     } else {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 });

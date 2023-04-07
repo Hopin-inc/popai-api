@@ -61,7 +61,7 @@ export default class MicrosoftRepository {
       }
       logger.info(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 
@@ -87,7 +87,7 @@ export default class MicrosoftRepository {
             }));
           }
         } catch (err) {
-          logger.error(err.message);
+          logger.error(err);
         }
       }
     }
@@ -159,7 +159,7 @@ export default class MicrosoftRepository {
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
         } catch (err) {
-          logger.error(err.message);
+          logger.error(err);
         }
       }
     }
@@ -199,7 +199,7 @@ export default class MicrosoftRepository {
         }
       }
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
 
     return null;
@@ -263,7 +263,7 @@ export default class MicrosoftRepository {
         ]);
       }
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -340,7 +340,7 @@ export default class MicrosoftRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 }

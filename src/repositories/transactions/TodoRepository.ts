@@ -34,7 +34,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
         .where("todos.todoapp_reg_id IN (:...todoIds)", { todoIds })
         .getMany();
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   },
 

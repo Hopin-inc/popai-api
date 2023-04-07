@@ -70,7 +70,7 @@ export default class DailyReportService {
         }
       }));
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -109,7 +109,7 @@ export default class DailyReportService {
       });
       await Promise.all(sendOperations);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 

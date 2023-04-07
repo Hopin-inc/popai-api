@@ -87,7 +87,7 @@ export default class NotionRepository {
       await this.filterUpdatePages(todoTasks, notify);
       logger.info(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 
@@ -135,7 +135,7 @@ export default class NotionRepository {
           }));
         }
       } catch (err) {
-        logger.error(err.message);
+        logger.error(err);
       }
     }
   }
@@ -214,7 +214,7 @@ export default class NotionRepository {
         pageTodos.push(pageTodo);
       }
     } catch(error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -289,7 +289,7 @@ export default class NotionRepository {
         // await LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -323,7 +323,7 @@ export default class NotionRepository {
       const dataTodo = new Todo(todoTask, company, todoapp, todo);
       dataTodos.push(dataTodo);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -353,7 +353,7 @@ export default class NotionRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   };
 
@@ -397,7 +397,7 @@ export default class NotionRepository {
         }
       });
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -409,7 +409,7 @@ export default class NotionRepository {
       const property = pageProperty.find(prop => prop.id === titleId);
       return property.title.map(t => t.plain_text ?? "").join("");
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
       return;
     }
   }
@@ -434,7 +434,7 @@ export default class NotionRepository {
           break;
       }
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
       return;
     }
   }
@@ -458,7 +458,7 @@ export default class NotionRepository {
           return null;
       }
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 
@@ -485,7 +485,7 @@ export default class NotionRepository {
           break;
       }
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 
@@ -515,7 +515,7 @@ export default class NotionRepository {
           return pageInfo.url;
       }
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 
@@ -527,7 +527,7 @@ export default class NotionRepository {
       const dateStr = pageInfo[propName];
       return new Date(dateStr);
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 }

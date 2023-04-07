@@ -87,12 +87,12 @@ export default class TaskService {
               return;
           }
         } catch (error) {
-          logger.error(error.message);
+          logger.error(error);
         }
       }));
       return;
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -122,14 +122,14 @@ export default class TaskService {
                 break;
             }
           } catch (error) {
-            logger.error(error.message);
+            logger.error(error);
           }
         }
       };
       await Promise.all(companies.map(company => remindOperations(company)));
       await this.remindRepository.remindTodayTaskForUser();
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -188,7 +188,7 @@ export default class TaskService {
 
       return RemindUserJobResult.OK;
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 

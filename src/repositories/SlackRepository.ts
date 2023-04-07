@@ -116,7 +116,7 @@ export default class SlackRepository {
         await this.sendDirectMessage(chatTool, user, message, todo);
       }
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -166,7 +166,7 @@ export default class SlackRepository {
 
       return;
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -207,7 +207,7 @@ export default class SlackRepository {
         { remindTypes },
       );
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -247,7 +247,7 @@ export default class SlackRepository {
         { remindTypes },
       );
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -288,7 +288,7 @@ export default class SlackRepository {
         { remindTypes },
       );
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -309,7 +309,7 @@ export default class SlackRepository {
       const message = SlackMessageBuilder.createNotifyNothingMessage();
       await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, channelId);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -356,7 +356,7 @@ export default class SlackRepository {
     try {
       return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -366,7 +366,7 @@ export default class SlackRepository {
         id: id,
       });
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 

@@ -149,7 +149,7 @@ export default class TodoHistoryService {
         }
       }
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 

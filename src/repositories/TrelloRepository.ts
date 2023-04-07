@@ -54,7 +54,7 @@ export default class TrelloRepository {
 
       await this.filterUpdateCards(todoTasks, notify);
     } catch (err) {
-      logger.error(err.message);
+      logger.error(err);
     }
   }
 
@@ -89,7 +89,7 @@ export default class TrelloRepository {
             createCards,
           )));
         } catch (err) {
-          logger.error(err.message);
+          logger.error(err);
         }
       }
     }
@@ -163,7 +163,7 @@ export default class TrelloRepository {
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
         } catch (err) {
-          logger.error(err.message);
+          logger.error(err);
         }
       }
     }
@@ -214,7 +214,7 @@ export default class TrelloRepository {
         // await LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -293,7 +293,7 @@ export default class TrelloRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 }

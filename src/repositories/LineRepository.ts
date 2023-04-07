@@ -118,7 +118,7 @@ export default class LineRepository {
 
       return chatMessage;
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -144,7 +144,7 @@ export default class LineRepository {
         }
       }
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -159,7 +159,7 @@ export default class LineRepository {
 
       return;
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -192,7 +192,7 @@ export default class LineRepository {
         remindTypes,
       );
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -225,7 +225,7 @@ export default class LineRepository {
         remindTypes,
       );
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -258,7 +258,7 @@ export default class LineRepository {
         remindTypes,
       );
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -279,7 +279,7 @@ export default class LineRepository {
       // await this.saveChatMessage(user, todo, message);
       return await this.pushLineMessage(chatTool, message, MessageTriggerType.REMIND, user);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -319,7 +319,7 @@ export default class LineRepository {
     try {
       return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -327,7 +327,7 @@ export default class LineRepository {
     try {
       return await ChatMessageRepository.findOneBy({ id });
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 

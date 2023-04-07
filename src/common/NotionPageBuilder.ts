@@ -53,7 +53,7 @@ export default class NotionPageBuilder {
         children: sentences,
       };
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 
@@ -98,7 +98,7 @@ export default class NotionPageBuilder {
           }
       }
     } catch (error) {
-      logger.error(error.message);
+      logger.error(error);
     }
   }
 }
