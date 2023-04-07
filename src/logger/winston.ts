@@ -17,7 +17,7 @@ const errorReport = winston.format((log) => {
 });
 
 const logger = winston.createLogger({
-  level: "info",
+  level: "debug",
   format: winston.format.combine(
     winston.format.splat(),
     winston.format.timestamp({

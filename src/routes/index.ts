@@ -1,11 +1,12 @@
 import express from "express";
+import cors from "cors";
 
+import { session } from "@/middleware/session";
 import { validationError } from "@/middleware/validate";
+import { requestLog } from "@/middleware/log";
 import integrationRouter from "@/routes/integrations";
 import jobRouter from "@/routes/jobs";
 import appRouter from "@/routes/app";
-import { session } from "@/middleware/session";
-import cors from "cors";
 
 const router = express();
 router.use(session);
@@ -18,6 +19,7 @@ router.use(cors({
 }));
 
 router.use(validationError);
+router.use(requestLog);
 
 router.use(integrationRouter);
 router.use(jobRouter);
