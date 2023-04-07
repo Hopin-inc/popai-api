@@ -52,14 +52,14 @@ export default class MicrosoftRepository {
       for (const section of sections) {
         await this.getTaskBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
-      console.log(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
+      logger.info(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
 
       const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       const implementedTodoApp = await ImplementedTodoAppRepository.getImplementTodoApp(company.id, todoapp.id);
       if (implementedTodoApp) {
         await this.filterUpdateTask(dayReminds, todoTasks, implementedTodoApp);
       }
-      console.log(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
+      logger.info(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
     } catch (err) {
       logger.error(err.message);
     }

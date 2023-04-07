@@ -110,8 +110,8 @@ export default class LineRepository {
       );
 
       if (process.env.ENV === "LOCAL") {
-        // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
-        console.log(messageForSend);
+        // logger.info(LineMessageBuilder.getTextContentFromMessage(messageForSend));
+        logger.info(messageForSend);
       } else {
         await LineBot.pushMessage(user.lineId, messageForSend, false);
       }
@@ -136,8 +136,8 @@ export default class LineRepository {
       const messages = LineMessageBuilder.createBeforeRemindMessage(user, todoLines);
 
       if (process.env.ENV === "LOCAL") {
-        // console.log(LineMessageBuilder.getTextContentFromMessage(messageForSend));
-        console.log(messages);
+        // logger.info(LineMessageBuilder.getTextContentFromMessage(messageForSend));
+        logger.info(messages);
       } else {
         for (const message of messages) {
           await this.pushLineMessage(chatTool, message, MessageTriggerType.REMIND, user);
@@ -340,7 +340,7 @@ export default class LineRepository {
     groupId?: string,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
-      console.log(this.getTextContentFromMessage(message));
+      logger.info(this.getTextContentFromMessage(message));
     } else {
       const linkToken = user ? await LineBot.getLinkToken(user.lineId) : null;
       const chatMessage = new ChatMessage(
@@ -366,7 +366,7 @@ export default class LineRepository {
     user?: User,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
-      console.log(this.getTextContentFromMessage(message));
+      logger.info(this.getTextContentFromMessage(message));
     } else {
       await LineBot.replyMessage(replyToken, message);
     }

@@ -85,7 +85,7 @@ export default class NotionRepository {
 
       const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(todoTasks, notify);
-      console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
+      logger.info(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
     } catch (err) {
       logger.error(err.message);
     }

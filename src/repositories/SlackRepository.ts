@@ -111,7 +111,7 @@ export default class SlackRepository {
       }
       const message = SlackMessageBuilder.createRemindMessage(user, todo, remindDays);
       if (process.env.ENV === "LOCAL") {
-        console.log(message);
+        logger.info(message);
       } else {
         await this.sendDirectMessage(chatTool, user, message, todo);
       }
@@ -158,8 +158,8 @@ export default class SlackRepository {
       const dmId = getDmId.channel.id;
 
       if (process.env.ENV === "LOCAL") {
-        // console.log(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
-        console.log(message);
+        // logger.info(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
+        logger.info(message);
       } else {
         await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, dmId);
       }
@@ -382,7 +382,7 @@ export default class SlackRepository {
     },
   ): Promise<ChatPostMessageResponse> {
     if (process.env.ENV === "LOCAL") {
-      console.log(this.getTextFromSendMessage(message));
+      logger.info(this.getTextFromSendMessage(message));
     } else {
       const slackBot = await SlackService.init(user.company_id);
       const props: ChatPostMessageArguments = {
@@ -419,7 +419,7 @@ export default class SlackRepository {
     user?: User,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
-      console.log(this.getTextFromSendMessage(message));
+      logger.info(this.getTextFromSendMessage(message));
     } else {
       const slackBot = await SlackService.init(companyId);
       const response = await slackBot.postMessage({
@@ -567,7 +567,7 @@ export default class SlackRepository {
         }
       }
     } else {
-      console.log("NOT channelId");
+      logger.info("NOT channelId");
     }
   }
 

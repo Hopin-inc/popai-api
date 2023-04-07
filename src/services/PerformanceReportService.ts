@@ -1,4 +1,6 @@
 import { Container, Service } from "typedi";
+import logger from "@/logger/winston";
+
 import SlackRepository from "@/repositories/SlackRepository";
 import NotionRepository from "@/repositories/NotionRepository";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
@@ -36,9 +38,9 @@ export default class PerformanceReportService {
 
   private async sendPerformanceReportByChannel(company: Company) {
     const performanceReportItems = await TodoRepository.getLastWeekTodosByStatus(company);
-    console.log(performanceReportItems.delayed.length);
-    console.log(performanceReportItems.completed.length);
+    logger.info(performanceReportItems.delayed.length);
+    logger.info(performanceReportItems.completed.length);
     const ratio = performanceReportItems.delayed.length / performanceReportItems.planed.length * 100;
-    console.log(ratio);
+    logger.info(ratio);
   }
 }
