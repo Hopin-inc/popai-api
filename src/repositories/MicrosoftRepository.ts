@@ -22,7 +22,6 @@ import { TodoSectionRepository } from "@/repositories/transactions/TodoSectionRe
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
-import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 
 @Service()
 export default class MicrosoftRepository {
@@ -54,17 +53,16 @@ export default class MicrosoftRepository {
       }
       logger.info(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
 
-      const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       const implementedTodoApp = await ImplementedTodoAppRepository.getImplementTodoApp(company.id, todoapp.id);
       if (implementedTodoApp) {
-        await this.filterUpdateTask(dayReminds, todoTasks, implementedTodoApp);
+        await this.filterUpdateTask(todoTasks, implementedTodoApp);
       }
-      logger.info(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
     } catch (error) {
       logger.error(error);
     }
   }
 
+  // DEPRECATED
   private async getTaskBoards(
     boardAdminUser: User,
     section: Section,
@@ -83,7 +81,7 @@ export default class MicrosoftRepository {
           const tasks = taskTodos["value"];
           if (tasks && tasks.length) {
             await Promise.all(tasks.map(todoTask => {
-              return this.addTodoTask(todoTask, section, todoTasks, company, todoapp, todoAppUser);
+              return this.addTodoTask(todoTask, section, todoTasks, company, todoapp);
             }));
           }
         } catch (error) {
@@ -99,7 +97,6 @@ export default class MicrosoftRepository {
     todoTasks: ITodoTask<IMicrosoftTask>[],
     company: Company,
     todoapp: TodoApp,
-    todoAppUser: TodoAppUser,
   ): Promise<void> {
     let userCreateBy = null;
     if (todoTask.createdBy) {
@@ -122,7 +119,6 @@ export default class MicrosoftRepository {
       todoTask: { ...todoTask, userCreateBy: userCreateBy },
       company: company,
       todoapp: todoapp,
-      todoAppUser: todoAppUser,
       sections: [section],
       users: users,
     };
@@ -206,7 +202,6 @@ export default class MicrosoftRepository {
   }
 
   private async filterUpdateTask(
-    _dayReminds: number[],
     todoTaskLists: ITodoTask<IMicrosoftTask>[],
     implementTodoApp: ImplementedTodoApp,
   ): Promise<void> {

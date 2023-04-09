@@ -58,6 +58,7 @@ export default class TaskService {
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
       const companies = await CompanyRepository.find({
         relations: [
+          "sections",
           "implementedTodoApps.todoApp",
           "implementedChatTools.chattool",
           "adminUser",
@@ -78,7 +79,7 @@ export default class TaskService {
         const enabled = notifyEnabled && notify;
         try {
           switch (todoApp.id) {
-            case TodoAppId.TRELLO:
+            case TodoAppId.TRELLO:  // TODO: Get credentials from db.
               return this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
             case TodoAppId.MICROSOFT: // TODO: Enable notify option.
               return this.microsoftRepository.syncTaskByUserBoards(company, todoApp);

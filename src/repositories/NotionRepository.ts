@@ -54,34 +54,13 @@ export default class NotionRepository {
 
   public async syncTaskByUserBoards(
     company: Company,
-    todoapp: TodoApp,
-    notionClient: NotionService,
-    notify: boolean = false,
-  ): Promise<void> {
-    const companyId = company.id;
-    const todoappId = todoapp.id;
-    const sections = await SectionRepository.getSections(companyId, todoappId);
-    await this.getUserPageBoards(sections, company, todoapp, notionClient, notify);
-  }
-
-  private async getUserPageBoards(
-    sections: Section[],
-    company: Company,
-    todoapp: TodoApp,
+    todoApp: TodoApp,
     notionClient: NotionService,
     notify: boolean = false,
   ): Promise<void> {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
-
-      const processedBoardIds = new Set<string>();
-      for (const section of sections) {
-        if (!processedBoardIds.has(section.board_id)) {
-          processedBoardIds.add(section.board_id);
-          await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, sections, notionClient);
-        }
-      }
-      // const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
+      await this.getCardBoards(todoTasks, company, todoApp, company.sections, notionClient);
       await this.filterUpdatePages(todoTasks, notify);
     } catch (error) {
       logger.error(error);
@@ -89,51 +68,46 @@ export default class NotionRepository {
   }
 
   private async getCardBoards(
-    boardAdminUser: User,
-    section: Section,
     todoTasks: ITodoTask<INotionTask>[],
     company: Company,
     todoapp: TodoApp,
     sections: Section[],
     notionClient: NotionService,
   ): Promise<void> {
-    if (!boardAdminUser?.todoAppUsers.length) return;
-    for (const todoAppUser of boardAdminUser.todoAppUsers) {
-      try {
-        const [board, lastUpdatedDate]: [Board, Date] = await Promise.all([
-          BoardRepository.findOneByConfig(todoapp.id, company.id),
-          TodoHistoryRepository.getLastUpdatedDate(company, todoapp),
-        ]);
-        if (board) {
-          let response = await notionClient.queryDatabase({
+    try {
+      const [board, lastUpdatedDate]: [Board, Date] = await Promise.all([
+        BoardRepository.findOneByConfig(todoapp.id, company.id),
+        TodoHistoryRepository.getLastUpdatedDate(company, todoapp),
+      ]);
+      if (board) {
+        let response = await notionClient.queryDatabase({
+          database_id: board.app_board_id,
+          filter: lastUpdatedDate
+            ? {
+              timestamp: "last_edited_time",
+              last_edited_time: { on_or_after: lastUpdatedDate.toISOString().slice(0, 10) },
+            }
+            : undefined,
+        });
+        const pages = response.results;
+        while (response.has_more) {
+          response = await notionClient.queryDatabase({
             database_id: board.app_board_id,
-            filter: lastUpdatedDate
-              ? {
-                timestamp: "last_edited_time",
-                last_edited_time: { on_or_after: lastUpdatedDate.toISOString().slice(0, 10) },
-              }
-              : undefined,
+            start_cursor: response.next_cursor,
           });
-          const pages = response.results;
-          while (response.has_more) {
-            response = await notionClient.queryDatabase({
-              database_id: board.app_board_id,
-              start_cursor: response.next_cursor,
-            });
-            pages.push(...response.results);
-          }
-          const pageIds: string[] = pages.map(page => page.id);
-          const pageTodos: INotionTask[] = [];
-          await Promise.all(pageIds.map(pageId => {
-            return this.getPages(pageId, pageTodos, company, section, todoapp, board.propertyUsages, notionClient);
-          }));
-          await Promise.all(pageTodos.map(pageTodo => {
-            return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections, todoAppUser);
-          }));
+          pages.push(...response.results);
         }
-      } catch (error) {
-        logger.error(error);
+        const pageIds: string[] = pages.map(page => page.id);
+        const pageTodos: INotionTask[] = [];
+        await Promise.all(pageIds.map(pageId => {
+          return this.getPages(pageId, pageTodos, company, todoapp, board.propertyUsages, notionClient);
+        }));
+        await Promise.all(pageTodos.map(pageTodo => {
+          return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections);
+        }));
       }
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -146,7 +120,6 @@ export default class NotionRepository {
     pageId: string,
     pageTodos: INotionTask[],
     company: Company,
-    _section: Section,
     todoapp: TodoApp,
     propertyUsages: PropertyUsage[],
     notionClient: NotionService,
@@ -221,7 +194,6 @@ export default class NotionRepository {
     company: Company,
     todoapp: TodoApp,
     sections: Section[],
-    todoAppUser: TodoAppUser,
   ): Promise<void> {
     const users = await TodoUserRepository.getUserAssignTask(company.users, pageTodo.assignees);
 
@@ -229,7 +201,6 @@ export default class NotionRepository {
       todoTask: pageTodo,
       company,
       todoapp,
-      todoAppUser,
       sections: sections.filter(section => pageTodo.sectionIds?.includes(section.id)),
       users,
     };
