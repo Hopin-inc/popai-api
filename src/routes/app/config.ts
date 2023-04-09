@@ -15,8 +15,8 @@ router.get("/", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -31,8 +31,8 @@ router.patch("/", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -46,8 +46,8 @@ router.get("/daily-report", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -62,8 +62,8 @@ router.patch("/daily-report", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -77,8 +77,8 @@ router.get("/notify", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -93,8 +93,8 @@ router.patch("/notify", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -108,8 +108,8 @@ router.get("/prospect", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -124,8 +124,8 @@ router.patch("/prospect", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

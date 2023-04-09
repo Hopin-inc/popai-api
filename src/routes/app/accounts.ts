@@ -9,8 +9,8 @@ router.post("/", async (req, res) => {
     const controller = new AccountController();
     await controller.signUp(req.body);
     ApiResponse.successRawRes(res);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

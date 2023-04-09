@@ -20,11 +20,11 @@ router.post("/webhook", async (req, res) => {
     if (funcAfterResponse) {
       await funcAfterResponse();
     }
-  } catch (err) {
+  } catch (error) {
     if (!responded) {
-      ApiResponse.errRes(res, err.message, err.status);
+      ApiResponse.errRes(res, error.message, error.status);
     } else {
-      logger.error(err);
+      logger.error(error);
     }
   }
 });
@@ -34,8 +34,8 @@ router.get("/install", authRequired, async (req, res) => {
     const controller = new SlackController();
     await controller.handleInstallPath(req, res);
     ApiResponse.successRawRes(res);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -44,8 +44,8 @@ router.get("/oauth_redirect", async (req, res) => {
     const controller = new SlackController();
     await controller.handleCallback(req, res);
     ApiResponse.successRawRes(res);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

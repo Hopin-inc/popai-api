@@ -23,8 +23,8 @@ router.get("/", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "No logged-in session.", StatusCodes.UNAUTHORIZED);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -46,16 +46,16 @@ router.get("/login", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad auth request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
 router.get("/logout", authRequired, async (req, res) => {
   try {
     req.session.destroy(_err => ApiResponse.successRes(res, null));
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

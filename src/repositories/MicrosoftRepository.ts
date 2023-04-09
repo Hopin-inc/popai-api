@@ -60,8 +60,8 @@ export default class MicrosoftRepository {
         await this.filterUpdateTask(dayReminds, todoTasks, implementedTodoApp);
       }
       logger.info(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -86,8 +86,8 @@ export default class MicrosoftRepository {
               return this.addTodoTask(todoTask, section, todoTasks, company, todoapp, todoAppUser);
             }));
           }
-        } catch (err) {
-          logger.error(err);
+        } catch (error) {
+          logger.error(error);
         }
       }
     }
@@ -158,8 +158,8 @@ export default class MicrosoftRepository {
           const me = await this.microsoftRequest.getMyInfo(dataRefresh);
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
-        } catch (err) {
-          logger.error(err);
+        } catch (error) {
+          logger.error(error);
         }
       }
     }

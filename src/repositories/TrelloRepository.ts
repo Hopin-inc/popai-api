@@ -53,8 +53,8 @@ export default class TrelloRepository {
       }
 
       await this.filterUpdateCards(todoTasks, notify);
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -88,8 +88,8 @@ export default class TrelloRepository {
             archiveListIds,
             createCards,
           )));
-        } catch (err) {
-          logger.error(err);
+        } catch (error) {
+          logger.error(error);
         }
       }
     }
@@ -162,8 +162,8 @@ export default class TrelloRepository {
           const me = await this.trelloRequest.getMyInfo(trelloAuth);
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
-        } catch (err) {
-          logger.error(err);
+        } catch (error) {
+          logger.error(error);
         }
       }
     }

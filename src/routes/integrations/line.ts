@@ -14,8 +14,8 @@ router.post("/webhook", async function(req, res) {
     const controller = new LineController();
     const response = await controller.handleEvents(req.body.events);
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -40,8 +40,8 @@ router.post("/rich_menu/update", async function(req, res) {
     const response = await controller.updateRichMenu(demoRichMenuId);
 
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

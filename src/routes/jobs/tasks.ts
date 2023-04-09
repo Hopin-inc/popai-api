@@ -11,8 +11,8 @@ router.get("/update", async (req, res) => {
     const controller = new TaskController();
     const response = await controller.syncTodos(notify);
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -21,8 +21,8 @@ router.get("/daily", async (req, res) => {
     const controller = new TaskController();
     const response = await controller.sendDailyReport();
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -33,8 +33,8 @@ router.get("/report", async (req, res) => {
     // await controller.syncTodos();
     const response = await controller.sendPerformanceReport(monthly);
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -43,8 +43,8 @@ router.get("/prospect", async (req, res) => {
     const controller = new TaskController();
     const response = await controller.askProspects();
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

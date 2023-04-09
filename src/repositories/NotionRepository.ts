@@ -35,7 +35,6 @@ import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
-import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 import { DailyReportConfigRepository } from "@/repositories/settings/DailyReportConfigRepository";
 import NotionService from "@/services/NotionService";
 import PropertyUsage from "@/entities/settings/PropertyUsage";
@@ -84,8 +83,8 @@ export default class NotionRepository {
       }
       // const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(todoTasks, notify);
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -132,8 +131,8 @@ export default class NotionRepository {
             return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections, todoAppUser);
           }));
         }
-      } catch (err) {
-        logger.error(err);
+      } catch (error) {
+        logger.error(error);
       }
     }
   }
@@ -406,8 +405,8 @@ export default class NotionRepository {
     try {
       const property = pageProperty.find(prop => prop.id === titleId);
       return property.title.map(t => t.plain_text ?? "").join("");
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
       return;
     }
   }
@@ -431,8 +430,8 @@ export default class NotionRepository {
         default:
           break;
       }
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
       return;
     }
   }
@@ -455,8 +454,8 @@ export default class NotionRepository {
         default:
           return null;
       }
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -482,8 +481,8 @@ export default class NotionRepository {
         default:
           break;
       }
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -512,8 +511,8 @@ export default class NotionRepository {
         case "url":
           return pageInfo.url;
       }
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -524,8 +523,8 @@ export default class NotionRepository {
     try {
       const dateStr = pageInfo[propName];
       return new Date(dateStr);
-    } catch (err) {
-      logger.error(err);
+    } catch (error) {
+      logger.error(error);
     }
   }
 }

@@ -16,8 +16,8 @@ router.patch("/", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -32,8 +32,8 @@ router.delete("/:userId", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -49,8 +49,8 @@ router.get("/configs", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -64,8 +64,8 @@ router.get("/reporting-lines", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -81,8 +81,8 @@ router.patch("/reporting-lines/:userId", async (req, res) => {
     } else {
       ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

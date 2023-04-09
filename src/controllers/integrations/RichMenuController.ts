@@ -20,7 +20,7 @@ export default class RichMenuController extends Controller {
     // get rich menu
     try {
       await LineBot.getRichMenu(demoRichMenuId);
-    } catch (err) {
+    } catch (error) {
       logger.error("Demo rich menu id not found!");
       throw new Error("Demo rich menu id not found!");
     }
