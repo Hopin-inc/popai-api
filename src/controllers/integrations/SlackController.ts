@@ -9,7 +9,6 @@ import SlackRepository from "@/repositories/SlackRepository";
 
 import { ChatToolCode, MessageTriggerType, TodoStatus } from "@/consts/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import { toJapanDateTime } from "@/utils/common";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
@@ -57,7 +56,7 @@ export default class SlackController extends Controller {
       });
 
       if (!chatTool) {
-        logger.error(new LoggerError("SLACK is not implemented yet!"));
+        logger.error("SLACK is not implemented yet!");
         return;
       }
 
@@ -84,10 +83,10 @@ export default class SlackController extends Controller {
         const slackUser = await this.slackRepository.getUserFromSlackId(user.id, ["prospectConfig"]);
         return await this.handleViewSubmissions(slackUser, view);
       } else {
-        logger.error(new LoggerError("Unknown Response"));
+        logger.error("Unknown Response");
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -234,7 +233,7 @@ export default class SlackController extends Controller {
     shareMessage?: { blocks: (Block | KnownBlock)[] },
   ): Promise<void> {
     if (!superiorUser.slackId) {
-      logger.error(new LoggerError(superiorUser.name + "さんのSLACK IDが設定されていません。"));
+      logger.error(superiorUser.name + "さんのSLACK IDが設定されていません。");
       return;
     }
 

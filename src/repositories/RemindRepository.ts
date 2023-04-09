@@ -12,7 +12,6 @@ import LineRepository from "./LineRepository";
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
 import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts/common";
-import { LoggerError } from "@/exceptions";
 import { ITodoLines } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
@@ -104,7 +103,7 @@ export default class RemindRepository {
    */
   public async remindTaskForAdminCompany(company: Company): Promise<void> {
     if (!company.adminUser) {
-      logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
+      logger.error(company.name + "の管理者が設定していません。");
     }
 
     const chatToolUsers = await ChatToolUserRepository.find();

@@ -11,8 +11,8 @@ router.get("/install", authRequired, async (req, res) => {
     const controller = new NotionController();
     const url = await controller.getAuthUrl(req);
     res.redirect(url);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

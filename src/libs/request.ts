@@ -1,6 +1,5 @@
 import fetch, { HeadersInit, RequestInit } from "node-fetch";
 
-import { LoggerError } from "@/exceptions";
 import logger from "@/logger/winston";
 
 /**
@@ -55,7 +54,7 @@ export async function fetchApi<Res, IsFormData extends boolean = boolean>(
       throw new Error(JSON.stringify(await response.json()));
     }
   } catch (error) {
-    logger.error(new LoggerError(error.message));
+    logger.error(error);
     throw new Error(error.message);
   }
 }

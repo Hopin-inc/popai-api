@@ -22,7 +22,6 @@ import { SectionRepository } from "@/repositories/settings/SectionRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import {
   IDailyReportItems,
   IRemindTask,
@@ -36,7 +35,6 @@ import { INotionDailyReport, INotionTask } from "@/types/notion";
 import { DocumentToolCode, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
-import { CompanyConditionRepository } from "@/repositories/settings/CompanyConditionRepository";
 import { DailyReportConfigRepository } from "@/repositories/settings/DailyReportConfigRepository";
 import NotionService from "@/services/NotionService";
 import PropertyUsage from "@/entities/settings/PropertyUsage";
@@ -83,12 +81,10 @@ export default class NotionRepository {
           await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp, sections, notionClient);
         }
       }
-
-      const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
+      // const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       await this.filterUpdatePages(todoTasks, notify);
-      console.log(`[${company.name} - ${todoapp.name}] filterUpdatePages: ${dayReminds}`);
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -135,8 +131,8 @@ export default class NotionRepository {
             return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections, todoAppUser);
           }));
         }
-      } catch (err) {
-        logger.error(new LoggerError(err.message));
+      } catch (error) {
+        logger.error(error);
       }
     }
   }
@@ -155,24 +151,25 @@ export default class NotionRepository {
     propertyUsages: PropertyUsage[],
     notionClient: NotionService,
   ): Promise<void> {
-    const pageInfo = await notionClient.retrievePage({ page_id: pageId }) as PageObjectResponse;
-    const pageProperty = Object.keys(pageInfo.properties).map((key) => pageInfo.properties[key]) as Record<any, any>;
-    if (pageProperty) {
-      const pagePropertyIds = pageProperty.map((obj) => obj.id);
-      const propertyId = {
-        title: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.TITLE),
-        section: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.SECTION),
-        assignee: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.ASSIGNEE),
-        due: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.DUE),
-        isDone: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_DONE),
-        isClosed: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_CLOSED),
-      };
+    try {
+      const pageInfo = await notionClient.retrievePage({ page_id: pageId }) as PageObjectResponse;
+      const pageProperty = Object.keys(pageInfo.properties).map((key) => pageInfo.properties[key]) as Record<any, any>;
+      if (pageProperty) {
+        const pagePropertyIds = pageProperty.map((obj) => obj.id);
+        const propertyId = {
+          title: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.TITLE),
+          section: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.SECTION),
+          assignee: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.ASSIGNEE),
+          due: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.DUE),
+          isDone: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_DONE),
+          isClosed: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_CLOSED),
+        };
 
-      const name = this.getTitle(pageProperty, propertyId.title);
-      if (!name) return;
+        const name = this.getTitle(pageProperty, propertyId.title);
+        if (!name) return;
 
-      const [isDone, isClosed, createdBy, lastEditedBy, createdAt, lastEditedAt]:
-        [boolean, boolean, string, string, Date, Date] = await Promise.all([
+        const [isDone, isClosed, createdBy, lastEditedBy, createdAt, lastEditedAt]:
+          [boolean, boolean, string, string, Date, Date] = await Promise.all([
           this.getIsStatus(pageProperty, propertyId.isDone, UsageType.IS_DONE),
           this.getIsStatus(pageProperty, propertyId.isClosed, UsageType.IS_CLOSED),
           this.getDefaultStr(pageInfo, "created_by"),
@@ -180,38 +177,41 @@ export default class NotionRepository {
           this.getDefaultDate(pageInfo, "created_time"),
           this.getDefaultDate(pageInfo, "last_edited_time"),
         ]);
-      const [startDate, deadline] = this.getDeadline(pageProperty, propertyId.due);
-      const pageTodo: INotionTask = {
-        todoappRegId: pageId,
-        name,
-        sections: this.getOptionIds(pageProperty, propertyId.section),
-        assignees: this.getOptionIds(pageProperty, propertyId.assignee),
-        startDate,
-        deadline,
-        isDone: isDone,
-        isClosed: isClosed,
-        todoappRegUrl: this.getDefaultStr(pageInfo, "url"),
-        createdBy: createdBy,
-        lastEditedBy: lastEditedBy,
-        createdAt: createdAt,
-        lastEditedAt: lastEditedAt,
-        sectionIds: [],
-        createdById: null,
-        lastEditedById: null,
-        deadlineReminder: null,
-      };
+        const [startDate, deadline] = this.getDeadline(pageProperty, propertyId.due);
+        const pageTodo: INotionTask = {
+          todoappRegId: pageId,
+          name,
+          sections: this.getOptionIds(pageProperty, propertyId.section),
+          assignees: this.getOptionIds(pageProperty, propertyId.assignee),
+          startDate,
+          deadline,
+          isDone: isDone,
+          isClosed: isClosed,
+          todoappRegUrl: this.getDefaultStr(pageInfo, "url"),
+          createdBy: createdBy,
+          lastEditedBy: lastEditedBy,
+          createdAt: createdAt,
+          lastEditedAt: lastEditedAt,
+          sectionIds: [],
+          createdById: null,
+          lastEditedById: null,
+          deadlineReminder: null,
+        };
 
-      const [sectionIds, createdById, lastEditedById]: [number[], number, number] = await Promise.all([
-        SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
-        this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
-        this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
-      ]);
+        const [sectionIds, createdById, lastEditedById]: [number[], number, number] = await Promise.all([
+          SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
+          this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
+          this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
+        ]);
 
-      pageTodo.sectionIds = sectionIds;
-      pageTodo.createdById = createdById;
-      pageTodo.lastEditedById = lastEditedById;
+        pageTodo.sectionIds = sectionIds;
+        pageTodo.createdById = createdById;
+        pageTodo.lastEditedById = lastEditedById;
 
-      pageTodos.push(pageTodo);
+        pageTodos.push(pageTodo);
+      }
+    } catch(error) {
+      logger.error(error);
     }
   }
 
@@ -286,7 +286,7 @@ export default class NotionRepository {
         // await LineMessageQueueRepository.pushTodoLineQueues(dataLineQueues),
       ]);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -320,7 +320,7 @@ export default class NotionRepository {
       const dataTodo = new Todo(todoTask, company, todoapp, todo);
       dataTodos.push(dataTodo);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -350,7 +350,7 @@ export default class NotionRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   };
 
@@ -394,7 +394,7 @@ export default class NotionRepository {
         }
       });
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -405,8 +405,8 @@ export default class NotionRepository {
     try {
       const property = pageProperty.find(prop => prop.id === titleId);
       return property.title.map(t => t.plain_text ?? "").join("");
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
       return;
     }
   }
@@ -430,8 +430,8 @@ export default class NotionRepository {
         default:
           break;
       }
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
       return;
     }
   }
@@ -454,8 +454,8 @@ export default class NotionRepository {
         default:
           return null;
       }
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -481,8 +481,8 @@ export default class NotionRepository {
         default:
           break;
       }
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -511,8 +511,8 @@ export default class NotionRepository {
         case "url":
           return pageInfo.url;
       }
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -523,8 +523,8 @@ export default class NotionRepository {
     try {
       const dateStr = pageInfo[propName];
       return new Date(dateStr);
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+    } catch (error) {
+      logger.error(error);
     }
   }
 }

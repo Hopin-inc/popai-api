@@ -6,12 +6,14 @@ import dotenv from "dotenv";
 import dotenvExpand from "dotenv-expand";
 import express, { Application } from "express";
 import moment from "moment";
+import { createServer } from "https";
+import * as fs from "fs";
+import logger from "@/logger/winston";
 
 import dataSource from "./config/data-source";
 import { toJapanDateTime } from "./utils/common";
 import Router from "./routes";
-import { createServer } from "https";
-import * as fs from "fs";
+
 
 const myEnv = dotenv.config({ path: path.join(__dirname, ".env") });
 dotenvExpand.expand(myEnv);
@@ -25,15 +27,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("tiny"));
 app.use(cookieParser());
 app.use(express.static("public"));
-// app.use(bodyParser.json());
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS.split(" "),
-  credentials: true,
-}));
 app.get("/_ah/warmup", (req, res) => {
   const currentDate = new Date();
-  console.log("current datetime (local) : " + moment(currentDate).format("YYYY/MM/DD HH:mm:ss"));
-  console.log(
+  logger.info("current datetime (local) : " + moment(currentDate).format("YYYY/MM/DD HH:mm:ss"));
+  logger.info(
     "current datetime (JST) : " + moment(toJapanDateTime(currentDate)).format("YYYY/MM/DD HH:mm:ss")
   );
 
@@ -47,16 +44,16 @@ const server = process.env.NODE_HTTPS === "true"
     }, app)
   : app;
 server.listen(PORT, () => {
-  console.log("Server is running on port", PORT, "(https)");
-  console.log("Environment", process.env.ENV);
+  logger.info(`Server is running on port ${PORT}`);
+  logger.info(`Environment ${process.env.ENV}`);
 });
 
 // establish database connection
 dataSource.initialize()
   .then(() => {
-    console.log("Data Source has been initialized!");
+    logger.info("Data Source has been initialized!");
     app.use("/api", Router);
   })
   .catch((err) => {
-    console.error("Error during Data Source initialization:", err);
+    console.error(`Error during Data Source initialization: ${err}`);
   });

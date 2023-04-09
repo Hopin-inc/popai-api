@@ -38,7 +38,6 @@ import {
   TodoHistoryAction,
 } from "@/consts/common";
 import { diffDays, getItemRandomly, getUniqueArray, Sorter, toJapanDateTime } from "@/utils/common";
-import { LoggerError } from "@/exceptions";
 import { IDailyReportItems, IRemindType, ValueOf } from "@/types";
 import { ITodoSlack, SlackInteractionPayload } from "@/types/slack";
 import Prospect from "@/entities/transactions/Prospect";
@@ -111,17 +110,17 @@ export default class SlackRepository {
   ): Promise<ChatMessage> {
     try {
       if (!user.slackId) {
-        logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
+        logger.error(user.name + "がSlackIDが設定されていない。");
         return;
       }
       const message = SlackMessageBuilder.createRemindMessage(user, todo, remindDays);
       if (process.env.ENV === "LOCAL") {
-        console.log(message);
+        logger.info(message);
       } else {
         await this.sendDirectMessage(chatTool, user, message, todo);
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -151,7 +150,7 @@ export default class SlackRepository {
       const chatTool = todoSlacks[0].chatTool;
 
       if (!user.slackId) {
-        logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
+        logger.error(user.name + "がSlackIDが設定されていない。");
         return;
       }
 
@@ -163,15 +162,15 @@ export default class SlackRepository {
       const dmId = getDmId.channel.id;
 
       if (process.env.ENV === "LOCAL") {
-        // console.log(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
-        console.log(message);
+        // logger.info(SlackMessageBuilder.getTextContentFromMessage(messageForSend));
+        logger.info(message);
       } else {
         await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, dmId);
       }
 
       return;
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -191,7 +190,7 @@ export default class SlackRepository {
   ): Promise<any> {
     try {
       if (!user.slackId) {
-        logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
+        logger.error(user.name + "がSlackIDが設定されていない。");
         return;
       }
 
@@ -212,7 +211,7 @@ export default class SlackRepository {
         { remindTypes },
       );
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -232,7 +231,7 @@ export default class SlackRepository {
   ): Promise<any> {
     try {
       if (!user.slackId) {
-        logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
+        logger.error(user.name + "がSlackIDが設定されていない。");
         return;
       }
 
@@ -252,7 +251,7 @@ export default class SlackRepository {
         { remindTypes },
       );
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -272,7 +271,7 @@ export default class SlackRepository {
   ): Promise<any> {
     try {
       if (!user.slackId) {
-        logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
+        logger.error(user.name + "がSlackIDが設定されていない。");
         return;
       }
 
@@ -293,7 +292,7 @@ export default class SlackRepository {
         { remindTypes },
       );
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -307,14 +306,14 @@ export default class SlackRepository {
   private async pushNoListTaskMessageToAdmin(chatTool: ChatTool, user: User, channelId: string): Promise<any> {
     try {
       if (!user.slackId) {
-        logger.error(new LoggerError(user.name + "がSlackIDが設定されていない。"));
+        logger.error(user.name + "がSlackIDが設定されていない。");
         return;
       }
 
       const message = SlackMessageBuilder.createNotifyNothingMessage();
       await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.REMIND, channelId);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -361,7 +360,7 @@ export default class SlackRepository {
     try {
       return await ChatMessageRepository.save(chatMessage);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -371,7 +370,7 @@ export default class SlackRepository {
         id: id,
       });
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -387,7 +386,7 @@ export default class SlackRepository {
     },
   ): Promise<ChatPostMessageResponse> {
     if (process.env.ENV === "LOCAL") {
-      console.log(this.getTextFromSendMessage(message));
+      logger.info(this.getTextFromSendMessage(message));
     } else {
       const slackBot = await SlackService.init(user.company_id);
       const props: ChatPostMessageArguments = {
@@ -424,7 +423,7 @@ export default class SlackRepository {
     user?: User,
   ): Promise<any> {
     if (process.env.ENV === "LOCAL") {
-      console.log(this.getTextFromSendMessage(message));
+      logger.info(this.getTextFromSendMessage(message));
     } else {
       const slackBot = await SlackService.init(companyId);
       const response = await slackBot.postMessage({
@@ -469,7 +468,7 @@ export default class SlackRepository {
 
   public async remindTaskForAdminCompany(company: Company): Promise<void> {
     if (!company.adminUser) {
-      logger.error(new LoggerError(company.name + "の管理者が設定していません。"));
+      logger.error(company.name + "の管理者が設定していません。");
     }
     const channelId = await this.getSendChannel(company);
 
@@ -572,7 +571,7 @@ export default class SlackRepository {
         }
       }
     } else {
-      console.log("NOT channelId");
+      logger.info("NOT channelId");
     }
   }
 

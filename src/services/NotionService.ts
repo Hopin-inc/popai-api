@@ -49,11 +49,11 @@ export default class NotionService {
           const email = includeEmail && user.type === "person" ? { email: user.person.email } : {};
           return { id: user.id, name: user.name, ...email, };
         });
-    } catch (err) {
-      if (err.status === 401) {
-        err.status = StatusCodes.BAD_REQUEST;
+    } catch (error) {
+      if (error.status === 401) {
+        error.status = StatusCodes.BAD_REQUEST;
       }
-      throw new Error(err);
+      throw new Error(error);
     }
   }
 
@@ -77,11 +77,11 @@ export default class NotionService {
           ? workspace["title"][0]["plain_text"]
           : `(${workspace.id})`,
       }));
-    } catch (err) {
-      if (err.status === 401) {
-        err.status = StatusCodes.BAD_REQUEST;
+    } catch (error) {
+      if (error.status === 401) {
+        error.status = StatusCodes.BAD_REQUEST;
       }
-      throw new Error(err);
+      throw new Error(error);
     }
   }
 
@@ -102,11 +102,11 @@ export default class NotionService {
           ...options,
         };
       });
-    } catch (err) {
-      if (err.status === 401) {
-        err.status = StatusCodes.BAD_REQUEST;
+    } catch (error) {
+      if (error.status === 401) {
+        error.status = StatusCodes.BAD_REQUEST;
       }
-      throw new Error(err);
+      throw new Error(error);
     }
   }
 

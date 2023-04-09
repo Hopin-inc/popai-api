@@ -3,7 +3,6 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMan
 import BaseEntity from "../BaseEntity";
 import TodoApp from "../masters/TodoApp";
 import Company from "../settings/Company";
-import TodoUpdateHistory from "./TodoUpdateHistory";
 import TodoUser from "./TodoUser";
 import TodoSection from "./TodoSection";
 import User from "../settings/User";
@@ -115,13 +114,6 @@ export default class Todo extends BaseEntity {
     { cascade: false },
   )
   histories: TodoHistory[];
-
-  @OneToMany(
-    () => TodoUpdateHistory,
-    history => history.todo,
-    { cascade: false },
-  )
-  updateHistories: TodoUpdateHistory[];
 
   @OneToMany(
     () => Prospect,

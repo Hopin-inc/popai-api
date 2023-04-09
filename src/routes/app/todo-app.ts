@@ -16,8 +16,8 @@ router.get("/", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -32,8 +32,8 @@ router.get("/:todoAppId/accounts", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -50,8 +50,8 @@ router.patch("/:todoAppId/users/:userId", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -66,8 +66,8 @@ router.get("/:todoAppId/board", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -83,8 +83,8 @@ router.patch("/:todoAppId/board", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -99,8 +99,8 @@ router.get("/:todoAppId/boards", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -116,8 +116,8 @@ router.get("/:todoAppId/boards/:boardId/properties", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -133,8 +133,8 @@ router.get("/:todoAppId/boards/:boardId/usages", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -151,8 +151,8 @@ router.patch("/:todoAppId/boards/:boardId/usages", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 

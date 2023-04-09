@@ -1,10 +1,10 @@
 import express from "express";
+import { authRequired } from "@/middleware/auth";
 import authRouter from "@/routes/app/auth";
 import chatToolRouter from "@/routes/app/chat-tool";
 import todoAppRouter from "@/routes/app/todo-app";
 import userRouter from "@/routes/app/users";
 import configRouter from "@/routes/app/config";
-import { authRequired } from "@/middleware/auth";
 
 const router = express();
 

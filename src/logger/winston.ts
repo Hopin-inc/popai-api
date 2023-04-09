@@ -1,22 +1,31 @@
 import winston from "winston";
 
-export default winston.createLogger({
+const severity = winston.format((log) => {
+  log["severity"] = log.level.toUpperCase();
+  return log;
+});
+
+const errorReport = winston.format((log) => {
+  if (log instanceof Error) {
+    log.err = {
+      name: log.name,
+      message: log.message,
+      stack: log.stack,
+    };
+  }
+  return log;
+});
+
+const logger = winston.createLogger({
+  level: "debug",
   format: winston.format.combine(
     winston.format.splat(),
-    // format log times
-    winston.format.timestamp({
-      format: "YYYY-MM-DD HH:mm:ss",
-    }),
-    // Add color
-    winston.format.colorize(),
-    // setup format log
-    winston.format.printf((log) => {
-      if (log.stack) return `[${log.timestamp}] [${log.level}] ${log.stack}`;
-      return `[${log.timestamp}] [${log.level}] ${log.message}`;
-    })
+    severity(),
+    errorReport(),
+    winston.format.json(),
   ),
   transports: [
-    // display by console
     new winston.transports.Console(),
   ],
 });
+export default logger;

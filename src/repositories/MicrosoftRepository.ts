@@ -1,4 +1,3 @@
-import { LoggerError } from "@/exceptions";
 import { Service, Container } from "typedi";
 import FormData from "form-data";
 
@@ -53,16 +52,16 @@ export default class MicrosoftRepository {
       for (const section of sections) {
         await this.getTaskBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
-      console.log(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
+      logger.info(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
 
       const dayReminds: number[] = await CompanyConditionRepository.getDayReminds(company.companyConditions);
       const implementedTodoApp = await ImplementedTodoAppRepository.getImplementTodoApp(company.id, todoapp.id);
       if (implementedTodoApp) {
         await this.filterUpdateTask(dayReminds, todoTasks, implementedTodoApp);
       }
-      console.log(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
-    } catch (err) {
-      logger.error(new LoggerError(err.message));
+      logger.info(`[${company.name} - ${todoapp.name}] filterUpdateTask: ${dayReminds}`);
+    } catch (error) {
+      logger.error(error);
     }
   }
 
@@ -87,8 +86,8 @@ export default class MicrosoftRepository {
               return this.addTodoTask(todoTask, section, todoTasks, company, todoapp, todoAppUser);
             }));
           }
-        } catch (err) {
-          logger.error(new LoggerError(err.message));
+        } catch (error) {
+          logger.error(error);
         }
       }
     }
@@ -159,8 +158,8 @@ export default class MicrosoftRepository {
           const me = await this.microsoftRequest.getMyInfo(dataRefresh);
           todoAppUser.user_app_id = me?.id;
           await TodoAppUserRepository.save(todoAppUser);
-        } catch (err) {
-          logger.error(new LoggerError(err.message));
+        } catch (error) {
+          logger.error(error);
         }
       }
     }
@@ -200,7 +199,7 @@ export default class MicrosoftRepository {
         }
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
 
     return null;
@@ -264,7 +263,7 @@ export default class MicrosoftRepository {
         ]);
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 
@@ -341,7 +340,7 @@ export default class MicrosoftRepository {
 
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 }

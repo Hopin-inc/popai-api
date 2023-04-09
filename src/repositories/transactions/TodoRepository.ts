@@ -14,7 +14,6 @@ import dayjs from "dayjs";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import { ValueOf } from "@/types";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
 import NotionService from "@/services/NotionService";
@@ -35,7 +34,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
         .where("todos.todoapp_reg_id IN (:...todoIds)", { todoIds })
         .getMany();
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   },
 

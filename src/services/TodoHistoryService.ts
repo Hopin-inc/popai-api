@@ -7,7 +7,6 @@ import ChatTool from "@/entities/masters/ChatTool";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 import logger from "@/logger/winston";
-import { LoggerError } from "@/exceptions";
 import { ITodoHistory, ValueOf } from "@/types";
 import {
   TodoHistoryProperty as Property,
@@ -150,7 +149,7 @@ export default class TodoHistoryService {
         }
       }
     } catch (error) {
-      logger.error(new LoggerError(error.message));
+      logger.error(error);
     }
   }
 

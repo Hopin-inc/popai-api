@@ -1,0 +1,10 @@
+cron:
+  - description: "Fetch data and notify on update"
+    url: /api/tasks/update?notify=true
+    schedule: every 5 minutes synchronized
+  - description: "Send daily reports"
+    url: /api/tasks/daily
+    schedule: every 15 minutes synchronized
+  - description: "Ask prospects"
+    url: /api/tasks/prospect
+    schedule: every 15 minutes synchronized

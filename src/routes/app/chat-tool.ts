@@ -16,8 +16,8 @@ router.get("/", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -32,8 +32,8 @@ router.get("/:chatToolId/accounts", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -50,8 +50,8 @@ router.patch("/:chatToolId/users/:userId", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -66,8 +66,8 @@ router.get("/:chatToolId/channels", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
