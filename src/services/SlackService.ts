@@ -44,7 +44,7 @@ export default class SlackService {
     if (response.ok && response.channels) {
       return response.channels
         .filter(channel => channel.is_channel && !channel.is_archived)
-        .map(channel => ({ id: channel.id, name: `${ channel.is_private ? "🔒" : "#" } ${channel.name}` }));
+        .map(channel => ({ id: channel.id, name: `${ channel.is_private ? "🔒" : "#" } ${ channel.name }` }));
     }
   }
 

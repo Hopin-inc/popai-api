@@ -46,7 +46,7 @@ export default class NotionPageBuilder {
         parent: { database_id: databaseId },
         icon: { emoji: "📝" },
         properties: {
-          "タイトル": { title: [{ text: { content: `${user.user_name} ${createdAt}` } }] },
+          "タイトル": { title: [{ text: { content: `${ user.user_name } ${ createdAt }` } }] },
           "担当者": { people: [{ object: "user", id: user.auth_key }] },
           "日付": { date: { start: createdAt } },
         },

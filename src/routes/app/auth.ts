@@ -47,7 +47,7 @@ router.get("/verify", async (req, res) => {
     const controller = new AuthController();
     const email = decodeURIComponent(req.query.email as string);
     await controller.verifyEmail(email);
-    res.redirect(`${process.env.CLIENT_BASE_URL}/login`);
+    res.redirect(`${ process.env.CLIENT_BASE_URL }/login`);
   } catch (error) {
     logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);

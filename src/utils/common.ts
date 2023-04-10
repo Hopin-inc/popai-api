@@ -58,7 +58,7 @@ export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
 export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: keyof T): [T[], T[]] => {
   return [
     extractMembersOfANotInB(arrA, arrB, key),
-    extractMembersOfANotInB(arrB, arrA, key)
+    extractMembersOfANotInB(arrB, arrA, key),
   ];
 };
 
@@ -105,7 +105,7 @@ export const Sorter = {
         return dateB.isAfter(dateA) ? 1 : dateB.isBefore(dateA) ? -1 : 0;
       }
     };
-  }
+  },
 };
 
 export const truncate = (str: string, max: number, countHalfAs: number = 1, countFullAs: number = 1): string => {

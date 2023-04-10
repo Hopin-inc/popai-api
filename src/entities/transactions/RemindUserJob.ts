@@ -16,7 +16,7 @@ export default class RemindUserJob extends BaseEntity {
 
   @ManyToOne(
     () => User,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "user_id" })
   user: User;

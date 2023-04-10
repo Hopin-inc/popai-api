@@ -26,7 +26,7 @@ export default class InternalSlackService {
       blocks: [
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*${company.name}* ${name}さま` },
+          text: { type: "mrkdwn", text: `*${ company.name }* ${ name }さま` },
         },
         {
           type: "context",

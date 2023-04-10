@@ -20,7 +20,7 @@ export default class ChatTool extends BaseEntity {
   @OneToMany(
     () => ImplementedChatTool,
     implementedChatTool => implementedChatTool.chattool,
-    { cascade: true }
+    { cascade: true },
   )
   chattoolCompanies: ImplementedChatTool[];
 
@@ -32,7 +32,7 @@ export default class ChatTool extends BaseEntity {
   @OneToMany(
     () => ChatToolUser,
     chattoolUser => chattoolUser.chattool,
-    { cascade: true }
+    { cascade: true },
   )
   chattoolUsers: ChatToolUser[];
 

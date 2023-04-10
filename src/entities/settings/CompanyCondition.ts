@@ -16,7 +16,7 @@ export default class CompanyCondition extends BaseEntity {
 
   @ManyToOne(
     () => Company,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;

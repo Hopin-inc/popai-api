@@ -338,7 +338,7 @@ export default class NotionRepository {
       const response: CreatePageResponse[] = await Promise.all(users.map(async (user) => {
         const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
         const docToolUsers = user.documentToolUsers.find(
-          (du) => du.documentTool.tool_code === DocumentToolCode.NOTION
+          (du) => du.documentTool.tool_code === DocumentToolCode.NOTION,
         );
         const pageOption = await this.notionPageBuilder.createDailyReportByUser(
           configRecord.database,

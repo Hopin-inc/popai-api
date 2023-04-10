@@ -73,35 +73,35 @@ export default class Section extends BaseEntity {
   @OneToOne(
     () => Timing,
     timing => timing.section,
-    { cascade: true }
+    { cascade: true },
   )
   timing?: Timing;
 
   @OneToMany(
     () => TimingException,
     exception => exception.section,
-    { cascade: true }
+    { cascade: true },
   )
   timingExceptions?: TimingException[];
 
   @OneToOne(
     () => DailyReportConfig,
     config => config.section,
-    { cascade: true }
+    { cascade: true },
   )
   dailyReportConfig?: DailyReportConfig;
 
   @OneToOne(
     () => NotifyConfig,
     config => config.section,
-    { cascade: true }
+    { cascade: true },
   )
   notifyConfig?: NotifyConfig;
 
   @OneToOne(
     () => BoardConfig,
     config => config.section,
-    { cascade: true }
+    { cascade: true },
   )
   boardConfig?: BoardConfig;
 }

@@ -225,7 +225,7 @@ export default class TrelloRepository {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.id, });
+    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.id });
 
     const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
     const taskUpdated = toJapanDateTime(todoTask.dateLastActivity);

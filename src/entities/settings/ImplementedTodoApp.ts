@@ -46,7 +46,7 @@ export default class ImplementedTodoApp extends BaseEntity {
   @ManyToOne(
     () => Company,
     company => company.implementedTodoApps,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
@@ -54,7 +54,7 @@ export default class ImplementedTodoApp extends BaseEntity {
   @ManyToOne(
     () => TodoApp,
     todoApp => todoApp.implementedCompanies,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "todoapp_id" })
   todoApp: TodoApp;

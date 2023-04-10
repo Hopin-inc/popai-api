@@ -14,7 +14,7 @@ import InternalSlackService from "@/services/InternalSlackService";
 export default class AuthService {
   public async register(info: AccountInit) {
     const { email, password, name, organization } = info;
-    const displayName = `${organization} / ${name}`;
+    const displayName = `${ organization } / ${ name }`;
     await auth.createUser({ email, password, displayName })
       .then(async (user) => {
         await this.createAccount(user.uid, email, organization, name);

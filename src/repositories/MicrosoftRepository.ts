@@ -51,7 +51,7 @@ export default class MicrosoftRepository {
       for (const section of sections) {
         await this.getTaskBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
-      logger.info(`[${company.name} - ${todoapp.name}] getCardBoards: ${todoTasks.length}`);
+      logger.info(`[${ company.name } - ${ todoapp.name }] getCardBoards: ${ todoTasks.length }`);
 
       const implementedTodoApp = await ImplementedTodoAppRepository.getImplementTodoApp(company.id, todoapp.id);
       if (implementedTodoApp) {

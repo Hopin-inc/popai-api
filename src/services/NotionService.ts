@@ -47,7 +47,7 @@ export default class NotionService {
         .filter(user => user.type === "person")
         .map(user => {
           const email = includeEmail && user.type === "person" ? { email: user.person.email } : {};
-          return { id: user.id, name: user.name, ...email, };
+          return { id: user.id, name: user.name, ...email };
         });
     } catch (error) {
       if (error.status === 401) {
@@ -75,7 +75,7 @@ export default class NotionService {
         id: workspace.id,
         name: workspace["title"] && workspace["title"].length && workspace["title"][0]
           ? workspace["title"][0]["plain_text"]
-          : `(${workspace.id})`,
+          : `(${ workspace.id })`,
       }));
     } catch (error) {
       if (error.status === 401) {

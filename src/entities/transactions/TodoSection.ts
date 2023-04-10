@@ -23,7 +23,7 @@ export default class TodoSection extends BaseEntity {
   @ManyToOne(
     () => Todo,
     todo => todo.todoSections,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "todo_id" })
   todo: Todo;
@@ -31,7 +31,7 @@ export default class TodoSection extends BaseEntity {
   @ManyToOne(
     () => Section,
     section => section.todoSections,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "section_id" })
   section: Section;

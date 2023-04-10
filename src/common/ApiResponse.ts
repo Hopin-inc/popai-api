@@ -15,7 +15,7 @@ export default class ApiResponse {
     res: Response,
     data: any,
     status: number = StatusCodes.OK,
-    message: string = ""
+    message: string = "",
   ) {
     return res.status(status).json({ status, data, message });
   }
@@ -35,7 +35,7 @@ export default class ApiResponse {
   static errRes(
     res: Response,
     message = "Sever Error",
-    status = StatusCodes.INTERNAL_SERVER_ERROR
+    status = StatusCodes.INTERNAL_SERVER_ERROR,
   ) {
     return res.status(status).json({
       status,

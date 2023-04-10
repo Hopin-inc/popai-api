@@ -14,5 +14,5 @@ export const AccountRepository = dataSource.getRepository<Account>(Account).exte
       },
       relations: ["company", ...relations],
     });
-  }
+  },
 });

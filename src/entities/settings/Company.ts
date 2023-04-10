@@ -40,7 +40,7 @@ export default class Company extends BaseEntity {
   @OneToMany(
     () => ImplementedTodoApp,
     implementedTodoApp => implementedTodoApp.company,
-    { cascade: true }
+    { cascade: true },
   )
   implementedTodoApps: ImplementedTodoApp[];
 
@@ -52,7 +52,7 @@ export default class Company extends BaseEntity {
   @OneToMany(
     () => ImplementedChatTool,
     implementedChatTool => implementedChatTool.company,
-    { cascade: true }
+    { cascade: true },
   )
   implementedChatTools: ImplementedChatTool[];
 
@@ -64,7 +64,7 @@ export default class Company extends BaseEntity {
   @ManyToOne(
     () => User,
     user => user.id,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "admin_user_id" })
   adminUser: User;
@@ -72,77 +72,77 @@ export default class Company extends BaseEntity {
   @OneToMany(
     () => CompanyCondition,
     condition => condition.company,
-    { cascade: true }
+    { cascade: true },
   )
   companyConditions: CompanyCondition[];
 
   @OneToMany(
     () => User,
     user => user.company,
-    { cascade: true }
+    { cascade: true },
   )
   users: User[];
 
   @OneToMany(
     () => Section,
     section => section.company,
-    { cascade: true }
+    { cascade: true },
   )
   sections: Section[];
 
   @OneToMany(
     () => Todo,
     todo => todo.company,
-    { cascade: true }
+    { cascade: true },
   )
   todos: Todo[];
 
   @OneToMany(
     () => Account,
     account => account.company,
-    { cascade: true }
+    { cascade: true },
   )
   accounts: Account[];
 
   @OneToOne(
     () => Timing,
     timing => timing.company,
-    { cascade: true }
+    { cascade: true },
   )
   timing: Timing;
 
   @OneToMany(
     () => TimingException,
     exception => exception.company,
-    { cascade: true }
+    { cascade: true },
   )
   timingExceptions: TimingException[];
 
   @OneToOne(
     () => DailyReportConfig,
     config => config.company,
-    { cascade: true }
+    { cascade: true },
   )
   dailyReportConfig: DailyReportConfig;
 
   @OneToOne(
     () => NotifyConfig,
     config => config.company,
-    { cascade: true }
+    { cascade: true },
   )
   notifyConfig: NotifyConfig;
 
   @OneToOne(
     () => ProspectConfig,
     config => config.company,
-    { cascade: true }
+    { cascade: true },
   )
   prospectConfig: ProspectConfig;
 
   @OneToOne(
     () => BoardConfig,
     config => config.company,
-    { cascade: true }
+    { cascade: true },
   )
   boardConfigs: BoardConfig[];
 }

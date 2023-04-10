@@ -208,7 +208,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
 
   async getNoDeadlineOrUnassignedTodos(companyId: number): Promise<Todo[]> {
     const notExistsQuery = <T>(builder: SelectQueryBuilder<T>) =>
-      `not exists (${builder.getQuery()})`;
+      `not exists (${ builder.getQuery() })`;
     return await this
       .createQueryBuilder("todos")
       .leftJoinAndSelect("todos.todoUsers", "todo_users")

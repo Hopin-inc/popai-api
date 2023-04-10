@@ -859,7 +859,7 @@ export default class SlackRepository {
     const viewId = await this.openModal(
       companyId,
       triggerId,
-      `${targetAction.text}について相談する`,
+      `${ targetAction.text }について相談する`,
       blocks,
       SlackModalLabel.RELIEF_COMMENT,
     );
@@ -943,7 +943,7 @@ export default class SlackRepository {
       channel: report.slack_channel_id,
       ts: report.slack_ts,
       blocks: dailyReportMsg,
-      text: `${user.name}さんの日報`,
+      text: `${ user.name }さんの日報`,
     });
   }
 
