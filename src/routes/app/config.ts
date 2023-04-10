@@ -3,6 +3,7 @@ import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import ConfigController from "@/controllers/app/ConfigController";
 import { SessionErrors } from "@/consts/error-messages";
+import logger from "@/logger/winston";
 
 const router = express();
 
@@ -17,6 +18,7 @@ router.get("/", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -33,6 +35,7 @@ router.patch("/", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -48,6 +51,7 @@ router.get("/daily-report", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -64,6 +68,7 @@ router.patch("/daily-report", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -79,6 +84,7 @@ router.get("/notify", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -95,6 +101,7 @@ router.patch("/notify", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -110,6 +117,7 @@ router.get("/prospect", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -126,6 +134,7 @@ router.patch("/prospect", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });

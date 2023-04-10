@@ -3,6 +3,7 @@ import ChatToolController from "@/controllers/app/ChatToolController";
 import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import { SessionErrors } from "@/consts/error-messages";
+import logger from "@/logger/winston";
 
 const router = express();
 
@@ -17,6 +18,7 @@ router.get("/", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -33,6 +35,7 @@ router.get("/:chatToolId/accounts", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -51,6 +54,7 @@ router.patch("/:chatToolId/users/:userId", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -67,6 +71,7 @@ router.get("/:chatToolId/channels", async (req, res) => {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });

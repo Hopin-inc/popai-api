@@ -52,7 +52,7 @@ export default class UserController extends Controller {
     });
     return users.map(user => ({
       user: { id: user.id, name: user.name },
-      superiorUsers: user.superiorUsers.map(u => u.id),
+      superiorUsers: user.superiorUsers.filter(u => u?.id).map(u => u.id),
     }));
   }
 

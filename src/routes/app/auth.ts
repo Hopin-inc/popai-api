@@ -1,4 +1,5 @@
 import express from "express";
+import logger from "@/logger/winston";
 import ApiResponse from "@/common/ApiResponse";
 import AuthController from "@/controllers/app/AuthController";
 import { StatusCodes } from "@/common/StatusCodes";
@@ -24,8 +25,9 @@ router.get("/me", async (req, res) => {
     } else {
       ApiResponse.errRes(res, SessionErrors.NotLoggedIn, StatusCodes.UNAUTHORIZED);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -34,8 +36,9 @@ router.post("/signup", async (req, res) => {
     const controller = new AuthController();
     const response = await controller.signUp(req.body);
     ApiResponse.successRes(res, response);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -45,8 +48,9 @@ router.get("/verify", async (req, res) => {
     const email = decodeURIComponent(req.query.email as string);
     await controller.verifyEmail(email);
     res.redirect(`${process.env.CLIENT_BASE_URL}/login`);
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
@@ -68,16 +72,18 @@ router.get("/login", async (req, res) => {
     } else {
       ApiResponse.errRes(res, AccountErrors.InvalidAuthToken, StatusCodes.BAD_REQUEST);
     }
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
 router.get("/logout", authRequired, async (req, res) => {
   try {
     req.session.destroy(() => ApiResponse.successRawRes(res));
-  } catch (err) {
-    ApiResponse.errRes(res, err.message, err.status);
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
   }
 });
 
