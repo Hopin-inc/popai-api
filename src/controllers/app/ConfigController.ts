@@ -193,11 +193,11 @@ export default class ConfigController extends Controller {
         to: config.to,
         frequency: config.frequency,
         frequencyDaysBefore: config.frequency_days_before,
-        timings: timings?.map(timing => ({
+        timings: timings?.map((timing) => ({
           time: timing.time,
           askPlan: timing.ask_plan,
           askPlanMilestone: timing.ask_plan_milestone,
-        })) ?? [],
+        })).sort((a, b) => a.time > b.time ? 1 : -1) ?? [],
       };
     }
   }
