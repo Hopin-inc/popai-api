@@ -352,7 +352,7 @@ export default class SlackMessageBuilder {
   }
 
   private static getAssigneesText(assignees: User[]): string {
-    return assignees?.length ? assignees.map(user => user.name).join(", ") : "未設定";
+    return assignees?.length ? assignees.map(user => user?.name).join(", ") : "未設定";
   }
 
   private static getDeadlineText(deadline: Date): string {
