@@ -877,7 +877,10 @@ export default class SlackRepository {
   }
 
   public async receiveReliefComment(viewId: string, comment: string) {
-    const prospectRecord = await ProspectRepository.findOneBy({ slack_view_id: viewId });
+    const prospectRecord = await ProspectRepository.findOne({
+      where: { slack_view_id: viewId },
+      relations: ["company.prospectConfig"],
+    });
     await ProspectRepository.update(prospectRecord.id, { comment, comment_responded_at: new Date() });
     return prospectRecord;
   }
