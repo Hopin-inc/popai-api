@@ -37,7 +37,7 @@ import {
   RemindType,
   TodoHistoryAction,
 } from "@/consts/common";
-import { diffDays, getItemRandomly, getUniqueArray, Sorter, toJapanDateTime } from "@/utils/common";
+import { diffDays, getItemRandomly, Sorter, toJapanDateTime } from "@/utils/common";
 import { IDailyReportItems, IRemindType, ValueOf } from "@/types";
 import { ITodoSlack, SlackInteractionPayload } from "@/types/slack";
 import Prospect from "@/entities/transactions/Prospect";
@@ -888,6 +888,7 @@ export default class SlackRepository {
         where: { id: prospectRecord.todo_id },
         relations: [
           "company.implementedChatTools.chattool",
+          "company.prospectConfig",
           "todoSections.section",
         ],
       }),
@@ -915,20 +916,23 @@ export default class SlackRepository {
     const slackBot = await SlackService.init(user.company_id);
     const { prospect, action, slack_channel_id: channel, slack_ts: ts } = prospectRecord;
     const { blocks: editedMsg } = SlackMessageBuilder.createThanksForCommentMessage(todo, prospect, action, comment);
-    const sharedChannels = getUniqueArray(todo.sections.map(section => section.channel_id));
+    const sharedChannel = prospectRecord.company.prospectConfig.channel;
     const shareMsg = SlackMessageBuilder.createShareReliefMessage(todo, user, prospect, action, comment, iconUrl);
     const chatTool = todo.company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
-    const [_, superiorUsers, pushedMessages]: [ChatUpdateResponse, User[], ChatPostMessageResponse[]] = await Promise.all([
+    const [_, superiorUsers, pushedMessage]: [ChatUpdateResponse, User[], ChatPostMessageResponse] = await Promise.all([
       slackBot.updateMessage({ channel, ts, text: todo.name, blocks: editedMsg }),
       this.getSuperiorUsers(user.slackId),
-      Promise.all<ChatPostMessageResponse>(sharedChannels.map((channel) => {
-        return this.pushSlackMessage(chatTool, user, shareMsg, MessageTriggerType.REPORT, channel);
-      })),
+      this.pushSlackMessage(chatTool, user, shareMsg, MessageTriggerType.REPORT, sharedChannel),
     ]);
     const promptMsg = SlackMessageBuilder.createPromptDiscussionMessage(superiorUsers);
-    await Promise.all(pushedMessages.map(m => {
-      this.pushSlackMessage(chatTool, user, promptMsg, MessageTriggerType.REPORT, m.channel, m.ts);
-    }));
+    await this.pushSlackMessage(
+      chatTool,
+      user,
+      promptMsg,
+      MessageTriggerType.REPORT,
+      pushedMessage.channel,
+      pushedMessage.ts,
+    );
   }
 
   private async updateDailyReportWithProspects(user: User, iconUrl: string) {
