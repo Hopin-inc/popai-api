@@ -893,7 +893,10 @@ export default class SlackRepository {
       }),
       UserRepository.findOne({
         where: { id: prospectRecord.user_id },
-        relations: ["chattoolUsers.chattool"],
+        relations: [
+          "company",
+          "chattoolUsers.chattool",
+        ],
       }),
     ]);
     const slackProfile = await this.getUserProfile(user.company_id, user.slackId);

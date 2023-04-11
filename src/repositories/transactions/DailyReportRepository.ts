@@ -22,7 +22,7 @@ export const DailyReportRepository = dataSource.getRepository<DailyReport>(Daily
       ...findByUser,
       created_at: Between(start, end),
     };
-    const dailyReports = await this.find({ where, relations: ["user"] });
+    const dailyReports = await this.find({ where, relations: ["user.chattoolUsers"] });
     if (sections) {
       dailyReports.filter(report => sections.some(section => report.section_ids.includes(section.id)));
     }
