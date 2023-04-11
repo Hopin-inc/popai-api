@@ -1,6 +1,5 @@
 import ChatTool from "@/entities/masters/ChatTool";
 import LineMessageQueue from "@/entities/transactions/LineMessageQueue";
-import TodoAppUser from "@/entities/settings/TodoAppUser";
 import Company from "@/entities/settings/Company";
 import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
@@ -43,7 +42,6 @@ export type ITask = ITrelloTask | IMicrosoftTask | INotionTask;
 export type ITodoTask<T extends ITask> = {
   todoTask: T;
   todoapp: TodoApp;
-  todoAppUser: TodoAppUser;
   company: Company;
   sections: Section[];
   users?: User[];

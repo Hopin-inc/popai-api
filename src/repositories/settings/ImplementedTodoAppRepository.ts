@@ -10,7 +10,7 @@ export const ImplementedTodoAppRepository = dataSource.getRepository<Implemented
     });
 
     if (!implementTodoApp) {
-      logger.error(`implemented_todo_appsのデータ(company_id=${companyId}, todoapp_id=${todoappId})がありません。`);
+      logger.error(`implemented_todo_appsのデータ(company_id=${ companyId }, todoapp_id=${ todoappId })がありません。`);
     }
     return implementTodoApp;
   },

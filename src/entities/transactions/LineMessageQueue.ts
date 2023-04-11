@@ -27,21 +27,21 @@ export default class LineMessageQueue extends BaseEntity {
 
   @ManyToOne(
     () => User,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "user_id" })
   user: User;
 
   @ManyToOne(
     () => Todo,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "todo_id" })
   todo: Todo;
 
   @OneToOne(
     () => ChatMessage,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" }
+    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "message_id" })
   message: ChatMessage;

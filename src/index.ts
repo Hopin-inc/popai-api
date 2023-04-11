@@ -1,7 +1,6 @@
 import path from "path";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import dotenv from "dotenv";
 import dotenvExpand from "dotenv-expand";
 import express, { Application } from "express";
@@ -31,7 +30,7 @@ app.get("/_ah/warmup", (req, res) => {
   const currentDate = new Date();
   logger.info("current datetime (local) : " + moment(currentDate).format("YYYY/MM/DD HH:mm:ss"));
   logger.info(
-    "current datetime (JST) : " + moment(toJapanDateTime(currentDate)).format("YYYY/MM/DD HH:mm:ss")
+    "current datetime (JST) : " + moment(toJapanDateTime(currentDate)).format("YYYY/MM/DD HH:mm:ss"),
   );
 
   res.send("warmup");
@@ -40,12 +39,12 @@ app.get("/_ah/warmup", (req, res) => {
 const server = process.env.NODE_HTTPS === "true"
   ? createServer({
       key: fs.readFileSync("./.misc/localhost-key.pem"),
-      cert: fs.readFileSync("./.misc/localhost.pem")
+      cert: fs.readFileSync("./.misc/localhost.pem"),
     }, app)
   : app;
 server.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
-  logger.info(`Environment ${process.env.ENV}`);
+  logger.info(`Server is running on port ${ PORT }`);
+  logger.info(`Environment ${ process.env.ENV }`);
 });
 
 // establish database connection
@@ -55,5 +54,5 @@ dataSource.initialize()
     app.use("/api", Router);
   })
   .catch((err) => {
-    console.error(`Error during Data Source initialization: ${err}`);
+    console.error(`Error during Data Source initialization: ${ err }`);
   });

@@ -84,7 +84,6 @@ export default class TrelloRepository {
             todoTasks,
             company,
             todoapp,
-            todoAppUser,
             archiveListIds,
             createCards,
           )));
@@ -102,7 +101,6 @@ export default class TrelloRepository {
     todoTasks: ITodoTask<ITrelloTask>[],
     company: Company,
     todoapp: TodoApp,
-    todoAppUser: TodoAppUser,
     archiveListIds: string[],
     createCards: ITrelloActivityLog[],
   ): Promise<void> {
@@ -126,7 +124,6 @@ export default class TrelloRepository {
       todoTask: todoTask,
       company: company,
       todoapp: todoapp,
-      todoAppUser: todoAppUser,
       sections: [section],  // TODO: ラベルで複数sectionsを指定できるようにする
       users: users,
     };
@@ -228,7 +225,7 @@ export default class TrelloRepository {
     const cardTodo = taskRemind.cardTodo;
     const { users, todoTask, todoapp, company, sections } = cardTodo;
 
-    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.id, });
+    const todo: Todo = await TodoRepository.findOneBy({ todoapp_reg_id: todoTask.id });
 
     const taskDeadLine = todoTask.due ? toJapanDateTime(todoTask.due) : null;
     const taskUpdated = toJapanDateTime(todoTask.dateLastActivity);

@@ -74,5 +74,5 @@ export const TodoSectionRepository = dataSource.getRepository<TodoSection>(TodoS
       this.upsert(updatedTodoSections, []),
       this.softRemove(deletedTodoSections),
     ]);
-  }
+  },
 });

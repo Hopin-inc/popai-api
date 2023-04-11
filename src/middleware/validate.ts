@@ -10,7 +10,7 @@ export const validationError = (
   errors: Error | ValidationError[],
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   if (errors instanceof Array && errors[0] instanceof ValidationError) {
     const dtoErrors = errors.map((error: ValidationError) => {

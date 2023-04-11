@@ -135,5 +135,5 @@ export const LineMessageQueueRepository = dataSource.getRepository<LineMessageQu
       query = query.andWhere("line_message_queues.user_id = :user_id", { user_id: user.id });
     }
     return await query.getMany();
-  }
+  },
 });

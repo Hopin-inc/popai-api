@@ -29,7 +29,7 @@ export async function fetchApi<Res, IsFormData extends boolean = boolean>(
   };
 
   if (accessToken) {
-    options.headers["Authorization"] = `Bearer ${accessToken}`;
+    options.headers["Authorization"] = `Bearer ${ accessToken }`;
   }
 
   if ("GET" === method.toUpperCase()) {

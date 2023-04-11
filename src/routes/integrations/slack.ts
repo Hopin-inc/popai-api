@@ -10,7 +10,7 @@ router.post("/webhook", async (req, res) => {
   let responded: boolean = false;
   try {
     if (req.headers["content-type"] === "" || typeof req.headers["content-type"] === "undefined") {
-      return req.headers["content-type"] = "application/json";
+      req.headers["content-type"] = "application/json";
     }
     const controller = new SlackController();
     const payload = JSON.parse(req.body.payload);

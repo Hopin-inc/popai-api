@@ -2,6 +2,8 @@ import express from "express";
 import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import UserController from "@/controllers/app/UserController";
+import { SessionErrors } from "@/consts/error-messages";
+import logger from "@/logger/winston";
 
 const router = express();
 
@@ -14,9 +16,10 @@ router.patch("/", async (req, res) => {
       const response = await controller.update(data, company.id);
       ApiResponse.successRes(res, response);
     } else {
-      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -30,9 +33,10 @@ router.delete("/:userId", async (req, res) => {
       const response = await controller.delete(userId, company.id);
       ApiResponse.successRes(res, response);
     } else {
-      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -47,9 +51,10 @@ router.get("/configs", async (req, res) => {
       const response = await controller.getConfigs(company.id, chatToolId, todoAppId);
       ApiResponse.successRes(res, response);
     } else {
-      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -62,9 +67,10 @@ router.get("/reporting-lines", async (req, res) => {
       const response = await controller.getReportingLines(company.id);
       ApiResponse.successRes(res, response);
     } else {
-      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });
@@ -79,9 +85,10 @@ router.patch("/reporting-lines/:userId", async (req, res) => {
       const response = await controller.updateReportingLines(data, company.id, userId);
       ApiResponse.successRes(res, response);
     } else {
-      ApiResponse.errRes(res, "Bad request.", StatusCodes.BAD_REQUEST);
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
     }
   } catch (error) {
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });

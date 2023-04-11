@@ -27,7 +27,7 @@ export default class ChatToolUser extends BaseEntity {
   @ManyToOne(
     () => User,
     user => user.chattoolUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "user_id" })
   user: User;
@@ -35,7 +35,7 @@ export default class ChatToolUser extends BaseEntity {
   @ManyToOne(
     () => ChatTool,
     chattool => chattool.chattoolUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" }
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "chattool_id" })
   chattool: ChatTool;

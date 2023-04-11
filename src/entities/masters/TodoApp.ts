@@ -21,7 +21,7 @@ export default class TodoApp extends BaseEntity {
   @OneToMany(
     () => ImplementedTodoApp,
     implementedTodoApp => implementedTodoApp.todoApp,
-    { cascade: true }
+    { cascade: true },
   )
   implementedCompanies: ImplementedTodoApp[];
 
@@ -33,7 +33,7 @@ export default class TodoApp extends BaseEntity {
   @OneToMany(
     () => TodoAppUser,
     todoAppUser => todoAppUser.todoApp,
-    { cascade: true }
+    { cascade: true },
   )
   todoAppUsers: TodoAppUser[];
 
@@ -45,7 +45,7 @@ export default class TodoApp extends BaseEntity {
   @OneToMany(
     () => Todo,
     todo => todo.todoapp,
-    { cascade: false }
+    { cascade: false },
   )
   todos: Todo[];
 }
