@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import path from "path";
 import { DataSource, DataSourceOptions } from "typeorm";
-import logger from "@/logger/winston";
 
 // Load env file
 dotenv.config({ path: path.join(__dirname, "../.env") });
@@ -29,7 +28,7 @@ const databaseConfig: DataSourceOptions = {
   logging: false,
 };
 
-logger.info("DB-HOST:" + envString(process.env.DB_HOST, ""));
+console.info("DB-HOST:" + envString(process.env.DB_HOST, ""));
 
 const dataSource = new DataSource(databaseConfig);
 export default dataSource;
