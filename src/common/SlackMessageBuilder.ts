@@ -410,7 +410,7 @@ export default class SlackMessageBuilder {
     Object.keys(items).forEach((key: keyof typeof items) => {
       filteredItems[key] = items[key].filter(todo => {
         return todo.sections.some(section => sectionIds.includes(section.id))
-          && todo.users.some(u => u.id === user.id);
+          && todo.users.some(u => u.id === user?.id);
       });
     });
     return filteredItems;
