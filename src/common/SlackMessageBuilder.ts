@@ -680,7 +680,7 @@ export default class SlackMessageBuilder {
   }
 
   public static createAskPlanModal(todos: Todo[], milestoneText: string): (KnownBlock | Block)[] {
-    const isDelayed = (ddl: Date): boolean => dayjs(ddl).isBefore(dayjs(), "day");
+    const isDelayed = (ddl: Date): boolean => dayjs(ddl).isBefore(toJapanDateTime(new Date()), "day");
     const delayedTodos = todos.filter(todo => isDelayed(todo.deadline)).sort(Sorter.byDate<Todo>("deadline"));
     const ongoingTodos = todos.filter(todo => !isDelayed(todo.deadline)).sort(Sorter.byDate<Todo>("deadline"));
     const getOption = (todo: Todo, prepend: string = "") => {

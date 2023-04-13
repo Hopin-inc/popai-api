@@ -809,8 +809,13 @@ export default class SlackRepository {
   public async askPlans(company: Company, milestone?: string) {
     const chatTool = company.chatTools.find(chatTool => chatTool.tool_code === ChatToolCode.SLACK);
     const message = SlackMessageBuilder.createAskPlansMessage(milestone);
-    if (chatTool) {
-      await Promise.all(company.users.map(user => this.sendDirectMessage(chatTool, user, message)));
+    const todos = await this.getProspectTodos(company);
+    if (chatTool && todos.length) {
+      await Promise.all(company.users.map(user => {
+        if (todos.some(t => t.users.some(u => u.id === user.id))) {
+          this.sendDirectMessage(chatTool, user, message);
+        }
+      }));
     }
   }
 

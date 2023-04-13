@@ -9,7 +9,7 @@ import {
 } from "@/consts/common";
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
-import { Between, Brackets, FindOptionsWhere, In, LessThan, SelectQueryBuilder } from "typeorm";
+import { And, Between, Brackets, FindOptionsWhere, In, IsNull, LessThan, Not, SelectQueryBuilder } from "typeorm";
 import dayjs from "dayjs";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
@@ -147,16 +147,18 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
 
   async getActiveTodos(company: Company, user?: User): Promise<Todo[]> {
     const filterByUser: FindOptionsWhere<Todo> = user ? { todoUsers: { user_id: user.id } } : {};
-    const startDate = dayjs().startOf("day").toDate();
+    const commonWhere: FindOptionsWhere<Todo> = {
+      company_id: company.id,
+      is_done: false,
+      is_closed: false,
+      ...filterByUser,
+    };
     const endDate = dayjs().endOf("day").toDate();
     return await this.find({
-      where: {
-        company_id: company.id,
-        deadline: Between(startDate, endDate),
-        is_done: false,
-        is_closed: false,
-        ...filterByUser,
-      },
+      where: [
+        { ...commonWhere, start_date: And(Not(IsNull()), LessThan(endDate)) },
+        { ...commonWhere, start_date: IsNull(), deadline: LessThan(endDate) },
+      ],
       relations: ["todoUsers.user.chattoolUsers.chattool", "todoSections.section"],
     });
   },
