@@ -10,7 +10,7 @@ export default class DailyReport extends BaseEntity {
   constructor(
     user: User | number,
     company: Company | number,
-    sections: Section[] | number[],
+    sections: Section[] | number[] | null,
     items: IDailyReportItems,
     slackChannelId?: string,
     slackTs?: string,
@@ -24,7 +24,7 @@ export default class DailyReport extends BaseEntity {
       this.todo_ids_yesterday = items.completedYesterday.map(todo => todo.id);
       this.todo_ids_delayed = items.delayed.map(todo => todo.id);
       this.todo_ids_ongoing = items.ongoing.map(todo => todo.id);
-      this.section_ids = sections.map(section => typeof section === "number" ? section : section.id);
+      this.section_ids = sections?.map(section => typeof section === "number" ? section : section.id) ?? [];
       if (slackChannelId) {
         this.slack_channel_id = slackChannelId;
       }

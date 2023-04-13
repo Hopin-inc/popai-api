@@ -52,6 +52,12 @@ export default class ProspectService {
             && (!timing.disabled_on_holidays_jp || !isHolidayToday())
             && (!timingException || (!timingException.excluded))
           ) {
+            const logMeta = {
+              company: company.id,
+              chatTool: chatTool.name,
+              askPlan: matchedTiming.ask_plan,
+            };
+            logger.info(`Start: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
             switch (chatTool.id) {
               case ChatToolId.SLACK:
                 if (matchedTiming.ask_plan) {
@@ -64,6 +70,7 @@ export default class ProspectService {
               default:
                 break;
             }
+            logger.info(`Finish: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
           }
         }
       }));
