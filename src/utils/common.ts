@@ -158,3 +158,10 @@ export const findMatchedTiming = <T extends { time: string }>(timings: T[], inte
   return timings.find(timing => timing.time === time);
 };
 
+export const getMemoryUsage = () => {
+  const memoryUsage = process.memoryUsage();
+  for (const key in memoryUsage) {
+    memoryUsage[key] = Math.round(memoryUsage[key] / 1024 / 1024 * 100) / 100;
+  }
+  return memoryUsage;
+};

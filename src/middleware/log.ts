@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "@/logger/winston";
+import { getMemoryUsage } from "@/utils/common";
 
 export const requestLog = (req: Request, _res: Response, next: NextFunction) => {
   logger.debug(`${ req.method } ${ req.originalUrl }`, {
@@ -7,6 +8,7 @@ export const requestLog = (req: Request, _res: Response, next: NextFunction) => 
     company: req.session?.company?.id,
     account: req.session?.uid,
     referrer: req.headers.referer,
+    memory: getMemoryUsage(),
   });
   next();
 };
