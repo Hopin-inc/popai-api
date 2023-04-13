@@ -22,7 +22,6 @@ import {
   TodoAppId,
 } from "@/consts/common";
 import logger from "@/logger/winston";
-import TodoApp from "@/entities/masters/TodoApp";
 import LineRepository from "@/repositories/LineRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
@@ -67,41 +66,36 @@ export default class TaskService {
         ],
         where,
       });
-
-      const companyTodoApps: [Company, TodoApp, boolean][] = [];
-      companies.forEach(company => {
-        company.todoApps.forEach(todoApp => {
-          companyTodoApps.push([company, todoApp, company.notifyConfig?.enabled ?? false]);
-        });
-      });
-      await Promise.all(companyTodoApps.map(async ([company, todoApp, notifyEnabled]) => {
-        const enabled = notifyEnabled && notify;
-        const logMeta = {
-          company: company.name,
-          todoApp: todoApp.name,
-          notify: enabled,
-        };
-        logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-        try {
-          switch (todoApp.id) {
-            case TodoAppId.TRELLO:  // TODO: Get credentials from db.
-              await this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
-              break;
-            case TodoAppId.MICROSOFT: // TODO: Enable notify option.
-              await this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
-              break;
-            case TodoAppId.NOTION:
-              const notionClient = await NotionService.init(company.id);
-              if (notionClient) {
-                await this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
-              }
-              break;
-            default:
-              break;
-          }
+      await Promise.all(companies.map(async company => {
+        const enabled = notify && (company.notifyConfig?.enabled ?? false);
+        for (const todoApp of company.todoApps) {
+          const logMeta = {
+            company: company.name,
+            todoApp: todoApp.name,
+            notify: enabled,
+          };
           logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-        } catch (error) {
-          logger.error(error);
+          try {
+            switch (todoApp.id) {
+              case TodoAppId.TRELLO:  // TODO: Get credentials from db.
+                await this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
+                break;
+              case TodoAppId.MICROSOFT: // TODO: Enable notify option.
+                await this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
+                break;
+              case TodoAppId.NOTION:
+                const notionClient = await NotionService.init(company.id);
+                if (notionClient) {
+                  await this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
+                }
+                break;
+              default:
+                break;
+            }
+            logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
+          } catch (error) {
+            logger.error(error);
+          }
         }
       }));
       return;
