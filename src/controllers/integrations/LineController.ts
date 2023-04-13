@@ -11,7 +11,7 @@ import LineRepository from "@/repositories/LineRepository";
 
 import LineMessageBuilder from "@/common/LineMessageBuilder";
 import {
-  ChatToolCode,
+  ChatToolId,
   LineMessageQueueStatus,
   MessageTriggerType,
   MessageType,
@@ -47,7 +47,7 @@ export default class LineController extends Controller {
   private async handleEvent(event: WebhookEvent): Promise<any> {
     try {
       const chattool = await ChatToolRepository.findOneBy({
-        tool_code: ChatToolCode.LINE,
+        id: ChatToolId.LINE,
       });
       if (!chattool) {
         logger.error("LINE is not implemented yet!");

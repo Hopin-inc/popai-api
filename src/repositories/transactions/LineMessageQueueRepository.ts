@@ -1,6 +1,6 @@
 import dataSource from "@/config/data-source";
 import LineMessageQueue from "@/entities/transactions/LineMessageQueue";
-import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } from "@/consts/common";
+import { ChatToolId, LineMessageQueueStatus, MAX_REMIND_COUNT, RemindType } from "@/consts/common";
 import Company from "@/entities/settings/Company";
 import ChatToolUser from "@/entities/settings/ChatToolUser";
 import Todo from "@/entities/transactions/Todo";
@@ -32,7 +32,7 @@ export const LineMessageQueueRepository = dataSource.getRepository<LineMessageQu
       if (dayReminds.includes(dayDurations)) {
         for (const user of todo.users) {
           company.chatTools.forEach(async chatTool => {
-            if (chatTool.tool_code === ChatToolCode.LINE) {
+            if (chatTool.id === ChatToolId.LINE) {
               const chatToolUser = chatToolUsers.find(
                 chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === user.id,
               );

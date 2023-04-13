@@ -1,6 +1,6 @@
 import { Controller } from "tsoa";
 
-import { ChatToolCode } from "@/consts/common";
+import { ChatToolId } from "@/consts/common";
 import logger from "@/logger/winston";
 import LineBot from "@/config/line-bot";
 import { ChatToolRepository } from "@/repositories/master/ChatToolRepository";
@@ -9,7 +9,7 @@ import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepo
 export default class RichMenuController extends Controller {
   public async updateRichMenu(demoRichMenuId: string): Promise<any> {
     const chattool = await ChatToolRepository.findOneBy({
-      tool_code: ChatToolCode.LINE,
+      id: ChatToolId.LINE,
     });
 
     if (!chattool) {

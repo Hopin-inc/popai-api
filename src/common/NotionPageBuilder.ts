@@ -1,7 +1,7 @@
 import { Service } from "typedi";
 import { BlockObjectRequest, CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { IDailyReportItems } from "@/types";
-import { TodoAppCode } from "@/consts/common";
+import { TodoAppId } from "@/consts/common";
 import Todo from "@/entities/transactions/Todo";
 import DocumentToolUser from "@/entities/settings/DocumentToolUser";
 import logger from "@/logger/winston";
@@ -59,8 +59,8 @@ export default class NotionPageBuilder {
 
   private async createTodoSentence(todo: Todo, notionClient: NotionService, isDelayed?: boolean): Promise<BlockObjectRequest> {
     try {
-      switch (todo.todoapp.todo_app_code) {
-        case TodoAppCode.NOTION:
+      switch (todo.todoapp.id) {
+        case TodoAppId.NOTION:
           if (isDelayed) {
             await notionClient.updatePage(
               {
@@ -74,7 +74,8 @@ export default class NotionPageBuilder {
               rich_text: [{ type: "mention", mention: { page: { id: todo.todoapp_reg_id } } }],
             },
           };
-        case TodoAppCode.TRELLO || TodoAppCode.MICROSOFT:
+        case TodoAppId.TRELLO:
+        case TodoAppId.MICROSOFT:
           if (isDelayed) {
             return {
               object: "block", type: "bulleted_list_item",

@@ -108,25 +108,14 @@ export const ChatToolId = {
   SLACK: 2,
 };
 
-export const ChatToolCode = {
-  LINE: "line",
-  SLACK: "slack",
-};
-
 export const TodoAppId = {
   TRELLO: 1,
   MICROSOFT: 2,
   NOTION: 3,
 };
 
-export const TodoAppCode = {
-  TRELLO: "trello",
-  MICROSOFT: "microsoft",
-  NOTION: "notion",
-};
-
-export const DocumentToolCode = {
-  NOTION: "notion",
+export const DocumentToolId = {
+  NOTION: 1,
 };
 
 export const LineMessageQueueStatus = {

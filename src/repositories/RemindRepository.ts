@@ -11,7 +11,7 @@ import LineRepository from "./LineRepository";
 
 import { diffDays, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
-import { ChatToolCode, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts/common";
+import { ChatToolId, LineMessageQueueStatus, MAX_REMIND_COUNT } from "@/consts/common";
 import { ITodoLines } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
@@ -34,7 +34,7 @@ export default class RemindRepository {
 
     const chattoolUsers = await ChatToolUserRepository.find();
     const chattool = await ChatToolRepository.findOneBy({
-      tool_code: ChatToolCode.LINE,
+      id: ChatToolId.LINE,
     });
 
     const userTodoQueueMap = this.mapUserQueueTaskList(
@@ -122,7 +122,7 @@ export default class RemindRepository {
         // Send to admin list task which not set duedate
         if (remindTasks.length) {
           for (const chatTool of company.chatTools) {
-            if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
+            if (chatTool.id === ChatToolId.LINE && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chatToolUsers.find(
                 chatToolUser => chatToolUser.chattool_id === chatTool.id && chatToolUser.user_id === adminUser.id,
@@ -138,7 +138,7 @@ export default class RemindRepository {
         }
       } else {
         for (const chatTool of company.chatTools) {
-          if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
+          if (chatTool.id === ChatToolId.LINE && company.adminUser) {
             const adminUser = company.adminUser;
             const chatToolUser = chatToolUsers.find(
               chattoolUser => chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === adminUser.id,
@@ -162,7 +162,7 @@ export default class RemindRepository {
 
         for (const [user_id, todos] of userTodoMap) {
           for (const chatTool of company.chatTools) {
-            if (chatTool.tool_code === ChatToolCode.LINE) {
+            if (chatTool.id === ChatToolId.LINE) {
               const user = todos[0].users.find(user => user.id === user_id);
               const chatToolUser = chatToolUsers.find(chattoolUser => {
                 return chattoolUser.chattool_id === chatTool.id && chattoolUser.user_id === user_id;
@@ -186,7 +186,7 @@ export default class RemindRepository {
 
       if (notSetAssignTasks.length) {
         for (const chatTool of company.chatTools) {
-          if (chatTool.tool_code === ChatToolCode.LINE && company.adminUser) {
+          if (chatTool.id === ChatToolId.LINE && company.adminUser) {
             const adminUser = company.adminUser;
             const chatToolUser = chatToolUsers.find(
               (chattoolUser) =>

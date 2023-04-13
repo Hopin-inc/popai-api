@@ -11,7 +11,8 @@ import { ITodoHistory, ValueOf } from "@/types";
 import {
   TodoHistoryProperty as Property,
   TodoHistoryAction as Action,
-  ChatToolCode, TodoAppId,
+  TodoAppId,
+  ChatToolId,
 } from "@/consts/common";
 
 import { diffDays, extractDifferences, toJapanDateTime } from "@/utils/common";
@@ -162,7 +163,6 @@ export default class TodoHistoryService {
     chatTool: ChatTool,
     editUser: TodoAppUser,
   ) {
-    const code = chatTool.tool_code;
     const configRecord = await NotifyConfigRepository.findOneBy({
       company_id: savedTodo.company_id,
       enabled: true,
@@ -170,42 +170,42 @@ export default class TodoHistoryService {
     const channelId = configRecord.channel;
 
     if (property === Property.NAME && action === Action.CREATE) { // 新規追加
-      switch (code) {
-        case ChatToolCode.LINE:
+      switch (chatTool.id) {
+        case ChatToolId.LINE:
           break;
-        case ChatToolCode.SLACK:
+        case ChatToolId.SLACK:
           await this.slackRepository.notifyOnCreated(savedTodo, assignees, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.IS_DONE && action === Action.CREATE) {  // 完了
-      switch (code) {
-        case ChatToolCode.LINE:
+      switch (chatTool.id) {
+        case ChatToolId.LINE:
           break;
-        case ChatToolCode.SLACK:
+        case ChatToolId.SLACK:
           await this.slackRepository.notifyOnCompleted(savedTodo, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.ASSIGNEE) {  // 担当者
-      switch (code) {
-        case ChatToolCode.LINE:
+      switch (chatTool.id) {
+        case ChatToolId.LINE:
           break;
-        case ChatToolCode.SLACK:
+        case ChatToolId.SLACK:
           await this.slackRepository.notifyOnAssigneeUpdated(savedTodo, action, assignees, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.DEADLINE) {  // 期日
-      switch (code) {
-        case ChatToolCode.LINE:
+      switch (chatTool.id) {
+        case ChatToolId.LINE:
           break;
-        case ChatToolCode.SLACK:
+        case ChatToolId.SLACK:
           await this.slackRepository.notifyOnDeadlineUpdated(savedTodo, action, deadline, chatTool, editUser, channelId);
           break;
       }
     } else if (property === Property.IS_CLOSED) {  // 保留
-      switch (code) {
-        case ChatToolCode.LINE:
+      switch (chatTool.id) {
+        case ChatToolId.LINE:
           break;
-        case ChatToolCode.SLACK:
+        case ChatToolId.SLACK:
           await this.slackRepository.notifyOnClosedUpdated(savedTodo, action, chatTool, editUser, channelId);
           break;
       }

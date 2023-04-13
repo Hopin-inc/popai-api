@@ -19,7 +19,6 @@ import {
   ChatToolId,
   RemindUserJobResult,
   RemindUserJobStatus,
-  TodoAppCode,
   TodoAppId,
 } from "@/consts/common";
 import logger from "@/logger/winston";
@@ -213,14 +212,14 @@ export default class TaskService {
     todoAppUser: TodoAppUser,
     correctDelayedCount: boolean = false,
   ) {
-    switch (todo.todoapp.todo_app_code) {
-      case TodoAppCode.TRELLO:
+    switch (todo.todoapp.id) {
+      case TodoAppId.TRELLO:
         await this.trelloRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
-      case TodoAppCode.MICROSOFT:
+      case TodoAppId.MICROSOFT:
         await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
         return;
-      case TodoAppCode.NOTION:
+      case TodoAppId.NOTION:
         const notionClient = await NotionService.init(todo.company_id);
         if (notionClient) {
           await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, notionClient, correctDelayedCount);

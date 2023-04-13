@@ -12,7 +12,7 @@ import ChatTool from "../masters/ChatTool";
 import Todo from "../transactions/Todo";
 import TodoApp from "../masters/TodoApp";
 import Prospect from "../transactions/Prospect";
-import { ChatToolCode, DocumentToolCode } from "../../consts/common";
+import { ChatToolId, DocumentToolId } from "../../consts/common";
 import DocumentTool from "../masters/DocumentTool";
 
 @Entity("s_users")
@@ -59,12 +59,12 @@ export default class User extends BaseEntity {
   }
 
   get lineId(): string | null {
-    const lineUser = this.chattoolUsers.find(record => record.chattool.tool_code === ChatToolCode.LINE);
+    const lineUser = this.chattoolUsers.find(record => record.chattool.id === ChatToolId.LINE);
     return lineUser ? lineUser.auth_key : null;
   }
 
   get slackId(): string | null {
-    const slackUser = this.chattoolUsers.find(record => record.chattool.tool_code === ChatToolCode.SLACK);
+    const slackUser = this.chattoolUsers.find(record => record.chattool.id === ChatToolId.SLACK);
     return slackUser ? slackUser.auth_key : null;
   }
 
@@ -81,7 +81,7 @@ export default class User extends BaseEntity {
   }
 
   get notionId(): string | null {
-    const notionUser = this.documentToolUsers.find(record => record.documentTool.tool_code === DocumentToolCode.NOTION);
+    const notionUser = this.documentToolUsers.find(record => record.documentTool.id === DocumentToolId.NOTION);
     return notionUser ? notionUser.auth_key : null;
   }
 

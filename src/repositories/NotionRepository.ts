@@ -32,7 +32,7 @@ import {
   ValueOf,
 } from "@/types";
 import { INotionDailyReport, INotionTask } from "@/types/notion";
-import { DocumentToolCode, UsageType } from "@/consts/common";
+import { DocumentToolId, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import { DailyReportConfigRepository } from "@/repositories/settings/DailyReportConfigRepository";
@@ -338,7 +338,7 @@ export default class NotionRepository {
       const response: CreatePageResponse[] = await Promise.all(users.map(async (user) => {
         const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
         const docToolUsers = user.documentToolUsers.find(
-          (du) => du.documentTool.tool_code === DocumentToolCode.NOTION,
+          (du) => du.documentTool.id === DocumentToolId.NOTION,
         );
         const pageOption = await this.notionPageBuilder.createDailyReportByUser(
           configRecord.database,

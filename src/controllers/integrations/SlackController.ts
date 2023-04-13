@@ -7,7 +7,7 @@ import User from "@/entities/settings/User";
 
 import SlackRepository from "@/repositories/SlackRepository";
 
-import { ChatToolCode, MessageTriggerType, TodoStatus } from "@/consts/common";
+import { ChatToolId, MessageTriggerType, TodoStatus } from "@/consts/common";
 import logger from "@/logger/winston";
 import { toJapanDateTime } from "@/utils/common";
 import TaskService from "@/services/TaskService";
@@ -52,7 +52,7 @@ export default class SlackController extends Controller {
   async handleEvent(payload: SlackInteractionPayload): Promise<[any, (...args) => unknown | undefined]> {
     try {
       const chatTool = await ChatToolRepository.findOneBy({
-        tool_code: ChatToolCode.SLACK,
+        id: ChatToolId.SLACK,
       });
 
       if (!chatTool) {

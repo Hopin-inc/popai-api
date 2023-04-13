@@ -14,7 +14,7 @@ import { ITask } from "@/types";
 import { INotionTask } from "@/types/notion";
 import { IMicrosoftTask } from "@/types/microsoft";
 import { ITrelloTask } from "@/types/trello";
-import { TodoAppCode } from "../../consts/common";
+import { TodoAppId } from "../../consts/common";
 import { COMPLETED, MICROSOFT_BASE_URL } from "../../consts/microsoft";
 
 @Entity("t_todos")
@@ -148,8 +148,8 @@ export default class Todo extends BaseEntity {
       this.delayed_count = todoByDb?.delayed_count ?? 0;
       this.reminded_count = todoByDb?.reminded_count ?? 0;
 
-      switch (todoApp.todo_app_code) {
-        case TodoAppCode.NOTION:
+      switch (todoApp.id) {
+        case TodoAppId.NOTION:
           const notionTodo = todoByApi as INotionTask;
           this.name = notionTodo.name;
           this.todoapp_reg_id = notionTodo.todoappRegId;
@@ -161,7 +161,7 @@ export default class Todo extends BaseEntity {
           this.is_done = notionTodo.isDone;
           this.is_closed = notionTodo.isClosed;
           break;
-        case TodoAppCode.TRELLO:
+        case TodoAppId.TRELLO:
           const trelloTodo = todoByApi as ITrelloTask;
           this.name = trelloTodo.name;
           this.todoapp_reg_id = trelloTodo.id;
@@ -173,7 +173,7 @@ export default class Todo extends BaseEntity {
           this.is_done = trelloTodo.dueComplete;
           this.is_closed = trelloTodo.closed;
           break;
-        case TodoAppCode.MICROSOFT:
+        case TodoAppId.MICROSOFT:
           const microSoftTodo = todoByApi as IMicrosoftTask;
           this.name = microSoftTodo.title;
           this.todoapp_reg_id = microSoftTodo.id;

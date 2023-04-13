@@ -23,59 +23,68 @@ export default class ProspectService {
 
   public async askProspects(): Promise<any> {
     try {
-      const companies: Company[] = await CompanyRepository.find({
-        relations: [
-          "sections",
-          "users.chattoolUsers.chattool",
-          "users.todoAppUsers.todoApp",
-          "users.documentToolUsers.documentTool",
-          "implementedTodoApps",
-          "implementedChatTools.chattool",
-          "adminUser.chattoolUsers.chattool",
-          "companyConditions",
-          "timing",
-          "timingExceptions",
-          "prospectConfig.timings",
-          "prospectConfig.chatTool",
-        ],
-      });
+      const companies = await this.getTargetCompanies();
       await Promise.all(companies.map(async company => {
-        const { prospectConfig, timing, timingExceptions } = company;
-        if (prospectConfig && timing) {
-          const { enabled, timings, chatTool } = prospectConfig;
+        if (company.prospectConfig) {
+          const { chatTool, timings } = company.prospectConfig;
           const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
-          const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
-          if (
-            enabled
-            && matchedTiming
-            && includesDayOfToday(timing.days_of_week)
-            && (!timing.disabled_on_holidays_jp || !isHolidayToday())
-            && (!timingException || (!timingException.excluded))
-          ) {
-            const logMeta = {
-              company: company.id,
-              chatTool: chatTool.name,
-              askPlan: matchedTiming.ask_plan,
-            };
-            logger.info(`Start: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
-            switch (chatTool.id) {
-              case ChatToolId.SLACK:
-                if (matchedTiming.ask_plan) {
-                  await this.slackRepository.askPlans(company, matchedTiming.ask_plan_milestone);
-                } else {
-                  await this.slackRepository.askProspects(company);
-                }
-                break;
-              case ChatToolId.LINE:
-              default:
-                break;
-            }
-            logger.info(`Finish: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
+          const logMeta = {
+            company: company.id,
+            chatTool: chatTool.name,
+            askPlan: matchedTiming.ask_plan,
+          };
+          logger.info(`Start: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
+          switch (chatTool.id) {
+            case ChatToolId.SLACK:
+              if (matchedTiming.ask_plan) {
+                await this.slackRepository.askPlans(company, matchedTiming.ask_plan_milestone);
+              } else {
+                await this.slackRepository.askProspects(company);
+              }
+              break;
+            case ChatToolId.LINE:
+            default:
+              break;
           }
+          logger.info(`Finish: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
         }
       }));
     } catch (error) {
       logger.error(error);
     }
+  }
+
+  private async getTargetCompanies(): Promise<Company[]> {
+    const companies: Company[] = await CompanyRepository.find({
+      relations: [
+        "sections",
+        "users.chattoolUsers.chattool",
+        "users.todoAppUsers.todoApp",
+        "users.documentToolUsers.documentTool",
+        "implementedTodoApps",
+        "implementedChatTools.chattool",
+        "adminUser.chattoolUsers.chattool",
+        "companyConditions",
+        "timing",
+        "timingExceptions",
+        "prospectConfig.timings",
+        "prospectConfig.chatTool",
+      ],
+    });
+    return companies.filter(company => {
+      const { prospectConfig, timing, timingExceptions } = company;
+      if (prospectConfig && timing) {
+        const { enabled, timings } = prospectConfig;
+        const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+        const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
+        return (
+          enabled
+          && matchedTiming
+          && includesDayOfToday(timing.days_of_week)
+          && (!timing.disabled_on_holidays_jp || !isHolidayToday())
+          && (!timingException || (!timingException.excluded))
+        );
+      }
+    });
   }
 }

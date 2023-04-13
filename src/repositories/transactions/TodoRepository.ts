@@ -3,7 +3,7 @@ import { IPerformanceReportItems } from "@/types";
 import Todo from "@/entities/transactions/Todo";
 import {
   MAX_REMIND_COUNT,
-  NOT_UPDATED_DAYS, TodoAppCode,
+  NOT_UPDATED_DAYS, TodoAppId,
   TodoHistoryAction as Action,
   TodoHistoryProperty as Property,
 } from "@/consts/common";
@@ -164,7 +164,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
   },
 
   async getNotArchivedTodoInNotion(todo: Todo, notionClient: NotionService): Promise<Todo> {
-    if (todo.todoapp.todo_app_code === TodoAppCode.NOTION) {
+    if (todo.todoapp.id === TodoAppId.NOTION) {
       const pageResponse = await notionClient.retrievePage({ page_id: todo.todoapp_reg_id });
       if ("object" in pageResponse && "properties" in pageResponse) {
         const pageObjectResponse: PageObjectResponse = pageResponse;

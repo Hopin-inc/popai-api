@@ -29,7 +29,7 @@ import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepo
 
 import logger from "@/logger/winston";
 import {
-  ChatToolCode,
+  ChatToolId,
   MAX_REMIND_COUNT,
   MessageTriggerType,
   MessageType,
@@ -90,7 +90,7 @@ export default class SlackRepository {
     users: User[],
     channel: string,
   ) {
-    const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+    const chatTool = company.chatTools.find(c => c.id === ChatToolId.SLACK);
     const targetTodo = getItemRandomly(todos.filter(
       todo => !sections || todo.sections.some(section => sections?.some(s => s.id === section.id))),
     );
@@ -492,7 +492,7 @@ export default class SlackRepository {
           // Send to admin list task which not set duedate
           if (remindTasks.length) {
             for (const chattool of company.chatTools) {
-              if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
+              if (chattool.id === ChatToolId.SLACK && company.adminUser) {
                 const adminUser = company.adminUser;
                 const chatToolUser = chattoolUsers.find(
                   chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
@@ -508,7 +508,7 @@ export default class SlackRepository {
           }
         } else {
           for (const chattool of company.chatTools) {
-            if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
+            if (chattool.id === ChatToolId.SLACK && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chattoolUsers.find(
                 (chattoolUser) =>
@@ -533,7 +533,7 @@ export default class SlackRepository {
 
           for (const [userId, todos] of userTodoMap) {
             for (const chattool of company.chatTools) {
-              if (chattool.tool_code === ChatToolCode.SLACK) {
+              if (chattool.id === ChatToolId.SLACK) {
                 const user = todos[0].users.find(user => user.id === userId);
                 const chatToolUser = chattoolUsers.find(
                   chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === userId,
@@ -555,7 +555,7 @@ export default class SlackRepository {
 
         if (notSetAssignTasks.length) {
           for (const chattool of company.chatTools) {
-            if (chattool.tool_code === ChatToolCode.SLACK && company.adminUser) {
+            if (chattool.id === ChatToolId.SLACK && company.adminUser) {
               const adminUser = company.adminUser;
               const chatToolUser = chattoolUsers.find(
                 chattoolUser => chattoolUser.chattool_id === chattool.id && chattoolUser.user_id === adminUser.id,
@@ -636,7 +636,7 @@ export default class SlackRepository {
     const channelId = await this.getSendChannel(company);
     const chatToolUsers = await ChatToolUserRepository.find();
     const remindTasks: Todo[] = await this.getTodayRemindTasks(company, chatToolUsers);
-    const chatTool = await ChatToolRepository.findOneBy({ tool_code: ChatToolCode.SLACK });
+    const chatTool = await ChatToolRepository.findOneBy({ id: ChatToolId.SLACK });
     const userTodoMap = this.mapUserRemindTaskList(remindTasks, chatTool, chatToolUsers);
 
     const remindPerTodo = async (todoSlacks: ITodoSlack[]): Promise<void> => {
@@ -667,7 +667,7 @@ export default class SlackRepository {
       if (dayReminds.includes(dayDurations)) {
         for (const todoUser of todo.todoUsers) {
           company.chatTools.forEach(async (chattool) => {
-            if (chattool.tool_code === ChatToolCode.SLACK) {
+            if (chattool.id === ChatToolId.SLACK) {
               const chatToolUser = chatToolUsers.find(
                 chattoolUser =>
                   chattoolUser.chattool_id === chattool.id &&
@@ -807,7 +807,7 @@ export default class SlackRepository {
   }
 
   public async askPlans(company: Company, milestone?: string) {
-    const chatTool = company.chatTools.find(chatTool => chatTool.tool_code === ChatToolCode.SLACK);
+    const chatTool = company.chatTools.find(chatTool => chatTool.id === ChatToolId.SLACK);
     const message = SlackMessageBuilder.createAskPlansMessage(milestone);
     const todos = await this.getProspectTodos(company);
     if (chatTool && todos.length) {
@@ -938,7 +938,7 @@ export default class SlackRepository {
     const { blocks: editedMsg } = SlackMessageBuilder.createThanksForCommentMessage(todo, prospect, action, comment);
     const sharedChannel = prospectRecord.company.prospectConfig.channel;
     const shareMsg = SlackMessageBuilder.createShareReliefMessage(todo, user, prospect, action, comment, iconUrl);
-    const chatTool = todo.company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
+    const chatTool = todo.company.chatTools.find(c => c.id === ChatToolId.SLACK);
     const [_, superiorUsers, pushedMessage]: [ChatUpdateResponse, User[], ChatPostMessageResponse] = await Promise.all([
       slackBot.updateMessage({ channel, ts, text: todo.name, blocks: editedMsg }),
       this.getSuperiorUsers(user.slackId),
