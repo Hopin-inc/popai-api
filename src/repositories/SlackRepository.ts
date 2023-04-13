@@ -63,7 +63,7 @@ export default class SlackRepository {
   public async reportByUser(
     items: IDailyReportItems,
     company: Company,
-    sections: Section[],
+    _sections: Section[] | null,
     user: User,
     chatTool: ChatTool,
     channel: string,
@@ -73,12 +73,12 @@ export default class SlackRepository {
     const slackProfile = await this.getUserProfile(company.id, user.slackId);
     if (chatTool && slackProfile?.ok) {
       const iconUrl = slackProfile.profile.image_48;
-      const message = SlackMessageBuilder.createDailyReportByUser(items, sections, user, iconUrl);
+      const message = SlackMessageBuilder.createDailyReportByUser(items, user, iconUrl);
       const res = await this.pushSlackMessage(chatTool, user, message, MessageTriggerType.DAILY_REPORT, channel, ts);
 
       ts = ts ?? res?.ts;
       const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
-      const dailyReport = new DailyReport(user, company, sections, items, channel, ts, filteredRes.pageId, filteredRes.docAppRegUrl);
+      const dailyReport = new DailyReport(user, company, [], items, channel, ts, filteredRes.pageId, filteredRes.docAppRegUrl);
       await DailyReportRepository.save(dailyReport);
     }
   }
@@ -86,13 +86,13 @@ export default class SlackRepository {
   public async suggestNotUpdatedTodo(
     todos: Todo[],
     company: Company,
-    sections: Section[],
+    sections: Section[] | null,
     users: User[],
     channel: string,
   ) {
     const chatTool = company.chatTools.find(c => c.tool_code === ChatToolCode.SLACK);
     const targetTodo = getItemRandomly(todos.filter(
-      todo => todo.sections.some(section => sections.some(s => s.id === section.id))),
+      todo => !sections || todo.sections.some(section => sections?.some(s => s.id === section.id))),
     );
     const targetUser = getItemRandomly(users);
     if (targetTodo && targetUser) {

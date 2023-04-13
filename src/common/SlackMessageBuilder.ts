@@ -373,8 +373,8 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createDailyReportByUser(items: IDailyReportItems, sections: Section[], user: User, iconUrl: string) {
-    const filteredItems = this.filterTodosByUser(items, sections, user);
+  public static createDailyReportByUser(items: IDailyReportItems, user: User, iconUrl: string) {
+    const filteredItems = this.filterTodosByUser(items, null, user);
     const blocks = this.getDailyReportBlocks(
       user,
       iconUrl,
@@ -400,16 +400,18 @@ export default class SlackMessageBuilder {
 
   public static filterTodosByUser(
     items: IDailyReportItems,
-    sections: (Section | number)[],
+    sections: (Section | number)[] | null,
     user: User,
   ): IDailyReportItems {
-    const sectionIds = sections?.length && typeof sections[0] === "number"
-      ? sections
-      : sections.map((s: Section) => s.id);
+    const sectionIds = !sections
+      ? []
+      : sections.length && typeof sections[0] === "number"
+        ? sections
+        : sections.map((s: Section) => s.id);
     const filteredItems: IDailyReportItems = { completedYesterday: [], delayed: [], ongoing: [] };
     Object.keys(items).forEach((key: keyof typeof items) => {
       filteredItems[key] = items[key].filter(todo => {
-        return todo.sections.some(section => sectionIds.includes(section.id))
+        return (!sectionIds.length || todo.sections.some(section => sectionIds.includes(section.id)))
           && todo.users.some(u => u.id === user?.id);
       });
     });

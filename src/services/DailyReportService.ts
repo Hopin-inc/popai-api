@@ -64,7 +64,14 @@ export default class DailyReportService {
           ) {
             const notionClient = await NotionService.init(company.id);
             if (notionClient) {
+              const logMeta = {
+                company: company.name,
+                chatTool: chatTool.name,
+                todoApp: "Notion",  // TODO: Switch by implementedTodoApps
+              };
+              logger.info(`Start: sendDailyReport { company: ${ company.id }, section: ALL }`, logMeta);
               await this.sendDailyReportByChannel(company, chatTool, channel, notionClient);
+              logger.info(`Finish: sendDailyReport { company: ${ company.id }, section: ALL }`, logMeta);
             }
           }
         }
@@ -76,14 +83,6 @@ export default class DailyReportService {
 
   private async sendDailyReportByChannel(company: Company, chatTool: ChatTool, channelId: string, notionClient: NotionService) {
     try {
-      const channelSectionsMap: Map<string, Section[]> = new Map();
-      company.sections.forEach(section => {
-        if (channelSectionsMap.has(channelId)) {
-          channelSectionsMap.get(channelId).push(section);
-        } else {
-          channelSectionsMap.set(channelId, [section]);
-        }
-      });
       const [dailyReportTodos, notUpdatedTodos]: [IDailyReportItems, Todo[]] = await Promise.all([
         this.getDailyReportItems(company, notionClient),
         TodoRepository.getNotUpdatedTodos(company),
@@ -94,20 +93,16 @@ export default class DailyReportService {
         dailyReportTodos, company, company.sections, usersByDocApp, notionClient);
 
       const usersByChatTool = company.users.filter(u => u.chatTools.some(c => c.tool_code === chatTool.tool_code));
-      const sendOperations: ReturnType<typeof this.sendDailyReportForChannel>[] = [];
-      channelSectionsMap.forEach((sections, channel) => {
-        sendOperations.push(this.sendDailyReportForChannel(
-          dailyReportTodos,
-          notUpdatedTodos,
-          company,
-          sections,
-          usersByChatTool,
-          chatTool,
-          channel,
-          response,
-        ));
-      });
-      await Promise.all(sendOperations);
+      await this.sendDailyReportForChannel(
+        dailyReportTodos,
+        notUpdatedTodos,
+        company,
+        null,
+        usersByChatTool,
+        chatTool,
+        channelId,
+        response,
+      );
     } catch (error) {
       logger.error(error);
     }
@@ -126,7 +121,7 @@ export default class DailyReportService {
     dailyReportTodos: IDailyReportItems,
     notUpdatedTodos: Todo[],
     company: Company,
-    sections: Section[],
+    sections: Section[] | null,
     users: User[],
     chatTool: ChatTool,
     channel: string,
@@ -134,7 +129,9 @@ export default class DailyReportService {
   ) {
     switch (chatTool.tool_code) {
       case ChatToolCode.SLACK:
-        await Promise.all(users.map(user => this.slackRepository.reportByUser(dailyReportTodos, company, sections, user, chatTool, channel, null, response)));
+        await Promise.all(users.map(user => {
+          return this.slackRepository.reportByUser(dailyReportTodos, company, sections, user, chatTool, channel, null, response);
+        }));
         await this.slackRepository.suggestNotUpdatedTodo(notUpdatedTodos, company, sections, users, channel);
         break;
       case ChatToolCode.LINE:
