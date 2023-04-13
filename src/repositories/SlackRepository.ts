@@ -78,7 +78,7 @@ export default class SlackRepository {
 
       ts = ts ?? res?.ts;
       const filteredRes = response.find(r => user.todoAppUsers.map(tu => tu.user_app_id === r.assignee));
-      const dailyReport = new DailyReport(user, company, [], items, channel, ts, filteredRes.pageId, filteredRes.docAppRegUrl);
+      const dailyReport = new DailyReport(user, company, [], items, channel, ts, filteredRes?.pageId, filteredRes?.docAppRegUrl);
       await DailyReportRepository.save(dailyReport);
     }
   }
