@@ -81,17 +81,27 @@ export default class DailyReportService {
     }
   }
 
-  private async sendDailyReportByChannel(company: Company, chatTool: ChatTool, channelId: string, notionClient: NotionService) {
+  private async sendDailyReportByChannel(
+    company: Company,
+    chatTool: ChatTool,
+    channelId: string,
+    notionClient: NotionService,
+  ) {
     try {
       const [dailyReportTodos, notUpdatedTodos]: [IDailyReportItems, Todo[]] = await Promise.all([
         this.getDailyReportItems(company, notionClient),
         TodoRepository.getNotUpdatedTodos(company),
       ]);
-
-      const usersByDocApp = company.users.filter(u => u.documentTools.some(t => t.tool_code === DocumentToolCode.NOTION));
+      const usersByDocApp = company.users.filter(u => {
+        return u.documentTools.some(t => t.tool_code === DocumentToolCode.NOTION);
+      });
       const response = await this.notionRepository.postDailyReportByUser(
-        dailyReportTodos, company, company.sections, usersByDocApp, notionClient);
-
+        dailyReportTodos,
+        company,
+        null,
+        usersByDocApp,
+        notionClient,
+      );
       const usersByChatTool = company.users.filter(u => u.chatTools.some(c => c.tool_code === chatTool.tool_code));
       await this.sendDailyReportForChannel(
         dailyReportTodos,

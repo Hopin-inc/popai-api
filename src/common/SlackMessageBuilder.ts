@@ -411,8 +411,8 @@ export default class SlackMessageBuilder {
     const filteredItems: IDailyReportItems = { completedYesterday: [], delayed: [], ongoing: [] };
     Object.keys(items).forEach((key: keyof typeof items) => {
       filteredItems[key] = items[key].filter(todo => {
-        return (!sectionIds.length || todo.sections.some(section => sectionIds.includes(section.id)))
-          && todo.users.some(u => u.id === user?.id);
+        return (!sectionIds.length || todo.sections.some(section => sectionIds.includes(section?.id)))
+          && todo.users.some(u => u?.id === user?.id);
       });
     });
     return filteredItems;

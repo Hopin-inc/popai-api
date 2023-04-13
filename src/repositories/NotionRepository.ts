@@ -328,7 +328,7 @@ export default class NotionRepository {
   public async postDailyReportByUser(
     items: IDailyReportItems,
     company: Company,
-    sections: Section[],
+    sections: Section[] | null,
     users: User[],
     notionClient: NotionService,
   ): Promise<INotionDailyReport[]> {
