@@ -134,62 +134,64 @@ export default class NotionRepository {
   ): Promise<void> {
     try {
       const pageInfo = await notionClient.retrievePage({ page_id: pageId }) as PageObjectResponse;
-      const pageProperty = Object.keys(pageInfo.properties).map((key) => pageInfo.properties[key]) as Record<any, any>;
-      if (pageProperty) {
-        const pagePropertyIds = pageProperty.map((obj) => obj.id);
-        const propertyId = {
-          title: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.TITLE),
-          section: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.SECTION),
-          assignee: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.ASSIGNEE),
-          due: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.DUE),
-          isDone: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_DONE),
-          isClosed: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_CLOSED),
-        };
+      if (pageInfo?.properties) {
+        const pageProperty = Object.keys(pageInfo.properties).map((key) => pageInfo.properties[key]) as Record<any, any>;
+        if (pageProperty) {
+          const pagePropertyIds = pageProperty.map((obj) => obj.id);
+          const propertyId = {
+            title: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.TITLE),
+            section: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.SECTION),
+            assignee: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.ASSIGNEE),
+            due: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.DUE),
+            isDone: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_DONE),
+            isClosed: this.getUsageProperty(propertyUsages, pagePropertyIds, UsageType.IS_CLOSED),
+          };
 
-        const name = this.getTitle(pageProperty, propertyId.title);
-        if (!name) return;
+          const name = this.getTitle(pageProperty, propertyId.title);
+          if (!name) return;
 
-        const [isDone, isClosed, createdBy, lastEditedBy, createdAt, lastEditedAt]:
-          [boolean, boolean, string, string, Date, Date] = await Promise.all([
-          this.getIsStatus(pageProperty, propertyId.isDone, UsageType.IS_DONE),
-          this.getIsStatus(pageProperty, propertyId.isClosed, UsageType.IS_CLOSED),
-          this.getDefaultStr(pageInfo, "created_by"),
-          this.getDefaultStr(pageInfo, "last_edited_by"),
-          this.getDefaultDate(pageInfo, "created_time"),
-          this.getDefaultDate(pageInfo, "last_edited_time"),
-        ]);
-        const [startDate, deadline] = this.getDeadline(pageProperty, propertyId.due);
-        const pageTodo: INotionTask = {
-          todoappRegId: pageId,
-          name,
-          sections: this.getOptionIds(pageProperty, propertyId.section),
-          assignees: this.getOptionIds(pageProperty, propertyId.assignee),
-          startDate,
-          deadline,
-          isDone: isDone,
-          isClosed: isClosed,
-          todoappRegUrl: this.getDefaultStr(pageInfo, "url"),
-          createdBy: createdBy,
-          lastEditedBy: lastEditedBy,
-          createdAt: createdAt,
-          lastEditedAt: lastEditedAt,
-          sectionIds: [],
-          createdById: null,
-          lastEditedById: null,
-          deadlineReminder: null,
-        };
+          const [isDone, isClosed, createdBy, lastEditedBy, createdAt, lastEditedAt]:
+            [boolean, boolean, string, string, Date, Date] = await Promise.all([
+            this.getIsStatus(pageProperty, propertyId.isDone, UsageType.IS_DONE),
+            this.getIsStatus(pageProperty, propertyId.isClosed, UsageType.IS_CLOSED),
+            this.getDefaultStr(pageInfo, "created_by"),
+            this.getDefaultStr(pageInfo, "last_edited_by"),
+            this.getDefaultDate(pageInfo, "created_time"),
+            this.getDefaultDate(pageInfo, "last_edited_time"),
+          ]);
+          const [startDate, deadline] = this.getDeadline(pageProperty, propertyId.due);
+          const pageTodo: INotionTask = {
+            todoappRegId: pageId,
+            name,
+            sections: this.getOptionIds(pageProperty, propertyId.section),
+            assignees: this.getOptionIds(pageProperty, propertyId.assignee),
+            startDate,
+            deadline,
+            isDone: isDone,
+            isClosed: isClosed,
+            todoappRegUrl: this.getDefaultStr(pageInfo, "url"),
+            createdBy: createdBy,
+            lastEditedBy: lastEditedBy,
+            createdAt: createdAt,
+            lastEditedAt: lastEditedAt,
+            sectionIds: [],
+            createdById: null,
+            lastEditedById: null,
+            deadlineReminder: null,
+          };
 
-        const [sectionIds, createdById, lastEditedById]: [number[], number, number] = await Promise.all([
-          SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
-          this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
-          this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
-        ]);
+          const [sectionIds, createdById, lastEditedById]: [number[], number, number] = await Promise.all([
+            SectionRepository.getSectionIds(company, todoapp, pageTodo.sections),
+            this.getEditedById(company.users, todoapp.id, pageTodo.createdBy),
+            this.getEditedById(company.users, todoapp.id, pageTodo.lastEditedBy),
+          ]);
 
-        pageTodo.sectionIds = sectionIds;
-        pageTodo.createdById = createdById;
-        pageTodo.lastEditedById = lastEditedById;
+          pageTodo.sectionIds = sectionIds;
+          pageTodo.createdById = createdById;
+          pageTodo.lastEditedById = lastEditedById;
 
-        pageTodos.push(pageTodo);
+          pageTodos.push(pageTodo);
+        }
       }
     } catch(error) {
       logger.error(error);
