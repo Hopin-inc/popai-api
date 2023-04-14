@@ -54,7 +54,6 @@ export default class SlackController extends Controller {
       const chatTool = await ChatToolRepository.findOneBy({
         id: ChatToolId.SLACK,
       });
-
       if (!chatTool) {
         logger.error("SLACK is not implemented yet!");
         return;
@@ -74,6 +73,10 @@ export default class SlackController extends Controller {
         const channelId = container.channel_id;
         const threadId = container.message_ts;
 
+        logger.info(
+          `Received: Slack Webhook { type: ${ payload.type }, user: ${ slackUser.id }, action: ${ actionId } }`,
+          payload,
+        );
         return [
           await this.handleBlockActions(chatTool, slackUser, slackId, repliedMessage, channelId, threadId, triggerId, actionId),
           undefined,
@@ -81,6 +84,10 @@ export default class SlackController extends Controller {
       } else if (payload.type === "view_submission") {
         const { user, view } = payload;
         const slackUser = await this.slackRepository.getUserFromSlackId(user.id);
+        logger.info(
+          `Received: Slack Webhook { type: ${ payload.type }, user: ${ slackUser.id }, view: ${ view.type } }`,
+          payload,
+        );
         return await this.handleViewSubmissions(slackUser, view);
       } else {
         logger.error("Unknown Response");
