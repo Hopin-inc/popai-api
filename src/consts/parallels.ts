@@ -3,5 +3,6 @@ export const DailyReportServiceParallels = {
 };
 
 export const TaskServiceParallels = {
-  SYNC_TODOS: 1000,
+  SYNC_TODOS: 10,
+  GET_PAGES: 1000,
 };

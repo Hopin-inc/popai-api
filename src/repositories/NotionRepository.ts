@@ -20,7 +20,7 @@ import { TodoUserRepository } from "@/repositories/transactions/TodoUserReposito
 import { TodoSectionRepository } from "@/repositories/transactions/TodoSectionRepository";
 import { SectionRepository } from "@/repositories/settings/SectionRepository";
 
-import { diffDays, toJapanDateTime } from "@/utils/common";
+import { diffDays, runInParallel, toJapanDateTime } from "@/utils/common";
 import logger from "@/logger/winston";
 import {
   IDailyReportItems,
@@ -41,6 +41,7 @@ import PropertyUsage from "@/entities/settings/PropertyUsage";
 import { PropertyUsageRepository } from "@/repositories/settings/PropertyUsageRepository";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import Board from "@/entities/settings/Board";
+import { TaskServiceParallels } from "@/consts/parallels";
 
 @Service()
 export default class NotionRepository {
@@ -99,12 +100,20 @@ export default class NotionRepository {
         }
         const pageIds: string[] = pages.map(page => page.id);
         const pageTodos: INotionTask[] = [];
-        await Promise.all(pageIds.map(pageId => {
-          return this.getPages(pageId, pageTodos, company, todoapp, board.propertyUsages, notionClient);
-        }));
-        await Promise.all(pageTodos.map(pageTodo => {
-          return this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections);
-        }));
+        await runInParallel(
+          pageIds,
+          async (pageId) => {
+            await this.getPages(pageId, pageTodos, company, todoapp, board.propertyUsages, notionClient);
+          },
+          TaskServiceParallels.GET_PAGES,
+        );
+        await runInParallel(
+          pageTodos,
+          async (pageTodo) => {
+            await this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections);
+          },
+          TaskServiceParallels.GET_PAGES,
+        );
       }
     } catch (error) {
       logger.error(error);
