@@ -17,6 +17,7 @@ export type IdOptional<T extends { id: any }> = Omit<T, "id"> & { id?: T["id"] }
 
 export type ITodoHistory = {
   todoId: string;
+  companyId: number;
   name?: string;
   startDate?: Date;
   deadline?: Date;

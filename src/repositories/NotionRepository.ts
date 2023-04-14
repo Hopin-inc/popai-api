@@ -62,7 +62,7 @@ export default class NotionRepository {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
       await this.getCardBoards(todoTasks, company, todoApp, company.sections, notionClient);
-      await this.filterUpdatePages(todoTasks, notify);
+      await this.filterUpdatePages(todoTasks, company, notify);
     } catch (error) {
       logger.error(error);
     }
@@ -223,7 +223,11 @@ export default class NotionRepository {
     }
   }
 
-  private async filterUpdatePages(pageTodos: ITodoTask<INotionTask>[], notify: boolean = false): Promise<void> {
+  private async filterUpdatePages(
+    pageTodos: ITodoTask<INotionTask>[],
+    company: Company,
+    notify: boolean = false,
+  ): Promise<void> {
     const cards: IRemindTask<INotionTask>[] = [];
 
     for (const pageTodo of pageTodos) {
@@ -242,10 +246,14 @@ export default class NotionRepository {
         delayedCount: delayedCount,
       });
     }
-    await this.createTodo(cards, notify);
+    await this.createTodo(cards, company, notify);
   }
 
-  private async createTodo(taskReminds: IRemindTask<INotionTask>[], notify: boolean = false): Promise<void> {
+  private async createTodo(
+    taskReminds: IRemindTask<INotionTask>[],
+    company: Company,
+    notify: boolean = false,
+  ): Promise<void> {
     try {
       if (!taskReminds.length) return;
       const todos: Todo[] = [];
@@ -258,7 +266,7 @@ export default class NotionRepository {
       }));
 
       const todoIds: string[] = taskReminds.map(t => t.cardTodo.todoTask.todoappRegId);
-      const savedTodos = await TodoRepository.getTodoHistories(todoIds);
+      const savedTodos = await TodoRepository.getTodoHistories(todoIds, company.id);
       await TodoRepository.upsert(todos, []);
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
@@ -287,6 +295,7 @@ export default class NotionRepository {
 
       dataTodoHistories.push({
         todoId: todoTask.todoappRegId,
+        companyId: company.id,
         name: todoTask.name,
         startDate: todoTask.startDate,
         deadline: todoTask.deadline,

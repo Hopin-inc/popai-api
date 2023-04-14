@@ -52,7 +52,7 @@ export default class TrelloRepository {
         await this.getCardBoards(section.boardAdminUser, section, todoTasks, company, todoapp);
       }
 
-      await this.filterUpdateCards(todoTasks, notify);
+      await this.filterUpdateCards(todoTasks, company, notify);
     } catch (error) {
       logger.error(error);
     }
@@ -166,7 +166,11 @@ export default class TrelloRepository {
     }
   }
 
-  private async filterUpdateCards(cardTodos: ITodoTask<ITrelloTask>[], notify: boolean = false): Promise<void> {
+  private async filterUpdateCards(
+    cardTodos: ITodoTask<ITrelloTask>[],
+    company: Company,
+    notify: boolean = false,
+  ): Promise<void> {
     const cards: IRemindTask<ITrelloTask>[] = [];
 
     for (const cardTodo of cardTodos) {
@@ -186,10 +190,14 @@ export default class TrelloRepository {
       });
     }
 
-    await this.createTodo(cards, notify);
+    await this.createTodo(cards, company, notify);
   }
 
-  private async createTodo(taskReminds: IRemindTask<ITrelloTask>[], notify: boolean = false): Promise<void> {
+  private async createTodo(
+    taskReminds: IRemindTask<ITrelloTask>[],
+    company: Company,
+    notify: boolean = false,
+  ): Promise<void> {
     try {
       if (!taskReminds.length) return;
       const dataTodos: Todo[] = [];
@@ -202,7 +210,7 @@ export default class TrelloRepository {
       }));
 
       const todoIds: string[] = taskReminds.map(t => t.cardTodo.todoTask.id);
-      const savedTodos = await TodoRepository.getTodoHistories(todoIds);
+      const savedTodos = await TodoRepository.getTodoHistories(todoIds, company.id);
       await TodoRepository.upsert(dataTodos, []);
       await Promise.all([
         this.todoHistoryService.saveTodoHistories(savedTodos, dataTodoHistories, notify),
@@ -246,6 +254,7 @@ export default class TrelloRepository {
 
     dataTodoHistories.push({
       todoId: todoTask.id,
+      companyId: company.id,
       name: todoTask.name,
       deadline: todoTask.due,
       users: users,

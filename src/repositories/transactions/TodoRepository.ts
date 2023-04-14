@@ -19,7 +19,7 @@ import { TodoUserRepository } from "@/repositories/transactions/TodoUserReposito
 import NotionService from "@/services/NotionService";
 
 export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
-  async getTodoHistories(todoIds: string[]): Promise<Todo[]> {
+  async getTodoHistories(todoIds: string[], companyId: number): Promise<Todo[]> {
     try {
       return await this.createQueryBuilder("todos")
         .leftJoinAndSelect("todos.todoUsers", "todo_users")
@@ -32,6 +32,7 @@ export const TodoRepository = dataSource.getRepository<Todo>(Todo).extend({
         .leftJoinAndSelect("company.implementedChatTools", "implemented_chat_tools")
         .leftJoinAndSelect("implemented_chat_tools.chattool", "chat_tools")
         .where("todos.todoapp_reg_id IN (:...todoIds)", { todoIds })
+        .andWhere("todos.company_id = :companyId", { companyId })
         .getMany();
     } catch (error) {
       logger.error(error);

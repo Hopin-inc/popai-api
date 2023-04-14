@@ -35,7 +35,7 @@ export default class TodoHistoryService {
 
   public async saveTodoHistories(savedTodos: Todo[], todos: ITodoHistory[], notify: boolean = false): Promise<void> {
     await Promise.all(todos.map(async todo => {
-      const savedTodo = savedTodos.find(t => t.todoapp_reg_id === todo.todoId);
+      const savedTodo = savedTodos.find(t => t.todoapp_reg_id === todo.todoId && t.company_id === todo.companyId);
       if (savedTodo) {
         await this.saveTodoHistory(savedTodo, todo, notify);
       }
