@@ -4,7 +4,7 @@ import SlackRepository from "@/repositories/SlackRepository";
 import LineRepository from "@/repositories/LineRepository";
 
 import Company from "@/entities/settings/Company";
-import { ChatToolId, DocumentToolId } from "@/consts/common";
+import { ChatToolId, TodoAppId } from "@/consts/common";
 import logger from "@/logger/winston";
 import Section from "@/entities/settings/Section";
 import { IDailyReportItems } from "@/types";
@@ -100,8 +100,11 @@ export default class DailyReportService {
         this.getDailyReportItems(company, notionClient),
         TodoRepository.getNotUpdatedTodos(company),
       ]);
-      const usersByDocApp = company.users.filter(u => { // FIXME: implementedTodoApps = Notionの場合から取得するように変更
-        return u.documentTools.some(t => t.id === DocumentToolId.NOTION);
+      // const usersByDocApp = company.users.filter(u => { // FIXME: implementedTodoApps にNotionを連携していない場合に対応させる
+      //   return u.documentTools.some(t => t.id === DocumentToolId.NOTION);
+      // });
+      const usersByDocApp = company.users.filter(u => {
+        return u.todoApps.some(t => t.id === TodoAppId.NOTION);
       });
       const response = await this.notionRepository.postDailyReportByUser(
         dailyReportTodos,
