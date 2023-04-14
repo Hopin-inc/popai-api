@@ -81,7 +81,8 @@ export default class NotionRepository {
         TodoHistoryRepository.getLastUpdatedDate(company, todoapp),
       ]);
       if (board) {
-        let hasMore = true;
+        let hasMore: boolean = true;
+        let startCursor: string | undefined = undefined;
         while (hasMore) {
           const response = await notionClient.queryDatabase({
             database_id: board.app_board_id,
@@ -91,8 +92,10 @@ export default class NotionRepository {
                 last_edited_time: { on_or_after: lastUpdatedDate.toISOString().slice(0, 10) },
               }
               : undefined,
+            start_cursor: startCursor,
           });
           hasMore = response?.has_more;
+          startCursor = response?.next_cursor;
           const pageIds: string[] = response?.results.map(page => page.id);
           const pageTodos: INotionTask[] = [];
           await runInParallel(
