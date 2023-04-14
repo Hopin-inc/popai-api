@@ -54,5 +54,5 @@ dataSource.initialize()
     app.use("/api", Router);
   })
   .catch((err) => {
-    console.error(`Error during Data Source initialization: ${ err }`);
+    logger.error(`Error during Data Source initialization: ${ err }`);
   });

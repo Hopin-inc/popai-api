@@ -27,6 +27,8 @@ import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import { RemindUserJobRepository } from "@/repositories/transactions/RemindUserJobRepository";
 import { LineMessageQueueRepository } from "@/repositories/transactions/LineMessageQueueRepository";
 import NotionService from "@/services/NotionService";
+import { runInParallel } from "@/utils/common";
+import { TaskServiceParallels } from "@/consts/parallels";
 
 @Service()
 export default class TaskService {
@@ -66,39 +68,42 @@ export default class TaskService {
         ],
         where,
       });
-      await Promise.all(companies.map(async company => {
-        const enabled = notify && (company.notifyConfig?.enabled ?? false);
-        for (const todoApp of company.todoApps) {
-          const logMeta = {
-            company: company.name,
-            todoApp: todoApp.name,
-            notify: enabled,
-          };
-          logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-          try {
-            switch (todoApp.id) {
-              case TodoAppId.TRELLO:  // TODO: Get credentials from db.
-                await this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
-                break;
-              case TodoAppId.MICROSOFT: // TODO: Enable notify option.
-                await this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
-                break;
-              case TodoAppId.NOTION:
-                const notionClient = await NotionService.init(company.id);
-                if (notionClient) {
-                  await this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
-                }
-                break;
-              default:
-                break;
-            }
+      await runInParallel(
+        companies,
+        async (company) => {
+          const enabled = notify && (company.notifyConfig?.enabled ?? false);
+          for (const todoApp of company.todoApps) {
+            const logMeta = {
+              company: company.name,
+              todoApp: todoApp.name,
+              notify: enabled,
+            };
             logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-          } catch (error) {
-            logger.error(error);
+            try {
+              switch (todoApp.id) {
+                case TodoAppId.TRELLO:  // TODO: Get credentials from db.
+                  await this.trelloRepository.syncTaskByUserBoards(company, todoApp, enabled);
+                  break;
+                case TodoAppId.MICROSOFT: // TODO: Enable notify option.
+                  await this.microsoftRepository.syncTaskByUserBoards(company, todoApp);
+                  break;
+                case TodoAppId.NOTION:
+                  const notionClient = await NotionService.init(company.id);
+                  if (notionClient) {
+                    await this.notionRepository.syncTaskByUserBoards(company, todoApp, notionClient, enabled);
+                  }
+                  break;
+                default:
+                  break;
+              }
+              logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
+            } catch (error) {
+              logger.error(error);
+            }
           }
-        }
-      }));
-      return;
+        },
+        TaskServiceParallels.SYNC_TODOS,
+      );
     } catch (error) {
       logger.error(error);
     }
@@ -204,19 +209,18 @@ export default class TaskService {
     todoappRegId: string,
     todo: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false,
   ) {
     switch (todo.todoapp.id) {
       case TodoAppId.TRELLO:
-        await this.trelloRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
+        await this.trelloRepository.updateTodo(todoappRegId, todo, todoAppUser);
         return;
       case TodoAppId.MICROSOFT:
-        await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser, correctDelayedCount);
+        await this.microsoftRepository.updateTodo(todoappRegId, todo, todoAppUser);
         return;
       case TodoAppId.NOTION:
         const notionClient = await NotionService.init(todo.company_id);
         if (notionClient) {
-          await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, notionClient, correctDelayedCount);
+          await this.notionRepository.updateTodo(todoappRegId, todo, todoAppUser, notionClient);
         }
         return;
     }

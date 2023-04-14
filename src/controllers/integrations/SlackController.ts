@@ -9,7 +9,6 @@ import SlackRepository from "@/repositories/SlackRepository";
 
 import { ChatToolId, MessageTriggerType, TodoStatus } from "@/consts/common";
 import logger from "@/logger/winston";
-import { toJapanDateTime } from "@/utils/common";
 import TaskService from "@/services/TaskService";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import {
@@ -208,8 +207,7 @@ export default class SlackController extends Controller {
     const doneActions = replyActions.filter(m => m.status === TodoStatus.DONE).map(m => m.text);
     if (doneActions.includes(repliedMessage)) {
       slackTodo.is_done = true;
-      const correctDelayedCount = slackTodo.deadline < toJapanDateTime(new Date());
-      await this.taskService.update(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser, correctDelayedCount);
+      await this.taskService.update(slackTodo.todoapp_reg_id, slackTodo, todoAppAdminUser);
     }
 
     const superiorUsers = await this.slackRepository.getSuperiorUsers(slackId);

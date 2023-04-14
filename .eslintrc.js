@@ -19,6 +19,7 @@ module.exports = {
     "comma-dangle": ["error", "always-multiline"],
     "template-curly-spacing": ["error", "always"],
     "no-cond-assign": "off",
+    "no-console": "error",
     "no-case-declarations": "off",
     "no-unexpected-multiline": "error",
     "no-unreachable": "error",

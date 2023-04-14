@@ -16,8 +16,9 @@ import { INotionDailyReport } from "@/types/notion";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import NotionService from "@/services/NotionService";
-import { findMatchedTiming, includesDayOfToday, isHolidayToday, toJapanDateTime } from "@/utils/common";
+import { findMatchedTiming, includesDayOfToday, isHolidayToday, runInParallel, toJapanDateTime } from "@/utils/common";
 import { PROSPECT_BATCH_INTERVAL } from "@/consts/scheduler";
+import { DailyReportServiceParallels } from "@/consts/parallels";
 
 @Service()
 export default class DailyReportService {
@@ -70,23 +71,28 @@ export default class DailyReportService {
         "dailyReportConfig.chatTool",
       ],
     });
-    return companies.filter(company => {
-      const { dailyReportConfig, timing, timingExceptions } = company;
-      if (dailyReportConfig && timing) {
-        const { enabled, timings } = dailyReportConfig;
-        const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
-        const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
-        return (
-          enabled
-          && matchedTiming
-          && includesDayOfToday(timing.days_of_week)
-          && (!timing.disabled_on_holidays_jp || !isHolidayToday())
-          && (!timingException || (!timingException.excluded))
-        );
-      } else {
-        return false;
-      }
-    });
+    const filteredCompanies = await runInParallel(
+      companies,
+      async (company) => {
+        const { dailyReportConfig, timing, timingExceptions } = company;
+        if (dailyReportConfig && timing) {
+          const { enabled, timings } = dailyReportConfig;
+          const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+          const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
+          if (
+            enabled
+            && matchedTiming
+            && includesDayOfToday(timing.days_of_week)
+            && (!timing.disabled_on_holidays_jp || !isHolidayToday())
+            && (!timingException || (!timingException.excluded))
+          ) {
+            return company;
+          }
+        }
+      },
+      DailyReportServiceParallels.GET_TARGET_COMPANIES,
+    );
+    return filteredCompanies.filter(company => company !== undefined);
   }
 
   private async sendDailyReportByChannel(

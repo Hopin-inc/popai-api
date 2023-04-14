@@ -3,15 +3,17 @@ import { BlockObjectRequest, CreatePageParameters } from "@notionhq/client/build
 import { IDailyReportItems } from "@/types";
 import { TodoAppId } from "@/consts/common";
 import Todo from "@/entities/transactions/Todo";
-import DocumentToolUser from "@/entities/settings/DocumentToolUser";
 import logger from "@/logger/winston";
 import NotionService from "@/services/NotionService";
+import User from "@/entities/settings/User";
+import TodoAppUser from "@/entities/settings/TodoAppUser";
 
 @Service()
 export default class NotionPageBuilder {
   public async createDailyReportByUser(
     databaseId: string,
-    user: DocumentToolUser,
+    user: User,
+    todoAppUser: TodoAppUser,
     items: IDailyReportItems,
     createdAt: string,
     notionClient: NotionService,
@@ -46,8 +48,8 @@ export default class NotionPageBuilder {
         parent: { database_id: databaseId },
         icon: { emoji: "📝" },
         properties: {
-          "タイトル": { title: [{ text: { content: `${ user.user_name } ${ createdAt }` } }] },
-          "担当者": { people: [{ object: "user", id: user.auth_key }] },
+          "タイトル": { title: [{ text: { content: `${ user.name } ${ createdAt }` } }] },
+          "担当者": { people: [{ object: "user", id: todoAppUser.user_app_id }] },
           "日付": { date: { start: createdAt } },
         },
         children: sentences,

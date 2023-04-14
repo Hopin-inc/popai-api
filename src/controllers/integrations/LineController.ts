@@ -103,7 +103,7 @@ export default class LineController extends Controller {
               await this.replyProcessingJob(chattool, user, event.replyToken);
               await this.taskService.remindForDemoUser(user);
             } else {
-              console.error("Line ID :" + lineId + "のアカウントが登録されていません。");
+              logger.error("Line ID :" + lineId + "のアカウントが登録されていません。");
             }
           } else if (messageData.includes(event.postback.data)) {
             const messageContent = replyMessages.find(message => message.status === event.postback.data)?.displayText;
@@ -151,8 +151,7 @@ export default class LineController extends Controller {
     if (doneMessages.includes(repliedMessage)) {
       lineMessageQueue.todo.is_done = true;
       const todo = lineMessageQueue.todo;
-      const correctDelayedCount = todo.deadline < lineMessageQueue.remind_date;
-      await this.taskService.update(todo.todoapp_reg_id, todo, todoAppAdminUser, correctDelayedCount);
+      await this.taskService.update(todo.todoapp_reg_id, todo, todoAppAdminUser);
     }
     await LineMessageQueueRepository.saveQueue(lineMessageQueue);
     await this.updateRepliedFlag(lineMessageQueue.message_id);

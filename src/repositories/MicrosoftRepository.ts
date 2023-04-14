@@ -312,7 +312,6 @@ export default class MicrosoftRepository {
     id: string,
     task: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false,
   ): Promise<void> {
     try {
       // consts assignees = task.todoUsers.map(todoUser => {
@@ -328,11 +327,6 @@ export default class MicrosoftRepository {
       };
       const dataRefresh: IMicrosoftRefresh = { todoAppUser };
       await this.microsoftRequest.updateTask(id, microsoftTask, dataRefresh);
-
-      if (correctDelayedCount && task.delayed_count > 0) {
-        task.delayed_count--;
-      }
-
       await TodoRepository.save(task);
     } catch (error) {
       logger.error(error);

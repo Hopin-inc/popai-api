@@ -266,7 +266,6 @@ export default class TrelloRepository {
     id: string,
     task: Todo,
     todoAppUser: TodoAppUser,
-    correctDelayedCount: boolean = false,
   ): Promise<void> {
     try {
       const idMembers = task.todoUsers.map(todoUser => {
@@ -283,11 +282,6 @@ export default class TrelloRepository {
       };
       const trelloAuth = this.trelloRequest.generateAuth(todoAppUser);
       await this.trelloRequest.updateCard(id, trelloTask, trelloAuth);
-
-      if (correctDelayedCount && task.delayed_count > 0) {
-        task.delayed_count--;
-      }
-
       await TodoRepository.save(task);
     } catch (error) {
       logger.error(error);

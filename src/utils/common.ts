@@ -165,3 +165,15 @@ export const getMemoryUsage = () => {
   }
   return memoryUsage;
 };
+
+export const runInParallel = async <T, R>(data: T[], fn: (item: T) => Promise<R>, parallelCount: number): Promise<R[]> => {
+  const chunks = Array.from({ length: parallelCount }, () => []);
+  data.forEach((item, index) => {
+    const chunkIndex = index % parallelCount;
+    chunks[chunkIndex].push(item);
+  });
+  const results = await Promise.all(
+    chunks.map(chunk => Promise.all(chunk.map(item => fn(item)))),
+  );
+  return results.flat();
+};

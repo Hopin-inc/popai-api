@@ -32,7 +32,7 @@ import {
   ValueOf,
 } from "@/types";
 import { INotionDailyReport, INotionTask } from "@/types/notion";
-import { DocumentToolId, UsageType } from "@/consts/common";
+import { TodoAppId, UsageType } from "@/consts/common";
 import NotionPageBuilder from "@/common/NotionPageBuilder";
 import SlackMessageBuilder from "@/common/SlackMessageBuilder";
 import { DailyReportConfigRepository } from "@/repositories/settings/DailyReportConfigRepository";
@@ -300,7 +300,6 @@ export default class NotionRepository {
     task: Todo,
     todoAppUser: TodoAppUser,
     notionClient: NotionService,
-    correctDelayedCount: boolean = false,
   ): Promise<void> => {
     try {
       const board: Board = await BoardRepository.findOneByConfig(todoAppUser.todoapp_id, task.company_id);
@@ -314,11 +313,6 @@ export default class NotionRepository {
         },
       } as UpdatePageParameters;
       await notionClient.updatePage(payload);
-
-      if (correctDelayedCount && task.delayed_count > 0) {
-        task.delayed_count--;
-      }
-
       await TodoRepository.save(task);
     } catch (error) {
       logger.error(error);
@@ -337,12 +331,13 @@ export default class NotionRepository {
       const configRecord = await DailyReportConfigRepository.findOneBy({ company_id: company.id });
       const response: CreatePageResponse[] = await Promise.all(users.map(async (user) => {
         const itemsByUser = SlackMessageBuilder.filterTodosByUser(items, sections, user);
-        const docToolUsers = user.documentToolUsers.find(
-          (du) => du.documentTool.id === DocumentToolId.NOTION,
+        const todoAppUser = user.todoAppUsers.find(
+          (tu) => tu.todoapp_id === TodoAppId.NOTION,
         );
         const pageOption = await this.notionPageBuilder.createDailyReportByUser(
           configRecord.database,
-          docToolUsers,
+          user,
+          todoAppUser,
           itemsByUser,
           today,
           notionClient,

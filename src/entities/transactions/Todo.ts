@@ -55,9 +55,6 @@ export default class Todo extends BaseEntity {
   @Column({ nullable: true })
   is_reminded: boolean;
 
-  @Column({ default: 0 })
-  delayed_count: number;
-
   @Column({ default: false })
   is_closed: boolean;
 
@@ -145,7 +142,6 @@ export default class Todo extends BaseEntity {
 
       this.id = todoByDb?.id ?? null;
       this.is_reminded = todoByDb?.is_reminded ?? false;
-      this.delayed_count = todoByDb?.delayed_count ?? 0;
       this.reminded_count = todoByDb?.reminded_count ?? 0;
 
       switch (todoApp.id) {
