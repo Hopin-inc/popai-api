@@ -81,39 +81,35 @@ export default class NotionRepository {
         TodoHistoryRepository.getLastUpdatedDate(company, todoapp),
       ]);
       if (board) {
-        let response = await notionClient.queryDatabase({
-          database_id: board.app_board_id,
-          filter: lastUpdatedDate
-            ? {
-              timestamp: "last_edited_time",
-              last_edited_time: { on_or_after: lastUpdatedDate.toISOString().slice(0, 10) },
-            }
-            : undefined,
-        });
-        const pages = response.results;
-        while (response.has_more) {
-          response = await notionClient.queryDatabase({
+        let hasMore = true;
+        while (hasMore) {
+          const response = await notionClient.queryDatabase({
             database_id: board.app_board_id,
-            start_cursor: response.next_cursor,
+            filter: lastUpdatedDate
+              ? {
+                timestamp: "last_edited_time",
+                last_edited_time: { on_or_after: lastUpdatedDate.toISOString().slice(0, 10) },
+              }
+              : undefined,
           });
-          pages.push(...response.results);
+          hasMore = response?.has_more;
+          const pageIds: string[] = response?.results.map(page => page.id);
+          const pageTodos: INotionTask[] = [];
+          await runInParallel(
+            pageIds,
+            async (pageId) => {
+              await this.getPages(pageId, pageTodos, company, todoapp, board.propertyUsages, notionClient);
+            },
+            TaskServiceParallels.GET_PAGES,
+          );
+          await runInParallel(
+            pageTodos,
+            async (pageTodo) => {
+              await this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections);
+            },
+            TaskServiceParallels.GET_PAGES,
+          );
         }
-        const pageIds: string[] = pages.map(page => page.id);
-        const pageTodos: INotionTask[] = [];
-        await runInParallel(
-          pageIds,
-          async (pageId) => {
-            await this.getPages(pageId, pageTodos, company, todoapp, board.propertyUsages, notionClient);
-          },
-          TaskServiceParallels.GET_PAGES,
-        );
-        await runInParallel(
-          pageTodos,
-          async (pageTodo) => {
-            await this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections);
-          },
-          TaskServiceParallels.GET_PAGES,
-        );
       }
     } catch (error) {
       logger.error(error);
