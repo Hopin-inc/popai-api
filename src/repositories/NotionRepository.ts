@@ -61,7 +61,7 @@ export default class NotionRepository {
   ): Promise<void> {
     try {
       const todoTasks: ITodoTask<INotionTask>[] = [];
-      await this.getCardBoards(todoTasks, company, todoApp, company.sections, notionClient);
+      await this.getCardBoards(todoTasks, company, todoApp, notionClient);
       await this.filterUpdatePages(todoTasks, company, notify);
     } catch (error) {
       logger.error(error);
@@ -72,7 +72,6 @@ export default class NotionRepository {
     todoTasks: ITodoTask<INotionTask>[],
     company: Company,
     todoapp: TodoApp,
-    sections: Section[],
     notionClient: NotionService,
   ): Promise<void> {
     try {
@@ -108,7 +107,7 @@ export default class NotionRepository {
           await runInParallel(
             pageTodos,
             async (pageTodo) => {
-              await this.addTodoTask(pageTodo, todoTasks, company, todoapp, sections);
+              await this.addTodoTask(pageTodo, todoTasks, company, todoapp, null);
             },
             TaskServiceParallels.GET_PAGES,
           );
@@ -203,7 +202,7 @@ export default class NotionRepository {
     todoTasks: ITodoTask<INotionTask>[],
     company: Company,
     todoapp: TodoApp,
-    sections: Section[],
+    sections: Section[] | null,
   ): Promise<void> {
     const users = await TodoUserRepository.getUserAssignTask(company.users, pageTodo.assignees);
 
@@ -211,11 +210,13 @@ export default class NotionRepository {
       todoTask: pageTodo,
       company,
       todoapp,
-      sections: sections.filter(section => pageTodo.sectionIds?.includes(section.id)),
+      sections: sections?.filter(section => pageTodo.sectionIds?.includes(section.id)) ?? [],
       users,
     };
 
-    const taskFound = todoTasks.find(task => task.todoTask?.todoappRegId === pageTodo.todoappRegId);
+    const taskFound = todoTasks.find(task => {
+      return task.todoTask?.todoappRegId === pageTodo.todoappRegId && task.company.id === company.id;
+    });
     if (taskFound) {
       taskFound.users = users;
     } else {
