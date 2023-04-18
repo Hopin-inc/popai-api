@@ -1,6 +1,6 @@
 cron:
   - description: "Fetch data"
-    url: /api/tasks/update?notify=false
+    url: /api/tasks/update
     schedule: every hour synchronized
   - description: "Ask prospects"
     url: /api/tasks/prospect
