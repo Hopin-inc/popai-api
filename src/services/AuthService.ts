@@ -8,7 +8,7 @@ import Company from "@/entities/settings/Company";
 import { HttpException } from "@/exceptions";
 import { StatusCodes } from "@/common/StatusCodes";
 import { VerificationErrors } from "@/consts/error-messages";
-import InternalSlackService from "@/services/InternalSlackService";
+import SlackInternalWebhookClient from "@/integrations/SlackInternalWebhookClient";
 
 @Service()
 export default class AuthService {
@@ -30,9 +30,9 @@ export default class AuthService {
       const { uid } = account;
       const user = await auth.getUser(uid);
       if (user && user.emailVerified) {
-        const notification = new InternalSlackService();
+        const notification = new SlackInternalWebhookClient();
         await Promise.all([
-          AccountRepository.update(uid, { email_verified: true }),
+          AccountRepository.update(uid, { emailVerified: true }),
           notification.notifyOnAccountCreated(account),
         ]);
       } else {

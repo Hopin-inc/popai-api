@@ -1,82 +1,90 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany, Index } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
-import TodoApp from "../masters/TodoApp";
 import Company from "../settings/Company";
 import TodoUser from "./TodoUser";
-import TodoSection from "./TodoSection";
 import User from "../settings/User";
-import Section from "../settings/Section";
 import TodoHistory from "./TodoHistory";
 import Prospect from "./Prospect";
-import { replaceString, Sorter, toJapanDateTime } from "../../utils/common";
-import { ITask } from "@/types";
-import { INotionTask } from "@/types/notion";
-import { IMicrosoftTask } from "@/types/microsoft";
-import { ITrelloTask } from "@/types/trello";
+import { toJapanDateTime } from "../../utils/datetime";
+import { Sorter } from "../../utils/array";
+import { ITask, ValueOf } from "../../types";
+import { INotionTask } from "../../types/notion";
 import { TodoAppId } from "../../consts/common";
-import { COMPLETED, MICROSOFT_BASE_URL } from "../../consts/microsoft";
 
 @Entity("t_todos")
 export default class Todo extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
+  constructor(
+    todoByApi: ITask,
+    company: Company | string,
+    todoAppId: ValueOf<typeof TodoAppId>,
+    todoByDb?: Todo,
+  ) {
+    super();
+    if (todoByApi && company) {
+      this.companyId = typeof company === "string" ? company : company.id;
+      this.todoAppId = todoAppId;
+      this.id = todoByDb?.id ?? null;
+      switch (todoAppId) {
+        case TodoAppId.NOTION:
+          const notionTodo = todoByApi as INotionTask;
+          this.name = notionTodo.name;
+          this.appTodoId = notionTodo.todoAppRegId;
+          this.appUrl = notionTodo.todoAppRegUrl;
+          this.createdBy = notionTodo.createdById;
+          this.appCreatedAt = toJapanDateTime(notionTodo.createdAt);
+          this.startDate = notionTodo.startDate ? toJapanDateTime(notionTodo.startDate) : null;
+          this.deadline = notionTodo.deadline ? toJapanDateTime(notionTodo.deadline) : null;
+          this.isDone = notionTodo.isDone;
+          this.isClosed = notionTodo.isClosed;
+          break;
+      }
+    }
+  }
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  @PrimaryGeneratedColumn("uuid")
+  readonly id: string;
+
+  @Column({ name: "name", type: "varchar", length: 255 })
   name: string;
 
-  @Column({ nullable: true })
-  todoapp_id: number;
+  @Column({ name: "todo_app_id" })
+  todoAppId: number;
 
-  @Column({ nullable: true })
-  company_id: number;
+  @Column({ name: "company_id" })
+  companyId: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  todoapp_reg_id: string;
+  @Index()
+  @Column({ name: "app_todo_id", type: "varchar", length: 255 })
+  appTodoId: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  todoapp_reg_url: string;
+  @Index()
+  @Column({ name: "app_url", type: "varchar", length: 255, nullable: true })
+  appUrl?: string;
 
-  @Column({ nullable: true })
-  todoapp_reg_created_by: number;
+  @Column({ name: "created_by", nullable: true })
+  createdBy?: string;
 
-  @Column({ type: "datetime" })
-  todoapp_reg_created_at: Date;
+  @Column({ name: "app_created_at", type: "datetime", nullable: true })
+  appCreatedAt?: Date;
 
-  @Column({ type: "datetime", nullable: true, default: null })
-  start_date: Date;
+  @Index()
+  @Column({ name: "start_date", type: "datetime", nullable: true })
+  startDate: Date;
 
-  @Column({ type: "datetime", nullable: true, default: null })
+  @Index()
+  @Column({ name: "deadline", type: "datetime", nullable: true, default: null })
   deadline: Date;
 
-  @Column({ nullable: true })
-  is_done: boolean;
+  @Column({ name: "is_done", default: false })
+  isDone: boolean;
 
-  @Column({ nullable: true })
-  is_reminded: boolean;
-
-  @Column({ default: false })
-  is_closed: boolean;
-
-  @Column({ default: 0 })
-  reminded_count: number;
-
-  @Column({ type: "datetime", nullable: true, default: null })
-  first_ddl_set_at: Date;
-
-  @Column({ type: "datetime", nullable: true, default: null })
-  first_assigned_at: Date;
-
-  @ManyToOne(
-    () => TodoApp,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "todoapp_id" })
-  todoapp: TodoApp;
+  @Column({ name: "is_closed", default: false })
+  isClosed: boolean;
 
   @ManyToOne(
     () => Company,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
@@ -90,19 +98,7 @@ export default class Todo extends BaseEntity {
 
   get users(): User[] {
     const todoUsers = this.todoUsers;
-    return todoUsers ? todoUsers.filter(tu => !tu.deleted_at).map(tu => tu.user) : [];
-  }
-
-  @OneToMany(
-    () => TodoSection,
-    todoSection => todoSection.todo,
-    { cascade: false },
-  )
-  todoSections: TodoSection[];
-
-  get sections(): Section[] {
-    const todoSections = this.todoSections;
-    return todoSections ? todoSections.filter(ts => !ts.deleted_at).map(ts => ts.section) : [];
+    return todoUsers ? todoUsers.filter(tu => !tu.deletedAt).map(tu => tu.user) : [];
   }
 
   @OneToMany(
@@ -121,68 +117,9 @@ export default class Todo extends BaseEntity {
 
   get latestProspect(): Prospect | null {
     if (this.prospects && this.prospects.length) {
-      return this.prospects.sort(Sorter.byDate<Prospect>("created_at")).slice(-1)[0];
+      return this.prospects.sort(Sorter.byDate<Prospect>("createdAt")).slice(-1)[0];
     } else {
       return null;
-    }
-  }
-
-  constructor(
-    todoByApi: ITask,
-    company: Company | number,
-    todoApp: TodoApp,
-    todoByDb?: Todo,
-    trelloCreatedBy?: number,
-    microSoftPrimaryDomain?: string,
-  ) {
-    super();
-    if (todoByApi && company && todoApp) {
-      this.company_id = typeof company === "number" ? company : company.id;
-      this.todoapp_id = todoApp.id;
-
-      this.id = todoByDb?.id ?? null;
-      this.is_reminded = todoByDb?.is_reminded ?? false;
-      this.reminded_count = todoByDb?.reminded_count ?? 0;
-
-      switch (todoApp.id) {
-        case TodoAppId.NOTION:
-          const notionTodo = todoByApi as INotionTask;
-          this.name = notionTodo.name;
-          this.todoapp_reg_id = notionTodo.todoappRegId;
-          this.todoapp_reg_url = notionTodo.todoappRegUrl;
-          this.todoapp_reg_created_by = notionTodo.createdById;
-          this.todoapp_reg_created_at = toJapanDateTime(notionTodo.createdAt);
-          this.start_date = notionTodo.startDate ? toJapanDateTime(notionTodo.startDate) : null;
-          this.deadline = notionTodo.deadline ? toJapanDateTime(notionTodo.deadline) : null;
-          this.is_done = notionTodo.isDone;
-          this.is_closed = notionTodo.isClosed;
-          break;
-        case TodoAppId.TRELLO:
-          const trelloTodo = todoByApi as ITrelloTask;
-          this.name = trelloTodo.name;
-          this.todoapp_reg_id = trelloTodo.id;
-          this.todoapp_reg_url = trelloTodo.shortUrl;
-          this.todoapp_reg_created_by = trelloCreatedBy;
-          this.todoapp_reg_created_at = toJapanDateTime(trelloTodo.createdAt) || toJapanDateTime(trelloTodo.dateLastActivity);
-          this.start_date = trelloTodo.due ? toJapanDateTime(trelloTodo.due) : null;  // FIXME
-          this.deadline = trelloTodo.due ? toJapanDateTime(trelloTodo.due) : null;
-          this.is_done = trelloTodo.dueComplete;
-          this.is_closed = trelloTodo.closed;
-          break;
-        case TodoAppId.MICROSOFT:
-          const microSoftTodo = todoByApi as IMicrosoftTask;
-          this.name = microSoftTodo.title;
-          this.todoapp_reg_id = microSoftTodo.id;
-          this.todoapp_reg_url = replaceString(
-            MICROSOFT_BASE_URL.concat("/", microSoftTodo.id), "{tenant}", microSoftPrimaryDomain);
-          this.todoapp_reg_created_by = microSoftTodo.userCreateBy;
-          this.todoapp_reg_created_at = toJapanDateTime(microSoftTodo.createdDateTime);
-          this.start_date = microSoftTodo.dueDateTime;  // FIXME
-          this.deadline = microSoftTodo.dueDateTime;
-          this.is_done = microSoftTodo.percentComplete === COMPLETED;
-          this.is_closed = false;
-          break;
-      }
     }
   }
 }

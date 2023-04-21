@@ -1,7 +1,7 @@
 import dataSource from "@/config/data-source";
 import Account from "@/entities/settings/Account";
 
-export const AccountRepository = dataSource.getRepository<Account>(Account).extend({
+export const AccountRepository = dataSource.getRepository(Account).extend({
   async findOneByEmail(
     email: string,
     emailVerified: boolean | null = null,

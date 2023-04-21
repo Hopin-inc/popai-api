@@ -9,7 +9,7 @@ export default class Account extends BaseEntity {
     uid: string,
     email: string,
     name: string,
-    company: Company | number,
+    company: Company | string,
     emailVerified: boolean = false,
   ) {
     super();
@@ -17,25 +17,25 @@ export default class Account extends BaseEntity {
       this.uid = uid;
       this.email = email;
       this.name = name;
-      this.company_id = typeof company === "number" ? company : company.id;
-      this.email_verified = emailVerified;
+      this.companyId = typeof company === "string" ? company : company.id;
+      this.emailVerified = emailVerified;
     }
   }
 
-  @PrimaryColumn({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  @PrimaryColumn({ name: "uid", type: "varchar", length: 255 })
   uid: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  @Column({ name: "email", type: "varchar", length: 255 })
   email: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  @Column({ name: "name", type: "varchar", length: 255 })
   name: string;
 
-  @Column()
-  company_id: number;
+  @Column({ name: "company_id" })
+  companyId: string;
 
-  @Column({ default: false })
-  email_verified: boolean;
+  @Column({ name: "email_verified", default: false })
+  emailVerified: boolean;
 
   @ManyToOne(
     () => Company,

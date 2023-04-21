@@ -3,7 +3,7 @@ import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import TodoAppController from "@/controllers/app/TodoAppController";
 import { SessionErrors } from "@/consts/error-messages";
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 
 const router = express();
 
@@ -43,7 +43,7 @@ router.get("/:todoAppId/accounts", async (req, res) => {
 router.patch("/:todoAppId/users/:userId", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
-    const userId: number = parseInt(req.params.userId);
+    const userId = req.params.userId;
     const { id }: { id: string } = req.body;
     const controller = new TodoAppController();
     const { company } = req.session;

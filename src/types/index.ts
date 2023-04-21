@@ -1,31 +1,21 @@
-import ChatTool from "@/entities/masters/ChatTool";
-import LineMessageQueue from "@/entities/transactions/LineMessageQueue";
 import Company from "@/entities/settings/Company";
-import Section from "@/entities/settings/Section";
 import User from "@/entities/settings/User";
-import TodoApp from "@/entities/masters/TodoApp";
-import Todo from "@/entities/transactions/Todo";
-
-import { ITrelloTask } from "@/types/trello";
-import { IMicrosoftTask } from "@/types/microsoft";
 import { INotionTask } from "@/types/notion";
 
 export type ValueOf<T> = T[keyof T];
 
-export type PartialWithId<T extends { id: any }> = Partial<T> & { id: T["id"] };
 export type IdOptional<T extends { id: any }> = Omit<T, "id"> & { id?: T["id"] };
 
 export type ITodoHistory = {
   todoId: string;
-  companyId: number;
+  companyId: string;
   name?: string;
   startDate?: Date;
   deadline?: Date;
   users?: User[];
   isDone: boolean;
   isClosed: boolean;
-  todoappRegUpdatedAt: Date;
-  editedBy?: number;
+  todoAppRegUpdatedAt: Date;
 };
 
 export type ITodoUserUpdate = {
@@ -33,49 +23,14 @@ export type ITodoUserUpdate = {
   users: User[];
 };
 
-export type ITodoSectionUpdate = {
-  todoId: string;
-  sections: Section[];
-}
-
-export type ITask = ITrelloTask | IMicrosoftTask | INotionTask;
+export type ITask = INotionTask;
 
 export type ITodoTask<T extends ITask> = {
   todoTask: T;
-  todoapp: TodoApp;
   company: Company;
-  sections: Section[];
   users?: User[];
 };
 
-export type IRemindType = {
-  remindType: number;
-  remindDays?: number;
-};
-
 export type IRemindTask<T extends ITask> = {
-  remindDays: number;
   cardTodo: ITodoTask<T>;
-  delayedCount: number;
-};
-
-export type ITodoLines = {
-  todo: Todo;
-  remindDays: number;
-  chattool: ChatTool;
-  user: User;
-  todoQueueTask?: LineMessageQueue;
-};
-
-export type IDailyReportItems = {
-  completedYesterday: Todo[];
-  delayed: Todo[];
-  ongoing: Todo[];
-};
-
-export type IPerformanceReportItems = {
-  planed: Todo[];
-  completed: Todo[];
-  delayed: Todo[];
-  closed: Todo[];
 };

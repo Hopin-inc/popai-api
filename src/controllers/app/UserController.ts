@@ -5,12 +5,12 @@ import { IdOptional, ValueOf } from "@/types";
 import { ChatToolId, TodoAppId } from "@/consts/common";
 import User from "@/entities/settings/User";
 import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
-import { extractArrayDifferences } from "@/utils/common";
+import { extractArrayDifferences } from "@/utils/array";
 import ReportingLine from "@/entities/settings/ReportingLine";
 import { In } from "typeorm";
 
 export default class UserController extends Controller {
-  public async update(data: IdOptional<ISelectItem>, companyId: number): Promise<ISelectItem> {
+  public async update(data: IdOptional<ISelectItem<string>>, companyId: string): Promise<ISelectItem<string>> {
     const { id, ...updatedData } = data;
     const user = await UserRepository.findOneBy({ id });
     if (id && user) {
@@ -23,30 +23,34 @@ export default class UserController extends Controller {
     }
   }
 
-  public async delete(userId: number, companyId: number): Promise<any> {
-    await UserRepository.softDelete({ id: userId, company_id: companyId });
+  public async delete(userId: string, companyId: string): Promise<any> {
+    await UserRepository.softDelete({ id: userId, companyId: companyId });
   }
-  
+
   public async getConfigs(
-    companyId: number,
+    companyId: string,
     chatToolId: ValueOf<typeof ChatToolId>,
     todoAppId: ValueOf<typeof TodoAppId>,
   ): Promise<IUserConfig[]> {
     const users = await UserRepository.find({
-      where: { company_id: companyId },
-      relations: ["chattoolUsers.chattool", "todoAppUsers.todoApp"],
+      where: {
+        companyId: companyId,
+        chatToolUser: { chatToolId: chatToolId },
+        todoAppUser: { todoAppId: todoAppId },
+      },
+      relations: ["chatToolUser", "todoAppUser"],
       order: { id: "asc" },
     });
     return users.map(user => ({
       user: { id: user.id, name: user.name },
-      chatToolUserId: user.chattoolUsers.find(cu => cu.chattool_id === chatToolId)?.auth_key,
-      todoAppUserId: user.todoAppUsers.find(tu => tu.todoapp_id === todoAppId)?.user_app_id,
+      chatToolUserId: user.chatToolUser.appUserId,
+      todoAppUserId: user.todoAppUser.appUserId,
     }));
   }
 
-  public async getReportingLines(companyId: number): Promise<IUserReportingLine[]> {
+  public async getReportingLines(companyId: string): Promise<IUserReportingLine[]> {
     const users = await UserRepository.find({
-      where: { company_id: companyId },
+      where: { companyId: companyId },
       relations: ["superiorUserRefs.superiorUser"],
       order: { id: "asc" },
     });
@@ -57,17 +61,17 @@ export default class UserController extends Controller {
   }
 
   public async updateReportingLines(
-    superiorUserIds: number[],
-    companyId: number,
-    subordinateUserId: number,
+    superiorUserIds: string[],
+    companyId: string,
+    subordinateUserId: string,
   ): Promise<any> {
     const storedLines = await ReportingLineRepository.find({
-      where: { subordinate_user_id: subordinateUserId },
+      where: { subordinateUserId: subordinateUserId },
       // withDeleted: true,
     });
     const [addedSuperiors, deletedSuperiors] = extractArrayDifferences(
       superiorUserIds,
-      storedLines.map(l => l.superior_user_id),
+      storedLines.map(l => l.superiorUserId),
     );
     const addedLines = addedSuperiors.map(superiorUserId => ({
       ...new ReportingLine(subordinateUserId, superiorUserId),
@@ -76,8 +80,8 @@ export default class UserController extends Controller {
     await Promise.all([
       ReportingLineRepository.upsert(addedLines, []),
       ReportingLineRepository.softDelete({
-        subordinate_user_id: subordinateUserId,
-        superior_user_id: In(deletedSuperiors),
+        subordinateUserId: subordinateUserId,
+        superiorUserId: In(deletedSuperiors),
       }),
     ]);
   }

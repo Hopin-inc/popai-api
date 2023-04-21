@@ -1,42 +1,35 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, JoinColumn, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import User from "./User";
-import ChatTool from "../masters/ChatTool";
+import { ValueOf } from "../../types";
+import { ChatToolId } from "../../consts/common";
 
 @Entity("s_chat_tool_users")
 export default class ChatToolUser extends BaseEntity {
-  constructor(chatTool: ChatTool | number, user: User | number, userAppId: string) {
+  constructor(user: User | string, chatToolId: ValueOf<typeof ChatToolId>, appUserId: string) {
     super();
-    if (chatTool && user) {
-      this.chattool_id = typeof chatTool === "number" ? chatTool : chatTool.id;
-      this.user_id = typeof user === "number" ? user : user.id;
-      this.auth_key = userAppId;
+    if (user) {
+      this.userId = typeof user === "string" ? user : user.id;
+      this.chatToolId = chatToolId;
+      this.appUserId = appUserId;
     }
   }
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  auth_key: string;
+  @PrimaryColumn({ name: "user_id" })
+  userId: string;
 
-  @PrimaryColumn()
-  user_id: number;
+  @PrimaryColumn({ name: "chat_tool_id" })
+  chatToolId: number;
 
-  @PrimaryColumn()
-  chattool_id: number;
+  @Column({ name: "app_user_id", type: "varchar", length: 255 })
+  appUserId: string;
 
-  @ManyToOne(
+  @OneToOne(
     () => User,
-    user => user.chattoolUsers,
+    user => user.chatToolUser,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "user_id" })
   user: User;
-
-  @ManyToOne(
-    () => ChatTool,
-    chattool => chattool.chattoolUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "chattool_id" })
-  chattool: ChatTool;
 }

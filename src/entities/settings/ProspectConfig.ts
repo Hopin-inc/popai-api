@@ -1,15 +1,14 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
-import Section from "./Section";
-import ChatTool from "../masters/ChatTool";
 import ProspectTiming from "./ProspectTiming";
+import { ValueOf } from "../../types";
+import { ChatToolId } from "../../consts/common";
 
 type ConstructorOption = {
-  company: Company | number;
-  section?: Section | number;
+  company: Company | string;
   enabled: boolean;
-  chatTool?: ChatTool | number;
+  chatToolId: ValueOf<typeof ChatToolId>;
   channel?: string;
   from?: number;
   fromDaysBefore?: number;
@@ -24,54 +23,46 @@ export default class ProspectConfig extends BaseEntity {
   constructor(options: ConstructorOption) {
     super();
     if (options) {
-      const { company, section, enabled, chatTool, ...optionalConfigs } = options;
-      this.company_id = typeof company === "number" ? company : company.id;
+      const { company, enabled, chatToolId, ...optionalConfigs } = options;
+      this.companyId = typeof company === "string" ? company : company.id;
       this.enabled = enabled;
-      if (section) {
-        this.section_id = typeof section === "number" ? section : section.id;
-      }
-      if (chatTool) {
-        this.chat_tool_id = typeof chatTool === "number" ? chatTool : chatTool.id;
-      }
+      this.chatToolId = chatToolId;
       Object.assign({ ...this, ...optionalConfigs });
     }
   }
 
   @PrimaryGeneratedColumn()
-  id: number;
+  readonly id: number;
 
-  @Column()
-  company_id: number;
+  @Column({ name: "company_id" })
+  companyId: string;
 
-  @Column({ nullable: true })
-  section_id?: number;
-
-  @Column({ default: false })
+  @Column({ name: "enabled", default: false })
   enabled: boolean;
 
-  @Column({ nullable: true })
-  chat_tool_id: number;
+  @Column({ name: "chat_tool_id", nullable: true })
+  chatToolId?: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  channel: string;
+  @Column({ name: "channel", type: "varchar", length: 255, nullable: true })
+  channel?: string;
 
-  @Column({ type: "tinyint", nullable: true })
-  from: number;
+  @Column({ name: "from", type: "tinyint", nullable: true })
+  from?: number;
 
-  @Column({ type: "tinyint", nullable: true })
-  to: number;
+  @Column({ name: "to", type: "tinyint", nullable: true })
+  to?: number;
 
-  @Column({ type: "tinyint", nullable: true })
-  from_days_before: number;
+  @Column({ name: "from_days_before", type: "tinyint", nullable: true })
+  fromDaysBefore?: number;
 
-  @Column({ type: "tinyint", nullable: true })
-  begin_of_week: number;
+  @Column({ name: "begin_of_week", type: "tinyint", nullable: true })
+  beginOfWeek?: number;
 
-  @Column({ type: "tinyint", nullable: true })
-  frequency: number;
+  @Column({ name: "frequency", type: "tinyint", nullable: true })
+  frequency?: number;
 
-  @Column({ type: "json", nullable: true })
-  frequency_days_before: number[];
+  @Column({ name: "frequency_days_before", type: "json", nullable: true })
+  frequencyDaysBefore?: number[];
 
   @OneToOne(
     () => Company,
@@ -80,21 +71,6 @@ export default class ProspectConfig extends BaseEntity {
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
-
-  @OneToOne(
-    () => Section,
-    section => section.notifyConfig,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "section_id" })
-  section?: Section;
-
-  @ManyToOne(
-    () => ChatTool,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "chat_tool_id" })
-  chatTool: ChatTool;
 
   @OneToMany(
     () => ProspectTiming,

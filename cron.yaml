@@ -1,7 +1,7 @@
 cron:
   - description: "Fetch data"
-    url: /api/tasks/update
+    url: /api/schedulers/update
     schedule: every hour synchronized
   - description: "Ask prospects"
-    url: /api/tasks/prospect
+    url: /api/schedulers/prospect
     schedule: every 15 minutes synchronized

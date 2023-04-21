@@ -1,18 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, OneToMany, ManyToOne, OneToOne } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
-import CompanyCondition from "./CompanyCondition";
 import User from "./User";
-import Section from "./Section";
 import Todo from "../transactions/Todo";
 import ImplementedTodoApp from "./ImplementedTodoApp";
 import ImplementedChatTool from "./ImplementedChatTool";
-import TodoApp from "../masters/TodoApp";
-import ChatTool from "../masters/ChatTool";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
-import DailyReportConfig from "./DailyReportConfig";
-import NotifyConfig from "./NotifyConfig";
 import Account from "./Account";
 import BoardConfig from "./BoardConfig";
 import ProspectConfig from "./ProspectConfig";
@@ -22,59 +16,34 @@ export default class Company extends BaseEntity {
   constructor(name: string) {
     super();
     this.name = name;
-    this.is_demo = false;
   }
 
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn("uuid")
+  readonly id: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
+  @Column({ name: "name", type: "varchar", length: 255 })
   name: string;
 
-  @Column({ nullable: true })
-  admin_user_id: number;
-
-  @Column({ default: false })
-  is_demo: boolean;
-
   @OneToMany(
+    () => Account,
+    account => account.company,
+    { cascade: true },
+  )
+  accounts: Account[];
+
+  @OneToOne(
     () => ImplementedTodoApp,
     implementedTodoApp => implementedTodoApp.company,
     { cascade: true },
   )
-  implementedTodoApps: ImplementedTodoApp[];
-
-  get todoApps(): TodoApp[] {
-    const implementedTodoApps = this.implementedTodoApps;
-    return implementedTodoApps ? implementedTodoApps.map(record => record.todoApp) : [];
-  }
+  implementedTodoApp: ImplementedTodoApp;
 
   @OneToMany(
     () => ImplementedChatTool,
     implementedChatTool => implementedChatTool.company,
     { cascade: true },
   )
-  implementedChatTools: ImplementedChatTool[];
-
-  get chatTools(): ChatTool[] {
-    const implementedChatTools = this.implementedChatTools;
-    return implementedChatTools ? implementedChatTools.map(record => record.chattool) : [];
-  }
-
-  @ManyToOne(
-    () => User,
-    user => user.id,
-    { onDelete: "SET NULL", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "admin_user_id" })
-  adminUser: User;
-
-  @OneToMany(
-    () => CompanyCondition,
-    condition => condition.company,
-    { cascade: true },
-  )
-  companyConditions: CompanyCondition[];
+  implementedChatTool: ImplementedChatTool;
 
   @OneToMany(
     () => User,
@@ -84,25 +53,11 @@ export default class Company extends BaseEntity {
   users: User[];
 
   @OneToMany(
-    () => Section,
-    section => section.company,
-    { cascade: true },
-  )
-  sections: Section[];
-
-  @OneToMany(
     () => Todo,
     todo => todo.company,
     { cascade: true },
   )
   todos: Todo[];
-
-  @OneToMany(
-    () => Account,
-    account => account.company,
-    { cascade: true },
-  )
-  accounts: Account[];
 
   @OneToOne(
     () => Timing,
@@ -117,20 +72,6 @@ export default class Company extends BaseEntity {
     { cascade: true },
   )
   timingExceptions: TimingException[];
-
-  @OneToOne(
-    () => DailyReportConfig,
-    config => config.company,
-    { cascade: true },
-  )
-  dailyReportConfig: DailyReportConfig;
-
-  @OneToOne(
-    () => NotifyConfig,
-    config => config.company,
-    { cascade: true },
-  )
-  notifyConfig: NotifyConfig;
 
   @OneToOne(
     () => ProspectConfig,

@@ -1,10 +1,4 @@
-import { ProspectLevel, ReliefAction, TodoStatus } from "./common";
-
-type ReplyAction = {
-  status: TodoStatus;
-  text: string;
-  style?: "primary" | "danger";
-};
+import { ProspectLevel, ReliefAction } from "./common";
 
 type ActionItemWithEmoji = ActionItem & {
   emoji: string;
@@ -14,53 +8,6 @@ type ActionItem = {
   text: string;
   value: number;
 };
-
-export const Icons = {
-  CREATED: ":sparkles:",
-  DONE: ":white_check_mark:",
-  ASSIGNEE: ":busts_in_silhouette:",
-  DEADLINE: ":calendar:",
-  CLOSED: ":snowflake:",
-};
-
-export const replyActionsBefore: ReplyAction[] = [
-  {
-    status: TodoStatus.DONE,
-    text: "完了しております:+1:",
-    style: "primary",
-  },
-  {
-    status: TodoStatus.WITHDRAWN,
-    text: "撤退しました:droplet:",
-    style: "danger",
-  },
-  {
-    status: TodoStatus.ONGOING,
-    text: "順調です:sparkles:",
-  },
-  {
-    status: TodoStatus.NOT_YET,
-    text: "あまり進んでいません:sob:",
-  },
-];
-
-export const replyActionsAfter: ReplyAction[] = [
-  {
-    status: TodoStatus.DONE,
-    text: "完了しました:+1:",
-    style: "primary",
-  },
-  {
-    status: TodoStatus.WITHDRAWN,
-    text: "撤退しました:droplet:",
-  },
-  {
-    status: TodoStatus.DELAYED,
-    text: "すみません、遅れております:bow:",
-  },
-];
-
-export const replyActions: ReplyAction[] = replyActionsBefore.concat(replyActionsAfter);
 
 export const prospects: ActionItemWithEmoji[] = [
   { text: "特に問題はない", value: ProspectLevel.VERY_GOOD, emoji: ":sunny:" },
@@ -77,8 +24,6 @@ export const reliefActions: ActionItem[] = [
   { text: "期日", value: ReliefAction.DEADLINE },
   { text: "目的", value: ReliefAction.PURPOSE },
 ];
-
-export const DEFAULT_BULLET = "   •  ";
 
 export const SlackActionLabel = {
   PROSPECT: "PROSPECT",

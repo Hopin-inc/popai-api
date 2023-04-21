@@ -1,4 +1,4 @@
-import { Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Column, Index } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
 import User from "../settings/User";
@@ -9,32 +9,53 @@ type Info = { deadline?: Date, assignee?: User, daysDiff?: number };
 
 @Entity("t_todo_histories")
 export default class TodoHistory extends BaseEntity {
+  constructor(
+    todo: Todo | string,
+    assignees: User[],
+    property: ValueOf<typeof Property>,
+    action: ValueOf<typeof Action>,
+    updatedAt: Date,
+    info?: Info | null,
+  ) {
+    super();
+    if (todo && assignees && property && action && updatedAt) {
+      this.todoId = typeof todo === "string" ? todo : todo.id;
+      this.property = property;
+      this.action = action;
+      this.appUpdatedAt = updatedAt;
+
+      // Optional
+      this.deadline = info?.deadline ?? null;
+      this.daysDiff = info?.daysDiff ?? null;
+      this.userId = info?.assignee ? info.assignee.id : null;
+    }
+  }
+
   @PrimaryGeneratedColumn()
-  id: number;
+  readonly id: number;
 
-  @Column()
-  todo_id: number;
+  @Column({ name: "todo_id" })
+  todoId: string;
 
-  @Column()
+  @Index()
+  @Column({ name: "property" })
   property: number;
 
-  @Column()
+  @Index()
+  @Column({ name: "action" })
   action: number;
 
-  @Column({ nullable: true })
-  deadline: Date;
+  @Column({ name: "deadline", nullable: true })
+  deadline?: Date;
 
-  @Column({ nullable: true })
-  user_id: number;
+  @Column({ name: "user_id", nullable: true })
+  userId?: string;
 
-  @Column({ nullable: true })
-  days_diff: number;
+  @Column({ name: "days_diff", nullable: true })
+  daysDiff?: number;
 
-  @Column({ nullable: true })
-  edited_by: number;
-
-  @Column()
-  todoapp_reg_updated_at: Date;
+  @Column({ name: "app_updated_at", nullable: true })
+  appUpdatedAt?: Date;
 
   @ManyToOne(
     () => Todo,
@@ -51,28 +72,4 @@ export default class TodoHistory extends BaseEntity {
   )
   @JoinColumn({ name: "user_id" })
   user: User;
-
-  constructor(
-    todo: Todo | number,
-    assignees: User[],
-    property: ValueOf<typeof Property>,
-    action: ValueOf<typeof Action>,
-    updatedAt: Date,
-    info?: Info | null,
-    editedBy?: number,
-  ) {
-    super();
-    if (todo && assignees && property && action && updatedAt) {
-      this.todo_id = typeof todo === "number" ? todo : todo.id;
-      this.property = property;
-      this.action = action;
-      this.todoapp_reg_updated_at = updatedAt;
-
-      //Prefer
-      this.deadline = info?.deadline ?? null;
-      this.days_diff = info?.daysDiff ?? null;
-      this.user_id = info?.assignee ? info.assignee.id : null;
-      this.edited_by = editedBy ? editedBy : null;
-    }
-  }
 }

@@ -1,5 +1,5 @@
 import express from "express";
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 import ApiResponse from "@/common/ApiResponse";
 import AuthController from "@/controllers/app/AuthController";
 import { StatusCodes } from "@/common/StatusCodes";

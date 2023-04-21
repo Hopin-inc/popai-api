@@ -1,6 +1,6 @@
 import fetch, { HeadersInit, RequestInit } from "node-fetch";
 
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 
 /**
  *  Calls the endpoint with authorization bearer token.

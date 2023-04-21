@@ -1,33 +1,26 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
-import Section from "./Section";
 import Board from "./Board";
 
 @Entity("s_board_configs")
 export default class BoardConfig extends BaseEntity {
-  constructor(company: Company | number, board: Board | number, section?: Section | number) {
+  constructor(company: Company | string, board: Board | number) {
     super();
     if (company && board) {
-      this.company_id = typeof company === "number" ? company : company.id;
-      this.board_id = typeof board === "number" ? board : board.id;
-      if (section) {
-        this.section_id = typeof section === "number" ? section : section.id;
-      }
+      this.companyId = typeof company === "string" ? company : company.id;
+      this.boardId = typeof board === "number" ? board : board.id;
     }
   }
 
   @PrimaryGeneratedColumn()
-  id: number;
+  readonly id: number;
 
-  @Column()
-  company_id: number;
+  @Column({ name: "company_id" })
+  companyId: string;
 
-  @Column({ nullable: true })
-  section_id?: number;
-
-  @Column()
-  board_id: number;
+  @Column({ name: "board_id" })
+  boardId: number;
 
   @OneToOne(
     () => Company,
@@ -36,14 +29,6 @@ export default class BoardConfig extends BaseEntity {
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
-
-  @OneToOne(
-    () => Section,
-    section => section.boardConfig,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "section_id" })
-  section: Section;
 
   @ManyToOne(
     () => Board,

@@ -2,7 +2,7 @@ import dataSource from "@/config/data-source";
 import TodoUser from "@/entities/transactions/TodoUser";
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
-import { extractArrayDifferences } from "@/utils/common";
+import { extractArrayDifferences } from "@/utils/array";
 import { In } from "typeorm";
 import { ITodoUserUpdate } from "@/types";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
@@ -14,15 +14,15 @@ export const TodoUserRepository = dataSource.getRepository<TodoUser>(TodoUser).e
       withDeleted: true,
     });
 
-    const userIdsBefore: number[] = todoUsers.filter(tu => !tu.deleted_at).map(tu => tu.user_id);
-    const userIdsAfter: number[] = users.map(user => user.id);
+    const userIdsBefore: string[] = todoUsers.filter(tu => !tu.deletedAt).map(tu => tu.userId);
+    const userIdsAfter: string[] = users.map(user => user.id);
     const [addedUserIds, deletedUserIds] = extractArrayDifferences(userIdsAfter, userIdsBefore);
 
     const addedTodoUsers: TodoUser[] = [];
-    const restoredUserIds: number[] = [];
-    const deletedTodoUsers = todoUsers.filter(tu => deletedUserIds.includes(tu.user_id));
+    const restoredUserIds: string[] = [];
+    const deletedTodoUsers = todoUsers.filter(tu => deletedUserIds.includes(tu.userId));
     addedUserIds.forEach(userId => {
-      if (todoUsers.filter(tu => tu.deleted_at).map(tu => tu.user_id).includes(userId)) {
+      if (todoUsers.filter(tu => tu.deletedAt).map(tu => tu.userId).includes(userId)) {
         restoredUserIds.push(userId);
       } else {
         addedTodoUsers.push(new TodoUser(todo, userId));
@@ -43,14 +43,14 @@ export const TodoUserRepository = dataSource.getRepository<TodoUser>(TodoUser).e
     const deletedTodoUsers: TodoUser[] = [];
     await Promise.all(dataTodoUsers.map(async dataTodoUser => {
       const todo: Todo = await TodoRepository.findOneBy({
-        todoapp_reg_id: dataTodoUser.todoId,
+        appTodoId: dataTodoUser.todoId,
       });
       if (todo) {
         const savedTodoUsers = await this.find({
           where: { todo_id: todo.id },
           withDeleted: true,
         });
-        const restoredUserIds: number[] = [];
+        const restoredUserIds: string[] = [];
         dataTodoUser.users.forEach(user => {
           if (!savedTodoUsers.some(tu => tu.user_id === user.id)) {
             if (savedTodoUsers.filter(ts => ts.deleted_at).some(ts => ts.user_id === user.id)) {
@@ -78,13 +78,8 @@ export const TodoUserRepository = dataSource.getRepository<TodoUser>(TodoUser).e
   },
 
   async getUserAssignTask(usersCompany: User[], idMembers: string[]): Promise<User[]> {
-    return usersCompany.filter((user) => {
-      const userLineIds = user?.todoAppUsers.reduce(function(userAppIds: string[], todoAppUser) {
-        userAppIds.push(todoAppUser.user_app_id);
-        return userAppIds;
-      }, []);
-
-      return idMembers.filter((value) => userLineIds.includes(value)).length;
+    return usersCompany.filter(user => {
+      return idMembers.filter(id => id === user.todoAppUser.appUserId).length;
     });
   },
 });
