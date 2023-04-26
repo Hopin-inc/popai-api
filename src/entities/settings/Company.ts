@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, OneToOne } from "typeorm";
+import { Entity, Column, OneToMany, OneToOne, PrimaryColumn } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import User from "./User";
@@ -7,29 +7,24 @@ import ImplementedTodoApp from "./ImplementedTodoApp";
 import ImplementedChatTool from "./ImplementedChatTool";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
-import Account from "./Account";
 import BoardConfig from "./BoardConfig";
 import ProspectConfig from "./ProspectConfig";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
-  constructor(name: string) {
+  constructor(uid: string, name?: string) {
     super();
-    this.name = name;
+    this.id = uid;
+    if (name) {
+      this.name = name;
+    }
   }
 
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryColumn({ name: "id", type: "varchar", length: 255 })
   readonly id: string;
 
-  @Column({ name: "name", type: "varchar", length: 255 })
-  name: string;
-
-  @OneToMany(
-    () => Account,
-    account => account.company,
-    { cascade: true },
-  )
-  accounts: Account[];
+  @Column({ name: "name", type: "varchar", length: 255, nullable: true })
+  name?: string;
 
   @OneToOne(
     () => ImplementedTodoApp,

@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
     const controller = new ChatToolController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getList(company.id);
+      const response = await controller.get(company.id);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);

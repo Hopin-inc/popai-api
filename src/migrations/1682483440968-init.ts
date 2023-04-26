@@ -1,0 +1,118 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class init1682483440968 implements MigrationInterface {
+  name = "init1682483440968";
+
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query("CREATE TABLE `m_countries` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `code` char(2) NOT NULL, `name` varchar(45) NOT NULL, PRIMARY KEY (`code`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `m_timezones` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `name` varchar(35) NOT NULL, `country_code` char(2) NOT NULL, `gmt_offset` int NOT NULL, `timestamp` int NOT NULL, PRIMARY KEY (`name`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_chat_tool_users` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `user_id` varchar(255) NOT NULL, `chat_tool_id` int NOT NULL, `app_user_id` varchar(255) NOT NULL, UNIQUE INDEX `REL_c0fb40df28f96fa6e02c369e12` (`user_id`), PRIMARY KEY (`user_id`, `chat_tool_id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_todo_app_users` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `user_id` varchar(255) NOT NULL, `todo_app_id` int NOT NULL, `app_user_id` varchar(255) NOT NULL, UNIQUE INDEX `REL_e17fd76ad603a20e61dd25ef70` (`user_id`), PRIMARY KEY (`user_id`, `todo_app_id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_reporting_lines` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `superior_user_id` varchar(255) NOT NULL, `subordinate_user_id` varchar(255) NOT NULL, PRIMARY KEY (`superior_user_id`, `subordinate_user_id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `t_todo_histories` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `todo_id` varchar(255) NOT NULL, `property` int NOT NULL, `action` int NOT NULL, `start_date` datetime NULL, `deadline` datetime NULL, `user_ids` json NULL, `days_diff` int NULL, `app_updated_at` datetime NULL, INDEX `IDX_5ee7429f5704d47abb316ee8d7` (`property`), INDEX `IDX_c96cd3d102c48a356ad64a4d7b` (`action`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `t_prospects` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` varchar(36) NOT NULL, `todo_id` varchar(255) NOT NULL, `user_id` varchar(255) NOT NULL, `company_id` varchar(255) NOT NULL, `chat_tool_id` int NULL, `app_channel_id` varchar(255) NULL, `app_thread_id` varchar(255) NULL, `app_view_id` varchar(255) NULL, `prospect_value` tinyint(1) NULL, `prospect_responded_at` datetime NULL, `action_value` tinyint(1) NULL, `action_responded_at` datetime NULL, `comment` text NULL, `comment_responded_at` datetime NULL, INDEX `IDX_631fce1b85789196fef89696f4` (`app_channel_id`), INDEX `IDX_95163653db6421ec4f5c332c71` (`app_thread_id`), INDEX `IDX_cf17e9b1d6d9dfd2eabb1260fd` (`app_view_id`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `t_todos` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` varchar(36) NOT NULL, `name` varchar(255) NOT NULL, `todo_app_id` int NOT NULL, `company_id` varchar(255) NOT NULL, `app_todo_id` varchar(255) NOT NULL, `app_url` varchar(255) NULL, `created_by` varchar(255) NULL, `app_created_at` datetime NULL, `start_date` datetime NULL, `deadline` datetime NULL, `is_done` tinyint NOT NULL DEFAULT 0, `is_closed` tinyint NOT NULL DEFAULT 0, INDEX `IDX_2d7349fb362f7b32bf29ce814e` (`app_todo_id`), INDEX `IDX_a78d3e45ceee37d09255702506` (`app_url`), INDEX `IDX_fc15ebf3e122579b99ccccba38` (`start_date`), INDEX `IDX_0dac8bd24a13face6a9cf6b9a0` (`deadline`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `t_todo_users` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `todo_id` varchar(255) NOT NULL, `user_id` varchar(255) NOT NULL, PRIMARY KEY (`todo_id`, `user_id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_users` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` varchar(36) NOT NULL, `name` varchar(255) NOT NULL, `company_id` varchar(255) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_implemented_todo_apps` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `company_id` varchar(255) NOT NULL, `todo_app_id` int NOT NULL, `access_token` varchar(255) NULL, `app_workspace_id` varchar(255) NULL, `installation` json NULL, UNIQUE INDEX `REL_64e0b06ca3acaa5a05f3e96c7f` (`company_id`), PRIMARY KEY (`company_id`, `todo_app_id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_implemented_chat_tools` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `company_id` varchar(255) NOT NULL, `chat_tool_id` int NOT NULL, `app_team_id` varchar(12) NULL, `app_install_user_id` varchar(12) NULL, `access_token` varchar(255) NULL, `installation` json NULL, UNIQUE INDEX `REL_f441ddd65b1a0af800c867d080` (`company_id`), PRIMARY KEY (`company_id`, `chat_tool_id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_timings` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `company_id` varchar(255) NOT NULL, `timezone_name` varchar(35) NULL, `days_of_week` json NULL, `disabled_on_holidays_jp` tinyint NOT NULL DEFAULT 0, UNIQUE INDEX `REL_f7450475712dbda5e1917877b2` (`company_id`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_timing_exceptions` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `company_id` varchar(255) NOT NULL, `date` date NULL, `excluded` tinyint NOT NULL DEFAULT 1, PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_prospect_timings` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `config_id` int NOT NULL, `time` time NOT NULL, `ask_plan` tinyint NOT NULL DEFAULT 0, `ask_plan_milestone` time NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_prospect_configs` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `company_id` varchar(255) NOT NULL, `enabled` tinyint NOT NULL DEFAULT 0, `chat_tool_id` int NULL, `channel` varchar(255) NULL, `from` tinyint NULL, `to` tinyint NULL, `from_days_before` tinyint NULL, `begin_of_week` tinyint NULL, `frequency` tinyint NULL, `frequency_days_before` json NULL, UNIQUE INDEX `REL_d2605807496ad103e5fa534223` (`company_id`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_companies` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` varchar(255) NOT NULL, `name` varchar(255) NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_board_configs` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `company_id` varchar(255) NOT NULL, `board_id` int NOT NULL, UNIQUE INDEX `REL_e597c3dbadcbab4c62e97ecaeb` (`company_id`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_property_usages` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `todo_app_id` int NOT NULL, `board_id` int NOT NULL, `app_property_id` varchar(255) NOT NULL, `type` int NOT NULL, `usage` int NOT NULL, `app_options` json NULL, `bool_value` tinyint NULL, INDEX `IDX_97396ac15a58f9e637aa4c97e0` (`app_property_id`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `s_boards` (`created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updated_at` datetime NULL ON UPDATE CURRENT_TIMESTAMP, `deleted_at` datetime(6) NULL, `id` int NOT NULL AUTO_INCREMENT, `todo_app_id` int NOT NULL, `app_board_id` varchar(255) NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("CREATE TABLE `t_sessions` (`id` varchar(255) NOT NULL, `expired_at` bigint NOT NULL, `json` text NOT NULL, `destroyed_at` datetime(6) NULL, INDEX `IDX_67fa4b92e3078feb4400ab9a4f` (`expired_at`), PRIMARY KEY (`id`)) ENGINE=InnoDB");
+    await queryRunner.query("ALTER TABLE `m_timezones` ADD CONSTRAINT `FK_9b7cd9832f47140d157f71efd3c` FOREIGN KEY (`country_code`) REFERENCES `m_countries`(`code`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_chat_tool_users` ADD CONSTRAINT `FK_c0fb40df28f96fa6e02c369e123` FOREIGN KEY (`user_id`) REFERENCES `s_users`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_todo_app_users` ADD CONSTRAINT `FK_e17fd76ad603a20e61dd25ef70e` FOREIGN KEY (`user_id`) REFERENCES `s_users`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_reporting_lines` ADD CONSTRAINT `FK_2eedaea8c1d677223edeee6ad85` FOREIGN KEY (`superior_user_id`) REFERENCES `s_users`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_reporting_lines` ADD CONSTRAINT `FK_b91d62969adefcfd5a08934e007` FOREIGN KEY (`subordinate_user_id`) REFERENCES `s_users`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_todo_histories` ADD CONSTRAINT `FK_8b4aa7b9c907bda34b461a2bb4f` FOREIGN KEY (`todo_id`) REFERENCES `t_todos`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_prospects` ADD CONSTRAINT `FK_fdb17657c73b5235bf09e579fa0` FOREIGN KEY (`todo_id`) REFERENCES `t_todos`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_prospects` ADD CONSTRAINT `FK_04ead2262b8da734ea906892626` FOREIGN KEY (`user_id`) REFERENCES `s_users`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_prospects` ADD CONSTRAINT `FK_ea4787053b471eea6bfd646fe52` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_todos` ADD CONSTRAINT `FK_062ff0349a54ef32b5939c86046` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_todo_users` ADD CONSTRAINT `FK_ecaa1edde79878c9d6dd04358e7` FOREIGN KEY (`todo_id`) REFERENCES `t_todos`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `t_todo_users` ADD CONSTRAINT `FK_67a9e38e43f6bcf5d8f84869ab6` FOREIGN KEY (`user_id`) REFERENCES `s_users`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_users` ADD CONSTRAINT `FK_2c82db53b5788ef6e1623ef67a5` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_implemented_todo_apps` ADD CONSTRAINT `FK_64e0b06ca3acaa5a05f3e96c7fb` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_implemented_chat_tools` ADD CONSTRAINT `FK_f441ddd65b1a0af800c867d0809` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_timings` ADD CONSTRAINT `FK_f7450475712dbda5e1917877b21` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_timings` ADD CONSTRAINT `FK_d1133c3f645795fe9a4bfbc2544` FOREIGN KEY (`timezone_name`) REFERENCES `m_timezones`(`name`) ON DELETE SET NULL ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_timing_exceptions` ADD CONSTRAINT `FK_4632ab5e6b5102e7a1f05907530` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_prospect_timings` ADD CONSTRAINT `FK_e930c06d89a86c5a12b7d58ef98` FOREIGN KEY (`config_id`) REFERENCES `s_prospect_configs`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_prospect_configs` ADD CONSTRAINT `FK_d2605807496ad103e5fa534223b` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_board_configs` ADD CONSTRAINT `FK_e597c3dbadcbab4c62e97ecaeb4` FOREIGN KEY (`company_id`) REFERENCES `s_companies`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_board_configs` ADD CONSTRAINT `FK_8260878c864f360f995fc80997c` FOREIGN KEY (`board_id`) REFERENCES `s_boards`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+    await queryRunner.query("ALTER TABLE `s_property_usages` ADD CONSTRAINT `FK_7947a82f3c9f842aa70a0fcab2c` FOREIGN KEY (`board_id`) REFERENCES `s_boards`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT");
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query("ALTER TABLE `s_property_usages` DROP FOREIGN KEY `FK_7947a82f3c9f842aa70a0fcab2c`");
+    await queryRunner.query("ALTER TABLE `s_board_configs` DROP FOREIGN KEY `FK_8260878c864f360f995fc80997c`");
+    await queryRunner.query("ALTER TABLE `s_board_configs` DROP FOREIGN KEY `FK_e597c3dbadcbab4c62e97ecaeb4`");
+    await queryRunner.query("ALTER TABLE `s_prospect_configs` DROP FOREIGN KEY `FK_d2605807496ad103e5fa534223b`");
+    await queryRunner.query("ALTER TABLE `s_prospect_timings` DROP FOREIGN KEY `FK_e930c06d89a86c5a12b7d58ef98`");
+    await queryRunner.query("ALTER TABLE `s_timing_exceptions` DROP FOREIGN KEY `FK_4632ab5e6b5102e7a1f05907530`");
+    await queryRunner.query("ALTER TABLE `s_timings` DROP FOREIGN KEY `FK_d1133c3f645795fe9a4bfbc2544`");
+    await queryRunner.query("ALTER TABLE `s_timings` DROP FOREIGN KEY `FK_f7450475712dbda5e1917877b21`");
+    await queryRunner.query("ALTER TABLE `s_implemented_chat_tools` DROP FOREIGN KEY `FK_f441ddd65b1a0af800c867d0809`");
+    await queryRunner.query("ALTER TABLE `s_implemented_todo_apps` DROP FOREIGN KEY `FK_64e0b06ca3acaa5a05f3e96c7fb`");
+    await queryRunner.query("ALTER TABLE `s_users` DROP FOREIGN KEY `FK_2c82db53b5788ef6e1623ef67a5`");
+    await queryRunner.query("ALTER TABLE `t_todo_users` DROP FOREIGN KEY `FK_67a9e38e43f6bcf5d8f84869ab6`");
+    await queryRunner.query("ALTER TABLE `t_todo_users` DROP FOREIGN KEY `FK_ecaa1edde79878c9d6dd04358e7`");
+    await queryRunner.query("ALTER TABLE `t_todos` DROP FOREIGN KEY `FK_062ff0349a54ef32b5939c86046`");
+    await queryRunner.query("ALTER TABLE `t_prospects` DROP FOREIGN KEY `FK_ea4787053b471eea6bfd646fe52`");
+    await queryRunner.query("ALTER TABLE `t_prospects` DROP FOREIGN KEY `FK_04ead2262b8da734ea906892626`");
+    await queryRunner.query("ALTER TABLE `t_prospects` DROP FOREIGN KEY `FK_fdb17657c73b5235bf09e579fa0`");
+    await queryRunner.query("ALTER TABLE `t_todo_histories` DROP FOREIGN KEY `FK_8b4aa7b9c907bda34b461a2bb4f`");
+    await queryRunner.query("ALTER TABLE `s_reporting_lines` DROP FOREIGN KEY `FK_b91d62969adefcfd5a08934e007`");
+    await queryRunner.query("ALTER TABLE `s_reporting_lines` DROP FOREIGN KEY `FK_2eedaea8c1d677223edeee6ad85`");
+    await queryRunner.query("ALTER TABLE `s_todo_app_users` DROP FOREIGN KEY `FK_e17fd76ad603a20e61dd25ef70e`");
+    await queryRunner.query("ALTER TABLE `s_chat_tool_users` DROP FOREIGN KEY `FK_c0fb40df28f96fa6e02c369e123`");
+    await queryRunner.query("ALTER TABLE `m_timezones` DROP FOREIGN KEY `FK_9b7cd9832f47140d157f71efd3c`");
+    await queryRunner.query("DROP INDEX `IDX_67fa4b92e3078feb4400ab9a4f` ON `t_sessions`");
+    await queryRunner.query("DROP TABLE `t_sessions`");
+    await queryRunner.query("DROP TABLE `s_boards`");
+    await queryRunner.query("DROP INDEX `IDX_97396ac15a58f9e637aa4c97e0` ON `s_property_usages`");
+    await queryRunner.query("DROP TABLE `s_property_usages`");
+    await queryRunner.query("DROP INDEX `REL_e597c3dbadcbab4c62e97ecaeb` ON `s_board_configs`");
+    await queryRunner.query("DROP TABLE `s_board_configs`");
+    await queryRunner.query("DROP TABLE `s_companies`");
+    await queryRunner.query("DROP INDEX `REL_d2605807496ad103e5fa534223` ON `s_prospect_configs`");
+    await queryRunner.query("DROP TABLE `s_prospect_configs`");
+    await queryRunner.query("DROP TABLE `s_prospect_timings`");
+    await queryRunner.query("DROP TABLE `s_timing_exceptions`");
+    await queryRunner.query("DROP INDEX `REL_f7450475712dbda5e1917877b2` ON `s_timings`");
+    await queryRunner.query("DROP TABLE `s_timings`");
+    await queryRunner.query("DROP INDEX `REL_f441ddd65b1a0af800c867d080` ON `s_implemented_chat_tools`");
+    await queryRunner.query("DROP TABLE `s_implemented_chat_tools`");
+    await queryRunner.query("DROP INDEX `REL_64e0b06ca3acaa5a05f3e96c7f` ON `s_implemented_todo_apps`");
+    await queryRunner.query("DROP TABLE `s_implemented_todo_apps`");
+    await queryRunner.query("DROP TABLE `s_users`");
+    await queryRunner.query("DROP TABLE `t_todo_users`");
+    await queryRunner.query("DROP INDEX `IDX_0dac8bd24a13face6a9cf6b9a0` ON `t_todos`");
+    await queryRunner.query("DROP INDEX `IDX_fc15ebf3e122579b99ccccba38` ON `t_todos`");
+    await queryRunner.query("DROP INDEX `IDX_a78d3e45ceee37d09255702506` ON `t_todos`");
+    await queryRunner.query("DROP INDEX `IDX_2d7349fb362f7b32bf29ce814e` ON `t_todos`");
+    await queryRunner.query("DROP TABLE `t_todos`");
+    await queryRunner.query("DROP INDEX `IDX_cf17e9b1d6d9dfd2eabb1260fd` ON `t_prospects`");
+    await queryRunner.query("DROP INDEX `IDX_95163653db6421ec4f5c332c71` ON `t_prospects`");
+    await queryRunner.query("DROP INDEX `IDX_631fce1b85789196fef89696f4` ON `t_prospects`");
+    await queryRunner.query("DROP TABLE `t_prospects`");
+    await queryRunner.query("DROP INDEX `IDX_c96cd3d102c48a356ad64a4d7b` ON `t_todo_histories`");
+    await queryRunner.query("DROP INDEX `IDX_5ee7429f5704d47abb316ee8d7` ON `t_todo_histories`");
+    await queryRunner.query("DROP TABLE `t_todo_histories`");
+    await queryRunner.query("DROP TABLE `s_reporting_lines`");
+    await queryRunner.query("DROP INDEX `REL_e17fd76ad603a20e61dd25ef70` ON `s_todo_app_users`");
+    await queryRunner.query("DROP TABLE `s_todo_app_users`");
+    await queryRunner.query("DROP INDEX `REL_c0fb40df28f96fa6e02c369e12` ON `s_chat_tool_users`");
+    await queryRunner.query("DROP TABLE `s_chat_tool_users`");
+    await queryRunner.query("DROP TABLE `m_timezones`");
+    await queryRunner.query("DROP TABLE `m_countries`");
+  }
+
+}

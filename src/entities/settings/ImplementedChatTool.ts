@@ -12,15 +12,24 @@ export default class ImplementedChatTool extends BaseEntity {
     company: Company | string,
     chatToolId: ValueOf<typeof ChatToolId>,
     installation?: Installation,
+    appInstallUserId?: string,
   ) {
     super();
     if (company) {
       this.companyId = typeof company === "string" ? company : company.id;
       this.chatToolId = chatToolId;
-      if (this.chatToolId === ChatToolId.SLACK && installation) {
-        this.appTeamId = installation.team.id;
-        this.accessToken = installation.bot.token;
-        this.installation = installation;
+      switch (this.chatToolId) {
+        case ChatToolId.SLACK:
+          if (installation) {
+            this.appTeamId = installation.team.id;
+            this.accessToken = installation.bot.token;
+            this.installation = installation;
+          } else if (appInstallUserId) {
+            this.appInstallUserId = appInstallUserId;
+          }
+          break;
+        default:
+          break;
       }
     }
   }
@@ -33,6 +42,9 @@ export default class ImplementedChatTool extends BaseEntity {
 
   @Column({ name: "app_team_id", type: "varchar", length: 12, nullable: true })
   appTeamId?: string;
+
+  @Column({ name: "app_install_user_id", type: "varchar", length: 12, nullable: true })
+  appInstallUserId?: string;
 
   @Column({ name: "access_token", type: "varchar", length: 255, nullable: true })
   accessToken?: string;

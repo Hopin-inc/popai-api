@@ -6,7 +6,7 @@ import { ImplementedChatToolRepository } from "@/repositories/settings/Implement
 import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 import { ChatToolId } from "@/consts/common";
 
-const scopes: string [] = [
+const scopes: string[] = [
   "channels:history", "channels:join", "channels:read",
   "chat:write",
   "conversations.connect:write",
@@ -15,6 +15,9 @@ const scopes: string [] = [
   "team:read",
   "users.profile:read",
   "users:read",
+];
+const userScopes: string[] = [
+  "openid",
 ];
 
 @Service()
@@ -27,6 +30,7 @@ export default class SlackOAuthClient {
       clientId: process.env.SLACK_CLIENT_ID,
       clientSecret: process.env.SLACK_CLIENT_SECRET,
       stateSecret: process.env.SLACK_STATE_SECRET,
+      directInstall: true,
       installationStore: {
         storeInstallation: async installation => {
           const sessionId = installation.metadata;
@@ -60,6 +64,7 @@ export default class SlackOAuthClient {
   public async handleInstallPath(req: Request, res: Response) {
     return await this.slackInstaller.handleInstallPath(req, res, {}, {
       scopes,
+      userScopes,
       redirectUri: `${ req.protocol }://${ req.get("host") }/api/slack/oauth_redirect`,
       metadata: req.session.id,
     });
@@ -68,10 +73,10 @@ export default class SlackOAuthClient {
   public async handleCallback(req: Request, res: Response) {
     await this.slackInstaller.handleCallback(req, res, {
       success() {
-        res.redirect(`${ process.env.CLIENT_BASE_URL }/settings/connect/chat-tool`);
+        res.redirect(`${ process.env.CLIENT_BASE_URL }/create-account`);
       },
       failure() {
-        res.redirect(`${ process.env.CLIENT_BASE_URL }/settings/connect/chat-tool`);
+        res.redirect(`${ process.env.CLIENT_BASE_URL }/login`);
       },
     }, { scopes });
   }

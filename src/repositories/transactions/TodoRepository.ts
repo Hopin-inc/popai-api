@@ -6,7 +6,7 @@ import { And, FindOptionsWhere, In, IsNull, LessThan, Not } from "typeorm";
 import dayjs from "dayjs";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
-  async getTodoHistories(todoIds: string[], companyId: string): Promise<Todo[]> {
+  async getTodos(todoIds: string[], companyId: string): Promise<Todo[]> {
     const where: FindOptionsWhere<Todo> = { appTodoId: In(todoIds), companyId };
     return this.find({ where, relations: ["todoUsers.user.chatToolUser", "company.implementedChatTool"] });
   },

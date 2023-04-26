@@ -16,15 +16,15 @@ import TodoAppUser from "@/entities/settings/TodoAppUser";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 
 export default class TodoAppController extends Controller {
-  public async getList(companyId: string): Promise<ITodoAppInfo[]> {
-    const implementedTodoApps = await CompanyTodoAppRepository.find({
+  public async get(companyId: string): Promise<ITodoAppInfo> {
+    const implementedTodoApp = await CompanyTodoAppRepository.findOne({
       where: { companyId: companyId, accessToken: Not(IsNull()) },
       order: { todoAppId: "asc" },
     });
-    return implementedTodoApps.map(cta => ({
-      todoAppId: cta.todoAppId,
-      workspaceId: cta.appWorkspaceId,
-    }));
+    return {
+      todoAppId: implementedTodoApp.todoAppId,
+      workspaceId: implementedTodoApp.appWorkspaceId,
+    };
   }
 
   public async getUsers(todoAppId: ValueOf<typeof TodoAppId>, companyId: string): Promise<ISelectItem<string>[]> {
@@ -68,19 +68,19 @@ export default class TodoAppController extends Controller {
     companyId: string,
     boardId: string,
   ): Promise<any> {
-    let board = await BoardRepository.findOneByConfig(todoAppId, companyId);
+    const board = await BoardRepository.findOneByConfig(todoAppId, companyId);
     if (board) {
       board.appBoardId = boardId;
+      await Promise.all([
+        BoardRepository.upsert(board, []),
+        board.propertyUsages && board.propertyUsages.length
+          ? PropertyUsageRepository.softDelete(board.propertyUsages.map(usage => usage.id))
+          : null,
+      ]);
     } else {
-      board = new Board(todoAppId, boardId);
-      board.configs = [new BoardConfig(companyId, board.id)];
+      const board = await BoardRepository.save(new Board(todoAppId, boardId));
+      await BoardConfigRepository.save(new BoardConfig(companyId, board.id));
     }
-    await Promise.all([
-      BoardRepository.upsert(board, []),
-      board.propertyUsages && board.propertyUsages.length
-        ? PropertyUsageRepository.softDelete(board.propertyUsages.map(usage => usage.id))
-        : null,
-    ]);
   }
 
   public async getBoards(todoAppId: ValueOf<typeof TodoAppId>, companyId: string): Promise<ISelectItem<string>[]> {

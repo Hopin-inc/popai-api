@@ -1,4 +1,4 @@
-export const TaskServiceParallels = {
+export const ParallelChunkUnit = {
   SYNC_TODOS: 10,
-  GET_PAGES: 1000,
+  GENERATE_TODO: 100,
 };

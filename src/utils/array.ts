@@ -1,14 +1,4 @@
 import dayjs from "dayjs";
-import { randomInt } from "@/utils/misc";
-
-export const sliceByNumber = <T>(array: T[], n: number): T[][] => {
-  const length = Math.ceil(array.length / n);
-  return new Array(length).fill(null).map((_, i) => array.slice(i * n, (i + 1) * n));
-};
-
-export const getItemRandomly = <T>(arr: T[]): T => arr?.length ? arr[randomInt(arr.length)] : null;
-
-export const getUniqueArray = <T>(arr: T[]): T[] => [...new Set(arr)];
 
 export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: keyof T): [T[], T[]] => {
   return [

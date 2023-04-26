@@ -6,39 +6,30 @@ import TodoUser from "./TodoUser";
 import User from "../settings/User";
 import TodoHistory from "./TodoHistory";
 import Prospect from "./Prospect";
-import { toJapanDateTime } from "../../utils/datetime";
 import { Sorter } from "../../utils/array";
-import { ITask, ValueOf } from "../../types";
-import { INotionTask } from "../../types/notion";
-import { TodoAppId } from "../../consts/common";
+
+type ConstructorOptions = {
+  name: string;
+  todoAppId: number;
+  company: Company | string;
+  appTodoId: string;
+  appUrl?: string;
+  appCreatedAt: Date;
+  createdBy?: string;
+  startDate?: Date;
+  deadline?: Date;
+  isDone: boolean;
+  isClosed: boolean;
+}
 
 @Entity("t_todos")
 export default class Todo extends BaseEntity {
-  constructor(
-    todoByApi: ITask,
-    company: Company | string,
-    todoAppId: ValueOf<typeof TodoAppId>,
-    todoByDb?: Todo,
-  ) {
+  constructor(options: ConstructorOptions) {
     super();
-    if (todoByApi && company) {
+    if (options) {
+      const { company, ...rest } = options;
       this.companyId = typeof company === "string" ? company : company.id;
-      this.todoAppId = todoAppId;
-      this.id = todoByDb?.id ?? null;
-      switch (todoAppId) {
-        case TodoAppId.NOTION:
-          const notionTodo = todoByApi as INotionTask;
-          this.name = notionTodo.name;
-          this.appTodoId = notionTodo.todoAppRegId;
-          this.appUrl = notionTodo.todoAppRegUrl;
-          this.createdBy = notionTodo.createdById;
-          this.appCreatedAt = toJapanDateTime(notionTodo.createdAt);
-          this.startDate = notionTodo.startDate ? toJapanDateTime(notionTodo.startDate) : null;
-          this.deadline = notionTodo.deadline ? toJapanDateTime(notionTodo.deadline) : null;
-          this.isDone = notionTodo.isDone;
-          this.isClosed = notionTodo.isClosed;
-          break;
-      }
+      Object.assign(this, { ...this, ...rest });
     }
   }
 
@@ -70,11 +61,11 @@ export default class Todo extends BaseEntity {
 
   @Index()
   @Column({ name: "start_date", type: "datetime", nullable: true })
-  startDate: Date;
+  startDate?: Date;
 
   @Index()
-  @Column({ name: "deadline", type: "datetime", nullable: true, default: null })
-  deadline: Date;
+  @Column({ name: "deadline", type: "datetime", nullable: true })
+  deadline?: Date;
 
   @Column({ name: "is_done", default: false })
   isDone: boolean;

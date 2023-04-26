@@ -42,7 +42,7 @@ export default class User extends BaseEntity {
   )
   todoAppUser: TodoAppUser;
 
-  @OneToMany(
+  @OneToOne(
     () => ChatToolUser,
     chatToolUser => chatToolUser.user,
     { cascade: true },

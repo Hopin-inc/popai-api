@@ -1,7 +1,7 @@
 import { Service } from "typedi";
 import { IncomingWebhook, IncomingWebhookSendArguments } from "@slack/webhook";
-import Account from "@/entities/settings/Account";
 import { KnownBlock, MessageAttachment } from "@slack/web-api";
+import Company from "@/entities/settings/Company";
 
 @Service()
 export default class SlackInternalWebhookClient {
@@ -15,8 +15,8 @@ export default class SlackInternalWebhookClient {
     await this.webhook.send(options);
   }
 
-  public async notifyOnAccountCreated(account: Account) {
-    const { company, name, email } = account;
+  public async notifyOnAccountCreated(company: Company) {
+    const { name, implementedChatTool } = company;
     const blocks: KnownBlock[] = [{
       type: "section",
       text: { type: "mrkdwn", text: "ユーザーが登録されました。" },
@@ -26,11 +26,11 @@ export default class SlackInternalWebhookClient {
       blocks: [
         {
           type: "section",
-          text: { type: "mrkdwn", text: `*${ company.name }* ${ name }さま` },
+          text: { type: "mrkdwn", text: `*${ name }* (${ implementedChatTool.chatToolId })` },
         },
         {
           type: "context",
-          elements: [{ type: "mrkdwn", text: email }],
+          elements: [{ type: "mrkdwn", text: `team_id: ${ implementedChatTool.appTeamId }` }],
         },
       ],
     }];

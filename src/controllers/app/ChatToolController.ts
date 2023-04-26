@@ -12,7 +12,7 @@ import { UserRepository } from "@/repositories/settings/UserRepository";
 export default class ChatToolController extends Controller {
   private slackService: SlackClient;
 
-  public async getList(companyId: string): Promise<IChatToolInfo | null> {
+  public async get(companyId: string): Promise<IChatToolInfo | null> {
     const implementedChatTool = await ImplementedChatToolRepository.findOne({
       where: { companyId: companyId, accessToken: Not(IsNull()) },
     });

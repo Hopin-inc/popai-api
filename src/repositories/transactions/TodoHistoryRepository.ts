@@ -1,11 +1,37 @@
 import dataSource from "@/config/data-source";
-import { TodoAppId } from "@/consts/common";
+import { TodoAppId, TodoHistoryProperty as Property } from "@/consts/common";
 import Company from "@/entities/settings/Company";
 import TodoHistory from "@/entities/transactions/TodoHistory";
-import { ValueOf } from "@/types";
+import { ITodoHistoryOption, ValueOf } from "@/types";
 import { FindOptionsOrder, FindOptionsWhere } from "typeorm";
+import Todo from "@/entities/transactions/Todo";
 
 export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).extend({
+  async saveHistories(options: ITodoHistoryOption[]): Promise<void> {
+    const histories = options.map(history => {
+      const { todoId, property, action, info } = history;
+      return new TodoHistory({
+        todo: todoId,
+        property,
+        action,
+        appUpdatedAt: new Date(),
+        ...info,
+      });
+    });
+    this.save(histories);
+  },
+  async getLatestDelayedHistory(todo: Todo): Promise<TodoHistory | null> {
+    return this.findOne({
+      where: { todoId: todo.id, property: Property.IS_DELAYED },
+      order: { createdAt: "DESC" },
+    });
+  },
+  async getLatestRecoveredHistory(todo: Todo): Promise<TodoHistory | null> {
+    return this.findOne({
+      where: { todoId: todo.id, property: Property.IS_RECOVERED },
+      order: { createdAt: "DESC" },
+    });
+  },
   async getLastUpdatedDate(company: Company, todoAppId: ValueOf<typeof TodoAppId>): Promise<Date | null> {
     const companyId = company.id;
     const where: FindOptionsWhere<TodoHistory> = { todo: { companyId, todoAppId } };

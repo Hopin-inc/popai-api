@@ -11,8 +11,8 @@ import { TodoAppId } from "@/consts/common";
 import logger from "@/libs/logger";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import NotionClient from "@/integrations/NotionClient";
-import { TaskServiceParallels } from "@/consts/parallels";
-import { runInParallel } from "@/utils/process";
+import { ParallelChunkUnit } from "@/consts/parallels";
+import { runInOrder } from "@/utils/process";
 
 @Service()
 export default class TaskService {
@@ -31,29 +31,31 @@ export default class TaskService {
         where,
         relations: ["implementedTodoApp", "implementedChatTool", "users.todoAppUser"],
       });
-      await runInParallel(
+      await runInOrder(
         companies,
-        async (company) => {
-          const { implementedTodoApp } = company;
-          const logMeta = {
-            company: company.name,
-            todoApp: company.implementedTodoApp.todoAppId,
-          };
-          logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-          try {
-            switch (implementedTodoApp.todoAppId) {
-              case TodoAppId.NOTION:
-                await this.notionRepository.syncTaskByUserBoards(company);
-                break;
-              default:
-                break;
-            }
+        async companiesChunk => {
+          await Promise.all(companiesChunk.map(async company => {
+            const { implementedTodoApp } = company;
+            const logMeta = {
+              company: company.name,
+              todoApp: company.implementedTodoApp.todoAppId,
+            };
             logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-          } catch (error) {
-            logger.error(error);
-          }
+            try {
+              switch (implementedTodoApp.todoAppId) {
+                case TodoAppId.NOTION:
+                  await this.notionRepository.syncTodos(company);
+                  break;
+                default:
+                  break;
+              }
+              logger.info(`Finish: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
+            } catch (error) {
+              logger.error(error);
+            }
+          }));
         },
-        TaskServiceParallels.SYNC_TODOS,
+        ParallelChunkUnit.SYNC_TODOS,
       );
     } catch (error) {
       logger.error(error);

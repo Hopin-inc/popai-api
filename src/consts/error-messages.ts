@@ -12,4 +12,5 @@ export const VerificationErrors = {
 export const AccountErrors = {
   InvalidAuthToken: "account/invalid-auth-token",
   NoMatchedAccount: "account/no-matched-account",
+  NotRegistered: "account/not-registered",
 };

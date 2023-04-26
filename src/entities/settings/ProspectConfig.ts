@@ -27,7 +27,7 @@ export default class ProspectConfig extends BaseEntity {
       this.companyId = typeof company === "string" ? company : company.id;
       this.enabled = enabled;
       this.chatToolId = chatToolId;
-      Object.assign({ ...this, ...optionalConfigs });
+      Object.assign(this, { ...this, ...optionalConfigs });
     }
   }
 
