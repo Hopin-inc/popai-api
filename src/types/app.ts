@@ -60,3 +60,7 @@ export type IConfigProspectTiming = {
   askPlan: boolean;
   askPlanMilestone?: string;
 };
+
+export type IConfigFeatures = {
+  prospect: boolean;
+};

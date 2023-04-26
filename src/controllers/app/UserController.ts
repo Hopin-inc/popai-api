@@ -29,22 +29,18 @@ export default class UserController extends Controller {
 
   public async getConfigs(
     companyId: string,
-    chatToolId: ValueOf<typeof ChatToolId>,
-    todoAppId: ValueOf<typeof TodoAppId>,
+    _chatToolId: ValueOf<typeof ChatToolId>,
+    _todoAppId: ValueOf<typeof TodoAppId>,
   ): Promise<IUserConfig[]> {
     const users = await UserRepository.find({
-      where: {
-        companyId: companyId,
-        chatToolUser: { chatToolId: chatToolId },
-        todoAppUser: { todoAppId: todoAppId },
-      },
+      where: { companyId },
       relations: ["chatToolUser", "todoAppUser"],
       order: { id: "asc" },
     });
     return users.map(user => ({
       user: { id: user.id, name: user.name },
-      chatToolUserId: user.chatToolUser.appUserId,
-      todoAppUserId: user.todoAppUser.appUserId,
+      chatToolUserId: user.chatToolUser?.appUserId,
+      todoAppUserId: user.todoAppUser?.appUserId,
     }));
   }
 

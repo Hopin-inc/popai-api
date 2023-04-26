@@ -40,6 +40,22 @@ router.patch("/", async (req, res) => {
   }
 });
 
+router.get("/features", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.getFeatures(company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 router.get("/prospect", async (req, res) => {
   try {
     const controller = new ConfigController();

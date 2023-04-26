@@ -18,7 +18,7 @@ export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).exten
         ...info,
       });
     });
-    this.save(histories);
+    await this.save(histories);
   },
   async getLatestDelayedHistory(todo: Todo): Promise<TodoHistory | null> {
     return this.findOne({

@@ -6,6 +6,7 @@ export type IdOptional<T extends { id: any }> = Omit<T, "id"> & { id?: T["id"] }
 
 export type ITodoUserUpdate = {
   todoId: string;
+  currentUserIds: string[];
   users: User[];
 };
 

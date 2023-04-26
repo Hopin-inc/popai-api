@@ -1,5 +1,5 @@
 import { Controller } from "tsoa";
-import { IConfigCommon, IConfigProspect } from "@/types/app";
+import { IConfigCommon, IConfigFeatures, IConfigProspect } from "@/types/app";
 import { TimingRepository } from "@/repositories/settings/TimingRepository";
 import { TimingExceptionRepository } from "@/repositories/settings/TimingExceptionRepository";
 import { MoreThanOrEqual } from "typeorm";
@@ -78,6 +78,13 @@ export default class ConfigController extends Controller {
         TimingExceptionRepository.upsert(exceptions, []),
       ]);
     }
+  }
+
+  public async getFeatures(companyId: string): Promise<IConfigFeatures> {
+    const prospectConfig = await ProspectConfigRepository.findOneBy({ companyId });
+    return {
+      prospect: prospectConfig?.enabled ?? false,
+    };
   }
 
   public async getProspectConfig(companyId: string): Promise<IConfigProspect | null> {

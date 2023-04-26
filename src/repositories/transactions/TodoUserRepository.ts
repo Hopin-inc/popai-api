@@ -5,7 +5,6 @@ import User from "@/entities/settings/User";
 import { extractArrayDifferences } from "@/utils/array";
 import { In } from "typeorm";
 import { ITodoUserUpdate } from "@/types";
-import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 export const TodoUserRepository = dataSource.getRepository<TodoUser>(TodoUser).extend({
   async updateTodoUser(todo: Todo, users: User[]): Promise<void> {
@@ -42,37 +41,20 @@ export const TodoUserRepository = dataSource.getRepository<TodoUser>(TodoUser).e
     const updatedTodoUsers: TodoUser[] = [];
     const deletedTodoUsers: TodoUser[] = [];
     await Promise.all(dataTodoUsers.map(async dataTodoUser => {
-      const todo: Todo = await TodoRepository.findOneBy({
-        appTodoId: dataTodoUser.todoId,
+      const { todoId, users, currentUserIds } = dataTodoUser;
+      users.forEach(user => {
+        const todoUser = new TodoUser(todoId, user);
+        todoUser.deletedAt = null;
+        updatedTodoUsers.push(todoUser);
       });
-      if (todo) {
-        const savedTodoUsers = await this.find({
-          where: { todo_id: todo.id },
-          withDeleted: true,
-        });
-        const restoredUserIds: string[] = [];
-        dataTodoUser.users.forEach(user => {
-          if (!savedTodoUsers.some(tu => tu.user_id === user.id)) {
-            if (savedTodoUsers.filter(ts => ts.deleted_at).some(ts => ts.user_id === user.id)) {
-              restoredUserIds.push(user.id);
-            } else {
-              updatedTodoUsers.push(new TodoUser(todo, user));
-            }
-          }
-        });
-        savedTodoUsers.filter(tu => !tu.deleted_at).forEach(savedTodoUser => {
-          if (!dataTodoUser.users.map(u => u.id).includes(savedTodoUser.user_id)) {
-            deletedTodoUsers.push(savedTodoUser);
-          }
-        });
-        await this.restore({
-          todo_id: todo.id,
-          user_id: In(restoredUserIds),
-        });
-      }
+      currentUserIds.forEach(userId => {
+        if (!users.map(u => u.id).includes(userId)) {
+          deletedTodoUsers.push(new TodoUser(todoId, userId));
+        }
+      });
     }));
     await Promise.all([
-      this.upsert(updatedTodoUsers, []),
+      this.upsert(updatedTodoUsers, ["todoId", "userId"]),
       this.softRemove(deletedTodoUsers),
     ]);
   },

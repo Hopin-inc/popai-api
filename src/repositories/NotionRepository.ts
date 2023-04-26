@@ -32,9 +32,7 @@ const TODO_APP_ID = TodoAppId.NOTION;
 export default class NotionRepository {
   private notionClient: NotionClient;
 
-  public async syncTodos(
-    company: Company,
-  ): Promise<void> {
+  public async syncTodos(company: Company): Promise<void> {
     try {
       this.notionClient = await NotionClient.init(company.id);
       const [notionClient, board, lastUpdatedDate] = await Promise.all([
@@ -62,20 +60,35 @@ export default class NotionRepository {
           await runInOrder(
             pageIds,
             async pageIdsChunk => {
-              const todos: Todo[] = [];
-              const todoUserUpdates: ITodoUserUpdate[] = [];
-              const historyOptions: ITodoHistoryOption[] = [];
-              await Promise.all(pageIdsChunk.map(async pageId => {
-                const { todo, users, args } = await this.generateTodoFromApi(pageId, company, board.propertyUsages);
-                todos.push(todo);
-                todoUserUpdates.push({ todoId: todo.id, users });
-                historyOptions.push(...args.map(a => ({ ...a, todoId: todo.id })));
-              }));
-              await TodoRepository.upsert(todos, []);
-              await Promise.all([
-                TodoHistoryRepository.saveHistories(historyOptions),
-                TodoUserRepository.saveTodoUsers(todoUserUpdates),
-              ]);
+              try {
+                const todos: Todo[] = [];
+                const todoUserUpdates: ITodoUserUpdate[] = [];
+                const historyOptions: ITodoHistoryOption[] = [];
+                await Promise.all(pageIdsChunk.map(async pageId => {
+                  try {
+                    const { todo, users, currentUserIds, args } = await this.generateTodoFromApi(pageId, company, board.propertyUsages);
+                    let todoId: string;
+                    if (todo.id) {
+                      todos.push(todo);
+                      todoId = todo.id;
+                    } else {
+                      const savedTodo = await TodoRepository.save(todo);
+                      todoId = savedTodo.id;
+                    }
+                    todoUserUpdates.push({ todoId, users, currentUserIds });
+                    historyOptions.push(...args.map(a => ({ ...a, todoId })));
+                  } catch (error) {
+                    logger.error(error);
+                  }
+                }));
+                await TodoRepository.upsert(todos, []);
+                await Promise.all([
+                  TodoHistoryRepository.saveHistories(historyOptions),
+                  TodoUserRepository.saveTodoUsers(todoUserUpdates),
+                ]);
+              } catch (error) {
+                logger.error(error);
+              }
             },
             ParallelChunkUnit.GENERATE_TODO,
           );
@@ -94,9 +107,9 @@ export default class NotionRepository {
     pageId: string,
     company: Company,
     propertyUsages: PropertyUsage[],
-  ): Promise<{ todo: Todo, users: User[], args: Omit<ITodoHistoryOption, "todoId">[] }> {
+  ): Promise<{ todo: Todo, users: User[], currentUserIds: string[], args: Omit<ITodoHistoryOption, "todoId">[] }> {
+    const nullResponse = { todo: null, users: [], currentUserIds: [], args: [] };
     try {
-      const nullResponse = { todo: null, users: [], args: [] };
       const pageInfo = await this.notionClient.retrievePage({ page_id: pageId }) as PageObjectResponse;
       if (!pageInfo?.properties) {
         return nullResponse;
@@ -111,12 +124,15 @@ export default class NotionRepository {
       const pagePropertyIds = pageProperties.map((obj) => obj.id);
       const properties = this.getProperties(propertyUsages, pagePropertyIds);
       const name = this.getTitle(pageProperties, properties.title);
-      if (!name) return;
+      if (!name) {
+        return nullResponse;
+      }
       const [startDate, deadline] = this.getDeadline(pageProperties, properties.deadline);
       let todo = await TodoRepository.findOne({
         where: { companyId: company.id, appTodoId: pageId },
         relations: ["todoUsers.user"],
       });
+      const currentUserIds = todo?.users ? todo.users.map(u => u.id) : [];
       const appUrl = this.getDefaultStr(pageInfo, "url");
       const appCreatedAt = this.getDefaultDate(pageInfo, "created_time");
       const createdBy = this.getEditedById(
@@ -130,8 +146,8 @@ export default class NotionRepository {
       const users = appUserIds.map(appUserId => {
         return company.users?.find(u => u.todoAppUser?.appUserId === appUserId);
       }).filter(u => u);
-      const isDelayed = todo.deadline
-        ? diffDays(toJapanDateTime(todo.deadline), toJapanDateTime(new Date())) > 0
+      const isDelayed = deadline
+        ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
         : null;
 
       if (todo) {
@@ -163,9 +179,10 @@ export default class NotionRepository {
           isClosed,
         });
       }
-      return { todo, users, args };
+      return { todo, users, currentUserIds, args };
     } catch(error) {
       logger.error(error);
+      return nullResponse;
     }
   }
 
@@ -352,23 +369,25 @@ export default class NotionRepository {
   ): [Date | null, Date | null] {
     try {
       const property = pageProperties.find(prop => prop.id === propertyUsage.appPropertyId);
-       switch (property?.type) {
+      switch (property?.type) {
         case "date":
           if (property.date) {
             const date = property.date;
             return date?.start
-              ? [date.start ? new Date(date.start) : null, new Date(date.end ? date.end : date.start)]
+              ? [new Date(date.start), new Date(date.end ? date.end : date.start)]
               : [null, null];
+          } else {
+            return [null, null];
           }
-          break;
         case "formula":
           if (property.formula.type === "date" && property.formula.date) {
             const date = property.formula.date;
             return date?.start
-              ? [date.start ? new Date(date.start) : null, new Date(date.end ? date.end : date.start)]
+              ? [new Date(date.start), new Date(date.end ? date.end : date.start)]
               : [null, null];
+          } else {
+            return [null, null];
           }
-          break;
         default:
           return [null, null];
       }
