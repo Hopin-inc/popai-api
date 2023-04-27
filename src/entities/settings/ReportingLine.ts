@@ -5,19 +5,19 @@ import User from "./User";
 
 @Entity("s_reporting_lines")
 export default class ReportingLine extends BaseEntity {
-  constructor(subordinateUser: User | number, superiorUser: User | number) {
+  constructor(subordinateUser: User | string, superiorUser: User | string) {
     super();
     if (subordinateUser && superiorUser) {
-      this.subordinate_user_id = typeof subordinateUser === "number" ? subordinateUser : subordinateUser.id;
-      this.superior_user_id = typeof superiorUser === "number" ? superiorUser : superiorUser.id;
+      this.subordinateUserId = typeof subordinateUser === "string" ? subordinateUser : subordinateUser.id;
+      this.superiorUserId = typeof superiorUser === "string" ? superiorUser : superiorUser.id;
     }
   }
 
-  @PrimaryColumn()
-  superior_user_id: number;
+  @PrimaryColumn({ name: "superior_user_id" })
+  superiorUserId: string;
 
-  @PrimaryColumn()
-  subordinate_user_id: number;
+  @PrimaryColumn({ name: "subordinate_user_id" })
+  subordinateUserId: string;
 
   @ManyToOne(
     () => User,

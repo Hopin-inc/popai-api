@@ -6,19 +6,19 @@ import User from "../settings/User";
 
 @Entity("t_todo_users")
 export default class TodoUser extends BaseEntity {
-  constructor(todo: Todo | number, user: User | number) {
+  constructor(todo: Todo | string, user: User | string) {
     super();
     if (todo && user) {
-      this.todo_id = typeof todo === "number" ? todo : todo.id;
-      this.user_id = typeof user === "number" ? user : user.id;
+      this.todoId = typeof todo === "string" ? todo : todo.id;
+      this.userId = typeof user === "string" ? user : user.id;
     }
   }
 
-  @PrimaryColumn()
-  todo_id: number;
+  @PrimaryColumn({ name: "todo_id" })
+  todoId: string;
 
-  @PrimaryColumn()
-  user_id: number;
+  @PrimaryColumn({ name: "user_id" })
+  userId: string;
 
   @ManyToOne(
     () => Todo,

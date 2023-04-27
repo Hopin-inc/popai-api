@@ -3,9 +3,9 @@ import BaseEntity from "../BaseEntity";
 
 @Entity("m_countries")
 export default class Country extends BaseEntity {
-  @PrimaryColumn({ type: "char", length: 2, collation: "utf8mb4_unicode_ci" })
-  code: number;
+  @PrimaryColumn({ name: "code", type: "char", length: 2 })
+  code: string;
 
-  @Column({ type: "varchar", length: 45, collation: "utf8mb4_unicode_ci" })
+  @Column({ name: "name", type: "varchar", length: 45 })
   name: string;
 }

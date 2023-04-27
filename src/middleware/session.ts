@@ -8,6 +8,7 @@ import { SessionRepository } from "@/repositories/transactions/SessionRepository
 declare module "express-session" {
   interface SessionData {
     uid: string;
+    registered: boolean;
     company: Company;
   }
 }

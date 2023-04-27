@@ -1,14 +1,4 @@
-import Todo from "@/entities/transactions/Todo";
-import ChatTool from "@/entities/masters/ChatTool";
-import User from "@/entities/settings/User";
 import { Block, InputBlock, KnownBlock } from "@slack/web-api";
-
-export type ITodoSlack = {
-  todo: Todo;
-  remindDays: number;
-  chatTool: ChatTool;
-  user: User;
-};
 
 export type SlackInteractionPayload = {
   team: SlackTeam;

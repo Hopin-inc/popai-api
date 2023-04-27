@@ -1,495 +1,30 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import {
-  Block,
-  Button,
-  KnownBlock,
-  MessageAttachment,
-} from "@slack/web-api";
+import { Block, Button, KnownBlock } from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
-import Section from "@/entities/settings/Section";
-import DailyReport from "@/entities/transactions/DailyReport";
 
 import {
   AskPlanModalItems,
-  DEFAULT_BULLET,
-  Icons,
   prospects,
   reliefActions,
   ReliefCommentModalItems,
-  replyActionsAfter,
-  replyActionsBefore,
   SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
-import { diffDays, formatDatetime, relativeRemindDays, Sorter, toJapanDateTime, truncate } from "@/utils/common";
-import { ITodoSlack } from "@/types/slack";
-import { IDailyReportItems, ValueOf } from "@/types";
-import { NOT_UPDATED_DAYS, ProspectLevel, TodoHistoryAction } from "@/consts/common";
-import TodoAppUser from "@/entities/settings/TodoAppUser";
+import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
+import { Sorter } from "@/utils/array";
+import { truncate, relativeRemindDays } from "@/utils/string";
+import { ProspectLevel } from "@/consts/common";
 
 dayjs.locale("ja");
 
 export default class SlackMessageBuilder {
   private static readonly divider: KnownBlock = { type: "divider" };
-
-  public static createRemindMessage(user: User, todo: Todo, remindDays: number) {
-    const relativeDays = relativeRemindDays(remindDays);
-    const actions = remindDays > 0 ? replyActionsAfter : replyActionsBefore;
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        fields: [
-          {
-            type: "mrkdwn",
-            text: `*タスク:*\n<${ todo.todoapp_reg_url }|${ todo.name }>`,
-          },
-          {
-            type: "mrkdwn",
-            text: `*期日:*\n${ relativeDays }`,
-          },
-        ],
-      },
-      {
-        type: "actions",
-        elements: actions.map(action => {
-          return {
-            type: "button",
-            text: { type: "plain_text", emoji: true, text: action.text },
-            style: action.style,
-            value: action.status,
-          };
-        }),
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createReplaceMessageAfterReply(userId: string, todo: Todo, message: string) {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `<${ todo.todoapp_reg_url }|${ todo.name }>は *${ message }* で伝えました`,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createShareMessage(userId: string, todo: Todo, message: string) {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        fields: [
-          {
-            type: "mrkdwn",
-            text: `*タスク:*\n<${ todo.todoapp_reg_url }|${ todo.name }>`,
-          },
-          {
-            type: "mrkdwn",
-            text: `*期日:*\n${ dayjs(todo.deadline).format("M月D日(ddd)") }`,
-          },
-          {
-            type: "mrkdwn",
-            text: `*進捗:*\n${ message }`,
-          },
-          {
-            type: "mrkdwn",
-            text: `*回答者:*\n<@${ userId }>`,
-          },
-        ],
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createBeforeRemindMessage(user: User, todoSlacks: ITodoSlack[]) {
-    const sortedTodoSlacks = todoSlacks.sort((a, b) => (a.remindDays < b.remindDays ? 1 : -1));
-
-    const groupMessageMap = new Map<number, ITodoSlack[]>();
-    sortedTodoSlacks.forEach((item) => {
-      if (groupMessageMap.has(item.remindDays)) {
-        groupMessageMap.get(item.remindDays).push(item);
-      } else {
-        groupMessageMap.set(item.remindDays, [item]);
-      }
-    });
-
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: "お仕事お疲れさまです:raised_hands:\n下記の進捗はいかがですか？" },
-      },
-    ];
-
-    return { blocks };
-  }
-
-  public static createNotifyUnsetMessage(adminUser: User, todos: Todo[]) {
-    const todoList = todos.map(todo => `:bookmark: <${ todo.todoapp_reg_url }|${ todo.name }>`);
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "お疲れさまです:raised_hands:\n"
-            + "現在、次のタスクの担当者と期日が設定されていません:sob:\n\n"
-            + todoList.join("\n"),
-        },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createNotifyUnassignedMessage(adminUser: User, todos: Todo[]) {
-    const todoList = todos.map(todo => `:bookmark: <${ todo.todoapp_reg_url }|${ todo.name }>`);
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "お疲れさまです:raised_hands:\n"
-            + "現在、次のタスクの担当者が設定されていません:sob:\n\n"
-            + todoList.join("\n"),
-        },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createNotifyNoDeadlineMessage(user: User, todos: Todo[]) {
-    const todoList = todos.map(todo => `:bookmark: <${ todo.todoapp_reg_url }|${ todo.name }>`);
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `<@${ user.slackId }> お疲れさまです:raised_hands:\n`
-            + "現在、次のタスクの期日が設定されていません:sob:\n\n"
-            + todoList.join("\n"),
-        },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: "ご確認をお願いします:pray:" },
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createNotifyNothingMessage() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "お疲れさまです:raised_hands:\n"
-            + "現在、担当者・期日が設定されていないタスクはありませんでした。",
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createNotifyOnCreatedMessage(todo: Todo, assignees: User[], editUser: TodoAppUser) {
-    const blocks: KnownBlock[] = [{
-      type: "section",
-      text: { type: "mrkdwn", text: `${ Icons.CREATED } タスクが追加されました。` },
-    }];
-    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo, assignees, editUser)];
-    return { blocks, attachments };
-  }
-
-  public static createNotifyOnCompletedMessage(todo: Todo, editUser: TodoAppUser) {
-    const blocks: KnownBlock[] = [{
-      type: "section",
-      text: { type: "mrkdwn", text: `${ Icons.DONE } タスクを完了しました。` },
-    }];
-    const attachments: MessageAttachment[] = [this.createTodoAttachment(todo, null, editUser)];
-    return { blocks, attachments };
-  }
-
-  private static createTodoAttachment(
-    todo: Todo,
-    assignees: User[] = todo.users,
-    _editUser: TodoAppUser,
-    color: string = "good",
-  ): MessageAttachment {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
-      },
-      {
-        type: "context",
-        elements: [
-          { type: "mrkdwn", text: `${ Icons.ASSIGNEE } ${ this.getAssigneesText(assignees) }` },
-          { type: "mrkdwn", text: `${ Icons.DEADLINE } ${ this.getDeadlineText(todo.deadline) }` },
-        ],
-      },
-      // {
-      //   type: "context",
-      //   elements: [
-      //     { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
-      //     { type: "mrkdwn", text: editUser.user_app_name },
-      //   ],
-      // },
-    ];
-    return { blocks, color };
-  }
-
-  public static createNotifyOnAssigneeUpdatedMessage(
-    todo: Todo,
-    action: ValueOf<typeof TodoHistoryAction>,
-    assignees: User[],
-    _editUser: TodoAppUser,
-  ) {
-    const message = action === TodoHistoryAction.CREATE ? `${ Icons.ASSIGNEE } 担当者が設定されました。`
-      : action === TodoHistoryAction.DELETE ? `${ Icons.ASSIGNEE } 担当者が削除されました。`
-        : `${ Icons.ASSIGNEE } 担当者が変更されました。`;
-    const blocks: KnownBlock[] = [{
-      type: "section",
-      text: { type: "mrkdwn", text: message },
-    }];
-    const attachmentBlocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `~${ this.getAssigneesText(todo.users) }~ → *${ this.getAssigneesText(assignees) }*`,
-        },
-      },
-      // {
-      //   type: "context",
-      //   elements: [
-      //     { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
-      //     { type: "mrkdwn", text: editUser.user_app_name },
-      //   ],
-      // },
-    ];
-    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
-    return { blocks, attachments };
-  }
-
-  public static createNotifyOnDeadlineUpdatedMessage(
-    todo: Todo,
-    action: ValueOf<typeof TodoHistoryAction>,
-    deadline: Date,
-    _editUser: TodoAppUser) {
-    const message = action === TodoHistoryAction.CREATE ? `${ Icons.DEADLINE } 期日が設定されました。`
-      : action === TodoHistoryAction.DELETE ? `${ Icons.DEADLINE } 期日が削除されました。`
-        : `${ Icons.DEADLINE } 期日が変更されました。`;
-    const blocks: KnownBlock[] = [{
-      type: "section",
-      text: { type: "mrkdwn", text: message },
-    }];
-    const attachmentBlocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `~${ this.getDeadlineText(todo.deadline) }~ → *${ this.getDeadlineText(deadline) }*`,
-        },
-      },
-      // {
-      //   type: "context",
-      //   elements: [
-      //     { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
-      //     { type: "mrkdwn", text: editUser.user_app_name },
-      //   ],
-      // },
-    ];
-    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
-    return { blocks, attachments };
-  }
-
-  public static createNotifyOnClosedUpdatedMessage(
-    todo: Todo,
-    action: ValueOf<typeof TodoHistoryAction>,
-    _editUser: TodoAppUser) {
-    const message = action === TodoHistoryAction.CREATE
-      ? `${ Icons.CLOSED } 保留されました。`
-      : `${ Icons.CLOSED } 対応予定に戻されました。`;
-    const blocks: KnownBlock[] = [{
-      type: "section",
-      text: { type: "mrkdwn", text: message },
-    }];
-    const attachmentBlocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*<${ todo.todoapp_reg_url }|${ todo.name }>*` },
-      },
-      // {
-      //   type: "context",
-      //   elements: [
-      //     { type: "image", image_url: editUser.avatar, alt_text: editUser.user_app_name },
-      //     { type: "mrkdwn", text: editUser.user_app_name },
-      //   ],
-      // },
-    ];
-    const attachments: MessageAttachment[] = [{ color: "good", blocks: attachmentBlocks }];
-    return { blocks, attachments };
-  }
-
-  private static getAssigneesText(assignees: User[]): string {
-    return assignees?.length ? assignees.map(user => user?.name).join(", ") : "未設定";
-  }
-
   private static getDeadlineText(deadline: Date): string {
     const remindDays = deadline ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date)) : null;
     return deadline ? `${ relativeRemindDays(remindDays) } (${ formatDatetime(deadline) })` : "未設定";
-  }
-
-  public static createStartDailyReportMessage() {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*${ dayjs().format("M月D日(ddd)") }の日報*`,
-        },
-      },
-    ];
-    return { blocks };
-  }
-
-  public static createDailyReportByUser(items: IDailyReportItems, user: User, iconUrl: string) {
-    const filteredItems = this.filterTodosByUser(items, null, user);
-    const blocks = this.getDailyReportBlocks(
-      user,
-      iconUrl,
-      filteredItems.completedYesterday,
-      filteredItems.delayed,
-      filteredItems.ongoing,
-    );
-    return { blocks };
-  }
-
-  public static createDailyReportWithProspect(dailyReport: DailyReport, items: IDailyReportItems, iconUrl: string) {
-    const filteredItems = this.filterTodosByUser(items, dailyReport.section_ids, dailyReport.user);
-    const blocks = this.getDailyReportBlocks(
-      dailyReport.user,
-      iconUrl,
-      filteredItems.completedYesterday,
-      filteredItems.delayed,
-      filteredItems.ongoing,
-      true,
-    );
-    return { blocks };
-  }
-
-  public static filterTodosByUser(
-    items: IDailyReportItems,
-    sections: (Section | number)[] | null,
-    user: User,
-  ): IDailyReportItems {
-    const sectionIds = !sections
-      ? []
-      : sections.length && typeof sections[0] === "number"
-        ? sections
-        : sections.map((s: Section) => s.id);
-    const filteredItems: IDailyReportItems = { completedYesterday: [], delayed: [], ongoing: [] };
-    Object.keys(items).forEach((key: keyof typeof items) => {
-      filteredItems[key] = items[key].filter(todo => {
-        return (!sectionIds.length || todo.sections.some(section => sectionIds.includes(section?.id)))
-          && todo.users.some(u => u?.id === user?.id);
-      });
-    });
-    return filteredItems;
-  }
-
-  private static getDailyReportBlocks(
-    user: User,
-    iconUrl: string,
-    todosCompletedYesterday: Todo[],
-    todosDelayed: Todo[],
-    todosOngoing: Todo[],
-    displayProspects: boolean = false,
-  ): KnownBlock[] {
-    const listTodos = (todos: Todo[], showProspects: boolean = false, warning: boolean = false): string => {
-      if (todos.length) {
-        return todos.map(todo => {
-          let bullet = DEFAULT_BULLET;
-          if (todo.latestProspect && todo.latestProspect?.prospect) {
-            const prospect = todo.latestProspect?.prospect;
-            bullet = showProspects && prospect
-              ? prospects.find(p => p.value === prospect)?.emoji ?? DEFAULT_BULLET
-              : DEFAULT_BULLET;
-          }
-          const warningEmoji = warning ? ":warning:" : "";
-          const truncatedTodoName = truncate(todo.name, 48, 1, 2);
-          return `${ bullet } <${ todo.todoapp_reg_url }|${ truncatedTodoName }> ${ warningEmoji }`;
-        }).join("\n");
-      }
-    };
-    const noTodoMessage = "`ありません`";
-    const todoListYesterday = todosCompletedYesterday.length ? listTodos(todosCompletedYesterday) : noTodoMessage;
-    const todoListToday = todosDelayed.length + todosOngoing.length === 0 ? noTodoMessage
-      : todosOngoing.length === 0 ? listTodos(todosDelayed, displayProspects, true)
-        : todosDelayed.length === 0 ? listTodos(todosOngoing, displayProspects)
-          : listTodos(todosDelayed, displayProspects, true) + "\n" + listTodos(todosOngoing, displayProspects);
-    return [
-      {
-        type: "context",
-        elements: [
-          { type: "image", image_url: iconUrl, alt_text: user.name },
-          { type: "mrkdwn", text: `<@${ user.slackId }> さんの日報です。` },
-        ],
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*昨日やったこと*\n${ todoListYesterday }`,
-        },
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*今日やること*\n${ todoListToday }`,
-        },
-      },
-      this.divider,
-    ];
-  }
-
-  public static createSuggestNotUpdatedTodoMessage(todo: Todo, user: User) {
-    const blocks: KnownBlock[] = [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `${ NOT_UPDATED_DAYS }日以上更新されていないタスクを見つけました。\n`
-            + `<@${ user.slackId }> 見直しをお願いします。`,
-        },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `:bookmark: <${ todo.todoapp_reg_url }|${ todo.name }>` },
-      },
-    ];
-    return { blocks };
   }
 
   public static createAskProspectMessage(todo: Todo) {
@@ -571,13 +106,13 @@ export default class SlackMessageBuilder {
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: { type: "mrkdwn", text: `${ prospect.emoji } <${ todo.todoapp_reg_url }|${ todo.name }>` },
+        text: { type: "mrkdwn", text: `${ prospect.emoji } <${ todo.appUrl }|${ todo.name }>` },
       },
       {
         type: "context",
         elements: [
           { type: "image", image_url: iconUrl, alt_text: user.name },
-          { type: "mrkdwn", text: `<@${ user.slackId }> *${ action.text }* を見直したい。` },
+          { type: "mrkdwn", text: `<@${ user.chatToolUser.appUserId }> *${ action.text }* を見直したい。` },
         ],
       },
       {
@@ -591,7 +126,7 @@ export default class SlackMessageBuilder {
   }
 
   public static createPromptDiscussionMessage(users: User[]) {
-    const mentions = users.map(u => `<@${ u.slackId }>`).join(" ");
+    const mentions = users.map(u => `<@${ u.chatToolUser.appUserId }>`).join(" ");
     const blocks: KnownBlock[] = [
       {
         type: "section",
@@ -606,7 +141,7 @@ export default class SlackMessageBuilder {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `<${ todo.todoapp_reg_url }|${ todo.name }>は期日に間に合いそうですか？\n`
+        text: `<${ todo.appUrl }|${ todo.name }>は期日に間に合いそうですか？\n`
           + `\`期日\` ${ this.getDeadlineText(todo.deadline) }`,
       },
     };

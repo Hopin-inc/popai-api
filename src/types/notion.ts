@@ -1,33 +1,24 @@
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { ValueOf } from "@/types/index";
+import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 export type INotionTask = {
   name: string;
   assignees: string[];
   startDate: Date;
   deadline: Date;
-  sections: string[];
   sectionIds: number[];
   isDone: boolean;
   isClosed: boolean;
   deadlineReminder: number | null;
-  todoappRegId: string;
-  todoappRegUrl: string;
+  todoAppRegId: string;
+  todoAppRegUrl: string;
   createdAt: Date;
   createdBy: string;
-  createdById: number;
+  createdById: string;
   lastEditedAt: Date;
   lastEditedBy: string;
-  lastEditedById: number;
+  lastEditedById: string;
 }
-
-export type INotionDailyReport = {
-  pageId: string,
-  docAppRegUrl: string,
-  assignee: string,
-}
-
-export type INotionProperty = ValueOf<Pick<PageObjectResponse, "properties">>;
 
 export type INotionOAuthToken = {
   access_token: string;
@@ -38,3 +29,5 @@ export type INotionOAuthToken = {
   workspace_id: string;
   workspace_name?: string;
 };
+
+export type INotionPropertyInfo = ValueOf<PageObjectResponse["properties"]>;

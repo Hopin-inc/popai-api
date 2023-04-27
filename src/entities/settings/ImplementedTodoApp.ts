@@ -1,61 +1,50 @@
-import { Entity, Column, JoinColumn, PrimaryColumn, ManyToOne } from "typeorm";
+import { Entity, Column, JoinColumn, PrimaryColumn, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
-import TodoApp from "../masters/TodoApp";
-import { INotionOAuthToken } from "@/types/notion";
+import { INotionOAuthToken } from "../../types/notion";
 import { TodoAppId } from "../../consts/common";
+import { ValueOf } from "../../types";
 
 @Entity("s_implemented_todo_apps")
 export default class ImplementedTodoApp extends BaseEntity {
   constructor(
-    company: Company | number,
-    todoApp: TodoApp | number,
+    company: Company | string,
+    todoAppId: ValueOf<typeof TodoAppId>,
     installation: INotionOAuthToken,
   ) {
     super();
-    if (company && todoApp) {
-      this.company_id = typeof company === "number" ? company : company.id;
-      this.todoapp_id = typeof todoApp === "number" ? todoApp : todoApp.id;
-      if (this.todoapp_id === TodoAppId.NOTION && installation) {
-        this.access_token = installation.access_token;
-        this.app_workspace_id = installation.workspace_id;
+    if (company) {
+      this.companyId = typeof company === "string" ? company : company.id;
+      this.todoAppId = todoAppId;
+      if (this.todoAppId === TodoAppId.NOTION && installation) {
+        this.accessToken = installation.access_token;
+        this.appWorkspaceId = installation.workspace_id;
         this.installation = installation;
       }
     }
   }
 
-  @PrimaryColumn()
-  company_id: number;
+  @PrimaryColumn({ name: "company_id" })
+  companyId: string;
 
-  @PrimaryColumn()
-  todoapp_id: number;
+  @PrimaryColumn({ name: "todo_app_id" })
+  todoAppId: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  primary_domain?: string;
+  @Column({ name: "access_token", type: "varchar", length: 255, nullable: true })
+  accessToken?: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  access_token?: string;
+  @Column({ name: "app_workspace_id", type: "varchar", length: 255, nullable: true })
+  appWorkspaceId?: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  app_workspace_id?: string;
-
-  @Column({ type: "json", nullable: true })
+  @Column({ name: "installation", type: "json", nullable: true })
   installation?: INotionOAuthToken;
 
-  @ManyToOne(
+  @OneToOne(
     () => Company,
-    company => company.implementedTodoApps,
+    company => company.implementedTodoApp,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
-
-  @ManyToOne(
-    () => TodoApp,
-    todoApp => todoApp.implementedCompanies,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "todoapp_id" })
-  todoApp: TodoApp;
 }

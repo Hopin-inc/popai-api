@@ -1,75 +1,39 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, JoinColumn, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import User from "./User";
-import TodoApp from "../masters/TodoApp";
+import { ValueOf } from "../../types";
+import { TodoAppId } from "../../consts/common";
 
 @Entity("s_todo_app_users")
 export default class TodoAppUser extends BaseEntity {
   constructor(
-    todoApp: TodoApp | number,
-    user: User | number,
-    userAppId: string,
-    userAppName: string, // TODO: Set this optional.
-    email: string, // TODO: Set this optional.
+    user: User | string,
+    todoAppId: ValueOf<typeof TodoAppId>,
+    appUserId: string,
   ) {
     super();
-    if (todoApp && user) {
-      this.todoapp_id = typeof todoApp === "number" ? todoApp : todoApp.id;
-      this.employee_id = typeof user === "number" ? user : user.id;
-      this.user_app_id = userAppId;
-      if (userAppName) {
-        this.user_app_name = userAppName;
-      }
-      if (email) {
-        this.email = email;
-      }
+    if (user) {
+      this.userId = typeof user === "string" ? user : user.id;
+      this.todoAppId = todoAppId;
+      this.appUserId = appUserId;
     }
   }
 
-  @PrimaryColumn()
-  employee_id: number;
+  @PrimaryColumn({ name: "user_id" })
+  userId: string;
 
-  @PrimaryColumn()
-  todoapp_id: number;
+  @PrimaryColumn({ name: "todo_app_id" })
+  todoAppId: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  user_app_id: string;
+  @Column({ name: "app_user_id", type: "varchar", length: 255 })
+  appUserId: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
-  user_app_name: string;
-
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  avatar: string;
-
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci" })
-  email: string;
-
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  api_key: string;
-
-  @Column({ type: "text", nullable: true, collation: "utf8mb4_unicode_ci" })
-  api_token: string;
-
-  @Column({ type: "text", nullable: true, collation: "utf8mb4_unicode_ci" })
-  refresh_token: string;
-
-  @Column({ type: "int", nullable: true })
-  expires_in: number;
-
-  @ManyToOne(
+  @OneToOne(
     () => User,
-    user => user.todoAppUsers,
+    user => user.todoAppUser,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
-  @JoinColumn({ name: "employee_id" })
+  @JoinColumn({ name: "user_id" })
   user: User;
-
-  @ManyToOne(
-    () => TodoApp,
-    todoApp => todoApp.todoAppUsers,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "todoapp_id" })
-  todoApp: TodoApp;
 }

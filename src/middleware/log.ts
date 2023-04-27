@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import logger from "@/logger/winston";
-import { getMemoryUsage } from "@/utils/common";
+import logger from "@/libs/logger";
+import { getMemoryUsage } from "@/utils/process";
 
 export const requestLog = (req: Request, _res: Response, next: NextFunction) => {
   logger.debug(`${ req.method } ${ req.originalUrl }`, {

@@ -12,29 +12,29 @@ export default class ProspectTiming extends BaseEntity {
   ) {
     super();
     if (config) {
-      this.config_id = typeof config === "number" ? config : config.id;
+      this.configId = typeof config === "number" ? config : config.id;
       this.time = time;
-      this.ask_plan = askPlan;
+      this.askPlan = askPlan;
       if (askPlanMilestone) {
-        this.ask_plan_milestone = askPlanMilestone;
+        this.askPlanMilestone = askPlanMilestone;
       }
     }
   }
 
   @PrimaryGeneratedColumn()
-  id: number;
+  readonly id: number;
 
-  @Column()
-  config_id: number;
+  @Column({ name: "config_id" })
+  configId: number;
 
-  @Column({ type: "time" })
+  @Column({ name: "time", type: "time" })
   time: string;
 
-  @Column({ default: false })
-  ask_plan: boolean;
+  @Column({ name: "ask_plan", default: false })
+  askPlan: boolean;
 
-  @Column({ type: "time", nullable: true })
-  ask_plan_milestone: string;
+  @Column({ name: "ask_plan_milestone", type: "time", nullable: true })
+  askPlanMilestone?: string;
 
   @ManyToOne(
     () => ProspectConfig,
