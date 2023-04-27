@@ -21,10 +21,12 @@ export default class TodoAppController extends Controller {
       where: { companyId: companyId, accessToken: Not(IsNull()) },
       order: { todoAppId: "asc" },
     });
-    return {
-      todoAppId: implementedTodoApp.todoAppId,
-      workspaceId: implementedTodoApp.appWorkspaceId,
-    };
+    if (implementedTodoApp) {
+      const { todoAppId, appWorkspaceId } = implementedTodoApp;
+      return { todoAppId, workspaceId: appWorkspaceId };
+    } else {
+      return null;
+    }
   }
 
   public async getUsers(todoAppId: ValueOf<typeof TodoAppId>, companyId: string): Promise<ISelectItem<string>[]> {
