@@ -4,8 +4,9 @@ import cors from "cors";
 import { session } from "@/middleware/session";
 import { validationError } from "@/middleware/validate";
 import { requestLog } from "@/middleware/log";
+import { allowOnlyCron } from "@/middleware/user-agent";
 import integrationRouter from "@/routes/integrations";
-import jobRouter from "@/routes/jobs";
+import schedulerRouter from "@/routes/schedulers";
 import appRouter from "@/routes/app";
 
 const router = express();
@@ -21,8 +22,8 @@ router.use(cors({
 router.use(validationError);
 router.use(requestLog);
 
+router.use("/schedulers", allowOnlyCron, schedulerRouter);
 router.use(integrationRouter);
-router.use(jobRouter);
 router.use(appRouter);
 
 export default router;

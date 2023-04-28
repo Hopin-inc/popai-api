@@ -3,7 +3,7 @@ import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import ConfigController from "@/controllers/app/ConfigController";
 import { SessionErrors } from "@/consts/error-messages";
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 
 const router = express();
 
@@ -40,62 +40,12 @@ router.patch("/", async (req, res) => {
   }
 });
 
-router.get("/daily-report", async (req, res) => {
+router.get("/features", async (req, res) => {
   try {
     const controller = new ConfigController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getDailyReportConfig(company.id);
-      ApiResponse.successRes(res, response);
-    } else {
-      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
-    }
-  } catch (error) {
-    logger.error(error.message, error);
-    ApiResponse.errRes(res, error.message, error.status);
-  }
-});
-
-router.patch("/daily-report", async (req, res) => {
-  try {
-    const controller = new ConfigController();
-    const { company } = req.session;
-    const data = req.body;
-    if (company) {
-      const response = await controller.updateDailyReportConfig(data, company.id);
-      ApiResponse.successRes(res, response);
-    } else {
-      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
-    }
-  } catch (error) {
-    logger.error(error.message, error);
-    ApiResponse.errRes(res, error.message, error.status);
-  }
-});
-
-router.get("/notify", async (req, res) => {
-  try {
-    const controller = new ConfigController();
-    const { company } = req.session;
-    if (company) {
-      const response = await controller.getNotifyConfig(company.id);
-      ApiResponse.successRes(res, response);
-    } else {
-      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
-    }
-  } catch (error) {
-    logger.error(error.message, error);
-    ApiResponse.errRes(res, error.message, error.status);
-  }
-});
-
-router.patch("/notify", async (req, res) => {
-  try {
-    const controller = new ConfigController();
-    const { company } = req.session;
-    const data = req.body;
-    if (company) {
-      const response = await controller.updateNotifyConfig(data, company.id);
+      const response = await controller.getFeatures(company.id);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);

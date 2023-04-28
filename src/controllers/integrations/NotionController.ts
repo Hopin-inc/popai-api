@@ -1,18 +1,18 @@
 import { Controller } from "tsoa";
 import Container from "typedi";
-import NotionOAuthService from "@/services/NotionOAuthService";
+import NotionOAuthClient from "@/integrations/NotionOAuthClient";
 import { Request } from "express";
 import { SessionRepository } from "@/repositories/transactions/SessionRepository";
-import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
+import { CompanyTodoAppRepository } from "@/repositories/settings/CompanyTodoAppRepository";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import { TodoAppId } from "@/consts/common";
 
 export default class NotionController extends Controller {
-  private readonly notionOAuthService: NotionOAuthService;
+  private readonly notionOAuthService: NotionOAuthClient;
 
   constructor() {
     super();
-    this.notionOAuthService = Container.get(NotionOAuthService);
+    this.notionOAuthService = Container.get(NotionOAuthClient);
   }
 
   public async getAuthUrl(req: Request) {
@@ -31,7 +31,7 @@ export default class NotionController extends Controller {
     ]);
     if (session) {
       const implementedTodoApp = new ImplementedTodoApp(session.company, TodoAppId.NOTION, notionResponse);
-      await ImplementedTodoAppRepository.upsert(implementedTodoApp, []);
+      await CompanyTodoAppRepository.upsert(implementedTodoApp, []);
     }
   }
 

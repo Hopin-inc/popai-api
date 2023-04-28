@@ -20,9 +20,9 @@ router.get("/oauth_redirect", async (req, res) => {
   try {
     const controller = new NotionController();
     await controller.handleCallback(req);
-    res.redirect(`${ process.env.CLIENT_BASE_URL }/settings/connect/todo-app`);
+    res.redirect(`${ process.env.CLIENT_BASE_URL }/link/todo-app`);
   } catch (_err) {
-    res.redirect(`${ process.env.CLIENT_BASE_URL }/settings/connect/todo-app`);
+    res.redirect(`${ process.env.CLIENT_BASE_URL }/link/todo-app`);
   }
 });
 

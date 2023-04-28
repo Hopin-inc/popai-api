@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { DataSource, DataSourceOptions } from "typeorm";
-import logger from "@/logger/winston";
+import logger from "../libs/logger";
 
 // Load env file
 dotenv.config({ path: path.join(__dirname, "../.env") });
@@ -22,7 +22,7 @@ const databaseConfig: DataSourceOptions = {
     path.join(__dirname, "../entities/**/*.{ts,js}"),
   ],
   migrations: [
-    path.join(__dirname, "../database/migrations/*.{ts,js}"),
+    path.join(__dirname, "../migrations/*.{ts,js}"),
   ],
   charset: "utf8mb4_unicode_ci",
   synchronize: false,

@@ -1,21 +1,15 @@
 import dataSource from "@/config/data-source";
 import User from "@/entities/settings/User";
-import ReportingLine from "@/entities/settings/ReportingLine";
+import { FindOptionsWhere } from "typeorm";
 
-export const UserRepository = dataSource.getRepository<User>(User).extend({
-  async getChatToolUserByUserId(authKey: string, relations: string[] = []): Promise<User[]> {
+export const UserRepository = dataSource.getRepository(User).extend({
+  async getChatToolUserByUserId(appUserId: string, relations: string[] = []): Promise<User[]> {
+    const where: FindOptionsWhere<User> = {
+      chatToolUser: { appUserId },
+    };
     return await this.find({
-      where: { chattoolUsers: { auth_key: authKey } },
-      relations: ["chattoolUsers.chattool", "company.implementedChatTools.chattool", ...relations],
+      where,
+      relations: ["chatToolUser", "company.implementedChatTool", ...relations],
     });
-  },
-
-  async getSuperiorUser(superiorUserIds: ReportingLine[]) {
-    return this
-      .createQueryBuilder("users")
-      .where("id IN (:...ids)", {
-        ids: superiorUserIds.map(superiorUserId => superiorUserId.superior_user_id),
-      })
-      .getMany();
   },
 });

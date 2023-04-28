@@ -1,8 +1,7 @@
 import express from "express";
 import ApiResponse from "@/common/ApiResponse";
 import SlackController from "@/controllers/integrations/SlackController";
-import { authRequired } from "@/middleware/auth";
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 
 const router = express();
 
@@ -29,11 +28,10 @@ router.post("/webhook", async (req, res) => {
   }
 });
 
-router.get("/install", authRequired, async (req, res) => {
+router.get("/install", async (req, res) => {
   try {
     const controller = new SlackController();
     await controller.handleInstallPath(req, res);
-    ApiResponse.successRawRes(res);
   } catch (error) {
     ApiResponse.errRes(res, error.message, error.status);
   }

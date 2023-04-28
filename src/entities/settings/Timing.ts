@@ -1,47 +1,39 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
-import Section from "./Section";
 import Timezone from "../masters/Timezone";
 
 @Entity("s_timings")
 export default class Timing extends BaseEntity {
   constructor(
-    company: Company | number,
+    company: Company | string,
     disabledOnHolidaysJp: boolean,
     daysOfWeek: number[] = [],
-    section?: Section | number,
     timezone: Timezone | string = "Asia/Tokyo",
   ) {
     super();
     if (company && daysOfWeek) {
-      this.company_id = typeof company === "number" ? company : company.id;
-      this.disabled_on_holidays_jp = disabledOnHolidaysJp;
-      this.days_of_week = daysOfWeek;
-      this.timezone_name = typeof timezone === "string" ? timezone : timezone.zone_name;
-      if (section) {
-        this.section_id = typeof section === "number" ? section : section.id;
-      }
+      this.companyId = typeof company === "string" ? company : company.id;
+      this.disabledOnHolidaysJp = disabledOnHolidaysJp;
+      this.daysOfWeek = daysOfWeek;
+      this.timezoneName = typeof timezone === "string" ? timezone : timezone.name;
     }
   }
 
   @PrimaryGeneratedColumn()
-  id: number;
+  readonly id: number;
 
-  @Column()
-  company_id: number;
+  @Column({ name: "company_id" })
+  companyId: string;
 
-  @Column({ nullable: true })
-  section_id?: number;
+  @Column({ name: "timezone_name", type: "varchar", length: 35, nullable: true })
+  timezoneName?: string;
 
-  @Column({ type: "varchar", length: 35, collation: "utf8mb4_unicode_ci", nullable: true })
-  timezone_name: string;
+  @Column({ name: "days_of_week", type: "json", nullable: true })
+  daysOfWeek?: number[];
 
-  @Column({ type: "json", nullable: true })
-  days_of_week?: number[];
-
-  @Column({ default: false })
-  disabled_on_holidays_jp: boolean;
+  @Column({ name: "disabled_on_holidays_jp", default: false })
+  disabledOnHolidaysJp: boolean;
 
   @OneToOne(
     () => Company,
@@ -51,18 +43,10 @@ export default class Timing extends BaseEntity {
   @JoinColumn({ name: "company_id" })
   company: Company;
 
-  @OneToOne(
-    () => Section,
-    section => section.timing,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "section_id" })
-  section?: Section;
-
   @ManyToOne(
     () => Timezone,
     { onDelete: "SET NULL", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "timezone_name" })
-  timezone: Timezone;
+  timezone?: Timezone;
 }

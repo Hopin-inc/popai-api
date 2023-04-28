@@ -4,16 +4,16 @@ import Country from "./Country";
 
 @Entity("m_timezones")
 export default class Timezone extends BaseEntity {
-  @PrimaryColumn({ type: "varchar", length: 35, collation: "utf8mb4_unicode_ci" })
-  zone_name: string;
+  @PrimaryColumn({ name: "name", type: "varchar", length: 35 })
+  name: string;
 
-  @Column({ type: "char", length: 2, collation: "utf8mb4_unicode_ci" })
-  country_code: string;
+  @Column({ name: "country_code", type: "char", length: 2 })
+  countryCode: string;
 
-  @Column()
-  gmt_offset: number;
+  @Column({ name: "gmt_offset" })
+  gmtOffset: number;
 
-  @Column()
+  @Column({ name: "timestamp" })
   timestamp: number;
 
   @ManyToOne(

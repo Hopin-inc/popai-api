@@ -3,7 +3,7 @@ import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import UserController from "@/controllers/app/UserController";
 import { SessionErrors } from "@/consts/error-messages";
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 
 const router = express();
 
@@ -26,7 +26,7 @@ router.patch("/", async (req, res) => {
 
 router.delete("/:userId", async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
+    const userId = req.params.userId;
     const controller = new UserController();
     const { company } = req.session;
     if (company) {
@@ -77,8 +77,8 @@ router.get("/reporting-lines", async (req, res) => {
 
 router.patch("/reporting-lines/:userId", async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
-    const data: number[] = req.body as number[];
+    const userId = req.params.userId;
+    const data: string[] = req.body as string[];
     const controller = new UserController();
     const { company } = req.session;
     if (company && userId) {

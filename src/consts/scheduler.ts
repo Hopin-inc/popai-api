@@ -1,4 +1,3 @@
-export const DAILY_REPORT_BATCH_INTERVAL = 15;  // minutes
 export const PROSPECT_BATCH_INTERVAL = 15;  // minutes
 
 export const ProspectTargetFrom = {

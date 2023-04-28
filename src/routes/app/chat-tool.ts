@@ -3,7 +3,7 @@ import ChatToolController from "@/controllers/app/ChatToolController";
 import ApiResponse from "@/common/ApiResponse";
 import { StatusCodes } from "@/common/StatusCodes";
 import { SessionErrors } from "@/consts/error-messages";
-import logger from "@/logger/winston";
+import logger from "@/libs/logger";
 
 const router = express();
 
@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
     const controller = new ChatToolController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getList(company.id);
+      const response = await controller.get(company.id);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
@@ -43,7 +43,7 @@ router.get("/:chatToolId/accounts", async (req, res) => {
 router.patch("/:chatToolId/users/:userId", async (req, res) => {
   try {
     const chatToolId: number = parseInt(req.params.chatToolId);
-    const userId: number = parseInt(req.params.userId);
+    const userId = req.params.userId;
     const { id }: { id: string } = req.body;
     const controller = new ChatToolController();
     const { company } = req.session;

@@ -30,29 +30,21 @@ steps:
           DB_DATABASE: $_DB_DATABASE
           DB_USERNAME: $_DB_USERNAME
           DB_PASSWORD: '$$DB_PASSWORD'
-          TRELLO_API_URL: https://api.trello.com
-          MICROSOFT_AAD_ENDPOINT: https://login.microsoftonline.com
-          MICROSOFT_GRAPH_API_VERSION: v1.0
-          MICROSOFT_GRAPH_API_ENDPOINT: https://graph.microsoft.com
-          MICROSOFT_GRAPH_API_URL: https://graph.microsoft.com/v1.0
-          MICROSOFT_CLIENT_ID: $$MICROSOFT_CLIENT_ID
-          MICROSOFT_CLIENT_SECRET: $$MICROSOFT_CLIENT_SECRET
+          EXPRESS_SESSION_SECRET: $$SLACK_STATE_SECRET
+          ALLOWED_ORIGINS: $_ALLOWED_ORIGINS
+          CLIENT_BASE_URL: $_CLIENT_BASE_URL
+          FIREBASE_PROJECT_ID: $_FIREBASE_PROJECT_ID
+          FIREBASE_PRIVATE_KEY: '$$FIREBASE_PRIVATE_KEY'
+          FIREBASE_CLIENT_EMAIL: $_FIREBASE_CLIENT_EMAIL
+          FIREBASE_BASE_URL: $_FIREBASE_BASE_URL
           NOTION_CLIENT_ID: $$NOTION_CLIENT_ID
           NOTION_CLIENT_SECRET: $$NOTION_CLIENT_SECRET
-          LINE_CHANNEL_ACCESS_TOKEN: $$LINE_CHANNEL_ACCESS_TOKEN
-          LINE_CHANNEL_SECRET: $$LINE_CHANNEL_SECRET
           SLACK_CLIENT_ID: '$$SLACK_CLIENT_ID'
           SLACK_CLIENT_SECRET: $$SLACK_CLIENT_SECRET
           SLACK_SIGNING_SECRET: $$SLACK_SIGNING_SECRET
           SLACK_VERIFICATION_TOKEN: $$SLACK_VERIFICATION_TOKEN
           SLACK_STATE_SECRET: $$SLACK_STATE_SECRET
           INTERNAL_SLACK_WEBHOOK_URL: $_INTERNAL_SLACK_WEBHOOK_URL
-          FIREBASE_PROJECT_ID: $_FIREBASE_PROJECT_ID
-          FIREBASE_PRIVATE_KEY: '$$FIREBASE_PRIVATE_KEY'
-          FIREBASE_CLIENT_EMAIL: $_FIREBASE_CLIENT_EMAIL
-          EXPRESS_SESSION_SECRET: $$SLACK_STATE_SECRET
-          ALLOWED_ORIGINS: $_ALLOWED_ORIGINS
-          CLIENT_BASE_URL: $_CLIENT_BASE_URL
         vpc_access_connector:
           name: projects/$PROJECT_ID/locations/asia-northeast2/connectors/connect-to-mysql
           egress_setting: private-ranges-only
@@ -63,19 +55,15 @@ steps:
         EOF
     secretEnv:
       - DB_PASSWORD
-      - MICROSOFT_CLIENT_ID
-      - MICROSOFT_CLIENT_SECRET
+      - EXPRESS_SESSION_SECRET
+      - FIREBASE_PRIVATE_KEY
       - NOTION_CLIENT_ID
       - NOTION_CLIENT_SECRET
-      - LINE_CHANNEL_ACCESS_TOKEN
-      - LINE_CHANNEL_SECRET
       - SLACK_CLIENT_ID
       - SLACK_CLIENT_SECRET
       - SLACK_SIGNING_SECRET
       - SLACK_VERIFICATION_TOKEN
       - SLACK_STATE_SECRET
-      - FIREBASE_PRIVATE_KEY
-      - EXPRESS_SESSION_SECRET
   - id: Deploy app
     name: gcr.io/cloud-builders/gcloud
     args:
@@ -85,18 +73,14 @@ availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_NUMBER/secrets/DB_PASSWORD/versions/latest
       env: DB_PASSWORD
-    - versionName: projects/$PROJECT_NUMBER/secrets/MICROSOFT_CLIENT_ID/versions/latest
-      env: MICROSOFT_CLIENT_ID
-    - versionName: projects/$PROJECT_NUMBER/secrets/MICROSOFT_CLIENT_SECRET/versions/latest
-      env: MICROSOFT_CLIENT_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/EXPRESS_SESSION_SECRET/versions/latest
+      env: EXPRESS_SESSION_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/FIREBASE_PRIVATE_KEY/versions/latest
+      env: FIREBASE_PRIVATE_KEY
     - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_CLIENT_ID/versions/latest
       env: NOTION_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_CLIENT_SECRET/versions/latest
       env: NOTION_CLIENT_SECRET
-    - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_ACCESS_TOKEN/versions/latest
-      env: LINE_CHANNEL_ACCESS_TOKEN
-    - versionName: projects/$PROJECT_NUMBER/secrets/LINE_CHANNEL_SECRET/versions/latest
-      env: LINE_CHANNEL_SECRET
     - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_CLIENT_ID/versions/latest
       env: SLACK_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_CLIENT_SECRET/versions/latest
@@ -107,8 +91,4 @@ availableSecrets:
       env: SLACK_VERIFICATION_TOKEN
     - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_STATE_SECRET/versions/latest
       env: SLACK_STATE_SECRET
-    - versionName: projects/$PROJECT_NUMBER/secrets/FIREBASE_PRIVATE_KEY/versions/latest
-      env: FIREBASE_PRIVATE_KEY
-    - versionName: projects/$PROJECT_NUMBER/secrets/EXPRESS_SESSION_SECRET/versions/latest
-      env: EXPRESS_SESSION_SECRET
 timeout: 1600s

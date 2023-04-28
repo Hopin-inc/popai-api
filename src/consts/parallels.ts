@@ -1,8 +1,4 @@
-export const DailyReportServiceParallels = {
-  GET_TARGET_COMPANIES: 100,
-};
-
-export const TaskServiceParallels = {
+export const ParallelChunkUnit = {
   SYNC_TODOS: 10,
-  GET_PAGES: 100,
+  GENERATE_TODO: 100,
 };

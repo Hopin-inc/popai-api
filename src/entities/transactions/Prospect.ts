@@ -1,70 +1,82 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
 import User from "../settings/User";
 import Company from "../settings/Company";
+import { ValueOf } from "../../types";
+import { ChatToolId } from "../../consts/common";
 
 @Entity("t_prospects")
 export default class Prospect extends BaseEntity {
   constructor(
-    todo: Todo | number,
-    user: User | number,
-    company: Company | number,
-    slackTs?: string,
-    slackChannelId?: string,
+    todo: Todo | string,
+    user: User | string,
+    company: Company | string,
+    chatToolId?: ValueOf<typeof ChatToolId>,
+    appChannelId?: string,
+    appThreadId?: string,
   ) {
     super();
     if (todo && user && company) {
-      this.todo_id = typeof todo === "number" ? todo : todo.id;
-      this.user_id = typeof user === "number" ? user : user.id;
-      this.company_id = typeof company === "number" ? company : company.id;
-      if (slackTs) {
-        this.slack_ts = slackTs;
+      this.todoId = typeof todo === "string" ? todo : todo.id;
+      this.userId = typeof user === "string" ? user : user.id;
+      this.companyId = typeof company === "string" ? company : company.id;
+      if (chatToolId) {
+        this.chatToolId = chatToolId;
       }
-      if (slackChannelId) {
-        this.slack_channel_id = slackChannelId;
+      if (appChannelId) {
+        this.appChannelId = appChannelId;
+      }
+      if (appThreadId) {
+        this.appThreadId = appThreadId;
       }
     }
   }
 
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn("uuid")
+  readonly id: string;
 
-  @Column()
-  todo_id: number;
+  @Column({ name: "todo_id" })
+  todoId: string;
 
-  @Column()
-  user_id: number;
+  @Column({ name: "user_id" })
+  userId: string;
 
-  @Column()
-  company_id: number;
+  @Column({ name: "company_id" })
+  companyId: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  slack_channel_id?: string;
+  @Column({ name: "chat_tool_id", nullable: true })
+  chatToolId?: number;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  slack_ts?: string;
+  @Index()
+  @Column({ name: "app_channel_id", type: "varchar", length: 255, nullable: true })
+  appChannelId?: string;
 
-  @Column({ type: "varchar", length: 255, collation: "utf8mb4_unicode_ci", nullable: true })
-  slack_view_id?: string;
+  @Index()
+  @Column({ name: "app_thread_id", type: "varchar", length: 255, nullable: true })
+  appThreadId?: string;
 
-  @Column({ type: "tinyint", width: 1, nullable: true })
-  prospect?: number;
+  @Index()
+  @Column({ name: "app_view_id", type: "varchar", length: 255, nullable: true })
+  appViewId?: string;
 
-  @Column({ type: "datetime", nullable: true })
-  prospect_responded_at?: Date;
+  @Column({ name: "prospect_value", type: "tinyint", width: 1, nullable: true })
+  prospectValue?: number;
 
-  @Column({ type: "tinyint", width: 1, nullable: true })
-  action?: number;
+  @Column({ name: "prospect_responded_at", type: "datetime", nullable: true })
+  prospectRespondedAt?: Date;
 
-  @Column({ type: "datetime", nullable: true })
-  action_responded_at?: Date;
+  @Column({ name: "action_value", type: "tinyint", width: 1, nullable: true })
+  actionValue?: number;
 
-  @Column({ type: "text", collation: "utf8mb4_unicode_ci", nullable: true })
+  @Column({ name: "action_responded_at", type: "datetime", nullable: true })
+  actionRespondedAt?: Date;
+
+  @Column({ name: "comment", type: "text", nullable: true })
   comment?: string;
 
-  @Column({ type: "datetime", nullable: true })
-  comment_responded_at?: Date;
+  @Column({ name: "comment_responded_at", type: "datetime", nullable: true })
+  commentRespondedAt?: Date;
 
   @ManyToOne(
     () => Todo,
