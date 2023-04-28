@@ -32,8 +32,10 @@ const CHAT_TOOL_ID = ChatToolId.SLACK;
 @Service()
 export default class SlackRepository {
   private async sendDirectMessage(user: User, message: MessageAttachment) {
-    const slackBot = await SlackClient.init(user.companyId);
-    return slackBot.postDirectMessage(user.chatToolUser.appUserId, message.blocks);
+    if (user && user.chatToolUser?.chatToolId === ChatToolId.SLACK && user.chatToolUser?.appUserId) {
+      const slackBot = await SlackClient.init(user.companyId);
+      return slackBot.postDirectMessage(user.chatToolUser.appUserId, message.blocks);
+    }
   }
 
   public async getSuperiorUsers(slackId: string): Promise<User[]> {
@@ -92,9 +94,11 @@ export default class SlackRepository {
         const message = SlackMessageBuilder.createAskProspectMessage(todo);
         const users = target ? [target.user] : todo.users;
         await Promise.all(users.map(async user => {
-          const { ts, channel } = await this.sendDirectMessage(user, message);
-          const prospect = new Prospect(todo.id, user.id, company.id, CHAT_TOOL_ID, channel, ts);
-          askedProspects.push(prospect);
+          if (user) {
+            const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
+            const prospect = new Prospect(todo.id, user.id, company.id, CHAT_TOOL_ID, channel, ts);
+            askedProspects.push(prospect);
+          }
         }));
       }));
       await ProspectRepository.upsert(askedProspects, []);
@@ -121,18 +125,25 @@ export default class SlackRepository {
   public async respondToProspect(
     user: User,
     slackId: string,
-    prospect: number,
+    prospectValue: number,
     appChannelId: string,
     appThreadId: string,
   ) {
     const slackBot = await SlackClient.init(user.companyId);
     const todo = await this.getTodoFromProspect(appChannelId, appThreadId);
-    const where: FindOptionsWhere<Prospect> = { todoId: todo.id, chatToolId: CHAT_TOOL_ID, appChannelId, appThreadId };
-    const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(todo, prospect);
-    await Promise.all([
-      slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: todo.name, blocks }),
-      ProspectRepository.update(where, { prospectValue: prospect, prospectRespondedAt: new Date() }),
-    ]);
+    if (todo) {
+      const where: FindOptionsWhere<Prospect> = {
+        todoId: todo.id,
+        chatToolId: CHAT_TOOL_ID,
+        appChannelId,
+        appThreadId,
+      };
+      const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(todo, prospectValue);
+      await Promise.all([
+        slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: todo.name, blocks }),
+        ProspectRepository.update(where, { prospectValue, prospectRespondedAt: new Date() }),
+      ]);
+    }
   }
 
   public async respondToReliefAction(
@@ -261,7 +272,7 @@ export default class SlackRepository {
         blocks,
         callback_id: callbackId,
       },
-    });
+    }) ?? {};
     if (ok && view) {
       return view.id;
     }
