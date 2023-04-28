@@ -66,9 +66,14 @@ export default class NotionRepository {
                 const historyOptions: ITodoHistoryOption[] = [];
                 await Promise.all(pageIdsChunk.map(async pageId => {
                   try {
-                    const { todo, users, currentUserIds, args } = await this.generateTodoFromApi(pageId, company, board.propertyUsages);
+                    const {
+                      todo,
+                      users,
+                      currentUserIds,
+                      args,
+                    } = await this.generateTodoFromApi(pageId, company, board.propertyUsages) ?? {};
                     let todoId: string;
-                    if (todo.id) {
+                    if (todo?.id) {
                       todos.push(todo);
                       todoId = todo.id;
                     } else {
@@ -132,7 +137,7 @@ export default class NotionRepository {
         where: { companyId: company.id, appTodoId: pageId },
         relations: ["todoUsers.user"],
       });
-      const currentUserIds = todo?.users ? todo.users.map(u => u.id) : [];
+      const currentUserIds = todo?.users ? todo.users.map(u => u?.id).filter(id => id) : [];
       const appUrl = this.getDefaultStr(pageInfo, "url");
       const appCreatedAt = this.getDefaultDate(pageInfo, "created_time");
       const createdBy = this.getEditedById(
@@ -232,14 +237,14 @@ export default class NotionRepository {
       args.push({
         property: Property.ASSIGNEE,
         action: Action.CREATE,
-        info: { userIds: addedAssignees.map(u => u.id) },
+        info: { userIds: addedAssignees.map(u => u?.id).filter(id => id) },
       });
     }
     if (deletedAssignees.length) {
       args.push({
         property: Property.ASSIGNEE,
         action: Action.CREATE,
-        info: { userIds: deletedAssignees.map(u => u.id) },
+        info: { userIds: deletedAssignees.map(u => u?.id).filter(id => id) },
       });
     }
     if (todo.isDone !== isDone) { // On marked as done

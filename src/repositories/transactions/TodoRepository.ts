@@ -21,8 +21,8 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     const endDate = dayjs().endOf("day").toDate();
     return await this.find({
       where: [
-        { ...commonWhere, start_date: And(Not(IsNull()), LessThan(endDate)) },
-        { ...commonWhere, start_date: IsNull(), deadline: LessThan(endDate) },
+        { ...commonWhere, startDate: And(Not(IsNull()), LessThan(endDate)) },
+        { ...commonWhere, startDate: IsNull(), deadline: LessThan(endDate) },
       ],
       relations: ["todoUsers.user.chatToolUser"],
     });

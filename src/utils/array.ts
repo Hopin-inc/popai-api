@@ -8,7 +8,7 @@ export const extractDifferences = <T extends object>(arrA: T[], arrB: T[], key: 
 };
 
 export const extractMembersOfANotInB = <T extends object>(arrA: T[], arrB: T[], key: keyof T): T[] => {
-  return arrA?.filter(a => !arrB.some(b => a[key] === b[key])) ?? [];
+  return arrA?.filter(a => !(arrB?.some(b => a && b && a[key] === b[key]) ?? true)) ?? [];
 };
 
 export const extractArrayDifferences = <T>(arrA: T[], arrB: T[]): [T[], T[]] => {

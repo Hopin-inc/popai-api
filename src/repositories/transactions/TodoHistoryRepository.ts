@@ -21,16 +21,24 @@ export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).exten
     await this.save(histories);
   },
   async getLatestDelayedHistory(todo: Todo): Promise<TodoHistory | null> {
-    return this.findOne({
-      where: { todoId: todo.id, property: Property.IS_DELAYED },
-      order: { createdAt: "DESC" },
-    });
+    const where: FindOptionsWhere<TodoHistory> = {
+      todoId: todo.id,
+      property: Property.IS_DELAYED,
+    };
+    const order: FindOptionsOrder<TodoHistory> = {
+      createdAt: "DESC",
+    };
+    return this.findOne({ where, order });
   },
   async getLatestRecoveredHistory(todo: Todo): Promise<TodoHistory | null> {
-    return this.findOne({
-      where: { todoId: todo.id, property: Property.IS_RECOVERED },
-      order: { createdAt: "DESC" },
-    });
+    const where: FindOptionsWhere<TodoHistory> = {
+      todoId: todo.id,
+      property: Property.IS_RECOVERED,
+    };
+    const order: FindOptionsOrder<TodoHistory> = {
+      createdAt: "DESC",
+    };
+    return this.findOne({ where, order });
   },
   async getLastUpdatedDate(company: Company, todoAppId: ValueOf<typeof TodoAppId>): Promise<Date | null> {
     const companyId = company.id;
