@@ -1,9 +1,9 @@
 import { Controller } from "tsoa";
-import { IsNull, Not } from "typeorm";
-import { IPropertyUsage, ISelectItem, ITodoAppInfo } from "@/types/app";
-import { CompanyTodoAppRepository } from "@/repositories/settings/CompanyTodoAppRepository";
+import { FindOptionsWhere, IsNull, Not } from "typeorm";
+import { IProperty, IPropertyUsage, ISelectItem, ITodoAppInfo } from "@/types/app";
+import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { ValueOf } from "@/types";
-import { TodoAppId } from "@/consts/common";
+import { TodoAppId, UsageType } from "@/consts/common";
 import NotionClient from "@/integrations/NotionClient";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import Board from "@/entities/settings/Board";
@@ -14,10 +14,11 @@ import PropertyUsage from "@/entities/settings/PropertyUsage";
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 import { UserRepository } from "@/repositories/settings/UserRepository";
+import BacklogClient from "@/integrations/BacklogClient";
 
 export default class TodoAppController extends Controller {
   public async get(companyId: string): Promise<ITodoAppInfo> {
-    const implementedTodoApp = await CompanyTodoAppRepository.findOne({
+    const implementedTodoApp = await ImplementedTodoAppRepository.findOne({
       where: { companyId: companyId, accessToken: Not(IsNull()) },
       order: { todoAppId: "asc" },
     });
@@ -29,11 +30,18 @@ export default class TodoAppController extends Controller {
     }
   }
 
-  public async getUsers(todoAppId: ValueOf<typeof TodoAppId>, companyId: string): Promise<ISelectItem<string>[]> {
+  public async getUsers(
+    todoAppId: ValueOf<typeof TodoAppId>,
+    companyId: string,
+    baseUrl: string,
+  ): Promise<ISelectItem<string>[]> {
     switch (todoAppId) {
       case TodoAppId.NOTION:
         const notionService = await NotionClient.init(companyId);
         return notionService.getUsers();
+      case TodoAppId.BACKLOG:
+        const backlogService = await BacklogClient.init(companyId, baseUrl);
+        return backlogService.getUsers();
       default:
         return [];
     }
@@ -45,9 +53,14 @@ export default class TodoAppController extends Controller {
     userId: string,
     appUserId: string,
   ): Promise<any> {
+    const user = await UserRepository.findOneBy({ id: userId, companyId: companyId });
     switch (todoAppId) {
       case TodoAppId.NOTION:
-        const user = await UserRepository.findOneBy({ id: userId, companyId: companyId });
+        if (user) {
+          await TodoAppUserRepository.upsert(new TodoAppUser(userId, todoAppId, appUserId), []);
+        }
+        return;
+      case TodoAppId.BACKLOG:
         if (user) {
           await TodoAppUserRepository.upsert(new TodoAppUser(userId, todoAppId, appUserId), []);
         }
@@ -61,7 +74,7 @@ export default class TodoAppController extends Controller {
     todoAppId: ValueOf<typeof TodoAppId>,
     companyId: string,
   ): Promise<{ boardId: string | null }> {
-    const board = await BoardRepository.findOneByConfig(todoAppId, companyId);
+    const board = await BoardRepository.findOneByConfig(companyId);
     return { boardId: board?.appBoardId };
   }
 
@@ -69,8 +82,10 @@ export default class TodoAppController extends Controller {
     todoAppId: ValueOf<typeof TodoAppId>,
     companyId: string,
     boardId: string,
+    baseUrl: string,
   ): Promise<any> {
-    const board = await BoardRepository.findOneByConfig(todoAppId, companyId);
+    const board = await BoardRepository.findOneByConfig(companyId);
+    const oldBoardId = board?.appBoardId;
     if (board) {
       board.appBoardId = boardId;
       await Promise.all([
@@ -83,13 +98,43 @@ export default class TodoAppController extends Controller {
       const board = await BoardRepository.save(new Board(todoAppId, boardId));
       await BoardConfigRepository.save(new BoardConfig(companyId, board.id));
     }
+    if (todoAppId === TodoAppId.BACKLOG) {
+      const baseQuery: FindOptionsWhere<PropertyUsage> = { todoAppId: TodoAppId.BACKLOG };
+      let [isDoneUsage, isClosedUsage] = await Promise.all([
+        PropertyUsageRepository.findOneBy({ ...baseQuery, usage: UsageType.IS_DONE }),
+        PropertyUsageRepository.findOneBy({ ...baseQuery, usage: UsageType.IS_CLOSED }),
+      ]);
+      if (!isDoneUsage) {
+        isDoneUsage = new PropertyUsage( TodoAppId.BACKLOG, board, "status", 0, UsageType.IS_DONE);
+      } else {
+        isDoneUsage.boardId = board.id;
+      }
+      if (!isClosedUsage) {
+        isClosedUsage = new PropertyUsage( TodoAppId.BACKLOG, board, "status", 0, UsageType.IS_CLOSED);
+      } else {
+        isClosedUsage.boardId = board.id;
+      }
+      const backlogClient = await BacklogClient.init(companyId, baseUrl);
+      await Promise.all([
+        oldBoardId ? backlogClient.deleteWebhooks(companyId, parseInt(oldBoardId)) : null,
+        backlogClient.addWebhook(companyId, parseInt(boardId)),
+        PropertyUsageRepository.upsert([isDoneUsage, isClosedUsage], []),
+      ]);
+    }
   }
 
-  public async getBoards(todoAppId: ValueOf<typeof TodoAppId>, companyId: string): Promise<ISelectItem<string>[]> {
+  public async getBoards(
+    todoAppId: ValueOf<typeof TodoAppId>,
+    companyId: string,
+    baseUrl: string,
+  ): Promise<ISelectItem<string>[]> {
     switch (todoAppId) {
       case TodoAppId.NOTION:
         const notionService = await NotionClient.init(companyId);
         return notionService.getWorkspaces();
+      case TodoAppId.BACKLOG:
+        const backlogService = await BacklogClient.init(companyId, baseUrl);
+        return backlogService.getProjects();
       default:
         return [];
     }
@@ -99,11 +144,15 @@ export default class TodoAppController extends Controller {
     todoAppId: ValueOf<typeof TodoAppId>,
     companyId: string,
     boardId: string,
-  ): Promise<ISelectItem<string>[]> {
+    baseUrl: string,
+  ): Promise<IProperty[]> {
     switch (todoAppId) {
       case TodoAppId.NOTION:
         const notionService = await NotionClient.init(companyId);
         return notionService.getProperties(boardId);
+      case TodoAppId.BACKLOG:
+        const backlogService = await BacklogClient.init(companyId, baseUrl);
+        return backlogService.getProperties(parseInt(boardId));
       default:
         return [];
     }
@@ -114,7 +163,7 @@ export default class TodoAppController extends Controller {
     companyId: string,
     boardId: string,
   ): Promise<IPropertyUsage[]> {
-    const board = await BoardRepository.findOneByConfig(todoAppId, companyId, boardId);
+    const board = await BoardRepository.findOneByConfig(companyId, boardId);
     return board?.propertyUsages.map(u => ({
       id: u.id,
       property: u.appPropertyId,
@@ -132,7 +181,7 @@ export default class TodoAppController extends Controller {
     boardId: string,
   ): Promise<IPropertyUsage> {
     const { id, property, usage, type, options, isChecked } = data;
-    let board = await BoardRepository.findOneByConfig(todoAppId, companyId, boardId);
+    let board = await BoardRepository.findOneByConfig(companyId, boardId);
     if (!board) {
       board = await BoardRepository.save(new Board(todoAppId, boardId));
       await BoardConfigRepository.save(new BoardConfig(companyId, board.id));

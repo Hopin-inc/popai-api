@@ -37,7 +37,7 @@ export default class ImplementedChatTool extends BaseEntity {
   @PrimaryColumn({ name: "company_id" })
   companyId: string;
 
-  @PrimaryColumn({ name: "chat_tool_id" })
+  @Column({ name: "chat_tool_id" })
   chatToolId: number;
 
   @Column({ name: "app_team_id", type: "varchar", length: 12, nullable: true })

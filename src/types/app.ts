@@ -16,6 +16,13 @@ export type ITodoAppInfo = {
   workspaceId: string;
 };
 
+export type IProperty = ISelectItem<string> & {
+  type: PropertyType;
+  availableOptions?: (ISelectItem<string> & Record<string, any>)[];
+};
+
+export type PropertyType = typeof NotionPropertyType | 0;
+
 export type IPropertyUsage = {
   id: number;
   property: string;

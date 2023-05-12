@@ -17,14 +17,14 @@ import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import logger from "@/libs/logger";
 import { ITodoHistoryOption, ITodoUserUpdate } from "@/types";
 import { INotionPropertyInfo } from "@/types/notion";
-import { TodoAppId, TodoHistoryAction as Action, TodoHistoryProperty as Property, UsageType } from "@/consts/common";
+import { TodoAppId, UsageType } from "@/consts/common";
 import NotionClient from "@/integrations/NotionClient";
 import PropertyUsage from "@/entities/settings/PropertyUsage";
 import Board from "@/entities/settings/Board";
 import { ParallelChunkUnit } from "@/consts/parallels";
 import { runInOrder } from "@/utils/process";
 import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
-import { extractDifferences } from "@/utils/array";
+import { getUsageProperty, setHistoriesForExistingTodo, setHistoriesForNewTodo } from "@/utils/misc";
 
 const TODO_APP_ID = TodoAppId.NOTION;
 
@@ -37,7 +37,7 @@ export default class NotionRepository {
       this.notionClient = await NotionClient.init(company.id);
       const [notionClient, board, lastUpdatedDate] = await Promise.all([
         NotionClient.init(company.id),
-        BoardRepository.findOneByConfig(TODO_APP_ID, company.id),
+        BoardRepository.findOneByConfig(company.id),
         TodoHistoryRepository.getLastUpdatedDate(company, TODO_APP_ID),
       ]);
       if (board) {
@@ -104,10 +104,6 @@ export default class NotionRepository {
     }
   }
 
-  private getUsageProperty(propertyUsages: PropertyUsage[], pagePropertyIds: string[], usageId: number) {
-    return propertyUsages.find(u => u.usage === usageId && pagePropertyIds.includes(u.appPropertyId));
-  }
-
   private async generateTodoFromApi(
     pageId: string,
     company: Company,
@@ -125,7 +121,7 @@ export default class NotionRepository {
         return nullResponse;
       }
 
-      const args: Omit<ITodoHistoryOption, "todoId">[] = [];
+      let args: Omit<ITodoHistoryOption, "todoId">[] = [];
       const pagePropertyIds = pageProperties.map((obj) => obj.id);
       const properties = this.getProperties(propertyUsages, pagePropertyIds);
       const name = this.getTitle(pageProperties, properties.title);
@@ -156,7 +152,7 @@ export default class NotionRepository {
         : null;
 
       if (todo) {
-        await this.setHistoriesForExistingTodo(args, todo, users, startDate, deadline, isDone, isClosed, isDelayed);
+        args = await setHistoriesForExistingTodo(todo, users, startDate, deadline, isDone, isClosed, isDelayed);
         Object.assign(todo, {
           ...todo,
           name,
@@ -169,7 +165,7 @@ export default class NotionRepository {
           isClosed,
         });
       } else {
-        await this.setHistoriesForNewTodo(args, users, startDate, deadline, isDone, isClosed, isDelayed);
+        args = setHistoriesForNewTodo(users, startDate, deadline, isDone, isClosed, isDelayed);
         todo = new Todo({
           name,
           todoAppId: TODO_APP_ID,
@@ -193,140 +189,13 @@ export default class NotionRepository {
 
   private getProperties(usages: PropertyUsage[], propertyIds: string[]) {
     return {
-      title: this.getUsageProperty(usages, propertyIds, UsageType.TITLE),
-      section: this.getUsageProperty(usages, propertyIds, UsageType.SECTION),
-      assignee: this.getUsageProperty(usages, propertyIds, UsageType.ASSIGNEE),
-      deadline: this.getUsageProperty(usages, propertyIds, UsageType.DEADLINE),
-      isDone: this.getUsageProperty(usages, propertyIds, UsageType.IS_DONE),
-      isClosed: this.getUsageProperty(usages, propertyIds, UsageType.IS_CLOSED),
+      title: getUsageProperty(usages, propertyIds, UsageType.TITLE),
+      section: getUsageProperty(usages, propertyIds, UsageType.SECTION),
+      assignee: getUsageProperty(usages, propertyIds, UsageType.ASSIGNEE),
+      deadline: getUsageProperty(usages, propertyIds, UsageType.DEADLINE),
+      isDone: getUsageProperty(usages, propertyIds, UsageType.IS_DONE),
+      isClosed: getUsageProperty(usages, propertyIds, UsageType.IS_CLOSED),
     };
-  }
-
-  private async setHistoriesForExistingTodo(
-    args: Omit<ITodoHistoryOption, "todoId">[],
-    todo: Todo,
-    users: User[],
-    startDate: Date,
-    deadline: Date,
-    isDone: boolean,
-    isClosed: boolean,
-    isDelayed: boolean,
-  ) {
-    const [latestDelayedHistory, latestRecoveredHistory] = await Promise.all([
-      TodoHistoryRepository.getLatestDelayedHistory(todo),
-      TodoHistoryRepository.getLatestRecoveredHistory(todo),
-    ]);
-    const daysDiff = todo.deadline && deadline
-      ? diffDays(toJapanDateTime(todo.deadline), toJapanDateTime(deadline))
-      : null;
-    if ((todo.deadline || deadline) && daysDiff !== 0) {  // On deadline changed
-      args.push({
-        property: Property.DEADLINE,
-        action: !todo.deadline ? Action.CREATE : !deadline ? Action.DELETE : Action.MODIFIED,
-        info: { startDate, deadline, daysDiff },
-      });
-      if (latestRecoveredHistory && latestRecoveredHistory.action === Action.CREATE) {
-        args.push({
-          property: Property.IS_RECOVERED,
-          action: Action.DELETE,
-        });
-      }
-    }
-    const [deletedAssignees, addedAssignees] = extractDifferences(todo.users, users, "id");
-    if (addedAssignees.length) {
-      args.push({
-        property: Property.ASSIGNEE,
-        action: Action.CREATE,
-        info: { userIds: addedAssignees.map(u => u?.id).filter(id => id) },
-      });
-    }
-    if (deletedAssignees.length) {
-      args.push({
-        property: Property.ASSIGNEE,
-        action: Action.CREATE,
-        info: { userIds: deletedAssignees.map(u => u?.id).filter(id => id) },
-      });
-    }
-    if (todo.isDone !== isDone) { // On marked as done
-      args.push({
-        property: Property.IS_DONE,
-        action: isDone ? Action.CREATE : Action.DELETE,
-      });
-    }
-    if (todo.isClosed !== isClosed) { // On marked as closed
-      args.push({
-        property: Property.IS_CLOSED,
-        action: isClosed ? Action.CREATE : Action.DELETE,
-      });
-    }
-    if (isDelayed) {  // When ddl is before today
-      if (!isDone && latestDelayedHistory && latestDelayedHistory.action !== Action.CREATE) {
-        args.push({
-          property: Property.IS_DELAYED,
-          action: Action.CREATE,
-        });
-      }
-    } else {  // When ddl is exactly or after today
-      if (latestDelayedHistory && latestDelayedHistory.action !== Action.DELETE) {
-        args.push({
-          property: Property.IS_DELAYED,
-          action: Action.DELETE,
-        });
-      }
-      if (latestRecoveredHistory && latestRecoveredHistory.action !== Action.DELETE) {
-        args.push({
-          property: Property.IS_RECOVERED,
-          action: Action.DELETE,
-        });
-      }
-    }
-  }
-
-  private async setHistoriesForNewTodo(
-    args: Omit<ITodoHistoryOption, "todoId">[],
-    users: User[],
-    startDate: Date,
-    deadline: Date,
-    isDone: boolean,
-    isClosed: boolean,
-    isDelayed: boolean,
-  ) {
-    args.push({
-      property: Property.NAME,
-      action: Action.CREATE,
-    });
-    if (users.length) {
-      args.push({
-        property: Property.ASSIGNEE,
-        action: Action.CREATE,
-        info: { userIds: users.map(u => u.id) },
-      });
-    }
-    if (deadline) {
-      args.push({
-        property: Property.DEADLINE,
-        action: Action.CREATE,
-        info: { startDate, deadline },
-      });
-      if (isDelayed && !isDone && !isClosed) {
-        args.push({
-          property: Property.IS_DELAYED,
-          action: Action.CREATE,
-        });
-      }
-    }
-    if (isDone) {
-      args.push({
-        property: Property.IS_DONE,
-        action: Action.CREATE,
-      });
-    }
-    if (isClosed) {
-      args.push({
-        property: Property.IS_CLOSED,
-        action: Action.CREATE,
-      });
-    }
   }
 
   public async updateTodo(
@@ -336,7 +205,7 @@ export default class NotionRepository {
     notionClient: NotionClient,
   ): Promise<void> {
     try {
-      const board: Board = await BoardRepository.findOneByConfig(todoAppUser.todoAppId, task.companyId);
+      const board: Board = await BoardRepository.findOneByConfig(task.companyId);
       const isDoneProperty = board.propertyUsages.find(u => u.usage === UsageType.IS_DONE);
       const properties = await notionClient.getProperties(board.appBoardId);
       const propName = properties.find(p => p.id === isDoneProperty.appPropertyId)?.name;
