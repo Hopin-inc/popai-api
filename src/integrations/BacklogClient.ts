@@ -8,6 +8,8 @@ import { IProperty, ISelectItem } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { StatusCodes } from "@/common/StatusCodes";
 import {
+  GetIssueListResponse,
+  GetIssueResponse,
   GetProjectListResponse,
   GetStatusListResponse,
   GetUserListResponse,
@@ -159,6 +161,16 @@ export default class BacklogClient {
       ActivityTypeIds.MILESTONE_DELETED,
     ];
     return this.retryOnError(() => this.client.postWebhook(projectId, { name, hookUrl, allEvent, activityTypeIds }));
+  }
+
+  public async getIssues(projectIds: number[], count: number = 100, offset: number = 0): Promise<GetIssueListResponse> {
+    return await this.retryOnError(
+      () => this.client.getIssues({ projectId: projectIds, count, offset }),
+    );
+  }
+
+  public async getIssue(issueId: number): Promise<GetIssueResponse> {
+    return await this.retryOnError(() => this.client.getIssue(issueId));
   }
 
   private generateHookUrl(companyId: string) {

@@ -15,6 +15,7 @@ import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserReposi
 import TodoAppUser from "@/entities/settings/TodoAppUser";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import BacklogClient from "@/integrations/BacklogClient";
+import BacklogRepository from "@/repositories/BacklogRepository";
 
 export default class TodoAppController extends Controller {
   public async get(companyId: string): Promise<ITodoAppInfo> {
@@ -114,10 +115,14 @@ export default class TodoAppController extends Controller {
       } else {
         isClosedUsage.boardId = board.id;
       }
+
       const backlogClient = await BacklogClient.init(companyId, baseUrl);
+      const backlogRepository = new BacklogRepository();
+      const projectId = parseInt(boardId);
       await Promise.all([
         oldBoardId ? backlogClient.deleteWebhooks(companyId, parseInt(oldBoardId)) : null,
-        backlogClient.addWebhook(companyId, parseInt(boardId)),
+        backlogClient.addWebhook(companyId, projectId),
+        backlogRepository.fetchTodos(companyId, projectId, board),
         PropertyUsageRepository.upsert([isDoneUsage, isClosedUsage], []),
       ]);
     }

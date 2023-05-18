@@ -73,6 +73,17 @@ export type BacklogIssue = {
   category: BacklogCategory[];
   comment: BacklogComment | null;
 };
+export type BacklogIssueWithDetail = BacklogIssue & {
+  projectId: number;
+  issueKey: string;
+  keyId: number;
+  createdUser: BacklogUser;
+  created: string;
+  updatedUser: BacklogUser;
+  updated: string;
+  sharedFiles: any[];
+  stars: any[];
+};
 type BacklogIssueType = {
   color: string;
   name: string;
@@ -149,3 +160,6 @@ export type BacklogWebhook = {
 };
 
 export type GetStatusListResponse = BacklogStatus[];
+
+export type GetIssueListResponse = BacklogIssueWithDetail[];
+export type GetIssueResponse = BacklogIssueWithDetail;
