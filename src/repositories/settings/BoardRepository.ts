@@ -9,7 +9,7 @@ export const BoardRepository = dataSource.getRepository(Board).extend({
     relations: string[] = [],
   ): Promise<Board | null> {
     const where: FindOptionsWhere<Board> = {
-      configs: { companyId, deletedAt: IsNull() },
+      companyId,
       propertyUsages: { deletedAt: IsNull() },
     };
     if (appBoardId) {
@@ -17,7 +17,7 @@ export const BoardRepository = dataSource.getRepository(Board).extend({
     }
     return this.findOne({
       where,
-      relations: ["configs.company", "propertyUsages", ...relations],
+      relations: ["company", "propertyUsages", ...relations],
     });
   },
 });

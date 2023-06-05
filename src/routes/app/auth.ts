@@ -41,8 +41,11 @@ router.post("/signup", async (req, res) => {
     const controller = new AuthController();
     const uid = req.session?.uid;
     if (uid) {
-      const response = await controller.signUp(uid, req.body);
-      ApiResponse.successRes(res, response);
+      const company = await controller.signUp(uid, req.body);
+      if (company) {
+        req.session.company = company;
+      }
+      ApiResponse.successRes(res, req.session);
     } else {
       ApiResponse.errRes(res, SessionErrors.NotLoggedIn, StatusCodes.UNAUTHORIZED);
     }

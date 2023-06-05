@@ -1,5 +1,4 @@
-import { ChatToolId, NotionPropertyType, TodoAppId, UsageType } from "@/consts/common";
-import { ValueOf } from "@/types/index";
+import { NotionPropertyType } from "@/consts/common";
 
 export type ISelectItem<IDType = number> = {
   id: IDType;
@@ -7,12 +6,12 @@ export type ISelectItem<IDType = number> = {
 };
 
 export type IChatToolInfo = {
-  chatToolId: ValueOf<typeof ChatToolId>;
+  chatToolId: number;
   teamId: string;
 };
 
 export type ITodoAppInfo = {
-  todoAppId: ValueOf<typeof TodoAppId>;
+  todoAppId: number;
   workspaceId: string;
 };
 
@@ -26,8 +25,8 @@ export type PropertyType = typeof NotionPropertyType | 0;
 export type IPropertyUsage = {
   id: number;
   property: string;
-  usage: ValueOf<typeof UsageType>;
-  type: ValueOf<typeof NotionPropertyType>;
+  usage: number;
+  type: number;
   options?: string[];
   isChecked?: boolean;
 };
@@ -50,8 +49,9 @@ export type IConfigCommon = {
 };
 
 export type IConfigProspect = {
+  type: number;
   enabled: boolean;
-  chatToolId: ValueOf<typeof ChatToolId>;
+  chatToolId: number;
   channel: string;
   from: number;
   to: number;
@@ -64,10 +64,15 @@ export type IConfigProspect = {
 
 export type IConfigProspectTiming = {
   time: string;
-  askPlan: boolean;
-  askPlanMilestone?: string;
+  mode: number;
 };
 
 export type IConfigFeatures = {
-  prospect: boolean;
+  projects: boolean;
+  todos: boolean;
+};
+
+export type IBoardConfig = {
+  boardId?: string;
+  projectRule?: number;
 };

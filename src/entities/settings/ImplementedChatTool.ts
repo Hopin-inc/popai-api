@@ -4,13 +4,12 @@ import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import { Installation } from "@slack/oauth";
 import { ChatToolId } from "../../consts/common";
-import { ValueOf } from "../../types";
 
 @Entity("s_implemented_chat_tools")
 export default class ImplementedChatTool extends BaseEntity {
   constructor(
     company: Company | string,
-    chatToolId: ValueOf<typeof ChatToolId>,
+    chatToolId: number,
     installation?: Installation,
     appInstallUserId?: string,
   ) {

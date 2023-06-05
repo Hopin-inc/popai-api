@@ -4,6 +4,8 @@ import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
 import { And, FindOptionsWhere, In, IsNull, LessThan, Not } from "typeorm";
 import dayjs from "dayjs";
+import { TodoAppId } from "@/consts/common";
+import { ValueOf } from "@/types";
 
 export const TodoRepository = dataSource.getRepository(Todo).extend({
   async getTodos(todoIds: string[], companyId: string): Promise<Todo[]> {
@@ -28,9 +30,29 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
     });
   },
   async getTodosByIds(
-    ids: number[],
+    ids: string[],
     relations: string[] = ["todoUsers.user", "prospects"],
   ): Promise<Todo[]> {
     return await this.find({ where: { id: In(ids) }, relations });
+  },
+  async findOneByAppTodoId(
+    todoAppId: ValueOf<typeof TodoAppId>,
+    appTodoId: string,
+    companyId?: string,
+  ): Promise<Todo> {
+    return this.findOne({
+      where: { appTodoId, todoAppId, companyId },
+      relations: ["todoUsers", "todoProjects"],
+    });
+  },
+  async findByAppIds(
+    todoAppId: ValueOf<typeof TodoAppId>,
+    appTodoIds: string[],
+    companyId?: string,
+  ) {
+    return this.find({
+      where: { todoAppId, appTodoId: In(appTodoIds), companyId },
+      relations: ["todoUsers", "todoProjects"],
+    });
   },
 });

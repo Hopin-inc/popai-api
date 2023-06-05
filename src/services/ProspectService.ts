@@ -1,7 +1,7 @@
 import { Container, Service } from "typedi";
 import SlackRepository from "@/repositories/SlackRepository";
 import NotionRepository from "@/repositories/NotionRepository";
-import { ChatToolId } from "@/consts/common";
+import { AskType, ChatToolId } from "@/consts/common";
 import logger from "@/libs/logger";
 import Company from "@/entities/settings/Company";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
@@ -23,28 +23,28 @@ export default class ProspectService {
     try {
       const companies = await this.getTargetCompanies();
       await Promise.all(companies.map(async company => {
-        if (company.prospectConfig) {
-          const { chatToolId: chatToolId, timings } = company.prospectConfig;
+        await Promise.all(company.prospectConfigs?.map(async prospectConfig => {
+          const { chatToolId: chatToolId, timings, type } = prospectConfig;
           const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+          if (!matchedTiming) return;
+
           const logMeta = {
             company: company.id,
             chatTool: chatToolId,
-            askPlan: matchedTiming.askPlan,
+            mode: matchedTiming.mode,
           };
           logger.info(`Start: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
           switch (chatToolId) {
             case ChatToolId.SLACK:
-              if (matchedTiming.askPlan) {
-                await this.slackRepository.askPlans(company, matchedTiming.askPlanMilestone);
-              } else {
-                await this.slackRepository.askProspects(company);
+              if (type === AskType.TODOS) {
+                await this.slackRepository.askTodos(company, matchedTiming);
               }
               break;
             default:
               break;
           }
           logger.info(`Finish: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
-        }
+        }));
       }));
     } catch (error) {
       logger.error(error);
@@ -60,23 +60,29 @@ export default class ProspectService {
         "implementedChatTool",
         "timing",
         "timingExceptions",
-        "prospectConfig.timings",
+        "prospectConfigs.timings",
       ],
     });
     return companies.filter(company => {
-      const { prospectConfig, timing, timingExceptions } = company;
-      if (prospectConfig && timing) {
-        const { enabled, timings } = prospectConfig;
-        const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
-        const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
-        return (
-          enabled
-          && matchedTiming
-          && includesDayOfToday(timing.daysOfWeek)
-          && (!timing.disabledOnHolidaysJp || !isHolidayToday())
-          && (!timingException || (!timingException.excluded))
-        );
-      }
+      const { prospectConfigs, timing, timingExceptions } = company;
+      const filteredConfigs = prospectConfigs.filter(prospectConfig => {
+        if (prospectConfig && timing) {
+          const { enabled, timings } = prospectConfig;
+          const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+          const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
+          return (
+            enabled
+            && matchedTiming
+            && includesDayOfToday(timing.daysOfWeek)
+            && (!timing.disabledOnHolidaysJp || !isHolidayToday())
+            && (!timingException || (!timingException.excluded))
+          );
+        } else return false;
+      });
+      if (filteredConfigs.length) {
+        company.prospectConfigs = filteredConfigs;
+        return true;
+      } else return false;
     });
   }
 }

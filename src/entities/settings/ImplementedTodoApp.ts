@@ -5,13 +5,12 @@ import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import { INotionOAuthToken } from "../../types/notion";
 import { TodoAppId } from "../../consts/common";
-import { ValueOf } from "../../types";
 
 @Entity("s_implemented_todo_apps")
 export default class ImplementedTodoApp extends BaseEntity {
   constructor(
     company: Company | string,
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     installation: INotionOAuthToken | OAuth2Entity.AccessToken,
     appWorkspaceId?: string,
   ) {

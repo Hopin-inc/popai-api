@@ -29,7 +29,7 @@ export const SlackActionLabel = {
   PROSPECT: "PROSPECT",
   RELIEF_ACTION: "RELIEF_ACTION",
   OPEN_RELIEF_COMMENT_MODAL: "OPEN_RELIEF_COMMENT",
-  OPEN_PLAN_MODAL: "OPEN_PLAN",
+  OPEN_ASK_MODAL: "OPEN_ASK",
 };
 export const SEPARATOR = "__";
 export const SlackModalLabel = {

@@ -8,8 +8,10 @@ import { IProperty, ISelectItem } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { StatusCodes } from "@/common/StatusCodes";
 import {
+  BacklogMilestoneDetail,
   GetIssueListResponse,
   GetIssueResponse,
+  GetMilestonesResponse,
   GetProjectListResponse,
   GetStatusListResponse,
   GetUserListResponse,
@@ -20,6 +22,7 @@ import { ActivityTypeIds } from "@/consts/backlog";
 import { HttpException } from "@/exceptions";
 import BacklogOAuthClient from "@/integrations/BacklogOAuthClient";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
+import { Issue } from "backlog-js/dist/types/option";
 
 const RETRY_LIMIT: number = 2;
 
@@ -111,9 +114,49 @@ export default class BacklogClient {
     }
   }
 
+  public async getMilestoneItems(projectId: number): Promise<ISelectItem<string>[]> {
+    try {
+      const milestones: GetMilestonesResponse = await this.getMilestones(projectId);
+      return milestones.map(milestone => ({
+        id: milestone.id.toString(),
+        name: milestone.name,
+      }));
+    } catch (error) {
+      if (error.status === StatusCodes.UNAUTHORIZED) {
+        error.status = StatusCodes.BAD_REQUEST;
+      }
+      throw new Error(error);
+    }
+  }
+
+  public async getMilestones(projectId: number): Promise<GetMilestonesResponse> {
+    try {
+      return await this.retryOnError(() => this.client.getVersions(projectId));
+    } catch (error) {
+      if (error.status === StatusCodes.UNAUTHORIZED) {
+        error.status = StatusCodes.BAD_REQUEST;
+      }
+      throw new Error(error);
+    }
+  }
+
+  public async getMilestone(projectId: number, milestoneId: number): Promise<BacklogMilestoneDetail | null> {
+    try {
+      const milestones: GetMilestonesResponse = await this.retryOnError(() => this.client.getVersions(projectId));
+      return milestones.find(m => m.id === milestoneId);
+    } catch (error) {
+      if (error.status === StatusCodes.UNAUTHORIZED) {
+        error.status = StatusCodes.BAD_REQUEST;
+      }
+      throw new Error(error);
+    }
+  }
+
   public async getProperties(projectId: number): Promise<IProperty[]> {
     try {
-      const statusList: GetStatusListResponse = await this.retryOnError(() => this.client.getProjectStatuses(projectId));
+      const statusList: GetStatusListResponse = await this.retryOnError(
+        () => this.client.getProjectStatuses(projectId),
+      );
       const availableOptions = statusList.map(status => ({
         id: status.id.toString(),
         name: status.name,
@@ -163,9 +206,14 @@ export default class BacklogClient {
     return this.retryOnError(() => this.client.postWebhook(projectId, { name, hookUrl, allEvent, activityTypeIds }));
   }
 
-  public async getIssues(projectIds: number[], count: number = 100, offset: number = 0): Promise<GetIssueListResponse> {
+  public async getIssues(
+    projectIds: number[],
+    count: number = 100,
+    offset: number = 0,
+    options: Issue.GetIssuesParams = {},
+  ): Promise<GetIssueListResponse> {
     return await this.retryOnError(
-      () => this.client.getIssues({ projectId: projectIds, count, offset }),
+      () => this.client.getIssues({ projectId: projectIds, count, offset, ...options }),
     );
   }
 

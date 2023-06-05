@@ -1,14 +1,11 @@
 import { Controller } from "tsoa";
 import { FindOptionsWhere, IsNull, Not } from "typeorm";
-import { IProperty, IPropertyUsage, ISelectItem, ITodoAppInfo } from "@/types/app";
+import { IBoardConfig, IProperty, IPropertyUsage, ISelectItem, ITodoAppInfo } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
-import { ValueOf } from "@/types";
 import { TodoAppId, UsageType } from "@/consts/common";
 import NotionClient from "@/integrations/NotionClient";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import Board from "@/entities/settings/Board";
-import { BoardConfigRepository } from "@/repositories/settings/BoardConfigRepository";
-import BoardConfig from "@/entities/settings/BoardConfig";
 import { PropertyUsageRepository } from "@/repositories/settings/PropertyUsageRepository";
 import PropertyUsage from "@/entities/settings/PropertyUsage";
 import { TodoAppUserRepository } from "@/repositories/settings/TodoAppUserRepository";
@@ -32,7 +29,7 @@ export default class TodoAppController extends Controller {
   }
 
   public async getUsers(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
     baseUrl: string,
   ): Promise<ISelectItem<string>[]> {
@@ -49,7 +46,7 @@ export default class TodoAppController extends Controller {
   }
 
   public async updateTodoAppUser(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
     userId: string,
     appUserId: string,
@@ -72,23 +69,28 @@ export default class TodoAppController extends Controller {
   }
 
   public async getBoardConfig(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
-  ): Promise<{ boardId: string | null }> {
+  ): Promise<IBoardConfig> {
     const board = await BoardRepository.findOneByConfig(companyId);
-    return { boardId: board?.appBoardId };
+    return {
+      boardId: board?.appBoardId,
+      projectRule: board?.projectRule,
+    };
   }
 
   public async updateBoardConfig(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
-    boardId: string,
+    appBoardId: string,
+    projectRule: number,
     baseUrl: string,
   ): Promise<any> {
-    const board = await BoardRepository.findOneByConfig(companyId);
+    let board = await BoardRepository.findOneByConfig(companyId);
     const oldBoardId = board?.appBoardId;
     if (board) {
-      board.appBoardId = boardId;
+      board.appBoardId = appBoardId;
+      board.projectRule = projectRule ?? board.projectRule;
       await Promise.all([
         BoardRepository.upsert(board, []),
         board.propertyUsages && board.propertyUsages.length
@@ -96,8 +98,9 @@ export default class TodoAppController extends Controller {
           : null,
       ]);
     } else {
-      const board = await BoardRepository.save(new Board(todoAppId, boardId));
-      await BoardConfigRepository.save(new BoardConfig(companyId, board.id));
+      board = await BoardRepository.save(
+        new Board({ todoAppId, appBoardId, projectRule, company: companyId }),
+      );
     }
     if (todoAppId === TodoAppId.BACKLOG) {
       const baseQuery: FindOptionsWhere<PropertyUsage> = { todoAppId: TodoAppId.BACKLOG };
@@ -106,30 +109,43 @@ export default class TodoAppController extends Controller {
         PropertyUsageRepository.findOneBy({ ...baseQuery, usage: UsageType.IS_CLOSED }),
       ]);
       if (!isDoneUsage) {
-        isDoneUsage = new PropertyUsage( TodoAppId.BACKLOG, board, "status", 0, UsageType.IS_DONE);
+        isDoneUsage = new PropertyUsage({
+          board,
+          todoAppId: TodoAppId.BACKLOG,
+          appPropertyId:  "status",
+          type: 0,
+          usage: UsageType.IS_DONE,
+        });
       } else {
         isDoneUsage.boardId = board.id;
       }
       if (!isClosedUsage) {
-        isClosedUsage = new PropertyUsage( TodoAppId.BACKLOG, board, "status", 0, UsageType.IS_CLOSED);
+        isClosedUsage = new PropertyUsage({
+          board,
+          todoAppId: TodoAppId.BACKLOG,
+          appPropertyId:  "status",
+          type: 0,
+          usage: UsageType.IS_CLOSED,
+        });
       } else {
         isClosedUsage.boardId = board.id;
       }
 
       const backlogClient = await BacklogClient.init(companyId, baseUrl);
       const backlogRepository = new BacklogRepository();
-      const projectId = parseInt(boardId);
+      const projectId = parseInt(appBoardId);
       await Promise.all([
         oldBoardId ? backlogClient.deleteWebhooks(companyId, parseInt(oldBoardId)) : null,
         backlogClient.addWebhook(companyId, projectId),
-        backlogRepository.fetchTodos(companyId, projectId, board),
+        backlogRepository.fetchMilestones(companyId, projectId, board),
         PropertyUsageRepository.upsert([isDoneUsage, isClosedUsage], []),
       ]);
+      await backlogRepository.fetchTodos(companyId, projectId, board);
     }
   }
 
   public async getBoards(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
     baseUrl: string,
   ): Promise<ISelectItem<string>[]> {
@@ -146,7 +162,7 @@ export default class TodoAppController extends Controller {
   }
 
   public async getProperties(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
     boardId: string,
     baseUrl: string,
@@ -164,7 +180,7 @@ export default class TodoAppController extends Controller {
   }
 
   public async getUsages(
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
     boardId: string,
   ): Promise<IPropertyUsage[]> {
@@ -181,15 +197,14 @@ export default class TodoAppController extends Controller {
 
   public async updateUsages(
     data: IPropertyUsage,
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     companyId: string,
-    boardId: string,
+    appBoardId: string,
   ): Promise<IPropertyUsage> {
     const { id, property, usage, type, options, isChecked } = data;
-    let board = await BoardRepository.findOneByConfig(companyId, boardId);
+    let board = await BoardRepository.findOneByConfig(companyId, appBoardId);
     if (!board) {
-      board = await BoardRepository.save(new Board(todoAppId, boardId));
-      await BoardConfigRepository.save(new BoardConfig(companyId, board.id));
+      board = await BoardRepository.save(new Board({ todoAppId, appBoardId, company: companyId }));
     }
     const targetUsage = data.id ? board.propertyUsages?.find(u => u.id === id) : null;
     if (targetUsage) {
@@ -202,7 +217,15 @@ export default class TodoAppController extends Controller {
       });
       return data;
     } else {
-      const targetUsage = new PropertyUsage(todoAppId, board.id, property, type, usage, options, isChecked);
+      const targetUsage = new PropertyUsage({
+        todoAppId,
+        board: board.id,
+        appPropertyId: property,
+        type,
+        usage,
+        appOptions: options,
+        boolValue: isChecked,
+      });
       const newUsage = await PropertyUsageRepository.save(targetUsage);
       return {
         id: newUsage.id,

@@ -1,14 +1,14 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import ProspectTiming from "./ProspectTiming";
-import { ValueOf } from "../../types";
-import { ChatToolId } from "../../consts/common";
+import { AskType } from "../../consts/common";
 
 type ConstructorOption = {
   company: Company | string;
+  type: number;
   enabled: boolean;
-  chatToolId: ValueOf<typeof ChatToolId>;
+  chatToolId: number;
   channel?: string;
   from?: number;
   fromDaysBefore?: number;
@@ -23,11 +23,9 @@ export default class ProspectConfig extends BaseEntity {
   constructor(options: ConstructorOption) {
     super();
     if (options) {
-      const { company, enabled, chatToolId, ...optionalConfigs } = options;
+      const { company, ...rest } = options;
       this.companyId = typeof company === "string" ? company : company.id;
-      this.enabled = enabled;
-      this.chatToolId = chatToolId;
-      Object.assign(this, { ...this, ...optionalConfigs });
+      Object.assign(this, { ...this, ...rest });
     }
   }
 
@@ -36,6 +34,9 @@ export default class ProspectConfig extends BaseEntity {
 
   @Column({ name: "company_id" })
   companyId: string;
+
+  @Column({ name: "type", default: AskType.TODOS })
+  type: number;
 
   @Column({ name: "enabled", default: false })
   enabled: boolean;
@@ -64,9 +65,9 @@ export default class ProspectConfig extends BaseEntity {
   @Column({ name: "frequency_days_before", type: "json", nullable: true })
   frequencyDaysBefore?: number[];
 
-  @OneToOne(
+  @ManyToOne(
     () => Company,
-    company => company.prospectConfig,
+    company => company.prospectConfigs,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })

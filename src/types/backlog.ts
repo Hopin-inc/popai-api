@@ -13,7 +13,11 @@ type BaseWebhookPayload = {
   content: Content;
 };
 export type SingleIssuePayload = {
-  type: ActivityTypeIds.ISSUE_CREATED | ActivityTypeIds.ISSUE_UPDATED | ActivityTypeIds.ISSUE_DELETED | ActivityTypeIds.ISSUE_COMMENTED;
+  type:
+    | ActivityTypeIds.ISSUE_CREATED
+    | ActivityTypeIds.ISSUE_UPDATED
+    | ActivityTypeIds.ISSUE_DELETED
+    | ActivityTypeIds.ISSUE_COMMENTED;
   content: BacklogIssue;
 };
 export type MultiIssuesPayload = {
@@ -27,7 +31,7 @@ export type MultiIssuesPayload = {
       title: string;
       comment: BacklogComment;
     }[];
-    changes: Change[];
+    changes: Change<MultiIssuesPayload>[];
   };
 };
 export type MilestonePayload = {
@@ -38,7 +42,7 @@ export type MilestoneChangedPayload = {
   type: ActivityTypeIds.MILESTONE_UPDATED;
   content: {
     name: string;
-    changes: Change[];
+    changes: Change<MilestoneChangedPayload>[];
   };
 };
 
@@ -46,8 +50,12 @@ type Content = {
   id: number;
   key_id: number;
 };
-type Change = {
-  field: "status" | "assigner" | "limitDate" | "startDate";
+type Change<T> = {
+  field: T extends MultiIssuesPayload
+    ? "status" | "assigner" | "limitDate" | "startDate" | "milestone"
+    : T extends MilestoneChangedPayload
+      ? "name" | "startDate" | "referenceDate" | "description"
+      : never;
   old_value?: string;
   new_value: string;
   type: string;
@@ -100,7 +108,7 @@ type BacklogCategory = {
   id: number | null;
   displayOrder: number;
 };
-type BacklogMilestone = {
+export type BacklogMilestone = {
   id: number | null;
   name: string;
   description: string;
@@ -142,6 +150,18 @@ export type BacklogProject = {
   archived: boolean;
   displayOrder: number;
   useDevAttributes: boolean;
+};
+
+export type GetMilestonesResponse = BacklogMilestoneDetail[];
+export type BacklogMilestoneDetail = {
+  id: number;
+  projectId: number;
+  name: string;
+  description: string;
+  startDate: string | null;
+  releaseDueDate: string | null;
+  archived: boolean;
+  displayOrder: number;
 };
 
 export type GetWebhookListResponse = BacklogWebhook[];

@@ -7,12 +7,15 @@ import { AccountInfo } from "@/types/auth";
 
 @Service()
 export default class AuthService {
-  public async register(uid: string, info: AccountInfo) {
+  public async register(uid: string, info: AccountInfo): Promise<Company> {
     const { name } = info;
-    await Promise.all([
+    const [companyResult, _] = await Promise.all([
       CompanyRepository.update(uid, { name }),
       await auth.updateUser(uid, { displayName: name }),
     ]);
+    if (companyResult?.generatedMaps?.length) {
+      return companyResult?.generatedMaps[0] as Company;
+    }
   }
 
   public async verifyIdToken(authHeader: string): Promise<DecodedIdToken> {

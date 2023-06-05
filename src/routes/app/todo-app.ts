@@ -4,7 +4,6 @@ import { StatusCodes } from "@/common/StatusCodes";
 import TodoAppController from "@/controllers/app/TodoAppController";
 import { SessionErrors } from "@/consts/error-messages";
 import logger from "@/libs/logger";
-import { TodoAppId } from "@/consts/common";
 
 const router = express();
 
@@ -82,11 +81,12 @@ router.patch("/:todoAppId/board", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
     const boardId: string = req.body.boardId;
+    const projectRule: number | undefined = req.body.projectRule;
     const baseUrl: string = `${ req.protocol }://${ req.get("host") }`;
     const controller = new TodoAppController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.updateBoardConfig(todoAppId, company.id, boardId, baseUrl);
+      const response = await controller.updateBoardConfig(todoAppId, company.id, boardId, projectRule, baseUrl);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);

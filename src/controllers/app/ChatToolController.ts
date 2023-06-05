@@ -2,7 +2,6 @@ import { Controller } from "tsoa";
 import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
 import { IsNull, Not } from "typeorm";
 import { IChatToolInfo, ISelectItem } from "@/types/app";
-import { ValueOf } from "@/types";
 import { ChatToolId } from "@/consts/common";
 import SlackClient from "@/integrations/SlackClient";
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
@@ -24,7 +23,7 @@ export default class ChatToolController extends Controller {
     }
   }
 
-  public async getUsers(chatToolId: ValueOf<typeof ChatToolId>, companyId: string): Promise<ISelectItem<string>[]> {
+  public async getUsers(chatToolId: number, companyId: string): Promise<ISelectItem<string>[]> {
     switch (chatToolId) {
       case ChatToolId.SLACK:
         this.slackService = await SlackClient.init(companyId);
@@ -35,7 +34,7 @@ export default class ChatToolController extends Controller {
   }
 
   public async updateChatToolUser(
-    chatToolId: ValueOf<typeof ChatToolId>,
+    chatToolId: number,
     companyId: string,
     userId: string,
     appUserId: string,
@@ -46,7 +45,7 @@ export default class ChatToolController extends Controller {
     }
   }
 
-  public async getChannels(chatToolId: ValueOf<typeof ChatToolId>, companyId: string): Promise<ISelectItem<string>[]> {
+  public async getChannels(chatToolId: number, companyId: string): Promise<ISelectItem<string>[]> {
     switch (chatToolId) {
       case ChatToolId.SLACK:
         this.slackService = await SlackClient.init(companyId);

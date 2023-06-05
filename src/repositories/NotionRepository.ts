@@ -15,16 +15,33 @@ import { TodoUserRepository } from "@/repositories/transactions/TodoUserReposito
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 
 import logger from "@/libs/logger";
-import { ITodoHistoryOption, ITodoUserUpdate } from "@/types";
+import {
+  IProjectHistoryOption,
+  IProjectUserUpdate,
+  ITodoHistoryOption,
+  ITodoProjectUpdate,
+  ITodoUserUpdate,
+} from "@/types";
 import { INotionPropertyInfo } from "@/types/notion";
-import { TodoAppId, UsageType } from "@/consts/common";
+import { HistoryAction, ProjectRule, TodoAppId, TodoHistoryProperty, UsageType } from "@/consts/common";
 import NotionClient from "@/integrations/NotionClient";
 import PropertyUsage from "@/entities/settings/PropertyUsage";
 import Board from "@/entities/settings/Board";
 import { ParallelChunkUnit } from "@/consts/parallels";
 import { runInOrder } from "@/utils/process";
 import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
-import { getUsageProperty, setHistoriesForExistingTodo, setHistoriesForNewTodo } from "@/utils/misc";
+import {
+  getUsageProperty,
+  setHistoriesForExistingProject,
+  setHistoriesForExistingTodo,
+  setHistoriesForNewProject,
+  setHistoriesForNewTodo,
+} from "@/utils/misc";
+import Project from "@/entities/transactions/Project";
+import { TodoProjectRepository } from "@/repositories/transactions/TodoProjectRepository";
+import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import { ProjectUserRepository } from "@/repositories/transactions/ProjectUserRepository";
+import { ProjectHistoryRepository } from "@/repositories/transactions/ProjectHistoryRepository";
 
 const TODO_APP_ID = TodoAppId.NOTION;
 
@@ -40,65 +57,122 @@ export default class NotionRepository {
         BoardRepository.findOneByConfig(company.id),
         TodoHistoryRepository.getLastUpdatedDate(company, TODO_APP_ID),
       ]);
+      this.notionClient = notionClient;
       if (board) {
-        let hasMore: boolean = true;
-        let startCursor: string | undefined = undefined;
-        while (hasMore) {
-          const response = await notionClient.queryDatabase({
-            database_id: board.appBoardId,
-            filter: lastUpdatedDate
-              ? {
-                timestamp: "last_edited_time",
-                last_edited_time: { on_or_after: formatDatetime(lastUpdatedDate, "YYYY-MM-DD") },
-              }
-              : undefined,
-            start_cursor: startCursor,
-          });
-          hasMore = response?.has_more;
-          startCursor = response?.next_cursor;
-          const pageIds: string[] = response?.results.map(page => page.id);
-          await runInOrder(
-            pageIds,
-            async pageIdsChunk => {
-              try {
-                const todos: Todo[] = [];
-                const todoUserUpdates: ITodoUserUpdate[] = [];
-                const historyOptions: ITodoHistoryOption[] = [];
-                await Promise.all(pageIdsChunk.map(async pageId => {
-                  try {
-                    const {
-                      todo,
-                      users,
-                      currentUserIds,
-                      args,
-                    } = await this.generateTodoFromApi(pageId, company, board.propertyUsages) ?? {};
-                    let todoId: string;
-                    if (todo?.id) {
-                      todos.push(todo);
-                      todoId = todo.id;
-                    } else {
-                      const savedTodo = await TodoRepository.save(todo);
-                      todoId = savedTodo.id;
-                    }
-                    todoUserUpdates.push({ todoId, users, currentUserIds });
-                    historyOptions.push(...args.map(a => ({ ...a, todoId })));
-                  } catch (error) {
-                    logger.error(error);
-                  }
-                }));
-                await TodoRepository.upsert(todos, []);
-                await Promise.all([
-                  TodoHistoryRepository.saveHistories(historyOptions),
-                  TodoUserRepository.saveTodoUsers(todoUserUpdates),
-                ]);
-              } catch (error) {
-                logger.error(error);
-              }
-            },
-            ParallelChunkUnit.GENERATE_TODO,
-          );
-        }
+        await this.syncTodosByType(company, board, lastUpdatedDate, "project");
+        await this.syncTodosByType(company, board, lastUpdatedDate, "todo");
       }
+    } catch (error) {
+      logger.error(error);
+    }
+  }
+
+  private async syncTodosByType(
+    company: Company,
+    board: Board,
+    lastUpdatedDate: Date,
+    generateType?: Awaited<ReturnType<typeof this.generateTodoFromApi>>["type"],
+  ) {
+    let hasMore: boolean = true;
+    let startCursor: string | undefined = undefined;
+    while (hasMore) {
+      const response = await this.notionClient.queryDatabase({
+        database_id: board.appBoardId,
+        filter: lastUpdatedDate
+          ? {
+            timestamp: "last_edited_time",
+            last_edited_time: { on_or_after: formatDatetime(lastUpdatedDate, "YYYY-MM-DD") },
+          }
+          : undefined,
+        start_cursor: startCursor,
+      });
+      hasMore = response?.has_more;
+      startCursor = response?.next_cursor;
+      const pageIds: string[] = response?.results.map(page => page.id);
+      await runInOrder(
+        pageIds,
+        async pageIdsChunk => this.syncTodosByPageIdsAndType(pageIdsChunk, company, board, generateType),
+        ParallelChunkUnit.GENERATE_TODO,
+      );
+    }
+  }
+
+  private async syncTodosByPageIdsAndType(
+    pageIds: string[],
+    company: Company,
+    board: Board,
+    generateType?: Awaited<ReturnType<typeof this.generateTodoFromApi>>["type"],
+  ) {
+    try {
+      const projects: Project[] = [];
+      const todos: Todo[] = [];
+      const projectUserUpdates: IProjectUserUpdate[] = [];
+      const projectHistoryOptions: IProjectHistoryOption[] = [];
+      const todoUserUpdates: ITodoUserUpdate[] = [];
+      const todoProjectUpdates: ITodoProjectUpdate[] = [];
+      const todoHistoryOptions: ITodoHistoryOption[] = [];
+      await Promise.all(pageIds.map(async pageId => {
+        try {
+          const projectOrTodoInfo = await this.generateTodoFromApi(pageId, company, board);
+          if (!projectOrTodoInfo) {
+            return;
+          } else if (
+            projectOrTodoInfo.type === "project"
+            && (!generateType || generateType === "project")
+          ) {
+            const {
+              project,
+              users,
+              currentUserIds,
+              args,
+            } = projectOrTodoInfo;
+            let projectId: string;
+            if (project?.id) {
+              projects.push(project);
+              projectId = project.id;
+            } else {
+              const savedProject = await ProjectRepository.save(project);
+              projectId = savedProject.id;
+            }
+            projectUserUpdates.push({ projectId, users, currentUserIds });
+            projectHistoryOptions.push(...args.map(a => ({ ...a, id: projectId })));
+          } else if (
+            projectOrTodoInfo.type === "todo"
+            && (!generateType || generateType === "todo")
+          ) {
+            const {
+              todo,
+              projects,
+              currentProjectIds,
+              users,
+              currentUserIds,
+              args,
+            } = projectOrTodoInfo;
+            let todoId: string;
+            if (todo?.id) {
+              todos.push(todo);
+              todoId = todo.id;
+            } else {
+              const savedTodo = await TodoRepository.save(todo);
+              todoId = savedTodo.id;
+            }
+            todoUserUpdates.push({ todoId, users, currentUserIds });
+            todoProjectUpdates.push({ todoId, projects, currentProjectIds });
+            todoHistoryOptions.push(...args.map(a => ({ ...a, id: todoId })));
+          }
+        } catch (error) {
+          logger.error(error);
+        }
+      }));
+      await ProjectRepository.upsert(projects, []);
+      await TodoRepository.upsert(todos, []);
+      await Promise.all([
+        ProjectUserRepository.saveProjectUsers(projectUserUpdates),
+        ProjectHistoryRepository.saveHistories(projectHistoryOptions),
+        TodoUserRepository.saveTodoUsers(todoUserUpdates),
+        TodoProjectRepository.saveTodoProjects(todoProjectUpdates),
+        TodoHistoryRepository.saveHistories(todoHistoryOptions),
+      ]);
     } catch (error) {
       logger.error(error);
     }
@@ -107,36 +181,51 @@ export default class NotionRepository {
   private async generateTodoFromApi(
     pageId: string,
     company: Company,
-    propertyUsages: PropertyUsage[],
-  ): Promise<{ todo: Todo, users: User[], currentUserIds: string[], args: Omit<ITodoHistoryOption, "todoId">[] }> {
-    const nullResponse = { todo: null, users: [], currentUserIds: [], args: [] };
+    board: Board,
+  ): Promise<{
+    type: "todo",
+    todo: Todo,
+    projects: Project[],
+    currentProjectIds: string[],
+    users: User[],
+    currentUserIds: string[],
+    args: Omit<ITodoHistoryOption, "id">[],
+  } | {
+    type: "project",
+    project: Project,
+    users: User[],
+    currentUserIds: string[],
+    args: Omit<IProjectHistoryOption, "id">[],
+  } | null> {
+    const propertyUsages = board.propertyUsages;
     try {
       const pageInfo = await this.notionClient.retrievePage({ page_id: pageId }) as PageObjectResponse;
       if (!pageInfo?.properties) {
-        return nullResponse;
+        return null;
       }
       const pageProperties = Object.keys(pageInfo.properties)
         .map(key => pageInfo.properties[key]) as INotionPropertyInfo[];
       if (!pageProperties.length) {
-        return nullResponse;
+        return null;
       }
 
-      let args: Omit<ITodoHistoryOption, "todoId">[] = [];
+      let args: Omit<ITodoHistoryOption, "id">[] = [];
       const pagePropertyIds = pageProperties.map((obj) => obj.id);
       const properties = this.getProperties(propertyUsages, pagePropertyIds);
+      const appParentIds = this.getOptionIds(pageProperties, properties.parent);
+      const registerProject = board.projectRule === ProjectRule.PARENT_TODO && !appParentIds.length;
       const name = this.getTitle(pageProperties, properties.title);
       if (!name) {
-        return nullResponse;
+        return null;
       }
       const [startDate, deadline] = this.getDeadline(pageProperties, properties.deadline);
-      let todo = await TodoRepository.findOne({
-        where: { companyId: company.id, appTodoId: pageId },
-        relations: ["todoUsers.user"],
-      });
-      const currentUserIds = todo?.users ? todo.users.map(u => u?.id).filter(id => id) : [];
+      let [project, todo] = await Promise.all([
+        ProjectRepository.findOneByAppProjectId(TODO_APP_ID, pageId, company.id),
+        TodoRepository.findOneByAppTodoId(TODO_APP_ID, pageId, company.id),
+      ]);
       const appUrl = this.getDefaultStr(pageInfo, "url");
       const appCreatedAt = this.getDefaultDate(pageInfo, "created_time");
-      const createdBy = this.getEditedById(
+      const appCreatedBy = this.getEditedById(
         company.users,
         TODO_APP_ID,
         this.getDefaultStr(pageInfo, "created_by"),
@@ -144,47 +233,124 @@ export default class NotionRepository {
       const isDone = this.getIsStatus(pageProperties, properties.isDone);
       const isClosed = this.getIsStatus(pageProperties, properties.isClosed);
       const appUserIds = this.getOptionIds(pageProperties, properties.assignee);
-      const users = appUserIds.map(appUserId => {
-        return company.users?.find(u => u.todoAppUser?.appUserId === appUserId);
-      }).filter(u => u);
+      const users = appUserIds
+        .map(appUserId => company.users?.find(u => u.todoAppUser?.appUserId === appUserId))
+        .filter(u => u);
       const isDelayed = deadline
         ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
         : null;
 
-      if (todo) {
-        args = await setHistoriesForExistingTodo(todo, users, startDate, deadline, isDone, isClosed, isDelayed);
-        Object.assign(todo, {
-          ...todo,
-          name,
-          appUrl,
-          appCreatedAt,
-          createdBy,
-          startDate,
-          deadline,
-          isDone,
-          isClosed,
-        });
+      if (registerProject) {
+        if (todo) {
+          await this.deleteTodosByRecord([todo]);
+        }
+        const currentUserIds = project?.users
+          ? project.users.map(p => p?.id).filter(id => id)
+          : [];
+        if (project) {
+          args = await setHistoriesForExistingProject(project, users, startDate, deadline, isDone, isClosed, isDelayed);
+          Object.assign(project, <Partial<Project>>{
+            ...project,
+            name,
+            appUrl,
+            appCreatedAt,
+            appCreatedBy,
+            startDate,
+            deadline,
+            isDone,
+            isClosed,
+          });
+        } else {
+          args = setHistoriesForNewProject(users, startDate, deadline, isDone, isClosed, isDelayed);
+          project = new Project({
+            name,
+            todoAppId: TODO_APP_ID,
+            company,
+            appProjectId: pageId,
+            appUrl,
+            appCreatedAt,
+            appCreatedBy,
+            startDate,
+            deadline,
+            isDone,
+            isClosed,
+          });
+        }
+        return { type: "project", project, users, currentUserIds, args };
       } else {
-        args = setHistoriesForNewTodo(users, startDate, deadline, isDone, isClosed, isDelayed);
-        todo = new Todo({
-          name,
-          todoAppId: TODO_APP_ID,
-          company,
-          appTodoId: pageId,
-          appUrl,
-          appCreatedAt,
-          createdBy,
-          startDate,
-          deadline,
-          isDone,
-          isClosed,
-        });
+        if (project) {
+          await this.deleteProjectsByRecord([project]);
+        }
+        const projects = board.projectRule === ProjectRule.PARENT_TODO
+          ? appParentIds
+            .map(parentId => company.projects?.find(p => p.appProjectId === parentId))
+            .filter(p => p)
+          : [];
+        const currentUserIds = todo?.users
+          ? todo.users.map(u => u?.id).filter(id => id)
+          : [];
+        const currentProjectIds = todo?.projects
+          ? todo.projects.map(p => p?.id).filter(id => id)
+          : [];
+        if (todo) {
+          args = await setHistoriesForExistingTodo(todo, users, projects, startDate, deadline, isDone, isClosed, isDelayed);
+          Object.assign(todo, <Partial<Todo>>{
+            ...todo,
+            name,
+            appUrl,
+            appCreatedAt,
+            appCreatedBy,
+            startDate,
+            deadline,
+            isDone,
+            isClosed,
+            appParentIds,
+          });
+        } else {
+          args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);
+          todo = new Todo({
+            name,
+            todoAppId: TODO_APP_ID,
+            company,
+            appTodoId: pageId,
+            appUrl,
+            appCreatedAt,
+            appCreatedBy,
+            startDate,
+            deadline,
+            isDone,
+            isClosed,
+            appParentIds,
+          });
+        }
+        return { type: "todo", todo, projects, currentProjectIds, users, currentUserIds, args };
       }
-      return { todo, users, currentUserIds, args };
     } catch(error) {
       logger.error(error);
-      return nullResponse;
+      return null;
     }
+  }
+
+  private async deleteProjectsByRecord(projects: Project[]) {
+    await Promise.all([
+      ProjectRepository.softRemove(projects),
+      ProjectHistoryRepository.saveHistories(projects.map(project => ({
+        id: project.id,
+        property: TodoHistoryProperty.NAME,
+        action: HistoryAction.DELETE,
+      }))),
+    ]);
+  }
+
+  private async deleteTodosByRecord(todos: Todo[]) {
+    await Promise.all([
+      TodoRepository.softRemove(todos),
+      TodoHistoryRepository.saveHistories(todos.map(todo => ({
+        id: todo.id,
+        property: TodoHistoryProperty.NAME,
+        action: HistoryAction.DELETE,
+      }))),
+    ]);
   }
 
   private getProperties(usages: PropertyUsage[], propertyIds: string[]) {
@@ -195,6 +361,7 @@ export default class NotionRepository {
       deadline: getUsageProperty(usages, propertyIds, UsageType.DEADLINE),
       isDone: getUsageProperty(usages, propertyIds, UsageType.IS_DONE),
       isClosed: getUsageProperty(usages, propertyIds, UsageType.IS_CLOSED),
+      parent: getUsageProperty(usages, propertyIds, UsageType.PARENT_TODO),
     };
   }
 
@@ -272,7 +439,7 @@ export default class NotionRepository {
   }
 
   private getOptionIds(
-    pageProperty: Record<PropertyKey, any>,
+    pageProperty: INotionPropertyInfo[],
     propertyUsage: PropertyUsage,
   ): string[] {
     try {
@@ -291,11 +458,12 @@ export default class NotionRepository {
       }
     } catch (error) {
       logger.error(error);
+      return [];
     }
   }
 
   private getIsStatus(
-    pageProperty: Record<PropertyKey, any>,
+    pageProperty: INotionPropertyInfo[],
     propertyUsage: PropertyUsage,
   ): boolean {
     try {

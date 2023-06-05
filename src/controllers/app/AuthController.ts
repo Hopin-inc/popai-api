@@ -13,8 +13,8 @@ export default class AuthController extends Controller {
     this.authService = Container.get(AuthService);
   }
 
-  public async signUp(uid: string, info: AccountInfo): Promise<void> {
-    await this.authService.register(uid, info);
+  public async signUp(uid: string, info: AccountInfo): Promise<Company> {
+    return await this.authService.register(uid, info);
   }
 
   public async login(authHeader: string): Promise<[Company, DecodedIdToken]> {
