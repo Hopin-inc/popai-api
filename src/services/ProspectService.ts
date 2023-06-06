@@ -31,19 +31,22 @@ export default class ProspectService {
           const logMeta = {
             company: company.id,
             chatTool: chatToolId,
+            type,
             mode: matchedTiming.mode,
           };
-          logger.info(`Start: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
+          const target = type === AskType.TODOS ? "todos" : "projects";
+          logger.info(`Asking prospects of ${ target } for company ${ company.id }`, logMeta);
           switch (chatToolId) {
             case ChatToolId.SLACK:
               if (type === AskType.TODOS) {
                 await this.slackRepository.askTodos(company, matchedTiming);
+              } else if (type === AskType.PROJECTS) {
+                await this.slackRepository.askProjects(company, matchedTiming);
               }
               break;
             default:
               break;
           }
-          logger.info(`Finish: askProspects { company: ${ company.id }, section: ALL }`, logMeta);
         }));
       }));
     } catch (error) {
