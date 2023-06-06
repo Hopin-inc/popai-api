@@ -123,7 +123,7 @@ export default class SlackController extends Controller {
             undefined,
             async () => {
               const todos = await TodoRepository.getTodosByIds(todoIds);
-              await this.slackRepository.askProspectsOnTodos(user.company, { user, todos });
+              await this.slackRepository.askProspectsOnTodos(user.company, { todos, users: [user] });
             },
           ];
         case SlackModalLabel.RELIEF_COMMENT:
