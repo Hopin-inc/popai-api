@@ -16,7 +16,8 @@ import {
 import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
 import { Sorter } from "@/utils/array";
 import { truncate, relativeRemindDays } from "@/utils/string";
-import { ProspectLevel } from "@/consts/common";
+import { AskMode, ProspectLevel } from "@/consts/common";
+import Project from "@/entities/transactions/Project";
 
 dayjs.locale("ja");
 
@@ -27,7 +28,25 @@ export default class SlackMessageBuilder {
     return deadline ? `${ relativeRemindDays(remindDays) } (${ formatDatetime(deadline) })` : "未設定";
   }
 
-  public static createAskProspectMessage(todo: Todo) {
+  public static createAskProspectMessageOnProjects(project: Project) {
+    const blocks: KnownBlock[] = [
+      this.getAskProspectQuestion(project),
+      {
+        type: "actions",
+        elements: prospects.map<Button>(prospect => {
+          return {
+            type: "button",
+            text: { type: "plain_text", emoji: true, text: `${ prospect.emoji } ${ prospect.text }` },
+            action_id: SlackActionLabel.PROSPECT + SEPARATOR + prospect.value.toString(),
+          };
+        }),
+      },
+      this.divider,
+    ];
+    return { blocks };
+  }
+
+  public static createAskProspectMessageOnTodos(todo: Todo) {
     const blocks: KnownBlock[] = [
       this.getAskProspectQuestion(todo),
       {
@@ -136,7 +155,7 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  private static getAskProspectQuestion(todo: Todo): KnownBlock {
+  private static getAskProspectQuestion<T extends Todo | Project>(todo: T): KnownBlock {
     return {
       type: "section",
       text: {
@@ -216,24 +235,37 @@ export default class SlackMessageBuilder {
     ];
   }
 
-  public static createAskPlanModal(todos: Todo[], milestoneText: string): (KnownBlock | Block)[] {
+  public static createAskPlanModal<T extends Todo | Project>(
+    items: T[],
+    mode: number,
+  ): (KnownBlock | Block)[] {
     const isDelayed = (ddl: Date): boolean => dayjs(ddl).isBefore(toJapanDateTime(new Date()), "day");
-    const delayedTodos = todos.filter(todo => isDelayed(todo.deadline)).sort(Sorter.byDate<Todo>("deadline"));
-    const ongoingTodos = todos.filter(todo => !isDelayed(todo.deadline)).sort(Sorter.byDate<Todo>("deadline"));
-    const getOption = (todo: Todo, prepend: string = "") => {
+    const delayedTodos = items
+      .filter(todo => isDelayed(todo.deadline))
+      .sort(Sorter.byDate<T>("deadline"));
+    const ongoingTodos = items
+      .filter(todo => !isDelayed(todo.deadline))
+      .sort(Sorter.byDate<T>("deadline"));
+    const getOption = (item: T, prepend: string = "") => {
       return {
         text: {
           type: "plain_text" as const,
           emoji: true,
-          text: prepend + truncate(todo.name, 48, 1, 2),
+          text: prepend + truncate(item.name, 48, 1, 2),
         },
-        value: todo.id.toString(),
+        value: item.id.toString(),
       };
     };
     return [
       {
         type: "section",
-        text: { type: "plain_text", emoji: true, text: `${ milestoneText }着手するタスクを教えてください。` },
+        text: {
+          type: "plain_text",
+          emoji: true,
+          text: mode === AskMode.FORWARD ? "今日やる予定のタスクを選んでください。"
+            : mode === AskMode.BACKWARD ? "今日取り組んだタスクを選んでください。"
+              : "タスクを選んでください。",
+        },
       },
       {
         type: "input",
@@ -242,8 +274,8 @@ export default class SlackMessageBuilder {
           action_id: AskPlanModalItems.TODOS,
           focus_on_load: true,
           options: [
-            ...delayedTodos.map(todo => getOption(todo, ":warning: ")),
-            ...ongoingTodos.map(todo => getOption(todo)),
+            ...delayedTodos.map(item => getOption(item, ":warning: ")),
+            ...ongoingTodos.map(item => getOption(item)),
           ],
         },
         label: { type: "plain_text", emoji: true, text: "タスク" },
@@ -252,16 +284,19 @@ export default class SlackMessageBuilder {
     ];
   }
 
-  public static createAskPlansMessage(milestone?: string) {
-    const [h, m] = milestone ? milestone.split(":") : [];
-    const milestoneText = milestone ? `${ h }:${ m }までに` : "今日";
-    const blocks: KnownBlock[] = [
+  public static createAskPlansMessageOnTodos(mode: number) {
+    const questionText: string | null = mode === AskMode.FORWARD
+      ? "お疲れ様です:raised_hands:\n今日やる予定のタスクについて教えてください。"
+      : mode === AskMode.BACKWARD
+        ? "お疲れ様です:raised_hands:\n今日取り組んだタスクについて教えてください。"
+        : null;
+    const blocks: KnownBlock[] = questionText ? [
       this.getAskOpenModalBlock(
-        `お疲れ様です:raised_hands:\n${ milestoneText }着手するタスクを教えてください。`,
+        questionText,
         "選択する",
-        SlackActionLabel.OPEN_PLAN_MODAL + SEPARATOR + milestoneText,
+        SlackActionLabel.OPEN_ASK_MODAL + SEPARATOR + mode.toString(),
       ),
-    ];
+    ] : [];
     return { blocks };
   }
 }

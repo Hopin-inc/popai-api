@@ -1,49 +1,55 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Todo from "./Todo";
+import Project from "./Project";
 import User from "../settings/User";
 import Company from "../settings/Company";
-import { ValueOf } from "../../types";
-import { ChatToolId } from "../../consts/common";
+import { Exclusive } from "../../types";
+
+type ConstructorOptions = {
+  user: User | string;
+  company: Company | string;
+  chatToolId?: number;
+  appChannelId?: string;
+  appThreadId?: string;
+} & Exclusive<{
+  todo: Todo | string;
+}, {
+  project: Project | string;
+}>;
 
 @Entity("t_prospects")
 export default class Prospect extends BaseEntity {
-  constructor(
-    todo: Todo | string,
-    user: User | string,
-    company: Company | string,
-    chatToolId?: ValueOf<typeof ChatToolId>,
-    appChannelId?: string,
-    appThreadId?: string,
-  ) {
+  constructor(options: ConstructorOptions) {
     super();
-    if (todo && user && company) {
-      this.todoId = typeof todo === "string" ? todo : todo.id;
+    if (options) {
+      const { user, company, todo, project, ...rest } = options;
       this.userId = typeof user === "string" ? user : user.id;
       this.companyId = typeof company === "string" ? company : company.id;
-      if (chatToolId) {
-        this.chatToolId = chatToolId;
+      if (todo) {
+        this.todoId = typeof todo === "string" ? todo : todo.id;
       }
-      if (appChannelId) {
-        this.appChannelId = appChannelId;
+      if (project) {
+        this.projectId = typeof project === "string" ? project : project.id;
       }
-      if (appThreadId) {
-        this.appThreadId = appThreadId;
-      }
+      Object.assign(this, { ...this, ...rest });
     }
   }
 
   @PrimaryGeneratedColumn("uuid")
   readonly id: string;
 
-  @Column({ name: "todo_id" })
-  todoId: string;
-
   @Column({ name: "user_id" })
   userId: string;
 
   @Column({ name: "company_id" })
   companyId: string;
+
+  @Column({ name: "todo_id", nullable: true })
+  todoId?: string;
+
+  @Column({ name: "project_id", nullable: true })
+  projectId?: string;
 
   @Column({ name: "chat_tool_id", nullable: true })
   chatToolId?: number;
@@ -79,14 +85,6 @@ export default class Prospect extends BaseEntity {
   commentRespondedAt?: Date;
 
   @ManyToOne(
-    () => Todo,
-    todo => todo.prospects,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
-  @JoinColumn({ name: "todo_id" })
-  todo: Todo;
-
-  @ManyToOne(
     () => User,
     user => user.prospects,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
@@ -100,4 +98,20 @@ export default class Prospect extends BaseEntity {
   )
   @JoinColumn({ name: "company_id" })
   company: Company;
+
+  @ManyToOne(
+    () => Todo,
+    todo => todo.prospects,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+  )
+  @JoinColumn({ name: "todo_id" })
+  todo?: Todo;
+
+  @ManyToOne(
+    () => Project,
+    project => project.prospects,
+    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
+  )
+  @JoinColumn({ name: "project_id" })
+  project?: Todo;
 }

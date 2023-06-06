@@ -1,8 +1,7 @@
 import { Controller } from "tsoa";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import { ISelectItem, IUserConfig, IUserReportingLine } from "@/types/app";
-import { IdOptional, ValueOf } from "@/types";
-import { ChatToolId, TodoAppId } from "@/consts/common";
+import { IdOptional } from "@/types";
 import User from "@/entities/settings/User";
 import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
 import { extractArrayDifferences } from "@/utils/array";
@@ -27,11 +26,7 @@ export default class UserController extends Controller {
     await UserRepository.softDelete({ id: userId, companyId: companyId });
   }
 
-  public async getConfigs(
-    companyId: string,
-    _chatToolId: ValueOf<typeof ChatToolId>,
-    _todoAppId: ValueOf<typeof TodoAppId>,
-  ): Promise<IUserConfig[]> {
+  public async getConfigs(companyId: string): Promise<IUserConfig[]> {
     const users = await UserRepository.find({
       where: { companyId },
       relations: ["chatToolUser", "todoAppUser"],
@@ -71,7 +66,7 @@ export default class UserController extends Controller {
     );
     const addedLines = addedSuperiors.map(superiorUserId => ({
       ...new ReportingLine(subordinateUserId, superiorUserId),
-      deleted_at: null,
+      deletedAt: null,
     }));
     await Promise.all([
       ReportingLineRepository.upsert(addedLines, []),

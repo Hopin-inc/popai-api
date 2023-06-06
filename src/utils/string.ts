@@ -32,3 +32,5 @@ export const truncate = (str: string, max: number, countHalfAs: number = 1, coun
   }
   return truncatedStr;
 };
+
+export const extractDomain = (str: string): string => str.match(/^https?:\/{2,}(.*?)(?:\/|\?|#|$)/)[1];

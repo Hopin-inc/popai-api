@@ -39,6 +39,8 @@ steps:
           FIREBASE_BASE_URL: $_FIREBASE_BASE_URL
           NOTION_CLIENT_ID: $$NOTION_CLIENT_ID
           NOTION_CLIENT_SECRET: $$NOTION_CLIENT_SECRET
+          BACKLOG_CLIENT_ID: $$BACKLOG_CLIENT_ID
+          BACKLOG_CLIENT_SECRET: $$BACKLOG_CLIENT_SECRET
           SLACK_CLIENT_ID: '$$SLACK_CLIENT_ID'
           SLACK_CLIENT_SECRET: $$SLACK_CLIENT_SECRET
           SLACK_SIGNING_SECRET: $$SLACK_SIGNING_SECRET
@@ -59,6 +61,8 @@ steps:
       - FIREBASE_PRIVATE_KEY
       - NOTION_CLIENT_ID
       - NOTION_CLIENT_SECRET
+      - BACKLOG_CLIENT_ID
+      - BACKLOG_CLIENT_SECRET
       - SLACK_CLIENT_ID
       - SLACK_CLIENT_SECRET
       - SLACK_SIGNING_SECRET
@@ -81,6 +85,10 @@ availableSecrets:
       env: NOTION_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/NOTION_CLIENT_SECRET/versions/latest
       env: NOTION_CLIENT_SECRET
+    - versionName: projects/$PROJECT_NUMBER/secrets/BACKLOG_CLIENT_ID/versions/latest
+      env: BACKLOG_CLIENT_ID
+    - versionName: projects/$PROJECT_NUMBER/secrets/BACKLOG_CLIENT_SECRET/versions/latest
+      env: BACKLOG_CLIENT_SECRET
     - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_CLIENT_ID/versions/latest
       env: SLACK_CLIENT_ID
     - versionName: projects/$PROJECT_NUMBER/secrets/SLACK_CLIENT_SECRET/versions/latest

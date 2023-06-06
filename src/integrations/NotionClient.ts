@@ -1,8 +1,8 @@
 import { Service } from "typedi";
 import { NotionPropertyType, TodoAppId } from "@/consts/common";
-import { ISelectItem } from "@/types/app";
+import { IProperty, ISelectItem } from "@/types/app";
 import { Client } from "@notionhq/client";
-import { CompanyTodoAppRepository } from "@/repositories/settings/CompanyTodoAppRepository";
+import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { StatusCodes } from "@/common/StatusCodes";
 import {
   GetPageParameters,
@@ -17,7 +17,7 @@ export default class NotionClient {
   private client: Client;
 
   public static async init(companyId: string): Promise<NotionClient> {
-    const notionInfo = await CompanyTodoAppRepository.findOneBy({
+    const notionInfo = await ImplementedTodoAppRepository.findOneBy({
       companyId,
       todoAppId: TodoAppId.NOTION,
       accessToken: Not(IsNull()),
@@ -85,7 +85,7 @@ export default class NotionClient {
     }
   }
 
-  public async getProperties(databaseId: string): Promise<ISelectItem<string>[]> {
+  public async getProperties(databaseId: string): Promise<IProperty[]> {
     try {
       const response = await this.client.databases.retrieve({ database_id: databaseId });
       return Object.keys(response.properties).map(name => {

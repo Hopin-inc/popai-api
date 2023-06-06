@@ -100,8 +100,8 @@ export default class SlackController extends Controller {
       case SlackActionLabel.OPEN_RELIEF_COMMENT_MODAL:
         await this.slackRepository.openReliefCommentModal(user.companyId, channelId, threadId, triggerId);
         break;
-      case SlackActionLabel.OPEN_PLAN_MODAL:
-        await this.slackRepository.openPlanModal(user, channelId, triggerId, value);
+      case SlackActionLabel.OPEN_ASK_MODAL:
+        await this.slackRepository.openPlanModal(user, channelId, triggerId, parseInt(value));
         break;
       default:
         break;
@@ -118,12 +118,12 @@ export default class SlackController extends Controller {
             AskPlanModalItems.TODOS,
             "selected_options",
           );
-          const todoIds = selectedOptions.map(option => parseInt(option.value));
+          const todoIds = selectedOptions.map(option => option.value);
           return [
             undefined,
             async () => {
               const todos = await TodoRepository.getTodosByIds(todoIds);
-              await this.slackRepository.askProspects(user.company, { user, todos });
+              await this.slackRepository.askProspectsOnTodos(user.company, { todos, users: [user] });
             },
           ];
         case SlackModalLabel.RELIEF_COMMENT:

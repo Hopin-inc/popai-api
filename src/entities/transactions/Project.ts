@@ -1,29 +1,20 @@
-import {
-  AfterLoad,
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany, Index, AfterLoad } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import Company from "../settings/Company";
-import TodoUser from "./TodoUser";
 import User from "../settings/User";
-import TodoHistory from "./TodoHistory";
 import Prospect from "./Prospect";
 import TodoProject from "./TodoProject";
-import Project from "./Project";
+import ProjectUser from "./ProjectUser";
+import Todo from "./Todo";
 import { Sorter } from "../../utils/array";
+import ProjectHistory from "./ProjectHistory";
 
 type ConstructorOptions = {
   name: string;
   todoAppId: number;
   company: Company | string;
-  appTodoId: string;
+  appProjectId: string;
   appUrl?: string;
   appCreatedAt?: Date;
   appCreatedBy?: string;
@@ -31,11 +22,10 @@ type ConstructorOptions = {
   deadline?: Date;
   isDone: boolean;
   isClosed: boolean;
-  appParentIds?: string[];
 }
 
-@Entity("t_todos")
-export default class Todo extends BaseEntity {
+@Entity("t_projects")
+export default class Project extends BaseEntity {
   constructor(options: ConstructorOptions) {
     super();
     if (options) {
@@ -58,11 +48,8 @@ export default class Todo extends BaseEntity {
   companyId: string;
 
   @Index()
-  @Column({ name: "app_todo_id", type: "varchar", length: 255 })
-  appTodoId: string;
-
-  @Column({ name: "app_parent_todo_id", type: "json", nullable: true })
-  appParentIds?: string[];
+  @Column({ name: "app_project_id", type: "varchar", length: 255 })
+  appProjectId: string;
 
   @Index()
   @Column({ name: "app_url", type: "varchar", length: 255, nullable: true })
@@ -96,27 +83,27 @@ export default class Todo extends BaseEntity {
   company: Company;
 
   @OneToMany(
-    () => TodoUser,
-    todoUser => todoUser.todo,
+    () => ProjectUser,
+    projectUser => projectUser.project,
     { cascade: true },
   )
-  todoUsers: TodoUser[];
+  projectUsers: ProjectUser[];
   users: User[] = [];
 
   @OneToMany(
     () => TodoProject,
-    todoProject => todoProject.todo,
+    todoProject => todoProject.project,
     { cascade: true },
   )
   todoProjects: TodoProject[];
-  projects: Project[] = [];
+  todos: Todo[] = [];
 
   @OneToMany(
-    () => TodoHistory,
-    history => history.todo,
+    () => ProjectHistory,
+    history => history.project,
     { cascade: false },
   )
-  histories: TodoHistory[];
+  histories: ProjectHistory[];
 
   @OneToMany(
     () => Prospect,
@@ -128,15 +115,15 @@ export default class Todo extends BaseEntity {
 
   @AfterLoad()
   setUsers() {
-    this.users = this.todoUsers
-      ? this.todoUsers.filter(tu => !tu.deletedAt).map(tu => tu.user)
+    this.users = this.projectUsers
+      ? this.projectUsers.filter(pu => !pu.deletedAt).map(pu => pu.user)
       : [];
   }
 
   @AfterLoad()
-  setProjects() {
-    this.projects = this.todoProjects
-      ? this.todoProjects.filter(tp => !tp.deletedAt).map(tp => tp.project)
+  setTodos() {
+    this.todos = this.todoProjects
+      ? this.todoProjects.filter(tp => !tp.deletedAt).map(tp => tp.todo)
       : [];
   }
 

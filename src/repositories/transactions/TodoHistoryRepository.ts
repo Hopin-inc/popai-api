@@ -1,17 +1,17 @@
 import dataSource from "@/config/data-source";
-import { TodoAppId, TodoHistoryProperty as Property } from "@/consts/common";
+import { TodoHistoryProperty as Property } from "@/consts/common";
 import Company from "@/entities/settings/Company";
 import TodoHistory from "@/entities/transactions/TodoHistory";
-import { ITodoHistoryOption, ValueOf } from "@/types";
+import { ITodoHistoryOption } from "@/types";
 import { FindOptionsOrder, FindOptionsWhere } from "typeorm";
 import Todo from "@/entities/transactions/Todo";
 
 export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).extend({
   async saveHistories(options: ITodoHistoryOption[]): Promise<void> {
     const histories = options.map(history => {
-      const { todoId, property, action, info } = history;
+      const { id, property, action, info } = history;
       return new TodoHistory({
-        todo: todoId,
+        todo: id,
         property,
         action,
         appUpdatedAt: new Date(),
@@ -40,7 +40,7 @@ export const TodoHistoryRepository = dataSource.getRepository(TodoHistory).exten
     };
     return this.findOne({ where, order });
   },
-  async getLastUpdatedDate(company: Company, todoAppId: ValueOf<typeof TodoAppId>): Promise<Date | null> {
+  async getLastUpdatedDate(company: Company, todoAppId: number): Promise<Date | null> {
     const companyId = company.id;
     const where: FindOptionsWhere<TodoHistory> = { todo: { companyId, todoAppId } };
     const order: FindOptionsOrder<TodoHistory> = { appUpdatedAt: "DESC" };

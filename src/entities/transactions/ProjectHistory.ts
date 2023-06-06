@@ -1,26 +1,25 @@
 import { Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, Column, Index } from "typeorm";
 import BaseEntity from "../BaseEntity";
-import Todo from "./Todo";
+import Project from "./Project";
 
 type ConstructorOptions = {
-  todo: Todo | string;
+  project: Project | string;
   property: number;
   action: number;
   startDate?: Date;
   deadline?: Date;
   userIds?: string[];
-  projectIds?: string[];
   daysDiff?: number;
   appUpdatedAt?: Date;
 };
 
-@Entity("t_todo_histories")
-export default class TodoHistory extends BaseEntity {
+@Entity("t_project_histories")
+export default class ProjectHistory extends BaseEntity {
   constructor(options: ConstructorOptions) {
     super();
     if (options) {
-      const { todo, ...rest } = options;
-      this.todoId = typeof todo === "string" ? todo : todo.id;
+      const { project, ...rest } = options;
+      this.projectId = typeof project === "string" ? project : project.id;
       Object.assign(this, { ...this, ...rest });
     }
   }
@@ -29,8 +28,8 @@ export default class TodoHistory extends BaseEntity {
   readonly id: number;
 
   @Index()
-  @Column({ name: "todo_id", nullable: true })
-  todoId: string;
+  @Column({ name: "project_id", nullable: true })
+  projectId: string;
 
   @Index()
   @Column({ name: "property" })
@@ -49,9 +48,6 @@ export default class TodoHistory extends BaseEntity {
   @Column({ name: "user_ids", type: "json", nullable: true })
   userIds?: string[];
 
-  @Column({ name: "project_ids", type: "json", nullable: true })
-  projectIds?: string[];
-
   @Column({ name: "days_diff", nullable: true })
   daysDiff?: number;
 
@@ -59,10 +55,10 @@ export default class TodoHistory extends BaseEntity {
   appUpdatedAt?: Date;
 
   @ManyToOne(
-    () => Todo,
-    todo => todo.histories,
+    () => Project,
+    project => project.histories,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
-  @JoinColumn({ name: "todo_id" })
-  todo: Todo;
+  @JoinColumn({ name: "project_id" })
+  project: Project;
 }

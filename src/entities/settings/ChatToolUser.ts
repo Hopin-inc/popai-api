@@ -2,12 +2,10 @@ import { Entity, Column, PrimaryColumn, JoinColumn, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import User from "./User";
-import { ValueOf } from "../../types";
-import { ChatToolId } from "../../consts/common";
 
 @Entity("s_chat_tool_users")
 export default class ChatToolUser extends BaseEntity {
-  constructor(user: User | string, chatToolId: ValueOf<typeof ChatToolId>, appUserId: string) {
+  constructor(user: User | string, chatToolId: number, appUserId: string) {
     super();
     if (user) {
       this.userId = typeof user === "string" ? user : user.id;
