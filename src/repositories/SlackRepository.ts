@@ -89,54 +89,58 @@ export default class SlackRepository {
     return users.length ? users[0] : null;
   }
 
-  public async askProspectsOnProjects(company: Company, target?: { projects: Project[], user: User }) {
+  public async askProspectsOnProjects(company: Company, target?: { projects: Project[], users: User[] }) {
     if (company?.prospectConfigs?.length) {
       const askedProspects: Prospect[] = [];
       const projects = target ? target.projects : await this.getProspectProjects(company);
-      await Promise.all(projects.map(async project => {
-        const message = SlackMessageBuilder.createAskProspectMessageOnProjects(project);
-        const users = target ? [target.user] : project.users;
-        await Promise.all(users.map(async user => {
-          if (user) {
-            const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
-            const prospect = new Prospect({
-              project,
-              user,
-              company,
-              chatToolId: CHAT_TOOL_ID,
-              appChannelId: channel,
-              appThreadId: ts,
-            });
-            askedProspects.push(prospect);
-          }
-        }));
-      }));
+      const users = target ? target.users : company.users;
+      for (const user of users) {
+        await Promise.all(
+          projects
+            .filter(project => project.users.map(u => u.id).includes(user.id))
+            .map(async project => {
+              const message = SlackMessageBuilder.createAskProspectMessageOnProjects(project);
+              const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
+              const prospect = new Prospect({
+                project,
+                user,
+                company,
+                chatToolId: CHAT_TOOL_ID,
+                appChannelId: channel,
+                appThreadId: ts,
+              });
+              askedProspects.push(prospect);
+            }),
+        );
+      }
       await ProspectRepository.upsert(askedProspects, []);
     }
   }
 
-  public async askProspectsOnTodos(company: Company, target?: { todos: Todo[], user: User }) {
+  public async askProspectsOnTodos(company: Company, target?: { todos: Todo[], users: User[] }) {
     if (company?.prospectConfigs?.length) {
       const askedProspects: Prospect[] = [];
       const todos = target ? target.todos : await this.getProspectTodos(company);
-      await Promise.all(todos.map(async todo => {
-        const message = SlackMessageBuilder.createAskProspectMessageOnTodos(todo);
-        const users = target ? [target.user] : todo.users;
-        await Promise.all(users.map(async user => {
-          if (user) {
-            const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
-            const prospect = new Prospect({
-              todo,
-              user,
-              company,
-              chatToolId: CHAT_TOOL_ID,
-              appChannelId: channel,
-              appThreadId: ts,
-            });
-            askedProspects.push(prospect);
-          }
-        }));
-      }));
+      const users = target ? target.users : company.users;
+      for (const user of users) {
+        await Promise.all(
+          todos
+            .filter(project => project.users.map(u => u.id).includes(user.id))
+            .map(async todo => {
+              const message = SlackMessageBuilder.createAskProspectMessageOnTodos(todo);
+              const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
+              const prospect = new Prospect({
+                todo,
+                user,
+                company,
+                chatToolId: CHAT_TOOL_ID,
+                appChannelId: channel,
+                appThreadId: ts,
+              });
+              askedProspects.push(prospect);
+            }),
+        );
+      }
       await ProspectRepository.upsert(askedProspects, []);
     }
   }
@@ -162,7 +166,7 @@ export default class SlackRepository {
     if (projects?.length) {
       await Promise.all(company.users.map(user => {
         const assignedProjects = projects.filter(p => p.users.map(u => u.id).includes(user.id));
-        this.askProspectsOnProjects(company, { projects: assignedProjects, user });
+        this.askProspectsOnProjects(company, { projects: assignedProjects, users: [user] });
       }));
     }
   }
@@ -177,7 +181,7 @@ export default class SlackRepository {
           if (assignedTodos.length > 2) {
             this.sendDirectMessage(user, message);
           } else if (assignedTodos.length > 0) {
-            this.askProspectsOnTodos(company, { todos: assignedTodos, user });
+            this.askProspectsOnTodos(company, { todos: assignedTodos, users: [user] });
           }
         }));
       }

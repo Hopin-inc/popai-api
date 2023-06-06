@@ -2,7 +2,7 @@ import dataSource from "@/config/data-source";
 import Project from "@/entities/transactions/Project";
 import { ValueOf } from "@/types";
 import { TodoAppId } from "@/consts/common";
-import { And, FindOptionsWhere, In, IsNull, LessThan, Not } from "typeorm";
+import { And, FindManyOptions, FindOptionsWhere, In, IsNull, LessThan, Not } from "typeorm";
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
 import dayjs from "dayjs";
@@ -39,11 +39,12 @@ export const ProjectRepository = dataSource.getRepository(Project).extend({
       ...filterByUser,
     };
     const endDate = dayjs().endOf("day").toDate();
-    return await this.find({
+    return await this.find(<FindManyOptions<Project>>{
       where: [
         { ...commonWhere, startDate: And(Not(IsNull()), LessThan(endDate)) },
         { ...commonWhere, startDate: IsNull(), deadline: LessThan(endDate) },
       ],
+      order: { deadline: "asc" },
       relations: ["projectUsers.user.chatToolUser"],
     });
   },
