@@ -3,7 +3,7 @@ import Container from "typedi";
 import NotionOAuthClient from "@/integrations/NotionOAuthClient";
 import { Request } from "express";
 import { SessionRepository } from "@/repositories/transactions/SessionRepository";
-import { CompanyTodoAppRepository } from "@/repositories/settings/CompanyTodoAppRepository";
+import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import { TodoAppId } from "@/consts/common";
 
@@ -31,7 +31,7 @@ export default class NotionController extends Controller {
     ]);
     if (session) {
       const implementedTodoApp = new ImplementedTodoApp(session.company, TodoAppId.NOTION, notionResponse);
-      await CompanyTodoAppRepository.upsert(implementedTodoApp, []);
+      await ImplementedTodoAppRepository.upsert(implementedTodoApp, []);
     }
   }
 

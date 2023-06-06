@@ -4,6 +4,7 @@ import { StatusCodes } from "@/common/StatusCodes";
 import ConfigController from "@/controllers/app/ConfigController";
 import { SessionErrors } from "@/consts/error-messages";
 import logger from "@/libs/logger";
+import { AskType } from "@/consts/common";
 
 const router = express();
 
@@ -60,8 +61,9 @@ router.get("/prospect", async (req, res) => {
   try {
     const controller = new ConfigController();
     const { company } = req.session;
+    const type = req.query.type ? parseInt(req.query.type as string) : AskType.TODOS;
     if (company) {
-      const response = await controller.getProspectConfig(company.id);
+      const response = await controller.getProspectConfig(company.id, type);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);

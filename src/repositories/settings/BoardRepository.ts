@@ -4,14 +4,12 @@ import { FindOptionsWhere, IsNull } from "typeorm";
 
 export const BoardRepository = dataSource.getRepository(Board).extend({
   async findOneByConfig(
-    todoAppId: number,
     companyId: string,
     appBoardId?: string,
     relations: string[] = [],
   ): Promise<Board | null> {
     const where: FindOptionsWhere<Board> = {
-      todoAppId,
-      configs: { companyId, deletedAt: IsNull() },
+      companyId,
       propertyUsages: { deletedAt: IsNull() },
     };
     if (appBoardId) {
@@ -19,7 +17,7 @@ export const BoardRepository = dataSource.getRepository(Board).extend({
     }
     return this.findOne({
       where,
-      relations: ["configs.company", "propertyUsages", ...relations],
+      relations: ["company", "propertyUsages", ...relations],
     });
   },
 });

@@ -1,23 +1,22 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import ProspectConfig from "./ProspectConfig";
+import { AskMode } from "../../consts/common";
+
+type ConstructorOptions = {
+  config: ProspectConfig | number,
+  time: string,
+  mode: number;
+};
 
 @Entity("s_prospect_timings")
 export default class ProspectTiming extends BaseEntity {
-  constructor(
-    config: ProspectConfig | number,
-    time: string,
-    askPlan: boolean,
-    askPlanMilestone?: string,
-  ) {
+  constructor(options: ConstructorOptions) {
     super();
-    if (config) {
+    if (options) {
+      const { config, ...rest } = options;
       this.configId = typeof config === "number" ? config : config.id;
-      this.time = time;
-      this.askPlan = askPlan;
-      if (askPlanMilestone) {
-        this.askPlanMilestone = askPlanMilestone;
-      }
+      Object.assign(this, { ...this, ...rest });
     }
   }
 
@@ -30,11 +29,8 @@ export default class ProspectTiming extends BaseEntity {
   @Column({ name: "time", type: "time" })
   time: string;
 
-  @Column({ name: "ask_plan", default: false })
-  askPlan: boolean;
-
-  @Column({ name: "ask_plan_milestone", type: "time", nullable: true })
-  askPlanMilestone?: string;
+  @Column({ name: "mode", default: AskMode.UNDEFINED })
+  mode: number;
 
   @ManyToOne(
     () => ProspectConfig,

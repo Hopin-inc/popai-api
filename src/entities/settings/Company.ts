@@ -7,8 +7,9 @@ import ImplementedTodoApp from "./ImplementedTodoApp";
 import ImplementedChatTool from "./ImplementedChatTool";
 import Timing from "./Timing";
 import TimingException from "./TimingException";
-import BoardConfig from "./BoardConfig";
 import ProspectConfig from "./ProspectConfig";
+import Board from "./Board";
+import Project from "../transactions/Project";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
@@ -54,6 +55,13 @@ export default class Company extends BaseEntity {
   )
   todos: Todo[];
 
+  @OneToMany(
+    () => Project,
+    project => project.company,
+    { cascade: true },
+  )
+  projects: Project[];
+
   @OneToOne(
     () => Timing,
     timing => timing.company,
@@ -68,17 +76,17 @@ export default class Company extends BaseEntity {
   )
   timingExceptions: TimingException[];
 
-  @OneToOne(
+  @OneToMany(
     () => ProspectConfig,
     config => config.company,
     { cascade: true },
   )
-  prospectConfig: ProspectConfig;
+  prospectConfigs: ProspectConfig[];
 
-  @OneToOne(
-    () => BoardConfig,
-    config => config.company,
+  @OneToMany(
+    () => Board,
+    board => board.company,
     { cascade: true },
   )
-  boardConfigs: BoardConfig[];
+  boards: Board[];
 }

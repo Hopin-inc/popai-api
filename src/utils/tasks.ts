@@ -5,18 +5,19 @@ import { ProspectTargetFrequency, ProspectTargetFrom, ProspectTargetTo } from "@
 import dayjs, { Dayjs } from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { ValueOf } from "@/types";
+import Project from "@/entities/transactions/Project";
 dayjs.extend(isSameOrBefore);
 
-export const filterProspectTargetTodos = (todos: Todo[], config: ProspectConfig): Todo[] => {
+export const filterProspectTargetItems = <T extends Todo | Project>(todos: T[], config: ProspectConfig): T[] => {
   return todos.filter(todo => {
-    return matchedFrom(todo, config.from, config.fromDaysBefore, config.beginOfWeek)
-      && matchedTo(todo, config.to)
-      && matchedFrequency(todo, config.frequency, config.frequencyDaysBefore);
+    return matchedFrom<T>(todo, config.from, config.fromDaysBefore, config.beginOfWeek)
+      && matchedTo<T>(todo, config.to)
+      && matchedFrequency<T>(todo, config.frequency, config.frequencyDaysBefore);
   });
 };
 
-const matchedFrom = (
-  todo: Todo,
+const matchedFrom = <T extends Todo | Project>(
+  items: T,
   from: ValueOf<typeof ProspectTargetFrom>,
   daysBefore: number | undefined,
   beginOfWeek: number | undefined,
@@ -24,9 +25,9 @@ const matchedFrom = (
   const today = toJapanDateTime(new Date());
   switch (from) {
     case ProspectTargetFrom.BEGIN_OF_DURATION:
-      return dayjs(todo.startDate).isSameOrBefore(today, "day");
+      return dayjs(items.startDate).isSameOrBefore(today, "day");
     case ProspectTargetFrom.DAYS_BEFORE_DDL:
-      const startOfDuration: Dayjs = dayjs(todo.deadline).subtract(daysBefore);
+      const startOfDuration: Dayjs = dayjs(items.deadline).subtract(daysBefore);
       return startOfDuration.isSameOrBefore(today, "day");
     case ProspectTargetFrom.START_OF_WEEK:
       const startOfWeek: Dayjs = dayjs(today);
@@ -45,7 +46,10 @@ const matchedFrom = (
   }
 };
 
-const matchedTo = (_todo: Todo, to: ValueOf<typeof ProspectTargetTo>): boolean => {
+const matchedTo = <T extends Todo | Project>(
+  _items: T,
+  to: ValueOf<typeof ProspectTargetTo>,
+): boolean => {
   switch (to) {
     case ProspectTargetTo.DDL:
       return true;
@@ -54,8 +58,8 @@ const matchedTo = (_todo: Todo, to: ValueOf<typeof ProspectTargetTo>): boolean =
   }
 };
 
-const matchedFrequency = (
-  todo: Todo,
+const matchedFrequency = <T extends Todo | Project>(
+  items: T,
   frequency: ValueOf<typeof ProspectTargetFrequency>,
   daysBefore: number[] | undefined,
 ): boolean => {
@@ -64,11 +68,11 @@ const matchedFrequency = (
     case ProspectTargetFrequency.EVERYDAY:
       return true;
     case ProspectTargetFrequency.MID_DATE:
-      const daysDiff = dayjs(today).diff(todo.startDate, "day");
+      const daysDiff = dayjs(today).diff(items.startDate, "day");
       const midDate: Dayjs = dayjs(today).subtract(Math.ceil(daysDiff / 2), "day");
       return midDate.isSame(today, "day");
     case ProspectTargetFrequency.DAYS_BEFORE_DDL:
-      return daysBefore.some(n => dayjs(todo.deadline).subtract(n, "day").isSame(today, "day"));
+      return daysBefore.some(n => dayjs(items.deadline).subtract(n, "day").isSame(today, "day"));
     default:
       return false;
   }

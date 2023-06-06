@@ -29,29 +29,31 @@ export default class TaskService {
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
       const companies = await CompanyRepository.find({
         where,
-        relations: ["implementedTodoApp", "implementedChatTool", "users.todoAppUser"],
+        relations: ["implementedTodoApp", "implementedChatTool", "users.todoAppUser", "projects"],
       });
       await runInOrder(
         companies,
         async companiesChunk => {
           await Promise.all(companiesChunk.map(async company => {
             const { implementedTodoApp } = company;
-            const logMeta = {
-              company: company.name,
-              todoApp: company.implementedTodoApp.todoAppId,
-            };
-            logger.info(`Start: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-            try {
-              switch (implementedTodoApp.todoAppId) {
-                case TodoAppId.NOTION:
-                  await this.notionRepository.syncTodos(company);
-                  break;
-                default:
-                  break;
+            if (implementedTodoApp) {
+              const logMeta = {
+                company: company.name,
+                todoApp: company.implementedTodoApp.todoAppId,
+              };
+              logger.info(`Start: syncTodos { company: ${ company.id } }`, logMeta);
+              try {
+                switch (implementedTodoApp.todoAppId) {
+                  case TodoAppId.NOTION:
+                    await this.notionRepository.syncTodos(company);
+                    break;
+                  default:
+                    break;
+                }
+              } catch (error) {
+                logger.error(error);
               }
-              logger.info(`Finish: syncTodos { company: ${ company.id }, section: ALL }`, logMeta);
-            } catch (error) {
-              logger.error(error);
+              logger.info(`Finish: syncTodos { company: ${ company.id } }`, logMeta);
             }
           }));
         },

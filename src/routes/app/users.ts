@@ -43,12 +43,12 @@ router.delete("/:userId", async (req, res) => {
 
 router.get("/configs", async (req, res) => {
   try {
-    const chatToolId = parseInt(req.query.chatToolId as string);
-    const todoAppId = parseInt(req.query.todoAppId as string);
+    // const chatToolId = parseInt(req.query.chatToolId as string);
+    // const todoAppId = parseInt(req.query.todoAppId as string);
     const controller = new UserController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getConfigs(company.id, chatToolId, todoAppId);
+      const response = await controller.getConfigs(company.id);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);

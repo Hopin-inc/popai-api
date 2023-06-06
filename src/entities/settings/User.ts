@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne, OneToOne } from "typeorm";
+import {
+  AfterLoad,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
@@ -55,11 +64,7 @@ export default class User extends BaseEntity {
     { cascade: true },
   )
   todoUsers: TodoUser[];
-
-  get todos(): Todo[] {
-    const todoUsers = this.todoUsers;
-    return todoUsers ? todoUsers.filter(tu => !tu.deletedAt).map(tu => tu.todo) : [];
-  }
+  todos: Todo[] = [];
 
   @OneToMany(
     () => ReportingLine,
@@ -67,11 +72,7 @@ export default class User extends BaseEntity {
     { cascade: true },
   )
   subordinateUserRefs: ReportingLine[];
-
-  get subordinateUsers(): User[] {
-    const refs = this.subordinateUserRefs;
-    return refs ? refs.filter(ref => !ref.deletedAt).map(ref => ref.subordinateUser) : [];
-  }
+  subordinateUsers: User[] = [];
 
   @OneToMany(
     () => ReportingLine,
@@ -79,11 +80,7 @@ export default class User extends BaseEntity {
     { cascade: true },
   )
   superiorUserRefs: ReportingLine[];
-
-  get superiorUsers(): User[] {
-    const refs = this.superiorUserRefs;
-    return refs ? refs.filter(ref => !ref.deletedAt).map(ref => ref.superiorUser) : [];
-  }
+  superiorUsers: User[] = [];
 
   @OneToMany(
     () => Prospect,
@@ -91,4 +88,21 @@ export default class User extends BaseEntity {
     { cascade: false },
   )
   prospects: Prospect[];
+
+  @AfterLoad()
+  setTodos() {
+    this.todos = this.todoUsers
+      ? this.todoUsers.filter(tu => !tu.deletedAt).map(tu => tu.todo)
+      : [];
+  }
+
+  @AfterLoad()
+  setReportingLines() {
+    this.subordinateUsers = this.subordinateUserRefs
+      ? this.subordinateUserRefs.filter(ref => !ref.deletedAt).map(ref => ref.subordinateUser)
+      : [];
+    this.superiorUsers = this.superiorUserRefs
+      ? this.superiorUserRefs.filter(ref => !ref.deletedAt).map(ref => ref.superiorUser)
+      : [];
+  }
 }

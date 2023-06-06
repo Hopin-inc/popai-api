@@ -3,8 +3,8 @@ import {
   Block,
   ChatPostMessageArguments,
   ChatUpdateArguments,
-  ConversationsJoinArguments,
-  KnownBlock,
+  ConversationsJoinArguments, ConversationsListResponse,
+  KnownBlock, UsersListResponse,
   UsersProfileGetArguments,
   ViewsOpenArguments,
   WebClient,
@@ -31,23 +31,48 @@ export default class SlackClient {
   }
 
   public async getUsers(): Promise<ISelectItem<string>[]> {
-    const response = await this.client.users.list();
-    if (response.ok && response.members) {
-      return response.members
-        .filter(member => !member.is_invited_user && !member.is_bot && !member.deleted)
-        .map(member => ({ id: member.id, name: member.real_name ?? member.name ?? "" }));
-    } else {
-      return [];
-    }
+    const users: UsersListResponse["members"] = [];
+    const limit = 100;
+    let cursor: string = undefined;
+    do {
+      const response = await this.client.users.list({
+        limit,
+        cursor,
+      });
+      if (response.ok && response.members) {
+        users.push(...response.members);
+        cursor = response.response_metadata.next_cursor;
+      }
+    } while (cursor);
+    return users
+      .filter(member => !member.is_invited_user && !member.is_bot && !member.deleted)
+      .map(member => ({
+        id: member.id,
+        name: member.real_name ?? member.name ?? "",
+      }));
   }
 
-  public async getChannels(): Promise<any> {
-    const response = await this.client.conversations.list();
-    if (response.ok && response.channels) {
-      return response.channels
-        .filter(channel => channel.is_channel && !channel.is_archived)
-        .map(channel => ({ id: channel.id, name: `${ channel.is_private ? "🔒" : "#" } ${ channel.name }` }));
-    }
+  public async getChannels(): Promise<ISelectItem<string>[]> {
+    const channels: ConversationsListResponse["channels"] = [];
+    const limit = 100;
+    let cursor: string = undefined;
+    do {
+      const response = await this.client.conversations.list({
+        exclude_archived: true,
+        types: "public_channel,private_channel",
+        limit,
+        cursor,
+      });
+      if (response.ok && response.channels) {
+        channels.push(...response.channels);
+        cursor = response.response_metadata.next_cursor;
+      }
+    } while (cursor);
+    return channels
+      .map(channel => ({
+        id: channel.id,
+        name: `${ channel.is_private ? "🔒" : "#" } ${ channel.name }`,
+      }));
   }
 
   public async postDirectMessage(

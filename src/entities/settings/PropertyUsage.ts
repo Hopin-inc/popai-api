@@ -1,33 +1,25 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Board from "./Board";
-import { ValueOf } from "../../types";
-import { TodoAppId } from "../../consts/common";
+
+type ConstructorOptions = {
+  todoAppId: number;
+  board: Board | number;
+  appPropertyId: string;
+  type: number;
+  usage: number;
+  appOptions?: string[];
+  boolValue?: boolean;
+};
 
 @Entity("s_property_usages")
 export default class PropertyUsage extends BaseEntity {
-  constructor(
-    todoAppId: ValueOf<typeof TodoAppId>,
-    board: Board | number,
-    propertyId: string,
-    type: number,
-    usage: number,
-    options?: string[],
-    boolValue?: boolean,
-  ) {
+  constructor(options: ConstructorOptions) {
     super();
-    if (board) {
-      this.todoAppId = todoAppId;
+    if (options) {
+      const { board, ...rest } = options;
       this.boardId = typeof board === "number" ? board : board.id;
-      this.appPropertyId = propertyId;
-      this.type = type;
-      this.usage = usage;
-      if (options) {
-        this.appOptions = options;
-      }
-      if (boolValue !== undefined) {
-        this.boolValue = boolValue;
-      }
+      Object.assign(this, { ...this, ...rest });
     }
   }
 

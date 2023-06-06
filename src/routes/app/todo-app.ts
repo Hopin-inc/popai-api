@@ -26,10 +26,11 @@ router.get("/", async (req, res) => {
 router.get("/:todoAppId/accounts", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
+    const baseUrl: string = `${ req.protocol }://${ req.get("host") }`;
     const controller = new TodoAppController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getUsers(todoAppId, company.id);
+      const response = await controller.getUsers(todoAppId, company.id, baseUrl);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
@@ -80,10 +81,12 @@ router.patch("/:todoAppId/board", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
     const boardId: string = req.body.boardId;
+    const projectRule: number | undefined = req.body.projectRule;
+    const baseUrl: string = `${ req.protocol }://${ req.get("host") }`;
     const controller = new TodoAppController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.updateBoardConfig(todoAppId, company.id, boardId);
+      const response = await controller.updateBoardConfig(todoAppId, company.id, boardId, projectRule, baseUrl);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
@@ -97,10 +100,11 @@ router.patch("/:todoAppId/board", async (req, res) => {
 router.get("/:todoAppId/boards", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
+    const baseUrl: string = `${ req.protocol }://${ req.get("host") }`;
     const controller = new TodoAppController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getBoards(todoAppId, company.id);
+      const response = await controller.getBoards(todoAppId, company.id, baseUrl);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
@@ -114,11 +118,12 @@ router.get("/:todoAppId/boards", async (req, res) => {
 router.get("/:todoAppId/boards/:boardId/properties", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
+    const baseUrl: string = `${ req.protocol }://${ req.get("host") }`;
     const boardId: string = req.params.boardId;
     const controller = new TodoAppController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getProperties(todoAppId, company.id, boardId);
+      const response = await controller.getProperties(todoAppId, company.id, boardId, baseUrl);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);

@@ -12,16 +12,15 @@ import TimingException from "@/entities/settings/TimingException";
 import { ProspectTimingRepository } from "@/repositories/settings/ProspectTimingRepository";
 import ProspectConfig from "@/entities/settings/ProspectConfig";
 import ProspectTiming from "@/entities/settings/ProspectTiming";
-import { ChatToolId } from "@/consts/common";
+import { AskType, ChatToolId } from "@/consts/common";
 import SlackClient from "@/integrations/SlackClient";
-import { ValueOf } from "@/types";
 
 export default class ConfigController extends Controller {
   public async getCommonConfig(companyId: string): Promise<IConfigCommon | null> {
     const [timing, exceptions]: [Timing, TimingException[]] = await Promise.all([
-      TimingRepository.findOneBy({ companyId: companyId }),
+      TimingRepository.findOneBy({ companyId }),
       TimingExceptionRepository.findBy({
-        companyId: companyId,
+        companyId,
         date: MoreThanOrEqual(dayjs().startOf("d").toDate()),
         excluded: true,
       }),
@@ -42,8 +41,8 @@ export default class ConfigController extends Controller {
     const { excludedDates, ...sentData } = data;
     // FIXME: excluded = falseのケースには対応していない。
     const [config, exceptions]: [Timing, TimingException[]] = await Promise.all([
-      TimingRepository.findOneBy({ companyId: companyId }),
-      TimingExceptionRepository.findBy({ companyId: companyId }),
+      TimingRepository.findOneBy({ companyId }),
+      TimingExceptionRepository.findBy({ companyId }),
     ]);
     if (config) {
       const updatedConfig: Timing = { ...config, ...sentData };
@@ -81,20 +80,22 @@ export default class ConfigController extends Controller {
   }
 
   public async getFeatures(companyId: string): Promise<IConfigFeatures> {
-    const prospectConfig = await ProspectConfigRepository.findOneBy({ companyId });
+    const prospectConfigs = await ProspectConfigRepository.findBy({ companyId });
     return {
-      prospect: prospectConfig?.enabled ?? false,
+      projects: prospectConfigs?.some(c => c.type === AskType.PROJECTS && c.enabled) ?? false,
+      todos: prospectConfigs?.some(c => c.type === AskType.TODOS && c.enabled) ?? false,
     };
   }
 
-  public async getProspectConfig(companyId: string): Promise<IConfigProspect | null> {
+  public async getProspectConfig(companyId: string, type: number): Promise<IConfigProspect> {
     const config = await ProspectConfigRepository.findOne({
-      where: { companyId: companyId },
+      where: { companyId, type },
       relations: ["timings"],
     });
     if (config) {
       const timings = config.timings?.filter(t => !t.deletedAt);
       return {
+        type: config.type,
         enabled: config.enabled,
         chatToolId: config.chatToolId,
         channel: config.channel,
@@ -104,10 +105,9 @@ export default class ConfigController extends Controller {
         to: config.to,
         frequency: config.frequency,
         frequencyDaysBefore: config.frequencyDaysBefore,
-        timings: timings?.map((timing) => ({
+        timings: timings?.map(timing => ({
           time: timing.time,
-          askPlan: timing.askPlan,
-          askPlanMilestone: timing.askPlanMilestone,
+          mode: timing.mode,
         })).sort((a, b) => a.time > b.time ? 1 : -1) ?? [],
       };
     }
@@ -117,23 +117,28 @@ export default class ConfigController extends Controller {
     data: Partial<IConfigProspect>,
     companyId: string,
   ): Promise<any> {
+    const type = data.type;
     const { timings: sentTimings, ...sentConfig } = data;
-    const config = await ProspectConfigRepository.findOneBy({ companyId: companyId });
+    const config = await ProspectConfigRepository.findOneBy({ companyId, type });
     if (config) {
       const operations: Promise<any>[] = [];
-      const timings = await ProspectTimingRepository.findBy({ configId: config.id });
       const updatedConfig: ProspectConfig = { ...config, ...sentConfig };
       operations.push(ProspectConfigRepository.upsert(updatedConfig, []));
       if (sentConfig.channel) {
         operations.push(this.joinChannel(companyId, sentConfig.chatToolId ?? config.chatToolId, sentConfig.channel));
       }
       if (sentTimings) {
+        const timings = await ProspectTimingRepository.findBy({ configId: config.id });
         if (timings.length) {
           const storedTimes = timings.map(t => t.time);
           const [addedTimes, deletedTimes] = extractArrayDifferences(sentTimings?.map(t => t.time) ?? [], storedTimes);
           const addedTimings: ProspectTiming[] = addedTimes.map(time => {
             const timing = sentTimings.find(t => t.time === time);
-            return new ProspectTiming(config.id, time, timing?.askPlan, timing?.askPlanMilestone);
+            return new ProspectTiming({
+              config,
+              time,
+              mode: timing?.mode,
+            });
           });
           const deletedTimings: ProspectTiming[] = timings.filter(t => deletedTimes.includes(t.time));
           const modifiedTimings: ProspectTiming[] = timings
@@ -148,7 +153,11 @@ export default class ConfigController extends Controller {
           );
         } else {
           operations.push(ProspectTimingRepository.save(sentTimings.map(t => {
-            return new ProspectTiming(config, t.time, t.askPlan, t.askPlanMilestone);
+            return new ProspectTiming({
+              config,
+              time: t.time,
+              mode: t.mode,
+            });
           })));
         }
       }
@@ -156,7 +165,8 @@ export default class ConfigController extends Controller {
     } else {
       const config = new ProspectConfig({
         company: companyId,
-        enabled: data.enabled ?? false,
+        type: data.type,
+        enabled: data.enabled,
         chatToolId: data.chatToolId,
         channel: data.channel,
         from: data.from,
@@ -168,17 +178,25 @@ export default class ConfigController extends Controller {
       });
       const savedConfig = await ProspectConfigRepository.save(config);
       const timings = sentTimings?.map(t => {
-        return new ProspectTiming(savedConfig.id, t.time, t.askPlan, t.askPlanMilestone);
+        return new ProspectTiming({
+          config: savedConfig,
+          time: t.time,
+          mode: t.mode,
+        });
       }) ?? [];
       await ProspectTimingRepository.upsert(timings, []);
     }
   }
 
-  private async joinChannel(companyId: string, chatToolId: ValueOf<typeof ChatToolId>, channel: string) {
+  private async joinChannel(companyId: string, chatToolId: number, channel: string) {
     switch (chatToolId) {
       case ChatToolId.SLACK:
         const slackBot = await SlackClient.init(companyId);
-        return slackBot.joinChannel({ channel });
+        try {
+          return slackBot.joinChannel({ channel });
+        } catch (_) {
+          return;
+        }
       default:
         return;
     }

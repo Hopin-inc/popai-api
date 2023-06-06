@@ -2,14 +2,12 @@ import { Entity, Column, PrimaryColumn, JoinColumn, OneToOne } from "typeorm";
 
 import BaseEntity from "../BaseEntity";
 import User from "./User";
-import { ValueOf } from "../../types";
-import { TodoAppId } from "../../consts/common";
 
 @Entity("s_todo_app_users")
 export default class TodoAppUser extends BaseEntity {
   constructor(
     user: User | string,
-    todoAppId: ValueOf<typeof TodoAppId>,
+    todoAppId: number,
     appUserId: string,
   ) {
     super();
