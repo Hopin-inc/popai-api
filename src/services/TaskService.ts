@@ -13,6 +13,8 @@ import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
 import NotionClient from "@/integrations/NotionClient";
 import { ParallelChunkUnit } from "@/consts/parallels";
 import { runInOrder } from "@/utils/process";
+import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRepository";
+import { TodoAppConfigViewRepository } from "@/repositories/views/TodoAppConfigViewRepository";
 
 @Service()
 export default class TaskService {
@@ -27,12 +29,29 @@ export default class TaskService {
   public async syncTodos(company: Company = null): Promise<any> {
     try {
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
-      const companies = await CompanyRepository.find({
-        where,
-        relations: ["implementedTodoApp", "implementedChatTool", "users.todoAppUser", "projects"],
-      });
+      const [companies, userConfigs, todoAppConfigs] = await Promise.all([
+        CompanyRepository.find({
+          where,
+          relations: [
+            "implementedTodoApp",
+            "implementedChatTool",
+            "users.todoAppUser",
+            "projects",
+            "boards",
+          ],
+        }),
+        UserConfigViewRepository.find(),
+        TodoAppConfigViewRepository.find(),
+      ]);
       await runInOrder(
-        companies,
+        companies.filter(c => {
+          const userConfig = userConfigs.find(uc => uc.companyId === c.id);
+          return userConfig?.isValid
+            && !c.boards.some(b => {
+              const todoAppConfig = todoAppConfigs.find(tac => tac.boardId === b.id);
+              return !todoAppConfig?.isValid;
+            });
+        }),
         async companiesChunk => {
           await Promise.all(companiesChunk.map(async company => {
             const { implementedTodoApp } = company;
@@ -41,7 +60,7 @@ export default class TaskService {
                 company: company.name,
                 todoApp: company.implementedTodoApp.todoAppId,
               };
-              logger.info(`Start: syncTodos { company: ${ company.id } }`, logMeta);
+              logger.info(`Updating todos for company ${ company.id }`, logMeta);
               try {
                 switch (implementedTodoApp.todoAppId) {
                   case TodoAppId.NOTION:
@@ -51,16 +70,15 @@ export default class TaskService {
                     break;
                 }
               } catch (error) {
-                logger.error(error);
+                logger.error(error.message, error);
               }
-              logger.info(`Finish: syncTodos { company: ${ company.id } }`, logMeta);
             }
           }));
         },
         ParallelChunkUnit.SYNC_TODOS,
       );
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 

@@ -16,7 +16,7 @@ router.post("/webhook/:companyId", async (req, res) => {
     const response = await controller.handleWebhook(companyId, payload);
     ApiResponse.successRes(res, response);
   } catch (error) {
-    logger.error(error);
+    logger.error(error.message, error);
     ApiResponse.errRes(res, error.message, error.status);
   }
 });

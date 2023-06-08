@@ -430,7 +430,7 @@ export default class BacklogRepository {
               host,
             );
           } catch (error) {
-            logger.error(error);
+            logger.error(error.message, error);
             break;
           }
         }
@@ -728,7 +728,7 @@ export default class BacklogRepository {
           }
         }
       } catch (error) {
-        logger.error(error);
+        logger.error(error.message, error);
       }
     }));
     await Promise.all([

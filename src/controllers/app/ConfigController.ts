@@ -1,8 +1,8 @@
 import { Controller } from "tsoa";
-import { IConfigCommon, IConfigFeatures, IConfigProspect } from "@/types/app";
+import { IConfigCommon, IConfigFeatures, IConfigProspect, IConfigStatus } from "@/types/app";
 import { TimingRepository } from "@/repositories/settings/TimingRepository";
 import { TimingExceptionRepository } from "@/repositories/settings/TimingExceptionRepository";
-import { MoreThanOrEqual } from "typeorm";
+import { In, MoreThanOrEqual } from "typeorm";
 import dayjs from "dayjs";
 import { extractArrayDifferences } from "@/utils/array";
 import { formatDatetime } from "@/utils/datetime";
@@ -14,8 +14,42 @@ import ProspectConfig from "@/entities/settings/ProspectConfig";
 import ProspectTiming from "@/entities/settings/ProspectTiming";
 import { AskType, ChatToolId } from "@/consts/common";
 import SlackClient from "@/integrations/SlackClient";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRepository";
+import { TodoAppConfigViewRepository } from "@/repositories/views/TodoAppConfigViewRepository";
+import { ProspectConfigViewRepository } from "@/repositories/views/ProspectConfigViewRepository";
 
 export default class ConfigController extends Controller {
+  public async getConfigStatus(companyId: string): Promise<IConfigStatus> {
+    const company = await CompanyRepository.findOne({
+      where: { id: companyId },
+      relations: ["boards", "prospectConfigs"],
+    });
+    const [userConfig, todoAppConfigs, prospectConfigs] = await Promise.all([
+      UserConfigViewRepository.findOneBy({ companyId }),
+      TodoAppConfigViewRepository.findBy({
+        boardId: In(company.boards.map(b => b.id)),
+      }),
+      ProspectConfigViewRepository.findBy({
+        configId: In(company.prospectConfigs.map(c => c.id)),
+      }),
+    ]);
+    const projectsConfig = prospectConfigs.find(c => c.type === AskType.PROJECTS);
+    const todosConfig = prospectConfigs.find(c => c.type === AskType.TODOS);
+    return {
+      users: userConfig.isValid,
+      todoApp: !todoAppConfigs.some(c => !c.isValid),
+      projects: {
+        enabled: projectsConfig?.enabled ?? false,
+        isValid: projectsConfig?.isValid ?? false,
+      },
+      todos: {
+        enabled: todosConfig?.enabled ?? false,
+        isValid: todosConfig?.isValid ?? false,
+      },
+    };
+  }
+
   public async getCommonConfig(companyId: string): Promise<IConfigCommon | null> {
     const [timing, exceptions]: [Timing, TimingException[]] = await Promise.all([
       TimingRepository.findOneBy({ companyId }),

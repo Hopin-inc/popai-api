@@ -77,6 +77,23 @@ router.get("/:todoAppId/board", async (req, res) => {
   }
 });
 
+router.post("/:todoAppId/board", async (req, res) => {
+  try {
+    const todoAppId: number = parseInt(req.params.todoAppId);
+    const controller = new TodoAppController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.fetch(todoAppId, company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 router.patch("/:todoAppId/board", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
