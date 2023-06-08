@@ -13,6 +13,8 @@ import TodoAppUser from "@/entities/settings/TodoAppUser";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import BacklogClient from "@/integrations/BacklogClient";
 import BacklogRepository from "@/repositories/BacklogRepository";
+import { TodoRepository } from "@/repositories/transactions/TodoRepository";
+import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
 
 export default class TodoAppController extends Controller {
   public async get(companyId: string): Promise<ITodoAppInfo> {
@@ -79,6 +81,32 @@ export default class TodoAppController extends Controller {
     };
   }
 
+  public async fetch(todoAppId: number, companyId: string): Promise<void> {
+    if (todoAppId === TodoAppId.BACKLOG) {
+      const backlogRepository = new BacklogRepository();
+      const board = await BoardRepository.findOneByConfig(companyId);
+      if (board) {
+        const projectId = parseInt(board.appBoardId);
+        await Promise.all([
+          (async () => {
+            const todos = await TodoRepository.find({
+              where: { companyId, todoAppId },
+            });
+            await TodoRepository.softRemove(todos);
+          })(),
+          (async () => {
+            const projects = await ProjectRepository.find({
+              where: { companyId, todoAppId },
+            });
+            await ProjectRepository.softRemove(projects);
+          })(),
+        ]);
+        await backlogRepository.fetchMilestones(companyId, projectId, board);
+        await backlogRepository.fetchTodos(companyId, projectId, board);
+      }
+    }
+  }
+
   public async updateBoardConfig(
     todoAppId: number,
     companyId: string,
@@ -132,15 +160,12 @@ export default class TodoAppController extends Controller {
       }
 
       const backlogClient = await BacklogClient.init(companyId, baseUrl);
-      const backlogRepository = new BacklogRepository();
       const projectId = parseInt(appBoardId);
       await Promise.all([
         oldBoardId ? backlogClient.deleteWebhooks(companyId, parseInt(oldBoardId)) : null,
         backlogClient.addWebhook(companyId, projectId),
-        backlogRepository.fetchMilestones(companyId, projectId, board),
         PropertyUsageRepository.upsert([isDoneUsage, isClosedUsage], []),
       ]);
-      await backlogRepository.fetchTodos(companyId, projectId, board);
     }
   }
 

@@ -5,6 +5,10 @@ import { SessionRepository } from "@/repositories/transactions/SessionRepository
 import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
 import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 import { ChatToolId } from "@/consts/common";
+import Company from "@/entities/settings/Company";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { auth } from "@/libs/firebase";
+import logger from "@/libs/logger";
 
 const scopes: string[] = [
   "channels:history", "channels:join", "channels:read",
@@ -33,11 +37,20 @@ export default class SlackOAuthClient {
       directInstall: true,
       installationStore: {
         storeInstallation: async installation => {
-          const sessionId = installation.metadata;
-          const session = await SessionRepository.getSessionDataById(sessionId);
-          if (session) {
-            const implementedChatTool = new ImplementedChatTool(session.company, ChatToolId.SLACK, installation);
+          try {
+            const sessionId = installation.metadata;
+            const session = await SessionRepository.getSessionDataById(sessionId);
+            let implementedChatTool: ImplementedChatTool;
+            if (session?.company) {
+              implementedChatTool = new ImplementedChatTool(session?.company, ChatToolId.SLACK, installation);
+            } else {
+              const authUser = await auth.createUser({});
+              const company = await CompanyRepository.save(new Company(authUser.uid));
+              implementedChatTool = new ImplementedChatTool(company, ChatToolId.SLACK, installation);
+            }
             await ImplementedChatToolRepository.upsert(implementedChatTool, []);
+          } catch (error) {
+            logger.error(error.message, error);
           }
         },
         fetchInstallation: async query => {

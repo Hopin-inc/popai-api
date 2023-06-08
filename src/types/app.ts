@@ -42,6 +42,19 @@ export type IUserReportingLine = {
   superiorUsers: string[];
 };
 
+export type IConfigStatus = {
+  todoApp: boolean;
+  users: boolean;
+  projects: {
+    enabled: boolean;
+    isValid: boolean;
+  };
+  todos: {
+    enabled: boolean;
+    isValid: boolean;
+  };
+};
+
 export type IConfigCommon = {
   daysOfWeek: number[];
   disabledOnHolidaysJp:  boolean;

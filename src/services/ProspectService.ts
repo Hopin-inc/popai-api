@@ -58,7 +58,7 @@ export default class ProspectService {
         }));
       }));
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 

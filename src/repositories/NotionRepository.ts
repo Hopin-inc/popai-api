@@ -63,7 +63,7 @@ export default class NotionRepository {
         await this.syncTodosByType(company, board, lastUpdatedDate, "todo");
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 
@@ -161,7 +161,7 @@ export default class NotionRepository {
             todoHistoryOptions.push(...args.map(a => ({ ...a, id: todoId })));
           }
         } catch (error) {
-          logger.error(error);
+          logger.error(error.message, error);
         }
       }));
       await ProjectRepository.upsert(projects, []);
@@ -174,7 +174,7 @@ export default class NotionRepository {
         TodoHistoryRepository.saveHistories(todoHistoryOptions),
       ]);
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 
@@ -326,7 +326,7 @@ export default class NotionRepository {
         return { type: "todo", todo, projects, currentProjectIds, users, currentUserIds, args };
       }
     } catch(error) {
-      logger.error(error);
+      logger.error(error.message, error);
       return null;
     }
   }
@@ -385,7 +385,7 @@ export default class NotionRepository {
       await notionClient.updatePage(payload);
       await TodoRepository.save(task);
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 
@@ -399,7 +399,7 @@ export default class NotionRepository {
         return property.title.map(t => t.plain_text ?? "").join("");
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
       return;
     }
   }
@@ -433,7 +433,7 @@ export default class NotionRepository {
           return [null, null];
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
       return [null, null];
     }
   }
@@ -457,7 +457,7 @@ export default class NotionRepository {
           return [];
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
       return [];
     }
   }
@@ -481,7 +481,7 @@ export default class NotionRepository {
           break;
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 
@@ -510,7 +510,7 @@ export default class NotionRepository {
           return pageInfo.url;
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 
@@ -522,7 +522,7 @@ export default class NotionRepository {
       const dateStr = pageInfo[propName];
       return new Date(dateStr);
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 }

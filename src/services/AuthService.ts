@@ -9,18 +9,16 @@ import { AccountInfo } from "@/types/auth";
 export default class AuthService {
   public async register(uid: string, info: AccountInfo): Promise<Company> {
     const { name } = info;
-    const [companyResult, _] = await Promise.all([
+    await Promise.all([
       CompanyRepository.update(uid, { name }),
-      await auth.updateUser(uid, { displayName: name }),
+      auth.updateUser(uid, { displayName: name }),
     ]);
-    if (companyResult?.generatedMaps?.length) {
-      return companyResult?.generatedMaps[0] as Company;
-    }
+    return await CompanyRepository.findOneBy({ id: uid });
   }
 
   public async verifyIdToken(authHeader: string): Promise<DecodedIdToken> {
     const chunkedAuthHeader = authHeader.split(" ");
-    if (chunkedAuthHeader[0] === "Bearer") {
+    if (chunkedAuthHeader[0] === "Bearer" && chunkedAuthHeader.length >= 2) {
       const idToken = chunkedAuthHeader[1];
       return await auth.verifyIdToken(idToken);
     }

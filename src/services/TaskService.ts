@@ -70,7 +70,7 @@ export default class TaskService {
                     break;
                 }
               } catch (error) {
-                logger.error(error);
+                logger.error(error.message, error);
               }
             }
           }));
@@ -78,7 +78,7 @@ export default class TaskService {
         ParallelChunkUnit.SYNC_TODOS,
       );
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 

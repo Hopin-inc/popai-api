@@ -44,6 +44,7 @@ router.post("/signup", async (req, res) => {
       const company = await controller.signUp(uid, req.body);
       if (company) {
         req.session.company = company;
+        req.session.registered = true;
       }
       ApiResponse.successRes(res, req.session);
     } else {
