@@ -88,7 +88,8 @@ export default class SlackOAuthClient {
       success() {
         res.redirect(`${ process.env.CLIENT_BASE_URL }/create-account`);
       },
-      failure() {
+      failure(error) {
+        logger.error(error.message, error);
         res.redirect(`${ process.env.CLIENT_BASE_URL }/login`);
       },
     }, { scopes });
