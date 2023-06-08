@@ -28,10 +28,10 @@ export default class ConfigController extends Controller {
     const [userConfig, todoAppConfigs, prospectConfigs] = await Promise.all([
       UserConfigViewRepository.findOneBy({ companyId }),
       TodoAppConfigViewRepository.findBy({
-        boardId: In(company.boards.map(b => b.companyId === companyId)),
+        boardId: In(company.boards.map(b => b.id)),
       }),
       ProspectConfigViewRepository.findBy({
-        configId: In(company.prospectConfigs.map(c => c.companyId === companyId)),
+        configId: In(company.prospectConfigs.map(c => c.id)),
       }),
     ]);
     const projectsConfig = prospectConfigs.find(c => c.type === AskType.PROJECTS);
