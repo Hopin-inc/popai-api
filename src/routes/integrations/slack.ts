@@ -23,7 +23,7 @@ router.post("/webhook", async (req, res) => {
     if (!responded) {
       ApiResponse.errRes(res, error.message, error.status);
     } else {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 });

@@ -54,7 +54,7 @@ export async function fetchApi<Res, IsFormData extends boolean = boolean>(
       throw new Error(JSON.stringify(await response.json()));
     }
   } catch (error) {
-    logger.error(error);
+    logger.error(error.message, error);
     throw new Error(error.message);
   }
 }

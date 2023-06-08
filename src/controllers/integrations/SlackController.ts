@@ -74,7 +74,7 @@ export default class SlackController extends Controller {
         logger.error("Unknown Response");
       }
     } catch (error) {
-      logger.error(error);
+      logger.error(error.message, error);
     }
   }
 

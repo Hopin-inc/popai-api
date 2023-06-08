@@ -13,6 +13,22 @@ router.get("/", async (req, res) => {
     const controller = new ConfigController();
     const { company } = req.session;
     if (company) {
+      const response = await controller.getConfigStatus(company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
+router.get("/common", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    if (company) {
       const response = await controller.getCommonConfig(company.id);
       ApiResponse.successRes(res, response);
     } else {
@@ -24,7 +40,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.patch("/", async (req, res) => {
+router.patch("/common", async (req, res) => {
   try {
     const controller = new ConfigController();
     const { company } = req.session;
