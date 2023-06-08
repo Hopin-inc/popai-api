@@ -212,6 +212,9 @@ export default class NotionRepository {
       let args: Omit<ITodoHistoryOption, "id">[] = [];
       const pagePropertyIds = pageProperties.map((obj) => obj.id);
       const properties = this.getProperties(propertyUsages, pagePropertyIds);
+      if (!properties?.parent) {
+        return null;
+      }
       const appParentIds = this.getOptionIds(pageProperties, properties.parent);
       const registerProject = board.projectRule === ProjectRule.PARENT_TODO && !appParentIds.length;
       const name = this.getTitle(pageProperties, properties.title);
