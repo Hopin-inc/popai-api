@@ -122,10 +122,11 @@ export default class SlackMessageBuilder {
   ) {
     const prospect = prospects.find(p => p.value === prospectId);
     const action = reliefActions.find(a => a.value === actionId);
+    const itemTitle = todo.appUrl ? `<${ todo.appUrl }|${ todo.name }>` : todo.name;
     const blocks: KnownBlock[] = [
       {
         type: "section",
-        text: { type: "mrkdwn", text: `${ prospect.emoji } <${ todo.appUrl }|${ todo.name }>` },
+        text: { type: "mrkdwn", text: `${ prospect.emoji } ${ itemTitle }` },
       },
       {
         type: "context",
@@ -155,13 +156,14 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  private static getAskProspectQuestion<T extends Todo | Project>(todo: T): KnownBlock {
+  private static getAskProspectQuestion<T extends Todo | Project>(item: T): KnownBlock {
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
     return {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `<${ todo.appUrl }|${ todo.name }>は期日に間に合いそうですか？\n`
-          + `\`期日\` ${ this.getDeadlineText(todo.deadline) }`,
+        text: `${ itemTitle }は期日に間に合いそうですか？\n`
+          + `\`期日\` ${ this.getDeadlineText(item.deadline) }`,
       },
     };
   }
