@@ -66,6 +66,10 @@ export default class Prospect extends BaseEntity {
   @Column({ name: "app_view_id", type: "varchar", length: 255, nullable: true })
   appViewId?: string;
 
+  @Index()
+  @Column({ name: "app_comment_id", type: "varchar", length: 255, nullable: true })
+  appCommentId?: string;
+
   @Column({ name: "prospect_value", type: "tinyint", width: 1, nullable: true })
   prospectValue?: number;
 
@@ -113,5 +117,5 @@ export default class Prospect extends BaseEntity {
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "project_id" })
-  project?: Todo;
+  project?: Project;
 }

@@ -8,15 +8,15 @@ import { IProperty, ISelectItem } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { StatusCodes } from "@/common/StatusCodes";
 import {
-  BacklogMilestoneDetail,
+  BacklogMilestoneDetail, GetCommentResponse,
   GetIssueListResponse,
   GetIssueResponse,
   GetMilestonesResponse,
   GetProjectListResponse,
   GetStatusListResponse,
   GetUserListResponse,
-  GetWebhookListResponse,
-  PostWebhookResponse,
+  GetWebhookListResponse, PostCommentResponse,
+  PostWebhookResponse, UpdateCommentResponse,
 } from "@/types/backlog";
 import { ActivityTypeIds } from "@/consts/backlog";
 import { HttpException } from "@/exceptions";
@@ -219,6 +219,34 @@ export default class BacklogClient {
 
   public async getIssue(issueId: number): Promise<GetIssueResponse> {
     return await this.retryOnError(() => this.client.getIssue(issueId));
+  }
+
+  public async getComment(issueId: number, commentId: number): Promise<GetCommentResponse> {
+    return await this.retryOnError(
+      () => this.client.getIssueComment(issueId, commentId),
+    );
+  }
+
+  public async postComment(issueId: number, content: string): Promise<PostCommentResponse> {
+    return await this.retryOnError(
+      () => this.client.postIssueComments(issueId, { content }),
+    );
+  }
+
+  public async editComment(issueId: number, commentId: number, content: string): Promise<UpdateCommentResponse> {
+    return await this.retryOnError(
+      () => this.client.patchIssueComment(issueId, commentId, { content }),
+    );
+  }
+
+  public async addCommentRow(issueId: number, commentId: number, addedRow: string): Promise<void> {
+    const comment = await this.getComment(issueId, commentId);
+    if (comment) {
+      const updatedContent = comment.content + "\n" + addedRow;
+      await this.editComment(issueId, commentId, updatedContent);
+    } else {
+      await this.postComment(issueId, addedRow);
+    }
   }
 
   private generateHookUrl(companyId: string) {
