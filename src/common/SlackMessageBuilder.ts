@@ -64,13 +64,13 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createRemindMessageOnProjects(projects: Project[]) {
+  public static createPersonalRemindOnProjects(projects: Project[]) {
     const remainingProjects = projects.slice(RemindMaxItems);
 
     const blocks: KnownBlock[] = [
       RemindMessage as SectionBlock,
       RemindContext as ContextBlock,
-      ...projects.slice(0, RemindMaxItems).map((project): SectionBlock => {return this.getRemind(project);}),
+      ...projects.slice(0, RemindMaxItems).map((project): SectionBlock => {return this.getPersonalRemind(project);}),
       ...(remainingProjects.length > 0 ? [{
         type: "section",
         text: {
@@ -82,13 +82,13 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createRemindMessageOnTodos(todos: Todo[]) {
+  public static createPersonalRemindOnTodos(todos: Todo[]) {
     const remainingProjects = todos.slice(RemindMaxItems);
 
     const blocks: KnownBlock[] = [
       RemindMessage as SectionBlock,
       RemindContext as ContextBlock,
-      ...todos.slice(0, RemindMaxItems).map((todo): SectionBlock => {return this.getRemind(todo);}),
+      ...todos.slice(0, RemindMaxItems).map((todo): SectionBlock => {return this.getPersonalRemind(todo);}),
       ...(remainingProjects.length > 0 ? [{
         type: "section",
         text: {
@@ -99,6 +99,43 @@ export default class SlackMessageBuilder {
     ];
     return { blocks };
   }
+
+  public static createPublicRemindOnProjects(projects: Project[]) {
+    const remainingProjects = projects.slice(RemindMaxItems);
+
+    const blocks: KnownBlock[] = [
+      RemindMessage as SectionBlock,
+      RemindContext as ContextBlock,
+      ...projects.slice(0, RemindMaxItems).map((project): SectionBlock => {return this.getPublicRemind(project);}),
+      ...(remainingProjects.length > 0 ? [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `他${ remainingProjects.length }件を見る`,
+        },
+      }] : []) as SectionBlock[],
+    ];
+    return { blocks };
+  }
+
+  public static createPublicRemindOnTodos(todos: Todo[]) {
+    const remainingProjects = todos.slice(RemindMaxItems);
+
+    const blocks: KnownBlock[] = [
+      RemindMessage as SectionBlock,
+      RemindContext as ContextBlock,
+      ...todos.slice(0, RemindMaxItems).map((todo): SectionBlock => {return this.getPublicRemind(todo);}),
+      ...(remainingProjects.length > 0 ? [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `他${ remainingProjects.length }件を見る`,
+        },
+      }] : []) as SectionBlock[],
+    ];
+    return { blocks };
+  }
+
 
   public static createAskActionMessageAfterProspect(todo: Todo, prospectId: number) {
     const blocks: KnownBlock[] = this.getAnsweredProspectQuestion(todo, prospectId);
@@ -204,12 +241,13 @@ export default class SlackMessageBuilder {
     };
   }
 
-  private static getRemind<T extends Todo | Project>(item: T): SectionBlock {
+  private static getPersonalRemind<T extends Todo | Project>(item: T): SectionBlock {
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
     return {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `${ item.name }\n期日: ${ this.getDeadlineText(item.deadline) }`,
+        text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*`,
       },
       accessory:{
         type:"button",
@@ -219,6 +257,18 @@ export default class SlackMessageBuilder {
           text:"再設定する",
         },
         url: item.appUrl ? item.appUrl : NotFoundPage,
+      },
+    };
+  }
+
+  private static getPublicRemind<T extends Todo | Project>(item: T): SectionBlock {
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
+    const users = Array.isArray(item.users) ? item.users.map(user => `<@${ user }>`).join("") : "不在";
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*\n担当者: ${ users }`,
       },
     };
   }
