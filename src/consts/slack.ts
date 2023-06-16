@@ -26,6 +26,7 @@ export const reliefActions: ActionItem[] = [
 ];
 
 export const SlackActionLabel = {
+  REMIND: "REMIND",
   PROSPECT: "PROSPECT",
   RELIEF_ACTION: "RELIEF_ACTION",
   OPEN_RELIEF_COMMENT_MODAL: "OPEN_RELIEF_COMMENT",
@@ -41,4 +42,20 @@ export const ReliefCommentModalItems = {
 };
 export const AskPlanModalItems = {
   TODOS: "TODOS",
+};
+
+export const RemindMaxItems = 3;
+export const RemindMessage = {
+  type: "section",
+  text: {
+    type: "mrkdwn",
+    text: "遅延しているタスクの期日を再設定しましょう😖",
+  },
+};
+export const RemindContext = {
+  type: "context",
+  elements: [
+    { type: "image", image_url: "https://cdn-icons-png.flaticon.com/512/2556/2556974.png", alt_text: "alert" },
+    { type: "mrkdwn", text: "疑問や不安があれば、関係者に聞こう" },
+  ],
 };
