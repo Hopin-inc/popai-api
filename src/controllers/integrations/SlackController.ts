@@ -135,7 +135,7 @@ export default class SlackController extends Controller {
           const prospect = await this.slackRepository.receiveReliefComment(view.id, comment);
           return [
             undefined,
-            async () => await this.slackRepository.shareReliefCommentAndUpdateDailyReport(view.id, comment, prospect),
+            async () => await this.slackRepository.shareReliefComment(view.id, comment, prospect),
           ];
         default:
           break;
