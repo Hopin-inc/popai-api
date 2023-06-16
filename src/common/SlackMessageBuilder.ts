@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { Block, Button, KnownBlock } from "@slack/web-api";
+import { Block, Button, ContextBlock, KnownBlock, SectionBlock } from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
@@ -9,14 +9,14 @@ import {
   AskPlanModalItems,
   prospects,
   reliefActions,
-  ReliefCommentModalItems,
+  ReliefCommentModalItems, RemindContext, RemindMaxItems, RemindMessage,
   SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
 import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
 import { Sorter } from "@/utils/array";
 import { truncate, relativeRemindDays } from "@/utils/string";
-import { AskMode, ProspectLevel } from "@/consts/common";
+import { AskMode, NotFoundPage, ProspectLevel } from "@/consts/common";
 import Project from "@/entities/transactions/Project";
 
 dayjs.locale("ja");
@@ -60,6 +60,42 @@ export default class SlackMessageBuilder {
         }),
       },
       this.divider,
+    ];
+    return { blocks };
+  }
+
+  public static createRemindMessageOnProjects(projects: Project[]) {
+    const remainingProjects = projects.slice(RemindMaxItems);
+
+    const blocks: KnownBlock[] = [
+      RemindMessage as SectionBlock,
+      RemindContext as ContextBlock,
+      ...projects.slice(0, RemindMaxItems).map((project): SectionBlock => {return this.getRemind(project);}),
+      ...(remainingProjects.length > 0 ? [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `他${ remainingProjects.length }件を見る`,
+        },
+      }] : []) as SectionBlock[],
+    ];
+    return { blocks };
+  }
+
+  public static createRemindMessageOnTodos(todos: Todo[]) {
+    const remainingProjects = todos.slice(RemindMaxItems);
+
+    const blocks: KnownBlock[] = [
+      RemindMessage as SectionBlock,
+      RemindContext as ContextBlock,
+      ...todos.slice(0, RemindMaxItems).map((todo): SectionBlock => {return this.getRemind(todo);}),
+      ...(remainingProjects.length > 0 ? [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `他${ remainingProjects.length }件を見る`,
+        },
+      }] : []) as SectionBlock[],
     ];
     return { blocks };
   }
@@ -164,6 +200,25 @@ export default class SlackMessageBuilder {
         type: "mrkdwn",
         text: `${ itemTitle }は期日に間に合いそうですか？\n`
           + `\`期日\` ${ this.getDeadlineText(item.deadline) }`,
+      },
+    };
+  }
+
+  private static getRemind<T extends Todo | Project>(item: T): SectionBlock {
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${ item.name }\n期日: ${ this.getDeadlineText(item.deadline) }`,
+      },
+      accessory:{
+        type:"button",
+        text:{
+          type:"plain_text",
+          emoji:true,
+          text:"再設定する",
+        },
+        url: item.appUrl ? item.appUrl : NotFoundPage,
       },
     };
   }
