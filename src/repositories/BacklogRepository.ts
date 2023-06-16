@@ -979,6 +979,10 @@ export default class BacklogRepository {
   }
 
   private isInStatus(usage: PropertyUsage, statusId: string) {
-    return usage.appOptions?.includes(statusId);
+    if (!usage) {
+      return false;
+    } else {
+      return usage.appOptions?.includes(statusId);
+    }
   }
 }

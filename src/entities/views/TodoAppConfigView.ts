@@ -15,7 +15,6 @@ import { ProjectRule, TodoAppId, UsageType } from "../../consts/common";
           AND SUM(CASE WHEN pu.usage = ${ UsageType.ASSIGNEE } THEN 1 ELSE 0 END) = 1
           AND SUM(CASE WHEN pu.usage = ${ UsageType.DEADLINE } THEN 1 ELSE 0 END) = 1
           AND SUM(CASE WHEN pu.usage = ${ UsageType.IS_DONE } THEN 1 ELSE 0 END) = 1
-          AND SUM(CASE WHEN pu.usage = ${ UsageType.IS_CLOSED } THEN 1 ELSE 0 END) = 1
           AND (
             b.project_rule != ${ ProjectRule.PARENT_TODO }
             OR SUM(CASE WHEN pu.usage = ${ UsageType.PARENT_TODO } THEN 1 ELSE 0 END) = 1
@@ -23,7 +22,6 @@ import { ProjectRule, TodoAppId, UsageType } from "../../consts/common";
         ) OR (
           b.todo_app_id = ${ TodoAppId.BACKLOG }
           AND SUM(CASE WHEN pu.usage = ${ UsageType.IS_DONE } THEN 1 ELSE 0 END) = 1
-          AND SUM(CASE WHEN pu.usage = ${ UsageType.IS_CLOSED } THEN 1 ELSE 0 END) = 1
         ) THEN TRUE
         ELSE FALSE
       END

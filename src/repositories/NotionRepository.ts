@@ -469,6 +469,9 @@ export default class NotionRepository {
     pageProperty: INotionPropertyInfo[],
     propertyUsage: PropertyUsage,
   ): boolean {
+    if (!propertyUsage) {
+      return false;
+    }
     try {
       const property = pageProperty.find(prop => prop.id === propertyUsage.appPropertyId);
       switch (property.type) {
