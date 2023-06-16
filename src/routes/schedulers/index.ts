@@ -25,4 +25,14 @@ router.get("/prospect", async (req, res) => {
   }
 });
 
+router.get("/remind", async (req, res) => {
+  try {
+    const controller = new SchedulerController();
+    const response = await controller.remindTodos();
+    ApiResponse.successRes(res, response);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 export default router;
