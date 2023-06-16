@@ -10,6 +10,7 @@ import TimingException from "./TimingException";
 import ProspectConfig from "./ProspectConfig";
 import Board from "./Board";
 import Project from "../transactions/Project";
+import RemindConfig from "./RemindConfig";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
@@ -82,6 +83,13 @@ export default class Company extends BaseEntity {
     { cascade: true },
   )
   prospectConfigs: ProspectConfig[];
+
+  @OneToMany(
+    () => RemindConfig,
+    config => config.company,
+    { cascade: true },
+  )
+  remindConfigs: RemindConfig[];
 
   @OneToMany(
     () => Board,
