@@ -109,3 +109,5 @@ export const ReliefAction = {
   PURPOSE: 4,
   OUTPUT: 5,
 } as const;
+
+export const NotFoundPage = "https://lp.popai.app/";
