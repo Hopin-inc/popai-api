@@ -12,6 +12,7 @@ import { ActivityTypeIds } from "@/consts/backlog";
 import BacklogRepository from "@/repositories/BacklogRepository";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import logger from "@/libs/logger";
 
 export default class BacklogController extends Controller {
   private readonly backlogOAuthService: BacklogOAuthClient;
@@ -24,6 +25,10 @@ export default class BacklogController extends Controller {
   }
 
   public async handleWebhook(companyId: string, payload: BacklogWebhookPayload) {
+    logger.info(
+      `Received: Backlog Webhook { type: ${ payload.type } }`,
+      payload,
+    );
     const todoAppId = TodoAppId.BACKLOG;
     const [
       implementedTodoApp,
@@ -36,6 +41,7 @@ export default class BacklogController extends Controller {
       }),
       ProjectRepository.find({
         where: { companyId, todoAppId },
+        relations: ["projectUsers"],
       }),
       BoardRepository.findOneByConfig(companyId),
     ]);
@@ -73,10 +79,9 @@ export default class BacklogController extends Controller {
               board,
             );
           } else {
-            return this.backlogRepository.updateTodoByIssuePayload(
+            return this.backlogRepository.updateTodoByIssueId(
               companyId,
-              payload,
-              host,
+              payload.content.id,
               todoAppUsers,
               companyProjects,
               board,
