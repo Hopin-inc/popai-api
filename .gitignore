@@ -71,10 +71,10 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-src/.env
+.env
 .env.*
 
-# GAE .env definitions
+# GAE env definitions
 env.yaml
 
 # parcel-bundler cache (https://parceljs.org/)
