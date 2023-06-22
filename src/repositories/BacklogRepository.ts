@@ -533,7 +533,7 @@ export default class BacklogRepository {
       isClosed,
     });
     const { id } = await TodoRepository.save(todo);
-    const users = this.getAssignees(todoAppUsers, issue.assignee.id);
+    const users = this.getAssignees(todoAppUsers, issue.assignee?.id);
     const projects = this.getProjects(companyProjects, board, issue.parentIssueId, issue.milestone);
     const args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);
     await Promise.all([
