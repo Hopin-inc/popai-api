@@ -13,7 +13,7 @@ import User from "../settings/User";
       END
     `, "is_valid")
     .from(Company, "c")
-    .leftJoin(User, "u")
+    .leftJoin(User, "u", "c.id = u.company_id")
     .groupBy("c.id"),
 })
 export default class UserConfigView {

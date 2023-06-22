@@ -27,7 +27,8 @@ import { ProjectRule, TodoAppId, UsageType } from "../../consts/common";
       END
     `, "is_valid")
     .from(Board, "b")
-    .leftJoin(PropertyUsage, "pu")
+    .leftJoin(PropertyUsage, "pu", "b.id = pu.board_id")
+    .where("pu.deleted_at IS NULL")
     .groupBy("b.id"),
 })
 export default class TodoAppConfigView {
