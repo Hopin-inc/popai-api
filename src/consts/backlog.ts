@@ -26,3 +26,11 @@ export enum ActivityTypeIds {
   PROJECT_GROUP_ADDED = 25,
   PROJECT_GROUP_DELETED = 26,
 }
+
+export const ParentChild = {
+  ALL: 0,
+  EXCLUDE_CHILD: 1,
+  ONLY_CHILD: 2,
+  NEITHER_PARENT_NOR_CHILD: 3,
+  ONLY_PARENT: 4,
+};

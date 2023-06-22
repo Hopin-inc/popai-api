@@ -183,3 +183,19 @@ export type GetStatusListResponse = BacklogStatus[];
 
 export type GetIssueListResponse = BacklogIssueWithDetail[];
 export type GetIssueResponse = BacklogIssueWithDetail;
+
+export type GetCommentResponse = BacklogIssueComment;
+export type PostCommentResponse = BacklogIssueComment;
+export type UpdateCommentResponse = BacklogIssueComment;
+export type BacklogIssueComment = {
+  id: number;
+  projectId: number;
+  issueId: number;
+  content: string;
+  changeLog: any;
+  createdUser: BacklogUser;
+  created: string;
+  updated: string;
+  stars: any[];
+  notifications: any[];
+};

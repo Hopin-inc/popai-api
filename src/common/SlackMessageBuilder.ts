@@ -136,9 +136,11 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-
-  public static createAskActionMessageAfterProspect(todo: Todo, prospectId: number) {
-    const blocks: KnownBlock[] = this.getAnsweredProspectQuestion(todo, prospectId);
+  public static createAskActionMessageAfterProspect<T extends Project | Todo>(
+    item: T,
+    prospectId: number,
+  ) {
+    const blocks: KnownBlock[] = this.getAnsweredProspectQuestion(item, prospectId);
     if (prospectId <= ProspectLevel.NEUTRAL) {
       blocks.push(
         this.getAskReliefActionQuestion(),
@@ -158,9 +160,13 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createAskCommentMessageAfterReliefAction(todo: Todo, prospectId: number, actionId: number) {
+  public static createAskCommentMessageAfterReliefAction<T extends Project | Todo>(
+    item: T,
+    prospectId: number,
+    actionId: number,
+  ) {
     const blocks: KnownBlock[] = [
-      ...this.getAnsweredProspectQuestion(todo, prospectId),
+      ...this.getAnsweredProspectQuestion(item, prospectId),
       ...this.getAnsweredReliefActionQuestion(actionId),
       this.getAskOpenModalBlock(
         "ひと言コメントをお願いします。",
@@ -172,9 +178,14 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createThanksForCommentMessage(todo: Todo, prospectId: number, actionId: number, comment: string) {
+  public static createThanksForCommentMessage<T extends Project | Todo>(
+    item: T,
+    prospectId: number,
+    actionId: number,
+    comment: string,
+  ) {
     const blocks: KnownBlock[] = [
-      ...this.getAnsweredProspectQuestion(todo, prospectId),
+      ...this.getAnsweredProspectQuestion(item, prospectId),
       ...this.getAnsweredReliefActionQuestion(actionId),
       {
         type: "section",
@@ -185,8 +196,8 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createShareReliefMessage(
-    todo: Todo,
+  public static createShareReliefMessage<T extends Project | Todo>(
+    item: T,
     user: User,
     prospectId: number,
     actionId: number,
@@ -195,7 +206,7 @@ export default class SlackMessageBuilder {
   ) {
     const prospect = prospects.find(p => p.value === prospectId);
     const action = reliefActions.find(a => a.value === actionId);
-    const itemTitle = todo.appUrl ? `<${ todo.appUrl }|${ todo.name }>` : todo.name;
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
     const blocks: KnownBlock[] = [
       {
         type: "section",
@@ -273,10 +284,13 @@ export default class SlackMessageBuilder {
     };
   }
 
-  private static getAnsweredProspectQuestion(todo: Todo, prospectId: number): KnownBlock[] {
+  private static getAnsweredProspectQuestion<T extends Project | Todo>(
+    item: T,
+    prospectId: number,
+  ): KnownBlock[] {
     const prospect = prospects.find(p => p.value === prospectId);
     return [
-      this.getAskProspectQuestion(todo),
+      this.getAskProspectQuestion(item),
       {
         type: "context",
         elements: [
@@ -347,11 +361,11 @@ export default class SlackMessageBuilder {
     mode: number,
   ): (KnownBlock | Block)[] {
     const isDelayed = (ddl: Date): boolean => dayjs(ddl).isBefore(toJapanDateTime(new Date()), "day");
-    const delayedTodos = items
-      .filter(todo => isDelayed(todo.deadline))
+    const delayedItems = items
+      .filter(item => isDelayed(item.deadline))
       .sort(Sorter.byDate<T>("deadline"));
-    const ongoingTodos = items
-      .filter(todo => !isDelayed(todo.deadline))
+    const ongoingItems = items
+      .filter(item => !isDelayed(item.deadline))
       .sort(Sorter.byDate<T>("deadline"));
     const getOption = (item: T, prepend: string = "") => {
       return {
@@ -381,8 +395,8 @@ export default class SlackMessageBuilder {
           action_id: AskPlanModalItems.TODOS,
           focus_on_load: true,
           options: [
-            ...delayedTodos.map(item => getOption(item, ":warning: ")),
-            ...ongoingTodos.map(item => getOption(item)),
+            ...delayedItems.map(item => getOption(item, ":warning: ")),
+            ...ongoingItems.map(item => getOption(item)),
           ],
         },
         label: { type: "plain_text", emoji: true, text: "タスク" },

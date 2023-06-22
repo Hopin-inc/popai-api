@@ -4,7 +4,6 @@ import {
   Block,
   ChatPostMessageArguments,
   ChatPostMessageResponse,
-  ChatUpdateResponse,
   KnownBlock,
   MessageAttachment,
 } from "@slack/web-api";
@@ -17,18 +16,18 @@ import User from "@/entities/settings/User";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 import Prospect from "@/entities/transactions/Prospect";
-import { reliefActions, SlackModalLabel } from "@/consts/slack";
+import { prospects, reliefActions, SlackModalLabel } from "@/consts/slack";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
 import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
 import SlackClient from "@/integrations/SlackClient";
-import ProspectConfig from "@/entities/settings/ProspectConfig";
 import { ProspectConfigRepository } from "@/repositories/settings/ProspectConfigRepository";
 import { filterProspectTargetItems } from "@/utils/tasks";
-import { AskMode, AskType, ChatToolId } from "@/consts/common";
+import { AskMode, AskType, ChatToolId, TodoAppId } from "@/consts/common";
 import ProspectTiming from "@/entities/settings/ProspectTiming";
 import Project from "@/entities/transactions/Project";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import BacklogClient from "@/integrations/BacklogClient";
 
 const CHAT_TOOL_ID = ChatToolId.SLACK;
 
@@ -59,12 +58,11 @@ export default class SlackRepository {
     });
   }
 
-  public async getTodoFromProspect(channelId: string, threadId: string): Promise<Todo | null> {
-    const prospect = await ProspectRepository.findOne({
+  public async getProjectOrTodoFromProspect(channelId: string, threadId: string): Promise<Prospect | null> {
+    return await ProspectRepository.findOne({
       where: { appChannelId: channelId, appThreadId: threadId },
-      relations: ["todo"],
+      relations: ["todo", "project"],
     });
-    return prospect?.todo;
   }
 
   public async pushSlackMessage(
@@ -196,39 +194,82 @@ export default class SlackRepository {
     appThreadId: string,
   ) {
     const slackBot = await SlackClient.init(user.companyId);
-    const todo = await this.getTodoFromProspect(appChannelId, appThreadId);
-    if (todo) {
-      const where: FindOptionsWhere<Prospect> = {
-        todoId: todo.id,
-        chatToolId: CHAT_TOOL_ID,
-        appChannelId,
-        appThreadId,
-      };
-      const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(todo, prospectValue);
+    const prospect = await this.getProjectOrTodoFromProspect(appChannelId, appThreadId);
+    const { project, todo } = prospect;
+    const item = project ?? todo;
+    if (item) {
+      const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(item, prospectValue);
       await Promise.all([
-        slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: todo.name, blocks }),
-        ProspectRepository.update(where, { prospectValue, prospectRespondedAt: new Date() }),
+        slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: item.name, blocks }),
+        ProspectRepository.update(prospect.id, {
+          prospectValue,
+          prospectRespondedAt: new Date(),
+        }),
+        this.storeEvidenceOnProspectResponded(user, item, prospect, prospectValue),
       ]);
+    }
+  }
+
+  private async storeEvidenceOnProspectResponded<T extends Project | Todo>(
+    user: User,
+    item: T,
+    prospect: Prospect,
+    prospectValue: number,
+  ) {
+    if (item.todoAppId === TodoAppId.BACKLOG) {
+      const client = await BacklogClient.init(item.companyId);
+      const appId = item instanceof Project ? item.appProjectId : item.appTodoId;
+      const userName = user.todoAppUser?.appUserId ? `@${ user.todoAppUser.appUserId }` : user.name;
+      const prospectItem = prospects.find(p => p.value === prospectValue);
+      const prospectText = prospectItem.emoji + prospectItem.text;
+      const comment = await client.postComment(
+        parseInt(appId),
+        `${ userName } さんが見立てを回答しました。\n`
+        + `【見立て】${ prospectText }`,
+      );
+      await ProspectRepository.update(prospect.id, { appCommentId: comment?.id?.toString() });
     }
   }
 
   public async respondToReliefAction(
     user: User,
-    action: number,
+    actionValue: number,
     appChannelId: string,
     appThreadId: string,
   ) {
     const slackBot = await SlackClient.init(user.companyId);
-    const todo = await this.getTodoFromProspect(appChannelId, appThreadId);
-    const where: FindOptionsWhere<Prospect> = { todoId: todo.id, chatToolId: CHAT_TOOL_ID, appChannelId, appThreadId };
-    const prospectRecord = await ProspectRepository.findOneBy(where);
-    if (prospectRecord) {
-      const { prospectValue } = prospectRecord;
-      const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(todo, prospectValue, action);
+    const prospect = await this.getProjectOrTodoFromProspect(appChannelId, appThreadId);
+    if (prospect) {
+      const { project, todo } = prospect;
+      const item = project ?? todo;
+      if (!item) {
+        return;
+      }
+      const { prospectValue } = prospect;
+      const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(item, prospectValue, actionValue);
       await Promise.all([
-        ProspectRepository.update(where, { actionValue: action, actionRespondedAt: new Date() }),
-        slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: todo.name, blocks }),
+        ProspectRepository.update(prospect.id, { actionValue, actionRespondedAt: new Date() }),
+        slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: item.name, blocks }),
+        this.storeEvidenceOnReliefActionResponded(item, prospect, prospectValue),
       ]);
+    }
+  }
+
+  private async storeEvidenceOnReliefActionResponded<T extends Project | Todo>(
+    item: T,
+    prospect: Prospect,
+    actionValue: number,
+  ) {
+    if (item.todoAppId === TodoAppId.BACKLOG && prospect.appCommentId) {
+      const client = await BacklogClient.init(item.companyId);
+      const appId = item instanceof Project ? item.appProjectId : item.appTodoId;
+      const actionItem = reliefActions.find(p => p.value === actionValue);
+      const actionText = actionItem.text;
+      await client.addCommentRow(
+        parseInt(appId),
+        parseInt(prospect.appCommentId),
+        `【相談事項】${ actionText }を見直したい`,
+      );
     }
   }
 
@@ -247,7 +288,7 @@ export default class SlackRepository {
       const viewId = await this.openModal(
         companyId,
         triggerId,
-        `${ targetAction.text }について相談する`,
+        targetAction ? `${ targetAction.text }について相談する` : "相談内容を記入する",
         blocks,
         SlackModalLabel.RELIEF_COMMENT,
       );
@@ -256,7 +297,7 @@ export default class SlackRepository {
   }
 
   public async openPlanModal(user: User, channelId: string, triggerId: string, mode: number) {
-    const [todos, prospectConfig]: [Todo[], ProspectConfig] = await Promise.all([
+    const [todos, prospectConfig] = await Promise.all([
       TodoRepository.getActiveTodos(user.company, user),
       ProspectConfigRepository.findOneBy({ companyId: user.companyId }),
     ]);
@@ -273,49 +314,63 @@ export default class SlackRepository {
   public async receiveReliefComment(viewId: string, comment: string) {
     const prospectRecord = await ProspectRepository.findOne({
       where: { appViewId: viewId },
-      relations: ["company.prospectConfigs"],
+      relations: ["company.prospectConfigs", "project", "todo"],
     });
     await ProspectRepository.update(prospectRecord.id, { comment, commentRespondedAt: new Date() });
     return prospectRecord;
   }
 
-  public async shareReliefCommentAndUpdateDailyReport(viewId: string, comment: string, prospectRecord: Prospect) {
-    if (prospectRecord) {
-      const [todo, user]: [Todo, User] = await Promise.all([
-        TodoRepository.findOne({
-          where: { id: prospectRecord.todoId },
-          relations: ["company.implementedChatTool", "company.prospectConfigs"],
-        }),
-        UserRepository.findOne({
-          where: { id: prospectRecord.userId },
-          relations: ["company", "chatToolUser"],
-        }),
-      ]);
-      const slackProfile = await this.getUserProfile(user.companyId, user.chatToolUser.appUserId);
-      const iconUrl = slackProfile?.profile?.image_48;
-      await this.shareReliefComment(todo, user, prospectRecord, comment, iconUrl);
-    }
-  }
-
-  private async shareReliefComment(
-    todo: Todo,
-    user: User,
-    prospectRecord: Prospect,
-    comment: string,
-    iconUrl: string,
-  ) {
+  public async shareReliefComment(viewId: string, comment: string, prospect: Prospect) {
+    if (!prospect) return;
+    const { project, todo } = prospect;
+    const item = project ?? todo;
+    const user = await UserRepository.findOne({
+      where: { id: prospect.userId },
+      relations: ["company", "chatToolUser"],
+    });
+    const slackProfile = await this.getUserProfile(user.companyId, user.chatToolUser.appUserId);
+    const iconUrl = slackProfile?.profile?.image_48;
     const slackBot = await SlackClient.init(user.companyId);
-    const { prospectValue, actionValue, appChannelId: channel, appThreadId: ts } = prospectRecord;
-    const { blocks: editedMsg } = SlackMessageBuilder.createThanksForCommentMessage(todo, prospectValue, actionValue, comment);
-    const sharedChannel = prospectRecord.company.prospectConfigs.find(c => c.type === AskType.TODOS).channel;
-    const shareMsg = SlackMessageBuilder.createShareReliefMessage(todo, user, prospectValue, actionValue, comment, iconUrl);
-    const [_, superiorUsers, pushedMessage]: [ChatUpdateResponse, User[], ChatPostMessageResponse] = await Promise.all([
-      slackBot.updateMessage({ channel, ts, text: todo.name, blocks: editedMsg }),
+    const {
+      prospectValue,
+      actionValue,
+      appChannelId: channel,
+      appThreadId: ts,
+    } = prospect;
+    const { blocks: editedMsg } = SlackMessageBuilder.createThanksForCommentMessage(
+      item,
+      prospectValue,
+      actionValue,
+      comment,
+    );
+    const sharedChannel = prospect.company.prospectConfigs
+      .find(c => c.type === (item instanceof Project ? AskType.PROJECTS : AskType.TODOS))
+      ?.channel;
+    const shareMsg = SlackMessageBuilder.createShareReliefMessage(item, user, prospectValue, actionValue, comment, iconUrl);
+    const [superiorUsers, pushedMessage] = await Promise.all([
       this.getSuperiorUsers(user.chatToolUser.appUserId),
       this.pushSlackMessage(user, shareMsg, sharedChannel),
+      slackBot.updateMessage({ channel, ts, text: item.name, blocks: editedMsg }),
+      this.storeEvidenceOnCommentResponded(item, prospect, comment),
     ]);
     const promptMsg = SlackMessageBuilder.createPromptDiscussionMessage(superiorUsers);
     await this.pushSlackMessage(user, promptMsg, pushedMessage.channel, pushedMessage.ts);
+  }
+
+  private async storeEvidenceOnCommentResponded<T extends Project | Todo>(
+    item: T,
+    prospect: Prospect,
+    comment: string,
+  ) {
+    if (item.todoAppId === TodoAppId.BACKLOG && prospect.appCommentId) {
+      const client = await BacklogClient.init(item.companyId);
+      const appId = item instanceof Project ? item.appProjectId : item.appTodoId;
+      await client.addCommentRow(
+        parseInt(appId),
+        parseInt(prospect.appCommentId),
+        `【コメント】${ comment }`,
+      );
+    }
   }
 
   private async getUserProfile(companyId: string, slackId: string) {
