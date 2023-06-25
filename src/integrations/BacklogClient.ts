@@ -26,6 +26,7 @@ import { HttpException } from "@/exceptions";
 import BacklogOAuthClient from "@/integrations/BacklogOAuthClient";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import { Issue } from "backlog-js/dist/types/option";
+import logger from "@/libs/logger";
 
 const RETRY_LIMIT: number = 2;
 
@@ -72,12 +73,14 @@ export default class BacklogClient {
     try {
       return await func();
     } catch (error) {
-      if (
-        error instanceof BacklogErrorModule.BacklogError
-        && error.name === "BacklogAuthError"
-        && ++retry >= RETRY_LIMIT
-      ) {
-        console.error(error.body);
+      if (++retry >= RETRY_LIMIT) {
+        if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
+          const logMeta = {
+            company: this.companyId,
+            host: this.host,
+          };
+          logger.error(`Failed in Backlog token refreshment: company ${ this.companyId }`, logMeta);
+        }
         throw new HttpException("Retry limit exceeded", StatusCodes.INTERNAL_SERVER_ERROR);
       } else {
         await this.refresh();

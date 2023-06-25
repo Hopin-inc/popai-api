@@ -1,7 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import RemindConfig from "./RemindConfig";
-import { RemindMode } from "../../consts/common";
 
 type ConstructorOptions = {
   config: RemindConfig | number,
