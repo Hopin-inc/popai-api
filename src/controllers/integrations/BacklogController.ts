@@ -52,41 +52,15 @@ export default class BacklogController extends Controller {
       const projectByMilestone = board.projectRule === ProjectRule.MILESTONE;
       switch (payload.type) {
         case ActivityTypeIds.ISSUE_CREATED:
-          if (projectByParentTodo && !payload.content.parentIssueId) {
-            return this.backlogRepository.createProjectByIssueId(
-              companyId,
-              payload.content.id,
-              todoAppUsers,
-              board,
-            );
-          } else {
-            return this.backlogRepository.createTodoByIssuePayload(
-              companyId,
-              payload,
-              host,
-              todoAppUsers,
-              companyProjects,
-              board,
-            );
-          }
         case ActivityTypeIds.ISSUE_UPDATED:
-          if (projectByParentTodo && !payload.content.parentIssueId) {
-            return this.backlogRepository.updateProjectByIssueId(
-              companyId,
-              payload.content.id,
-              todoAppUsers,
-              companyProjects,
-              board,
-            );
-          } else {
-            return this.backlogRepository.updateTodoByIssueId(
-              companyId,
-              payload.content.id,
-              todoAppUsers,
-              companyProjects,
-              board,
-            );
-          }
+          return this.backlogRepository.updateProjectOrTodoByIssueId(
+            companyId,
+            payload.content.id,
+            todoAppUsers,
+            companyProjects,
+            board,
+            host,
+          );
         case ActivityTypeIds.ISSUE_DELETED:
           if (projectByParentTodo && !payload.content.parentIssueId) {
             return this.backlogRepository.deleteProjectByIssuePayload(companyId, payload);

@@ -164,9 +164,9 @@ export default class SlackRepository {
   public async askProjects(company: Company, _timing: ProspectTiming) {
     const projects = await this.getProspectProjects(company);
     if (projects?.length) {
-      await Promise.all(company.users.map(user => {
+      await Promise.all(company.users.map(async user => {
         const assignedProjects = projects.filter(p => p.users.map(u => u.id).includes(user.id));
-        this.askProspectsOnProjects(company, { projects: assignedProjects, users: [user] });
+        await this.askProspectsOnProjects(company, { projects: assignedProjects, users: [user] });
       }));
     }
   }
@@ -176,12 +176,12 @@ export default class SlackRepository {
       const message = SlackMessageBuilder.createAskPlansMessageOnTodos(timing.mode);
       const todos = await this.getProspectTodos(company);
       if (todos?.length) {
-        await Promise.all(company.users.map(user => {
+        await Promise.all(company.users.map(async user => {
           const assignedTodos = todos.filter(t => t.users.map(u => u.id).includes(user.id));
           if (assignedTodos.length > 2) {
-            this.sendDirectMessage(user, message);
+            await this.sendDirectMessage(user, message);
           } else if (assignedTodos.length > 0) {
-            this.askProspectsOnTodos(company, { todos: assignedTodos, users: [user] });
+            await this.askProspectsOnTodos(company, { todos: assignedTodos, users: [user] });
           }
         }));
       }
