@@ -14,6 +14,7 @@ export default class SchedulerController extends Controller {
     super();
     this.taskService = Container.get(TaskService);
     this.prospectService = Container.get(ProspectService);
+    this.remindService = Container.get(RemindService);
   }
 
   public async syncTodos(): Promise<any> {

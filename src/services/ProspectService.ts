@@ -1,6 +1,5 @@
 import { Container, Service } from "typedi";
 import SlackRepository from "@/repositories/SlackRepository";
-import NotionRepository from "@/repositories/NotionRepository";
 import { AskType, ChatToolId } from "@/consts/common";
 import logger from "@/libs/logger";
 import Company from "@/entities/settings/Company";
@@ -14,11 +13,9 @@ import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRep
 @Service()
 export default class ProspectService {
   private slackRepository: SlackRepository;
-  private notionRepository: NotionRepository;
 
   constructor() {
     this.slackRepository = Container.get(SlackRepository);
-    this.notionRepository = Container.get(NotionRepository);
   }
 
   public async ask(): Promise<any> {
@@ -32,7 +29,7 @@ export default class ProspectService {
           const prospectConfigView = prospectConfigViews.find(pc => pc.configId === prospectConfig.id);
           if (prospectConfigView?.enabled && !prospectConfigView?.isValid) return;
 
-          const { chatToolId: chatToolId, timings, type } = prospectConfig;
+          const { chatToolId, timings, type } = prospectConfig;
           const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
           if (!matchedTiming) return;
 

@@ -29,9 +29,6 @@ export default class RemindTiming extends BaseEntity {
   @Column({ name: "time", type: "time" })
   time: string;
 
-  @Column({ name: "mode", default: RemindMode.UNDEFINED })
-  mode: number;
-
   @ManyToOne(
     () => RemindConfig,
     config => config.timings,

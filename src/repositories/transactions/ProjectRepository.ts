@@ -48,4 +48,22 @@ export const ProjectRepository = dataSource.getRepository(Project).extend({
       relations: ["projectUsers.user.chatToolUser"],
     });
   },
+  async getRemindProjects(
+    companyId: string,
+    delayed: boolean,
+    limit?: number,
+  ): Promise<Project[]> {
+    const today = dayjs().startOf("day").toDate();
+    const delayedFilter: FindOptionsWhere<Project> = delayed ? {
+      deadline: LessThan(today),
+      isDone: false,
+      isClosed: false,
+    } : {};
+    const projects: Project[] = await this.find(<FindManyOptions<Project>>{
+      where: { companyId, ...delayedFilter },
+      order: { deadline: "asc" },
+      relations: ["projectUsers.user.chatToolUser", "reminds"],
+    });
+    return projects.filter(project => !limit || project.reminds?.length <= limit);
+  },
 });

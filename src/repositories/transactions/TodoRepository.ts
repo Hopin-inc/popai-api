@@ -30,6 +30,24 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       relations: ["todoUsers.user.chatToolUser"],
     });
   },
+  async getRemindTodos(
+    companyId: string,
+    delayed: boolean,
+    limit?: number,
+  ): Promise<Todo[]> {
+    const today = dayjs().startOf("day").toDate();
+    const delayedFilter: FindOptionsWhere<Todo> = delayed ? {
+      deadline: LessThan(today),
+      isDone: false,
+      isClosed: false,
+    } : {};
+    const todos: Todo[] = await this.find(<FindManyOptions<Todo>>{
+      where: { companyId, ...delayedFilter },
+      order: { deadline: "asc" },
+      relations: ["todoUsers.user.chatToolUser", "reminds"],
+    });
+    return todos.filter(todo => !limit || todo.reminds?.length <= limit);
+  },
   async getTodosByIds(
     ids: string[],
     relations: string[] = ["todoUsers.user", "prospects"],

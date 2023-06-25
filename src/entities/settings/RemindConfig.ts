@@ -45,6 +45,9 @@ export default class RemindConfig extends BaseEntity {
   @Column({ name: "frequency", type: "tinyint", nullable: true })
   frequency?: number;
 
+  @Column({ name: "limit", nullable: true })
+  limit?: number;
+
   @ManyToOne(
     () => Company,
     company => company.remindConfigs,

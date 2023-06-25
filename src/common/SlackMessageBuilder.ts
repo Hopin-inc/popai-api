@@ -9,14 +9,15 @@ import {
   AskPlanModalItems,
   prospects,
   reliefActions,
-  ReliefCommentModalItems, RemindContext, RemindMaxItems, RemindMessage,
+  ReliefCommentModalItems,
+  REMIND_MAX_ITEMS,
   SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
 import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
 import { Sorter } from "@/utils/array";
 import { truncate, relativeRemindDays } from "@/utils/string";
-import { AskMode, NotFoundPage, ProspectLevel } from "@/consts/common";
+import { AskMode, ProspectLevel } from "@/consts/common";
 import Project from "@/entities/transactions/Project";
 
 dayjs.locale("ja");
@@ -64,79 +65,63 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createPersonalRemindOnProjects(projects: Project[]) {
-    const remainingProjects = projects.slice(RemindMaxItems);
-
+  public static createPublicRemind<T extends Project | Todo>(items: T[]) {
     const blocks: KnownBlock[] = [
-      RemindMessage as SectionBlock,
-      RemindContext as ContextBlock,
-      ...projects.slice(0, RemindMaxItems).map((project): SectionBlock => {return this.getPersonalRemind(project);}),
-      ...(remainingProjects.length > 0 ? [{
+      this.remindMessage,
+      this.remindContext,
+      ...items.slice(0, REMIND_MAX_ITEMS).map(item => this.getPublicRemind(item)),
+    ];
+    if (items.length > REMIND_MAX_ITEMS) {
+      blocks.push({
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `他${ remainingProjects.length }件を見る`,
+          text: `他${ items.length - REMIND_MAX_ITEMS }件を見る`,
         },
-      }] : []) as SectionBlock[],
-    ];
+      });
+    }
     return { blocks };
   }
 
-  public static createPersonalRemindOnTodos(todos: Todo[]) {
-    const remainingProjects = todos.slice(RemindMaxItems);
-
+  public static createPersonalRemind<T extends Project | Todo>(items: T[]) {
     const blocks: KnownBlock[] = [
-      RemindMessage as SectionBlock,
-      RemindContext as ContextBlock,
-      ...todos.slice(0, RemindMaxItems).map((todo): SectionBlock => {return this.getPersonalRemind(todo);}),
-      ...(remainingProjects.length > 0 ? [{
+      this.remindMessage,
+      this.remindContext,
+      ...items.slice(0, REMIND_MAX_ITEMS).map(item => this.getPersonalRemind(item)),
+    ];
+    if (items.length > REMIND_MAX_ITEMS) {
+      blocks.push({
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `他${ remainingProjects.length }件を見る`,
+          text: `他${ items.length - REMIND_MAX_ITEMS }件を見る`,
         },
-      }] : []) as SectionBlock[],
-    ];
+      });
+    }
     return { blocks };
   }
 
-  public static createPublicRemindOnProjects(projects: Project[]) {
-    const remainingProjects = projects.slice(RemindMaxItems);
+  private static readonly remindMessage: SectionBlock = {
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: "遅延しているタスクの期日を再設定しましょう😖",
+    },
+  };
 
-    const blocks: KnownBlock[] = [
-      RemindMessage as SectionBlock,
-      RemindContext as ContextBlock,
-      ...projects.slice(0, RemindMaxItems).map((project): SectionBlock => {return this.getPublicRemind(project);}),
-      ...(remainingProjects.length > 0 ? [{
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `他${ remainingProjects.length }件を見る`,
-        },
-      }] : []) as SectionBlock[],
-    ];
-    return { blocks };
-  }
+  private static readonly remindContext: ContextBlock = {
+    type: "context",
+    elements: [
+      {
+        type: "image",
+        image_url: "https://cdn-icons-png.flaticon.com/512/2556/2556974.png", // TODO: Avoid hard coding.
+        alt_text: "alert",
+      },
+      { type: "mrkdwn", text: "疑問や不安があれば、関係者に聞きましょう。" },
+    ],
+  };
 
-  public static createPublicRemindOnTodos(todos: Todo[]) {
-    const remainingProjects = todos.slice(RemindMaxItems);
-
-    const blocks: KnownBlock[] = [
-      RemindMessage as SectionBlock,
-      RemindContext as ContextBlock,
-      ...todos.slice(0, RemindMaxItems).map((todo): SectionBlock => {return this.getPublicRemind(todo);}),
-      ...(remainingProjects.length > 0 ? [{
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `他${ remainingProjects.length }件を見る`,
-        },
-      }] : []) as SectionBlock[],
-    ];
-    return { blocks };
-  }
-
-  public static createAskActionMessageAfterProspect<T extends Project | Todo>(
+    public static createAskActionMessageAfterProspect<T extends Project | Todo>(
     item: T,
     prospectId: number,
   ) {
@@ -252,6 +237,23 @@ export default class SlackMessageBuilder {
     };
   }
 
+  private static getPublicRemind<T extends Todo | Project>(item: T): SectionBlock {
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
+    const users = item.users?.length
+      ? item.users
+        .map(user => user?.chatToolUser?.appUserId ? `<@${ user?.chatToolUser?.appUserId }>` : user?.name)
+        .join(", ")
+      : "不在";
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*\n`
+          + `担当者: ${ users }`,
+      },
+    };
+  }
+
   private static getPersonalRemind<T extends Todo | Project>(item: T): SectionBlock {
     const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
     return {
@@ -260,27 +262,15 @@ export default class SlackMessageBuilder {
         type: "mrkdwn",
         text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*`,
       },
-      accessory:{
-        type:"button",
-        text:{
-          type:"plain_text",
-          emoji:true,
-          text:"再設定する",
+      accessory: item.appUrl ? {
+        type: "button",
+        text: {
+          type: "plain_text",
+          emoji: true,
+          text: "再設定する",
         },
-        url: item.appUrl ? item.appUrl : NotFoundPage,
-      },
-    };
-  }
-
-  private static getPublicRemind<T extends Todo | Project>(item: T): SectionBlock {
-    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
-    const users = Array.isArray(item.users) ? item.users.map(user => `<@${ user }>`).join("") : "不在";
-    return {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*\n担当者: ${ users }`,
-      },
+        url: item.appUrl,
+      } : undefined,
     };
   }
 
