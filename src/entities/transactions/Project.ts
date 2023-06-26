@@ -9,6 +9,7 @@ import ProjectUser from "./ProjectUser";
 import Todo from "./Todo";
 import { Sorter } from "../../utils/array";
 import ProjectHistory from "./ProjectHistory";
+import Remind from "./Remind";
 
 type ConstructorOptions = {
   name: string;
@@ -113,6 +114,14 @@ export default class Project extends BaseEntity {
   prospects: Prospect[];
   latestProspect: Prospect | null = null;
 
+  @OneToMany(
+    () => Remind,
+    remind => remind.todo,
+    { cascade: false },
+  )
+  reminds: Remind[];
+  latestRemind: Remind | null = null;
+
   @AfterLoad()
   setUsers() {
     this.users = this.projectUsers
@@ -131,6 +140,13 @@ export default class Project extends BaseEntity {
   setLatestProspect() {
     this.latestProspect = this.prospects && this.prospects.length
       ? this.prospects.sort(Sorter.byDate<Prospect>("createdAt")).slice(-1)[0]
+      : null;
+  }
+
+  @AfterLoad()
+  setLatestRemind() {
+    this.latestRemind = this.reminds && this.reminds.length
+      ? this.reminds.sort(Sorter.byDate<Remind>("createdAt")).slice(-1)[0]
       : null;
   }
 }

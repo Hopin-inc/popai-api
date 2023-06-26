@@ -17,6 +17,7 @@ import ReportingLine from "./ReportingLine";
 import TodoUser from "../transactions/TodoUser";
 import Todo from "../transactions/Todo";
 import Prospect from "../transactions/Prospect";
+import Remind from "../transactions/Remind";
 
 @Entity("s_users")
 export default class User extends BaseEntity {
@@ -88,6 +89,13 @@ export default class User extends BaseEntity {
     { cascade: false },
   )
   prospects: Prospect[];
+
+  @OneToMany(
+    () => Remind,
+    remind => remind.user,
+    { cascade: false },
+  )
+  reminds: Remind[];
 
   @AfterLoad()
   setTodos() {

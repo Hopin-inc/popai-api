@@ -24,9 +24,7 @@ import {
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { TodoHistoryRepository } from "@/repositories/transactions/TodoHistoryRepository";
 import { diffDays, toJapanDateTime } from "@/utils/datetime";
-import User from "@/entities/settings/User";
 import { TodoUserRepository } from "@/repositories/transactions/TodoUserRepository";
-import { In } from "typeorm";
 import BacklogClient from "@/integrations/BacklogClient";
 import {
   IProjectHistoryOption,
@@ -42,6 +40,7 @@ import { TodoProjectRepository } from "@/repositories/transactions/TodoProjectRe
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
 import { ProjectHistoryRepository } from "@/repositories/transactions/ProjectHistoryRepository";
 import { ProjectUserRepository } from "@/repositories/transactions/ProjectUserRepository";
+import { ParentChild } from "@/consts/backlog";
 
 type DateSet = {
   startDate: string | "",
@@ -50,93 +49,6 @@ type DateSet = {
 
 @Service()
 export default class BacklogRepository {
-  private backlogClient: BacklogClient;
-
-  private async initClient(companyId: string) {
-    if (!this.backlogClient) {
-      this.backlogClient = await BacklogClient.init(companyId);
-    }
-  }
-
-  public async createTodoByIssuePayload(
-    companyId: string,
-    payload: BacklogWebhookPayload<SingleIssuePayload>,
-    host: string,
-    todoAppUsers: TodoAppUser[],
-    companyProjects: Project[],
-    board: Board,
-  ) {
-    const {
-      todo,
-      assignees,
-      projects,
-      isDelayed,
-    } = this.generateTodoFromIssuePayload(companyId, payload, host, todoAppUsers, companyProjects, board);
-    const { id: todoId } = await TodoRepository.save(todo) ?? {};
-    const { startDate, deadline, isDone, isClosed } = todo;
-    const args = setHistoriesForNewTodo(
-      assignees,
-      projects,
-      startDate,
-      deadline,
-      isDone,
-      isClosed,
-      isDelayed,
-    );
-    await Promise.all([
-      TodoHistoryRepository.saveHistories(args.map(a => ({ ...a, id: todoId }))),
-      TodoUserRepository.saveTodoUsers([{ todoId, users: assignees, currentUserIds: [] }]),
-      TodoProjectRepository.saveTodoProjects([{ todoId, projects, currentProjectIds: [] }]),
-    ]);
-  }
-
-  public async updateTodoByIssuePayload(
-    companyId: string,
-    payload: BacklogWebhookPayload<SingleIssuePayload>,
-    host: string,
-    todoAppUsers: TodoAppUser[],
-    companyProjects: Project[],
-    board: Board,
-  ) {
-    const existingTodo = await TodoRepository.findOne({
-      where: {
-        companyId,
-        todoAppId: TodoAppId.BACKLOG,
-        appTodoId: payload?.content?.id?.toString(),
-      },
-      relations: ["todoUsers"],
-    });
-    if (existingTodo) {
-      const currentUserIds = existingTodo.todoUsers.map(tu => tu.userId);
-      const currentProjectIds = existingTodo.todoProjects.map(tp => tp.projectId);
-      const {
-        todo,
-        assignees,
-        projects,
-        isDelayed,
-      } = this.generateTodoFromIssuePayload(companyId, payload, host, todoAppUsers, companyProjects, board, existingTodo);
-      const { startDate, deadline, isDone, isClosed } = todo;
-      const args = await setHistoriesForExistingTodo(
-        existingTodo,
-        assignees,
-        projects,
-        startDate,
-        deadline,
-        isDone,
-        isClosed,
-        isDelayed,
-      );
-      await Promise.all([
-        TodoRepository.upsert(todo, []),
-        TodoHistoryRepository.saveHistories(args.map(a => ({ ...a, id: todo.id }))),
-        TodoUserRepository.saveTodoUsers([{ todoId: todo.id, users: assignees, currentUserIds }]),
-        TodoProjectRepository.saveTodoProjects([{ todoId: todo.id, projects, currentProjectIds }]),
-      ]);
-    } else {
-      await this.createTodoByIssuePayload(companyId, payload, host, todoAppUsers, companyProjects, board);
-    }
-  }
-
   public async deleteTodoByIssuePayload(
     companyId: string,
     payload: BacklogWebhookPayload<SingleIssuePayload>,
@@ -164,92 +76,18 @@ export default class BacklogRepository {
       },
       relations: ["projectUsers"],
     });
-    await this.deleteProjectsByRecord([deletedProject]);
+    if (deletedProject) {
+      await this.deleteProjectsByRecord([deletedProject]);
+    }
   }
 
   public async updateMultiTodos(
     companyId: string,
     payload: BacklogWebhookPayload<MultiIssuesPayload>,
-    todoAppUsers: TodoAppUser[],
-    companyProjects: Project[],
     board: Board,
   ) {
-    await this.initClient(companyId);
-    const properties = this.getProperties(board.propertyUsages);
-    const targetIssueIds = payload.content.link.map(l => l.id);
-    const [targetTodos, targetProjects, _] = await Promise.all([
-      TodoRepository.find({
-        where: {
-          companyId,
-          todoAppId: TodoAppId.BACKLOG,
-          appTodoId: In(targetIssueIds),
-        },
-        relations: ["todoUsers"],
-      }),
-      companyProjects.filter(p => targetIssueIds.includes(p.appProjectId)),
-      this.initClient(companyId),
-    ]);
-    const changes: Partial<Todo & Project> = {};
-    const newDates: Partial<DateSet> = {};
-    await Promise.all(payload.content.changes.map(async c => {
-      switch (c.field) {
-        case "status":
-          changes.isDone = this.isInStatus(properties.isDone, c.new_value);
-          changes.isClosed = this.isInStatus(properties.isClosed, c.new_value);
-          break;
-        case "startDate":
-          newDates.startDate = c.new_value;
-          break;
-        case "limitDate":
-          newDates.deadline = c.new_value;
-          break;
-        case "assigner":
-        case "milestone":
-          break;
-      }
-    }));
-    await Promise.all([
-      ...targetTodos.map(async todo => {
-        if (todo.appTodoId) {
-          const issue = await this.backlogClient.getIssue(parseInt(todo.appTodoId));
-          if (board.projectRule !== ProjectRule.PARENT_TODO || issue.parentIssueId) {
-            return this.updateTodoInMulti(
-              todo,
-              todoAppUsers,
-              companyProjects,
-              changes,
-              newDates,
-              issue?.assignee?.id?.toString(),
-              issue?.milestone?.map(m => m.id?.toString()),
-            );
-          } else if (board.projectRule === ProjectRule.PARENT_TODO && !issue.parentIssueId) {
-            return await Promise.all([
-              this.deleteTodosByRecord([todo]),
-              this.createProjectByIssueBody(companyId, issue, todoAppUsers, board),
-            ]);
-          }
-        }
-      }),
-      ...targetProjects.map(async project => {
-        if (project.appProjectId) {
-          const issue = await this.backlogClient.getIssue(parseInt(project.appProjectId));
-          if (board.projectRule !== ProjectRule.PARENT_TODO || issue.parentIssueId) {
-            return await Promise.all([
-              this.deleteProjectsByRecord([project]),
-              this.createTodoByIssueBody(companyId, issue, todoAppUsers, companyProjects, board),
-            ]);
-          } else if (board.projectRule === ProjectRule.PARENT_TODO && !issue.parentIssueId) {
-            return this.updateProjectInMulti(
-              project,
-              todoAppUsers,
-              changes,
-              newDates,
-              issue?.assignee?.id?.toString(),
-            );
-          }
-        }
-      }),
-    ]);
+    const targetIssueIds = payload.content.link.map(l => parseInt(l.id));
+    await this.fetchTodos(companyId, payload.project.id, board, targetIssueIds);
   }
 
   public async createProjectByMilestonePayload(
@@ -347,40 +185,34 @@ export default class BacklogRepository {
     todoAppUsers: TodoAppUser[],
     board: Board,
   ) {
-    await this.initClient(companyId);
-    const issue = await this.backlogClient.getIssue(issueId);
+    const client = await BacklogClient.init(companyId);
+    const issue = await client.getIssue(issueId);
     if (issue) {
       await this.createProjectByIssueBody(companyId, issue, todoAppUsers, board);
     }
   }
 
-  public async updateProjectByIssueId(
+  public async updateProjectOrTodoByIssueId(
     companyId: string,
     issueId: number,
     todoAppUsers: TodoAppUser[],
     companyProjects: Project[],
     board: Board,
+    host: string,
   ) {
-    await this.initClient(companyId);
-    const issue = await this.backlogClient.getIssue(issueId);
+    const client = await BacklogClient.init(companyId);
+    const issue = await client.getIssue(issueId);
+    const properties = this.getProperties(board.propertyUsages);
     if (issue) {
-      const [existingProject, existingTodo] = await Promise.all([
-        companyProjects.find(p => p.appProjectId === issueId.toString()),
-        TodoRepository.findOneByAppTodoId(TodoAppId.BACKLOG, issueId.toString(), companyId),
-      ]);
-      if (existingProject) {
-        await Promise.all([
-          this.deleteProjectsByRecord([existingProject]),
-          this.createTodoByIssueBody(companyId, issue, todoAppUsers, companyProjects, board),
-        ]);
-      } else if (existingTodo) {
-        await Promise.all([
-          this.deleteTodosByRecord([existingTodo]),
-          this.createProjectByIssueBody(companyId, issue, todoAppUsers, board),
-        ]);
-      } else {
-        await this.createProjectByIssueBody(companyId, issue, todoAppUsers, board);
-      }
+      await this.registerProjectsOrTodosFromIssues(
+        companyId,
+        [issue],
+        todoAppUsers,
+        companyProjects,
+        properties,
+        board,
+        host,
+      );
     }
   }
 
@@ -398,26 +230,33 @@ export default class BacklogRepository {
     companyId: string,
     projectId: number,
     board: Board,
+    issueIds?: number[],
   ) {
     const properties = this.getProperties(board.propertyUsages);
     const [client, implementedTodoApp] = await Promise.all([
       BacklogClient.init(companyId),
       ImplementedTodoAppRepository.findOne({
         where: { companyId, todoAppId: TodoAppId.BACKLOG },
-        relations: ["company.users.todoAppUser.user", "company.projects"],
+        relations: ["company.users.todoAppUser.user"],
       }),
     ]);
     if (implementedTodoApp) {
       const host = implementedTodoApp.appWorkspaceId;
-      const todoAppUsers = implementedTodoApp.company.users.map(u => u.todoAppUser);
-      const companyProjects = implementedTodoApp.company.projects;
-      await Promise.all([4, 3, 2].map(async parentChild => {
+      const todoAppUsers = implementedTodoApp.company.users?.map(u => u.todoAppUser) ?? [];
+      const fetchOrder = [ParentChild.EXCLUDE_CHILD, ParentChild.ONLY_CHILD];
+      for (const parentChild of fetchOrder) {
         const limit = 100;
         let offset: number = 0;
         let hasMore: boolean = true;
         while (hasMore) {
           try {
-            const issues = await client.getIssues([projectId], limit, offset, { parentChild });
+            const [issues, companyProjects] = await Promise.all([
+              client.getIssues([projectId], limit, offset, {
+                parentChild,
+                id: issueIds?.length ? issueIds : undefined,
+              }),
+              ProjectRepository.findBy({ companyId }),
+            ]);
             hasMore = issues.length === limit;
             offset += issues.length;
             await this.registerProjectsOrTodosFromIssues(
@@ -434,7 +273,7 @@ export default class BacklogRepository {
             break;
           }
         }
-      }));
+      }
     }
   }
 
@@ -456,8 +295,8 @@ export default class BacklogRepository {
     projectId: number,
     milestoneId: number,
   ) {
-    await this.initClient(companyId);
-    const milestone = await this.backlogClient.getMilestone(projectId, milestoneId);
+    const client = await BacklogClient.init(companyId);
+    const milestone = await client.getMilestone(projectId, milestoneId);
     if (milestone) {
       await this.createProjectByMilestoneBody(milestone, companyId);
     }
@@ -520,41 +359,6 @@ export default class BacklogRepository {
     ]);
   }
 
-  private async createTodoByIssueBody(
-    companyId: string,
-    issue: BacklogIssueWithDetail,
-    todoAppUsers: TodoAppUser[],
-    companyProjects: Project[],
-    board: Board,
-  ) {
-    const properties = this.getProperties(board.propertyUsages);
-    const { startDate, deadline } = this.getDeadline(issue.startDate, issue.dueDate);
-    const isDone = this.isInStatus(properties.isDone, issue.status.id.toString());
-    const isClosed = this.isInStatus(properties.isClosed, issue.status.id.toString());
-    const isDelayed = deadline
-      ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
-      : null;
-    const todo = new Todo({
-      name: issue.summary,
-      todoAppId: TodoAppId.BACKLOG,
-      company: companyId,
-      appTodoId: String(issue.id),
-      startDate,
-      deadline,
-      isDone,
-      isClosed,
-    });
-    const { id } = await TodoRepository.save(todo);
-    const users = this.getAssignees(todoAppUsers, issue.assignee.id);
-    const projects = this.getProjects(companyProjects, board, issue.parentIssueId, issue.milestone);
-    const args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);
-    await Promise.all([
-      TodoUserRepository.saveTodoUsers([{ todoId: id, users, currentUserIds: [] }]),
-      TodoProjectRepository.saveTodoProjects([{ todoId: id, projects, currentProjectIds: [] }]),
-      TodoHistoryRepository.saveHistories(args.map(a => ({ ...a, id }))),
-    ]);
-  }
-
   private async registerProjectsOrTodosFromIssues(
     companyId: string,
     issues: BacklogIssueWithDetail[],
@@ -612,12 +416,13 @@ export default class BacklogRepository {
               deadline,
               isDone,
               isClosed,
+              updatedAt: toJapanDateTime(new Date()),
             });
             updatedProjects.push(existingProject);
             projectUserUpdates.push({
               projectId: existingProject.id,
               users,
-              currentUserIds: existingProject.todoUsers.map(tu => tu.userId),
+              currentUserIds: existingProject.todoUsers?.map(tu => tu.userId) ?? [],
             });
             projectHistoryArgs.push(...args.map(a => (<IProjectHistoryOption>{
               ...a,
@@ -640,24 +445,25 @@ export default class BacklogRepository {
               isDone,
               isClosed,
             });
-            const savedProject = await TodoRepository.save(project);
-            todoUserUpdates.push({ todoId: savedProject.id, users, currentUserIds: [] });
-            todoProjectUpdates.push({ todoId: savedProject.id, projects, currentProjectIds: [] });
-            const args = setHistoriesForNewTodo(
+            const savedProject = await ProjectRepository.save(project);
+            projectUserUpdates.push({ projectId: savedProject.id, users, currentUserIds: [] });
+            const args = setHistoriesForNewProject(
               users,
-              projects,
               startDate,
               deadline,
               isDone,
               isClosed,
               isDelayed,
             );
-            todoHistoryArgs.push(...args.map(a => (<ITodoHistoryOption>{
+            projectHistoryArgs.push(...args.map(a => (<IProjectHistoryOption>{
               ...a,
               id: savedProject.id,
             })));
           }
         } else if (registerAsTodo) {
+          const appParentIds = board.projectRule === ProjectRule.PARENT_TODO && issue.parentIssueId
+            ? [issue.parentIssueId.toString()]
+            : null;
           if (existingTodo) {
             const args = await setHistoriesForExistingTodo(
               existingTodo,
@@ -672,21 +478,23 @@ export default class BacklogRepository {
             Object.assign(existingTodo, <Partial<Todo>>{
               name: issue.summary,
               companyId,
+              appParentIds,
               startDate,
               deadline,
               isDone,
               isClosed,
+              updatedAt: toJapanDateTime(new Date()),
             });
             updatedTodos.push(existingTodo);
             todoUserUpdates.push({
               todoId: existingTodo.id,
               users,
-              currentUserIds: existingTodo.todoUsers.map(tu => tu.userId),
+              currentUserIds: existingTodo.todoUsers?.map(tu => tu.userId) ?? [],
             });
             todoProjectUpdates.push({
               todoId: existingTodo.id,
               projects,
-              currentProjectIds: existingTodo.todoProjects.map(tp => tp.projectId),
+              currentProjectIds: existingTodo.todoProjects?.map(tp => tp.projectId) ?? [],
             });
             todoHistoryArgs.push(...args.map(a => (<ITodoHistoryOption>{
               ...a,
@@ -700,7 +508,8 @@ export default class BacklogRepository {
               name: issue.summary,
               todoAppId: TodoAppId.BACKLOG,
               company: companyId,
-              appTodoId: String(issue.id),
+              appTodoId: issue.id.toString(),
+              appParentIds,
               appUrl: this.generateTodoUrl(host, issue.issueKey),
               appCreatedAt: new Date(issue.created),
               appCreatedBy: issue.assignee?.id.toString(),
@@ -745,6 +554,9 @@ export default class BacklogRepository {
   }
 
   private async deleteProjectsByRecord(projects: Project[]) {
+    if (!projects.length) {
+      return;
+    }
     await Promise.all([
       ProjectRepository.softRemove(projects),
       ProjectHistoryRepository.saveHistories(projects.map(project => ({
@@ -764,48 +576,6 @@ export default class BacklogRepository {
         action: HistoryAction.DELETE,
       }))),
     ]);
-  }
-
-  private generateTodoFromIssuePayload(
-    companyId: string,
-    payload: BacklogWebhookPayload<SingleIssuePayload>,
-    host: string,
-    todoAppUsers: TodoAppUser[],
-    companyProjects: Project[],
-    board: Board,
-    todo?: Todo,
-  ): { todo: Todo, projects: Project[], assignees: User[], isDelayed: boolean } {
-    const { project, content, created, createdUser } = payload ?? {};
-    const properties = this.getProperties(board.propertyUsages);
-    const name = content.summary;
-    const { startDate, deadline } = this.getDeadline(content.startDate, content.dueDate);
-    const isDone = this.isInStatus(properties.isDone, content.status.id.toString());
-    const isClosed = this.isInStatus(properties.isClosed, content.status.id.toString());
-    if (todo) {
-      Object.assign(todo, <Todo>{ name, startDate, deadline, isDone, isClosed });
-    } else {
-      todo = new Todo({
-        name,
-        todoAppId: TodoAppId.BACKLOG,
-        company: companyId,
-        appTodoId: content.id?.toString(),
-        appUrl: this.generateTodoUrl(host, `${ project.projectKey }-${ content.key_id }`),
-        appCreatedAt: new Date(created),
-        appCreatedBy: createdUser.id.toString(),
-        startDate,
-        deadline,
-        isDone,
-        isClosed,
-      });
-    }
-    const assignees = todoAppUsers
-      .filter(tau => tau.appUserId === content.assignee?.id.toString())
-      .map(tau => tau.user);
-    const projects = this.getProjects(companyProjects, board, content.parentIssueId, content.milestone);
-    const isDelayed = deadline
-      ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
-      : null;
-    return { todo, assignees, projects, isDelayed };
   }
 
   private generateProjectFromMilestonePayload(
@@ -842,95 +612,6 @@ export default class BacklogRepository {
     return { project, isDelayed };
   }
 
-  private async updateTodoInMulti(
-    todo: Todo,
-    todoAppUsers: TodoAppUser[],
-    companyProjects: Project[],
-    changesInTodo: Partial<Todo>,
-    newDates: Partial<DateSet>,
-    newAssigneeId: string | null,
-    newMilestoneIds: string[],
-  ) {
-    const currentUserIds = todo.todoUsers.map(tu => tu.userId);
-    const currentProjectIds = todo.todoProjects.map(tp => tp.projectId);
-    const { startDate, deadline } = this.getDeadline(
-      newDates.startDate
-        ? (newDates.startDate !== "" ? newDates.startDate : null)
-        : todo.startDate,
-      newDates.deadline
-        ? (newDates.deadline !== "" ? newDates.deadline : null)
-        : todo.deadline,
-    );
-    const updatedTodo: Todo = <Todo>{ ...todo, ...changesInTodo, startDate, deadline };
-    const assignees = newAssigneeId !== ""
-      ? todoAppUsers
-        .filter(tau => tau.appUserId === newAssigneeId)
-        .map(tau => tau.user)
-      : [];
-    const projects = companyProjects
-      .filter(cp => newMilestoneIds.includes(cp.appProjectId));
-    const isDelayed = deadline
-      ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
-      : null;
-    const args = await setHistoriesForExistingTodo(
-      todo,
-      assignees,
-      projects,
-      startDate,
-      deadline,
-      updatedTodo.isDone,
-      updatedTodo.isClosed,
-      isDelayed,
-    );
-    await Promise.all([
-      TodoRepository.upsert(updatedTodo, []),
-      TodoHistoryRepository.saveHistories(args.map(a => ({ ...a, id: updatedTodo.id }))),
-      TodoUserRepository.saveTodoUsers([{ todoId: updatedTodo.id, users: assignees, currentUserIds }]),
-      TodoProjectRepository.saveTodoProjects([{ todoId: updatedTodo.id, projects, currentProjectIds }]),
-    ]);
-  }
-
-  private async updateProjectInMulti(
-    project: Project,
-    todoAppUsers: TodoAppUser[],
-    changesInProject: Partial<Project>,
-    newDates: Partial<DateSet>,
-    newAssigneeId: string | null,
-  ) {
-    const currentUserIds = project.projectUsers.map(pu => pu.userId);
-    const { startDate, deadline } = this.getDeadline(
-      newDates.startDate
-        ? (newDates.startDate !== "" ? newDates.startDate : null)
-        : project.startDate,
-      newDates.deadline
-        ? (newDates.deadline !== "" ? newDates.deadline : null)
-        : project.deadline,
-    );
-    const updatedProject: Project = <Project>{ ...project, ...changesInProject, startDate, deadline };
-    const assignees = newAssigneeId !== ""
-      ? todoAppUsers
-        .filter(tau => tau.appUserId === newAssigneeId)
-        .map(tau => tau.user)
-      : [];
-    const isDelayed = deadline
-      ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
-      : null;
-    const args = await setHistoriesForExistingProject(
-      project,
-      assignees,
-      startDate,
-      deadline,
-      updatedProject.isDone,
-      updatedProject.isClosed,
-      isDelayed,
-    );
-    await Promise.all([
-      ProjectRepository.upsert(updatedProject, []),
-      ProjectHistoryRepository.saveHistories(args.map(a => ({ ...a, id: updatedProject.id }))),
-      ProjectUserRepository.saveProjectUsers([{ projectId: updatedProject.id, users: assignees, currentUserIds }]),
-    ]);
-  }
-
   private getProperties(usages: PropertyUsage[]) {
     const propertyIds = ["status"];
     return {
@@ -941,7 +622,7 @@ export default class BacklogRepository {
 
   private getAssignees(todoAppUsers: TodoAppUser[], appUserId: number) {
     return todoAppUsers
-      .filter(tau => tau.appUserId === appUserId.toString())
+      .filter(tau => tau.appUserId === appUserId?.toString())
       .map(tau => tau.user);
   }
 

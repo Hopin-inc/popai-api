@@ -26,6 +26,7 @@ export const reliefActions: ActionItem[] = [
 ];
 
 export const SlackActionLabel = {
+  REMIND: "REMIND",
   PROSPECT: "PROSPECT",
   RELIEF_ACTION: "RELIEF_ACTION",
   OPEN_RELIEF_COMMENT_MODAL: "OPEN_RELIEF_COMMENT",
@@ -42,3 +43,5 @@ export const ReliefCommentModalItems = {
 export const AskPlanModalItems = {
   TODOS: "TODOS",
 };
+
+export const REMIND_MAX_ITEMS = 3;

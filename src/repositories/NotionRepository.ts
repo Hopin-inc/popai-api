@@ -43,6 +43,7 @@ import { ProjectRepository } from "@/repositories/transactions/ProjectRepository
 import { ProjectUserRepository } from "@/repositories/transactions/ProjectUserRepository";
 import { ProjectHistoryRepository } from "@/repositories/transactions/ProjectHistoryRepository";
 
+type GenerateType = "project" | "todo";
 const TODO_APP_ID = TodoAppId.NOTION;
 
 @Service()
@@ -71,7 +72,7 @@ export default class NotionRepository {
     company: Company,
     board: Board,
     lastUpdatedDate: Date,
-    generateType?: Awaited<ReturnType<typeof this.generateTodoFromApi>>["type"],
+    generateType?: GenerateType,
   ) {
     let hasMore: boolean = true;
     let startCursor: string | undefined = undefined;
@@ -101,7 +102,7 @@ export default class NotionRepository {
     pageIds: string[],
     company: Company,
     board: Board,
-    generateType?: Awaited<ReturnType<typeof this.generateTodoFromApi>>["type"],
+    generateType?: GenerateType,
   ) {
     try {
       const projects: Project[] = [];
@@ -199,7 +200,9 @@ export default class NotionRepository {
   } | null> {
     const propertyUsages = board.propertyUsages;
     try {
-      const pageInfo = await this.notionClient.retrievePage({ page_id: pageId }) as PageObjectResponse;
+      const pageInfo = await this.notionClient.retrievePage({
+        page_id: pageId,
+      }) as PageObjectResponse;
       if (!pageInfo?.properties) {
         return null;
       }
@@ -262,6 +265,7 @@ export default class NotionRepository {
             deadline,
             isDone,
             isClosed,
+            updatedAt: toJapanDateTime(new Date()),
           });
         } else {
           args = setHistoriesForNewProject(users, startDate, deadline, isDone, isClosed, isDelayed);
@@ -308,6 +312,7 @@ export default class NotionRepository {
             isDone,
             isClosed,
             appParentIds,
+            updatedAt: toJapanDateTime(new Date()),
           });
         } else {
           args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);

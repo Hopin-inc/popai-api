@@ -1,4 +1,5 @@
 export const PROSPECT_BATCH_INTERVAL = 15;  // minutes
+export const REMIND_BATCH_INTERVAL = 15;  // minutes
 
 export const ProspectTargetFrom = {
   BEGIN_OF_DURATION: 1,

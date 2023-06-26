@@ -12,6 +12,7 @@ import { ActivityTypeIds } from "@/consts/backlog";
 import BacklogRepository from "@/repositories/BacklogRepository";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import logger from "@/libs/logger";
 
 export default class BacklogController extends Controller {
   private readonly backlogOAuthService: BacklogOAuthClient;
@@ -24,6 +25,10 @@ export default class BacklogController extends Controller {
   }
 
   public async handleWebhook(companyId: string, payload: BacklogWebhookPayload) {
+    logger.info(
+      `Received: Backlog Webhook { type: ${ payload.type }, companyId: ${ companyId }`,
+      payload,
+    );
     const todoAppId = TodoAppId.BACKLOG;
     const [
       implementedTodoApp,
@@ -36,6 +41,7 @@ export default class BacklogController extends Controller {
       }),
       ProjectRepository.find({
         where: { companyId, todoAppId },
+        relations: ["projectUsers"],
       }),
       BoardRepository.findOneByConfig(companyId),
     ]);
@@ -46,42 +52,15 @@ export default class BacklogController extends Controller {
       const projectByMilestone = board.projectRule === ProjectRule.MILESTONE;
       switch (payload.type) {
         case ActivityTypeIds.ISSUE_CREATED:
-          if (projectByParentTodo && !payload.content.parentIssueId) {
-            return this.backlogRepository.createProjectByIssueId(
-              companyId,
-              payload.content.id,
-              todoAppUsers,
-              board,
-            );
-          } else {
-            return this.backlogRepository.createTodoByIssuePayload(
-              companyId,
-              payload,
-              host,
-              todoAppUsers,
-              companyProjects,
-              board,
-            );
-          }
         case ActivityTypeIds.ISSUE_UPDATED:
-          if (projectByParentTodo && !payload.content.parentIssueId) {
-            return this.backlogRepository.updateProjectByIssueId(
-              companyId,
-              payload.content.id,
-              todoAppUsers,
-              companyProjects,
-              board,
-            );
-          } else {
-            return this.backlogRepository.updateTodoByIssuePayload(
-              companyId,
-              payload,
-              host,
-              todoAppUsers,
-              companyProjects,
-              board,
-            );
-          }
+          return this.backlogRepository.updateProjectOrTodoByIssueId(
+            companyId,
+            payload.content.id,
+            todoAppUsers,
+            companyProjects,
+            board,
+            host,
+          );
         case ActivityTypeIds.ISSUE_DELETED:
           if (projectByParentTodo && !payload.content.parentIssueId) {
             return this.backlogRepository.deleteProjectByIssuePayload(companyId, payload);
@@ -89,13 +68,7 @@ export default class BacklogController extends Controller {
             return this.backlogRepository.deleteTodoByIssuePayload(companyId, payload);
           }
         case ActivityTypeIds.ISSUE_MULTI_UPDATED:
-          return this.backlogRepository.updateMultiTodos(
-            companyId,
-            payload,
-            todoAppUsers,
-            companyProjects,
-            board,
-          );
+          return this.backlogRepository.updateMultiTodos(companyId, payload, board);
         case ActivityTypeIds.MILESTONE_CREATED:
           if (projectByMilestone) {
             return this.backlogRepository.createProjectByMilestonePayload(

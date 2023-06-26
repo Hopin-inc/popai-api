@@ -1,53 +1,48 @@
 import { Container, Service } from "typedi";
 import SlackRepository from "@/repositories/SlackRepository";
-import { AskType, ChatToolId } from "@/consts/common";
 import logger from "@/libs/logger";
+import { RemindConfigViewRepository } from "@/repositories/views/RemindConfigViewRepository";
 import Company from "@/entities/settings/Company";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
-import { findMatchedTiming } from "@/utils/misc";
-import { includesDayOfToday, isHolidayToday, toJapanDateTime } from "@/utils/datetime";
-import { PROSPECT_BATCH_INTERVAL } from "@/consts/scheduler";
-import { ProspectConfigViewRepository } from "@/repositories/views/ProspectConfigViewRepository";
 import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRepository";
+import { findMatchedTiming } from "@/utils/misc";
+import { REMIND_BATCH_INTERVAL } from "@/consts/scheduler";
+import { includesDayOfToday, isHolidayToday, toJapanDateTime } from "@/utils/datetime";
+import { ChatToolId, RemindType } from "@/consts/common";
 
 @Service()
-export default class ProspectService {
+export default class RemindService {
   private slackRepository: SlackRepository;
 
   constructor() {
     this.slackRepository = Container.get(SlackRepository);
   }
 
-  public async ask(): Promise<any> {
+  public async send(): Promise<any> {
     try {
-      const [companies, prospectConfigViews] = await Promise.all([
+      const [companies, remindConfigViews] = await Promise.all([
         this.getTargetCompanies(),
-        ProspectConfigViewRepository.find(),
+        RemindConfigViewRepository.find(),
       ]);
       await Promise.all(companies.map(async company => {
-        await Promise.all(company.prospectConfigs?.map(async prospectConfig => {
-          const prospectConfigView = prospectConfigViews.find(pc => pc.configId === prospectConfig.id);
-          if (prospectConfigView?.enabled && !prospectConfigView?.isValid) return;
+        await Promise.all(company.remindConfigs?.map(async remindConfig => {
+          const remindConfigView = remindConfigViews.find(rc => rc.configId === remindConfig.id);
+          if (remindConfigView?.enabled && !remindConfigView.isValid) return;
 
-          const { chatToolId, timings, type } = prospectConfig;
-          const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+          const { chatToolId, timings, type } = remindConfig;
+          const matchedTiming = findMatchedTiming(timings, REMIND_BATCH_INTERVAL);
           if (!matchedTiming) return;
 
           const logMeta = {
             company: company.id,
             chatTool: chatToolId,
             type,
-            mode: matchedTiming.mode,
           };
-          const target = type === AskType.TODOS ? "todos" : "projects";
+          const target = type === RemindType.TODOS ? "todos" : "projects";
           logger.info(`Asking prospects of ${ target } for company ${ company.id }`, logMeta);
           switch (chatToolId) {
             case ChatToolId.SLACK:
-              if (type === AskType.TODOS) {
-                await this.slackRepository.askTodos(company, matchedTiming);
-              } else if (type === AskType.PROJECTS) {
-                await this.slackRepository.askProjects(company, matchedTiming);
-              }
+              await this.slackRepository.remind(company, matchedTiming, remindConfig);
               break;
             default:
               break;
@@ -69,19 +64,19 @@ export default class ProspectService {
           "implementedChatTool",
           "timing",
           "timingExceptions",
-          "prospectConfigs.timings",
+          "remindConfigs.timings",
         ],
       }),
       UserConfigViewRepository.find(),
     ]);
     return companies.filter(company => {
-      const { prospectConfigs, timing, timingExceptions } = company;
+      const { remindConfigs, timing, timingExceptions } = company;
       const userConfigView = userConfigViews.find(ucv => ucv.companyId === company.id);
       if (!userConfigView?.isValid) return false;
-      const filteredConfigs = prospectConfigs.filter(prospectConfig => {
-        if (prospectConfig && timing) {
-          const { enabled, timings } = prospectConfig;
-          const matchedTiming = findMatchedTiming(timings, PROSPECT_BATCH_INTERVAL);
+      const filteredConfigs = remindConfigs.filter(remindConfig => {
+        if (remindConfig && timing) {
+          const { enabled, timings } = remindConfig;
+          const matchedTiming = findMatchedTiming(timings, REMIND_BATCH_INTERVAL);
           const timingException = timingExceptions.find(e => e.date === toJapanDateTime(new Date()));
           return (
             enabled
@@ -93,7 +88,7 @@ export default class ProspectService {
         } else return false;
       });
       if (filteredConfigs.length) {
-        company.prospectConfigs = filteredConfigs;
+        company.remindConfigs = filteredConfigs;
         return true;
       } else return false;
     });

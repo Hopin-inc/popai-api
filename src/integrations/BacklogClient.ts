@@ -1,6 +1,6 @@
 import { Service } from "typedi";
 import { FindOptionsWhere, IsNull, Not } from "typeorm";
-import { Backlog } from "backlog-js";
+import { Backlog, Error as BacklogErrorModule } from "backlog-js";
 import "isomorphic-fetch";
 import "isomorphic-form-data";
 import { TodoAppId } from "@/consts/common";
@@ -8,21 +8,25 @@ import { IProperty, ISelectItem } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import { StatusCodes } from "@/common/StatusCodes";
 import {
-  BacklogMilestoneDetail, GetCommentResponse,
+  BacklogMilestoneDetail,
+  GetCommentResponse,
   GetIssueListResponse,
   GetIssueResponse,
   GetMilestonesResponse,
   GetProjectListResponse,
   GetStatusListResponse,
   GetUserListResponse,
-  GetWebhookListResponse, PostCommentResponse,
-  PostWebhookResponse, UpdateCommentResponse,
+  GetWebhookListResponse,
+  PostCommentResponse,
+  PostWebhookResponse,
+  UpdateCommentResponse,
 } from "@/types/backlog";
 import { ActivityTypeIds } from "@/consts/backlog";
 import { HttpException } from "@/exceptions";
 import BacklogOAuthClient from "@/integrations/BacklogOAuthClient";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import { Issue } from "backlog-js/dist/types/option";
+import logger from "@/libs/logger";
 
 const RETRY_LIMIT: number = 2;
 
@@ -33,7 +37,6 @@ export default class BacklogClient {
   private refreshToken: string;
   private host: string;
   private baseUrl?: string;
-  private retry: number;
 
   public static async init(companyId: string, baseUrl?: string): Promise<BacklogClient> {
     const ita = await ImplementedTodoAppRepository.findOneBy({
@@ -48,15 +51,11 @@ export default class BacklogClient {
       service.refreshToken = ita.refreshToken;
       service.host = ita.appWorkspaceId;
       service.baseUrl = baseUrl;
-      service.retry = 0;
       return service;
     }
   }
 
   private async refresh() {
-    if (++this.retry >= RETRY_LIMIT) {
-      throw new HttpException("Retry limit exceeded", StatusCodes.INTERNAL_SERVER_ERROR);
-    }
     const oauth2 = new BacklogOAuthClient();
     const accessToken = await oauth2.regenerateToken(this.refreshToken, this.host);
     const criteria: FindOptionsWhere<ImplementedTodoApp> = {
@@ -70,12 +69,24 @@ export default class BacklogClient {
     });
   }
 
-  private async retryOnError<T>(func: (...args: any[]) => Promise<T>): Promise<T> {
+  private async retryOnError<T>(func: (...args: any[]) => Promise<T>, retry: number = 0): Promise<T> {
     try {
       return await func();
     } catch (error) {
-      await this.refresh();
-      return this.retryOnError(func);
+      logger.warn(error.message, error);
+      if (++retry >= RETRY_LIMIT) {
+        if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
+          const logMeta = {
+            company: this.companyId,
+            host: this.host,
+          };
+          logger.error(`Failed in Backlog token refreshment: company ${ this.companyId }`, logMeta);
+        }
+        throw new HttpException("Retry limit exceeded", StatusCodes.INTERNAL_SERVER_ERROR);
+      } else {
+        await this.refresh();
+        return this.retryOnError(func, retry);
+      }
     }
   }
 

@@ -23,11 +23,13 @@ import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRe
 import SlackClient from "@/integrations/SlackClient";
 import { ProspectConfigRepository } from "@/repositories/settings/ProspectConfigRepository";
 import { filterProspectTargetItems } from "@/utils/tasks";
-import { AskMode, AskType, ChatToolId, TodoAppId } from "@/consts/common";
+import { AskMode, AskType, ChatToolId, RemindType, TodoAppId } from "@/consts/common";
 import ProspectTiming from "@/entities/settings/ProspectTiming";
 import Project from "@/entities/transactions/Project";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
 import BacklogClient from "@/integrations/BacklogClient";
+import RemindTiming from "@/entities/settings/RemindTiming";
+import RemindConfig from "@/entities/settings/RemindConfig";
 
 const CHAT_TOOL_ID = ChatToolId.SLACK;
 
@@ -66,12 +68,12 @@ export default class SlackRepository {
   }
 
   public async pushSlackMessage(
-    user: User,
+    companyId: string,
     message: { blocks: (Block | KnownBlock)[], attachments?: MessageAttachment[] },
     channelId: string,
     threadId?: string,
   ): Promise<ChatPostMessageResponse> {
-    const slackBot = await SlackClient.init(user.companyId);
+    const slackBot = await SlackClient.init(companyId);
     const props: ChatPostMessageArguments = {
       channel: channelId,
       thread_ts: threadId,
@@ -162,9 +164,9 @@ export default class SlackRepository {
   public async askProjects(company: Company, _timing: ProspectTiming) {
     const projects = await this.getProspectProjects(company);
     if (projects?.length) {
-      await Promise.all(company.users.map(user => {
+      await Promise.all(company.users.map(async user => {
         const assignedProjects = projects.filter(p => p.users.map(u => u.id).includes(user.id));
-        this.askProspectsOnProjects(company, { projects: assignedProjects, users: [user] });
+        await this.askProspectsOnProjects(company, { projects: assignedProjects, users: [user] });
       }));
     }
   }
@@ -174,12 +176,12 @@ export default class SlackRepository {
       const message = SlackMessageBuilder.createAskPlansMessageOnTodos(timing.mode);
       const todos = await this.getProspectTodos(company);
       if (todos?.length) {
-        await Promise.all(company.users.map(user => {
+        await Promise.all(company.users.map(async user => {
           const assignedTodos = todos.filter(t => t.users.map(u => u.id).includes(user.id));
           if (assignedTodos.length > 2) {
-            this.sendDirectMessage(user, message);
+            await this.sendDirectMessage(user, message);
           } else if (assignedTodos.length > 0) {
-            this.askProspectsOnTodos(company, { todos: assignedTodos, users: [user] });
+            await this.askProspectsOnTodos(company, { todos: assignedTodos, users: [user] });
           }
         }));
       }
@@ -349,12 +351,33 @@ export default class SlackRepository {
     const shareMsg = SlackMessageBuilder.createShareReliefMessage(item, user, prospectValue, actionValue, comment, iconUrl);
     const [superiorUsers, pushedMessage] = await Promise.all([
       this.getSuperiorUsers(user.chatToolUser.appUserId),
-      this.pushSlackMessage(user, shareMsg, sharedChannel),
+      this.pushSlackMessage(user.companyId, shareMsg, sharedChannel),
       slackBot.updateMessage({ channel, ts, text: item.name, blocks: editedMsg }),
       this.storeEvidenceOnCommentResponded(item, prospect, comment),
     ]);
     const promptMsg = SlackMessageBuilder.createPromptDiscussionMessage(superiorUsers);
-    await this.pushSlackMessage(user, promptMsg, pushedMessage.channel, pushedMessage.ts);
+    await this.pushSlackMessage(user.companyId, promptMsg, pushedMessage.channel, pushedMessage.ts);
+  }
+
+  public async remind(
+    company: Company,
+    timing: RemindTiming,
+    config: RemindConfig,
+  ) {
+    const items: (Todo | Project)[] = config.type === RemindType.PROJECTS
+      ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
+      : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
+    if (items.length) {
+      const sharedMessage = SlackMessageBuilder.createPublicRemind(items);
+      await Promise.all([
+        ...company.users.map(async user => {
+          const assignedItems = items.filter(i => i.users.map(u => u.id).includes(user.id));
+          const message = SlackMessageBuilder.createPersonalRemind(assignedItems);
+          await this.sendDirectMessage(user, message);
+        }),
+        this.pushSlackMessage(company.id, sharedMessage, config.channel),
+      ]);
+    }
   }
 
   private async storeEvidenceOnCommentResponded<T extends Project | Todo>(

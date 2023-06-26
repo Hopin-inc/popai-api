@@ -28,6 +28,17 @@ export const AskMode = {
   BACKWARD: 2,
 } as const;
 
+export const RemindType = {
+  PROJECTS: 1,
+  TODOS: 2,
+} as const;
+
+export const RemindMode = {
+  UNDEFINED: 0,
+  INITIAL: 1,
+  AGAIN: 2,
+} as const;
+
 export const AllowedProjectRules = {
   [TodoAppId.NOTION]: [ProjectRule.PARENT_TODO, ProjectRule.CHILD_TODO, ProjectRule.SELECT],
   [TodoAppId.BACKLOG]: [ProjectRule.PARENT_TODO, ProjectRule.CHILD_TODO, ProjectRule.MILESTONE],

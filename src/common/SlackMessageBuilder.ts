@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { Block, Button, KnownBlock } from "@slack/web-api";
+import { Block, Button, ContextBlock, KnownBlock, SectionBlock } from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
@@ -10,6 +10,7 @@ import {
   prospects,
   reliefActions,
   ReliefCommentModalItems,
+  REMIND_MAX_ITEMS,
   SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
@@ -64,7 +65,63 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createAskActionMessageAfterProspect<T extends Project | Todo>(
+  public static createPublicRemind<T extends Project | Todo>(items: T[]) {
+    const blocks: KnownBlock[] = [
+      this.remindMessage,
+      this.remindContext,
+      ...items.slice(0, REMIND_MAX_ITEMS).map(item => this.getPublicRemind(item)),
+    ];
+    if (items.length > REMIND_MAX_ITEMS) {
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `他${ items.length - REMIND_MAX_ITEMS }件を見る`,
+        },
+      });
+    }
+    return { blocks };
+  }
+
+  public static createPersonalRemind<T extends Project | Todo>(items: T[]) {
+    const blocks: KnownBlock[] = [
+      this.remindMessage,
+      this.remindContext,
+      ...items.slice(0, REMIND_MAX_ITEMS).map(item => this.getPersonalRemind(item)),
+    ];
+    if (items.length > REMIND_MAX_ITEMS) {
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `他${ items.length - REMIND_MAX_ITEMS }件を見る`,
+        },
+      });
+    }
+    return { blocks };
+  }
+
+  private static readonly remindMessage: SectionBlock = {
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: "遅延しているタスクの期日を再設定しましょう😖",
+    },
+  };
+
+  private static readonly remindContext: ContextBlock = {
+    type: "context",
+    elements: [
+      {
+        type: "image",
+        image_url: "https://cdn-icons-png.flaticon.com/512/2556/2556974.png", // TODO: Avoid hard coding.
+        alt_text: "alert",
+      },
+      { type: "mrkdwn", text: "疑問や不安があれば、関係者に聞きましょう。" },
+    ],
+  };
+
+    public static createAskActionMessageAfterProspect<T extends Project | Todo>(
     item: T,
     prospectId: number,
   ) {
@@ -177,6 +234,43 @@ export default class SlackMessageBuilder {
         text: `${ itemTitle }は期日に間に合いそうですか？\n`
           + `\`期日\` ${ this.getDeadlineText(item.deadline) }`,
       },
+    };
+  }
+
+  private static getPublicRemind<T extends Todo | Project>(item: T): SectionBlock {
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
+    const users = item.users?.length
+      ? item.users
+        .map(user => user?.chatToolUser?.appUserId ? `<@${ user?.chatToolUser?.appUserId }>` : user?.name)
+        .join(", ")
+      : "不在";
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*\n`
+          + `担当者: ${ users }`,
+      },
+    };
+  }
+
+  private static getPersonalRemind<T extends Todo | Project>(item: T): SectionBlock {
+    const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${ itemTitle }\n期日: *${ this.getDeadlineText(item.deadline) }*`,
+      },
+      accessory: item.appUrl ? {
+        type: "button",
+        text: {
+          type: "plain_text",
+          emoji: true,
+          text: "再設定する",
+        },
+        url: item.appUrl,
+      } : undefined,
     };
   }
 
