@@ -265,6 +265,7 @@ export default class NotionRepository {
             deadline,
             isDone,
             isClosed,
+            updatedAt: toJapanDateTime(new Date()),
           });
         } else {
           args = setHistoriesForNewProject(users, startDate, deadline, isDone, isClosed, isDelayed);
@@ -311,6 +312,7 @@ export default class NotionRepository {
             isDone,
             isClosed,
             appParentIds,
+            updatedAt: toJapanDateTime(new Date()),
           });
         } else {
           args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);

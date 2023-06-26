@@ -26,7 +26,7 @@ export default class BacklogController extends Controller {
 
   public async handleWebhook(companyId: string, payload: BacklogWebhookPayload) {
     logger.info(
-      `Received: Backlog Webhook { type: ${ payload.type } }`,
+      `Received: Backlog Webhook { type: ${ payload.type }, companyId: ${ companyId }`,
       payload,
     );
     const todoAppId = TodoAppId.BACKLOG;
@@ -68,13 +68,7 @@ export default class BacklogController extends Controller {
             return this.backlogRepository.deleteTodoByIssuePayload(companyId, payload);
           }
         case ActivityTypeIds.ISSUE_MULTI_UPDATED:
-          return this.backlogRepository.updateMultiTodos(
-            companyId,
-            payload,
-            todoAppUsers,
-            companyProjects,
-            board,
-          );
+          return this.backlogRepository.updateMultiTodos(companyId, payload, board);
         case ActivityTypeIds.MILESTONE_CREATED:
           if (projectByMilestone) {
             return this.backlogRepository.createProjectByMilestonePayload(

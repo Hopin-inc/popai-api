@@ -73,6 +73,7 @@ export default class BacklogClient {
     try {
       return await func();
     } catch (error) {
+      logger.warn(error.message, error);
       if (++retry >= RETRY_LIMIT) {
         if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
           const logMeta = {
