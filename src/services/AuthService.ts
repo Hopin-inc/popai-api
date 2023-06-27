@@ -25,6 +25,9 @@ export default class AuthService {
   }
 
   public async getAccount(id: string): Promise<Company> {
-    return await CompanyRepository.findOneBy({ id });
+    return await CompanyRepository.findOne({
+      where: { id },
+      relations: ["implementedChatTool"],
+    });
   }
 }

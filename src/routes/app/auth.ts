@@ -21,8 +21,11 @@ router.get("/me", async (req, res) => {
       const controller = new AuthController();
       const company = await controller.fetchLoginState(uid);
       if (company) {
-        const { name } = company;
-        const response: AccountInfo = { name };
+        const { name, implementedChatTool } = company;
+        const response: AccountInfo = {
+          name,
+          isRegistered: !!implementedChatTool.accessToken,
+        };
         ApiResponse.successRes(res, response);
       } else {
         ApiResponse.errRes(res, AccountErrors.NoMatchedAccount, StatusCodes.UNAUTHORIZED);
@@ -66,11 +69,14 @@ router.get("/login", async (req, res) => {
       const providerId = idToken.firebase.sign_in_provider;
       const appInstallUserId = idToken.firebase.identities[providerId];
       if (company) {
-        const { name } = company;
+        const { name, implementedChatTool } = company;
         req.session.uid = uid;
         req.session.company = company;
         req.session.registered = true;
-        const response: AccountInfo = { name };
+        const response: AccountInfo = {
+          name,
+          isRegistered: !!implementedChatTool.accessToken,
+        };
         ApiResponse.successRes(res, response);
       } else if (uid) {
         const company = await CompanyRepository.save(new Company(uid));
