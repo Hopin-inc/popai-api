@@ -35,7 +35,7 @@ export default class Company extends BaseEntity {
   )
   implementedTodoApp: ImplementedTodoApp;
 
-  @OneToMany(
+  @OneToOne(
     () => ImplementedChatTool,
     implementedChatTool => implementedChatTool.company,
     { cascade: true },

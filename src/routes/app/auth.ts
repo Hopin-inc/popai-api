@@ -70,12 +70,13 @@ router.get("/login", async (req, res) => {
       const appInstallUserId = idToken.firebase.identities[providerId];
       if (company) {
         const { name, implementedChatTool } = company;
+        const isRegistered = !!implementedChatTool.accessToken;
         req.session.uid = uid;
         req.session.company = company;
-        req.session.registered = true;
+        req.session.registered = isRegistered;
         const response: AccountInfo = {
           name,
-          isRegistered: !!implementedChatTool.accessToken,
+          isRegistered,
         };
         ApiResponse.successRes(res, response);
       } else if (uid) {
