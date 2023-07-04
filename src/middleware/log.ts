@@ -8,6 +8,7 @@ export const requestLog = (req: Request, _res: Response, next: NextFunction) => 
     company: req.session?.company?.id,
     referrer: req.headers.referer,
     memory: getMemoryUsage(),
+    body: req.body,
   });
   next();
 };
