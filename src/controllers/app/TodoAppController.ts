@@ -119,12 +119,7 @@ export default class TodoAppController extends Controller {
     if (board) {
       board.appBoardId = appBoardId;
       board.projectRule = projectRule ?? board.projectRule;
-      await Promise.all([
-        BoardRepository.upsert(board, []),
-        board.propertyUsages && board.propertyUsages.length
-          ? PropertyUsageRepository.softDelete(board.propertyUsages.map(usage => usage.id))
-          : null,
-      ]);
+      await BoardRepository.upsert(board, []);
     } else {
       board = await BoardRepository.save(
         new Board({ todoAppId, appBoardId, projectRule, company: companyId }),
