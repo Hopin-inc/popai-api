@@ -1,4 +1,5 @@
 import { Service } from "typedi";
+import { setTimeout } from "node:timers/promises";
 import { NotionPropertyType, TodoAppId } from "@/consts/common";
 import { IProperty, ISelectItem } from "@/types/app";
 import { Client } from "@notionhq/client";
@@ -11,21 +12,47 @@ import {
   UpdatePageParameters,
 } from "@notionhq/client/build/src/api-endpoints";
 import { IsNull, Not } from "typeorm";
+import logger from "@/libs/logger";
+import { HttpException } from "@/exceptions";
+
+const RETRY_LIMIT = 3;
+const RETRY_INTERVAL = 60_000;
 
 @Service()
 export default class NotionClient {
   private client: Client;
 
   public static async init(companyId: string): Promise<NotionClient> {
-    const notionInfo = await ImplementedTodoAppRepository.findOneBy({
+    const ita = await ImplementedTodoAppRepository.findOneBy({
       companyId,
       todoAppId: TodoAppId.NOTION,
       accessToken: Not(IsNull()),
     });
-    if (notionInfo) {
+    if (ita) {
       const service = new NotionClient();
-      service.client = new Client({ auth: notionInfo.accessToken });
+      service.client = new Client({ auth: ita.accessToken });
       return service;
+    } else {
+      const logMeta = {
+        companyId,
+        todoAppId: TodoAppId.NOTION,
+      };
+      logger.error("No todo app implemented", logMeta);
+    }
+  }
+
+  private async retryOnError<T>(func: (...args: any[]) => Promise<T>, retry: number = 0): Promise<T> {
+    try {
+      return await func();
+    } catch (error) {
+      if (++retry >= RETRY_LIMIT) {
+        logger.error(error.message, error);
+        throw new HttpException("Notion API call failed", StatusCodes.INTERNAL_SERVER_ERROR);
+      } else {
+        logger.warn(error.message, error);
+        await setTimeout(RETRY_INTERVAL);
+        return await this.retryOnError(func, retry);
+      }
     }
   }
 
@@ -87,7 +114,9 @@ export default class NotionClient {
 
   public async getProperties(databaseId: string): Promise<IProperty[]> {
     try {
-      const response = await this.client.databases.retrieve({ database_id: databaseId });
+      const response = await this.client.databases.retrieve({
+        database_id: databaseId,
+      });
       return Object.keys(response.properties).map(name => {
         const property = response.properties[name];
         const options =
@@ -111,14 +140,14 @@ export default class NotionClient {
   }
 
   public async queryDatabase(options: QueryDatabaseParameters) {
-    return this.client.databases.query(options);
+    return await this.retryOnError(() => this.client.databases.query(options));
   }
 
   public async retrievePage(options: GetPageParameters) {
-    return this.client.pages.retrieve(options);
+    return await this.retryOnError(() => this.client.pages.retrieve(options));
   }
 
   public async updatePage(options: UpdatePageParameters) {
-    return this.client.pages.update(options);
+    return this.retryOnError(() => this.client.pages.update(options));
   }
 }
