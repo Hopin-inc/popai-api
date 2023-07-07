@@ -16,7 +16,7 @@ import User from "@/entities/settings/User";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 import Prospect from "@/entities/transactions/Prospect";
-import { prospects, reliefActions, SlackModalLabel } from "@/consts/slack";
+import { prospects, reliefActions, SEPARATOR, SlackModalLabel } from "@/consts/slack";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
 import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
@@ -42,8 +42,8 @@ export default class SlackRepository {
     }
   }
 
-  public async getSuperiorUsers(slackId: string): Promise<User[]> {
-    const users = await UserRepository.getUserByAppUserId(slackId);
+  public async getSuperiorUsers(slackId: string, companyId: string): Promise<User[]> {
+    const users = await UserRepository.getUserByAppUserId(slackId, companyId);
     if (!users.length) {
       return Promise.resolve([]);
     }
@@ -84,8 +84,8 @@ export default class SlackRepository {
     return slackBot.postMessage(props);
   }
 
-  public async getUserFromSlackId(slackId: string, relations: string[] = []): Promise<User> {
-    const users = await UserRepository.getUserByAppUserId(slackId, relations);
+  public async getUserFromSlackId(slackId: string, companyId: string, relations: string[] = []): Promise<User> {
+    const users = await UserRepository.getUserByAppUserId(slackId, companyId, relations);
     return users.length ? users[0] : null;
   }
 
@@ -173,7 +173,7 @@ export default class SlackRepository {
 
   public async askTodos(company: Company, timing: ProspectTiming) {
     if (timing.mode) {
-      const message = SlackMessageBuilder.createAskPlansMessageOnTodos(timing.mode);
+      const message = SlackMessageBuilder.createAskPlansMessageOnTodos(timing.mode, company.id);
       const todos = await this.getProspectTodos(company);
       if (todos?.length) {
         await Promise.all(company.users.map(async user => {
@@ -350,7 +350,7 @@ export default class SlackRepository {
       ?.channel;
     const shareMsg = SlackMessageBuilder.createShareReliefMessage(item, user, prospectValue, actionValue, comment, iconUrl);
     const [superiorUsers, pushedMessage] = await Promise.all([
-      this.getSuperiorUsers(user.chatToolUser.appUserId),
+      this.getSuperiorUsers(user.chatToolUser.appUserId, prospect.companyId),
       this.pushSlackMessage(user.companyId, shareMsg, sharedChannel),
       slackBot.updateMessage({ channel, ts, text: item.name, blocks: editedMsg }),
       this.storeEvidenceOnCommentResponded(item, prospect, comment),
@@ -419,7 +419,7 @@ export default class SlackRepository {
         submit: { type: "plain_text", emoji: true, text: submit },
         close: { type: "plain_text", emoji: true, text: close },
         blocks,
-        callback_id: callbackId,
+        callback_id: callbackId + SEPARATOR + companyId,
       },
     }) ?? {};
     if (ok && view) {

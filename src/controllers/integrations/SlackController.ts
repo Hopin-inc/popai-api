@@ -49,7 +49,8 @@ export default class SlackController extends Controller {
 
         const slackId = user.id;
         const { action_id: actionId } = actions[0];
-        const slackUser = await this.slackRepository.getUserFromSlackId(slackId);
+        const [identifier, value, companyId] = actionId.split(SEPARATOR);
+        const slackUser = await this.slackRepository.getUserFromSlackId(slackId, companyId);
 
         const channelId = container.channel_id;
         const threadId = container.message_ts;
@@ -59,17 +60,18 @@ export default class SlackController extends Controller {
           payload,
         );
         return [
-          await this.handleBlockActions(slackUser, slackId, channelId, threadId, triggerId, actionId),
+          await this.handleBlockActions(slackUser, slackId, channelId, threadId, triggerId, identifier, value),
           undefined,
         ];
       } else if (payload.type === "view_submission") {
         const { user, view } = payload;
-        const slackUser = await this.slackRepository.getUserFromSlackId(user.id);
+        const [modalLabel, companyId] = view.callback_id.split(SEPARATOR);
+        const slackUser = await this.slackRepository.getUserFromSlackId(user.id, companyId);
         logger.info(
           `Received: Slack Webhook { type: ${ payload.type }, user: ${ slackUser.id }, view: ${ view.type } }`,
           payload,
         );
-        return await this.handleViewSubmissions(slackUser, view);
+        return await this.handleViewSubmissions(slackUser, view, modalLabel);
       } else {
         logger.error("Unknown Response");
       }
@@ -84,12 +86,12 @@ export default class SlackController extends Controller {
     channelId: string,
     threadId: string,
     triggerId: string,
-    actionId: string,
+    identifier: string,
+    value: string,
   ) {
     if (!user) {
       return;
     }
-    const [identifier, value] = actionId.split(SEPARATOR);
     switch (identifier) {
       case SlackActionLabel.PROSPECT:
         await this.slackRepository.respondToProspect(user, slackId, parseInt(value), channelId, threadId);
@@ -108,9 +110,9 @@ export default class SlackController extends Controller {
     }
   }
 
-  private async handleViewSubmissions(user: User, view: SlackView): Promise<[any, (...args) => unknown | undefined]> {
+  private async handleViewSubmissions(user: User, view: SlackView, modalLabel: string): Promise<[any, (...args) => unknown | undefined]> {
     if (view.type === "modal") {
-      switch (view.callback_id) {
+      switch (modalLabel) {
         case SlackModalLabel.PLAN:
           const selectedOptions = this.getInputValue<Option[]>(
             view,
