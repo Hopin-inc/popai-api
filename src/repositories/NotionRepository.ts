@@ -50,7 +50,7 @@ const TODO_APP_ID = TodoAppId.NOTION;
 export default class NotionRepository {
   private notionClient: NotionClient;
 
-  public async syncTodos(company: Company): Promise<void> {
+  public async syncTodos(company: Company, force: boolean = false): Promise<void> {
     try {
       this.notionClient = await NotionClient.init(company.id);
       const [notionClient, board, lastUpdatedDate] = await Promise.all([
@@ -60,8 +60,8 @@ export default class NotionRepository {
       ]);
       this.notionClient = notionClient;
       if (board) {
-        await this.syncTodosByType(company, board, lastUpdatedDate, "project");
-        await this.syncTodosByType(company, board, lastUpdatedDate, "todo");
+        await this.syncTodosByType(company, board, lastUpdatedDate, "project", force);
+        await this.syncTodosByType(company, board, lastUpdatedDate, "todo", force);
       }
     } catch (error) {
       logger.error(error.message, error);
@@ -73,13 +73,14 @@ export default class NotionRepository {
     board: Board,
     lastUpdatedDate: Date,
     generateType?: GenerateType,
+    force: boolean = false,
   ) {
     let hasMore: boolean = true;
     let startCursor: string | undefined = undefined;
     while (hasMore) {
       const response = await this.notionClient.queryDatabase({
         database_id: board.appBoardId,
-        filter: lastUpdatedDate
+        filter: lastUpdatedDate && !force
           ? {
             timestamp: "last_edited_time",
             last_edited_time: { on_or_after: formatDatetime(lastUpdatedDate, "YYYY-MM-DD") },

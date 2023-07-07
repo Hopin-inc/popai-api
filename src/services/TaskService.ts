@@ -28,6 +28,7 @@ export default class TaskService {
 
   public async syncTodos(company: Company = null): Promise<any> {
     try {
+      const force = !!company;
       const where: FindOptionsWhere<Company> = company ? { id: company.id } : {};
       const [companies, userConfigs, todoAppConfigs] = await Promise.all([
         CompanyRepository.find({
@@ -57,14 +58,14 @@ export default class TaskService {
             const { implementedTodoApp } = company;
             if (implementedTodoApp) {
               const logMeta = {
-                company: company.name,
+                company: company.id,
                 todoApp: company.implementedTodoApp.todoAppId,
               };
               logger.info(`Updating todos for company ${ company.id }`, logMeta);
               try {
                 switch (implementedTodoApp.todoAppId) {
                   case TodoAppId.NOTION:
-                    await this.notionRepository.syncTodos(company);
+                    await this.notionRepository.syncTodos(company, force);
                     break;
                   default:
                     break;

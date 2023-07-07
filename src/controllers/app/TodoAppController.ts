@@ -15,8 +15,18 @@ import BacklogClient from "@/integrations/BacklogClient";
 import BacklogRepository from "@/repositories/BacklogRepository";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import TaskService from "@/services/TaskService";
+import { Container } from "typedi";
 
 export default class TodoAppController extends Controller {
+  private readonly taskService: TaskService;
+
+  constructor() {
+    super();
+    this.taskService = Container.get(TaskService);
+  }
+
   public async get(companyId: string): Promise<ITodoAppInfo> {
     const implementedTodoApp = await ImplementedTodoAppRepository.findOne({
       where: { companyId: companyId, accessToken: Not(IsNull()) },
@@ -82,7 +92,13 @@ export default class TodoAppController extends Controller {
   }
 
   public async fetch(todoAppId: number, companyId: string): Promise<void> {
-    if (todoAppId === TodoAppId.BACKLOG) {
+    if (todoAppId === TodoAppId.NOTION) {
+      const company = await CompanyRepository.findOne({
+        where: { id: companyId },
+        relations: ["implementedTodoApp", "users.todoAppUser", "projects"],
+      });
+      await this.taskService.syncTodos(company);
+    } else if (todoAppId === TodoAppId.BACKLOG) {
       const backlogRepository = new BacklogRepository();
       const board = await BoardRepository.findOneByConfig(companyId);
       if (board) {
