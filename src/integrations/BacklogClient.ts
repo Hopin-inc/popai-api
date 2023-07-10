@@ -3,6 +3,7 @@ import { FindOptionsWhere, IsNull, Not } from "typeorm";
 import { Backlog, Error as BacklogErrorModule } from "backlog-js";
 import "isomorphic-fetch";
 import "isomorphic-form-data";
+import { setTimeout } from "node:timers/promises";
 import { TodoAppId } from "@/consts/common";
 import { IProperty, ISelectItem } from "@/types/app";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
@@ -29,6 +30,7 @@ import { Issue } from "backlog-js/dist/types/option";
 import logger from "@/libs/logger";
 
 const RETRY_LIMIT: number = 2;
+const RETRY_INTERVAL = 3_000;
 
 @Service()
 export default class BacklogClient {
@@ -52,6 +54,12 @@ export default class BacklogClient {
       service.host = ita.appWorkspaceId;
       service.baseUrl = baseUrl;
       return service;
+    } else {
+      const logMeta = {
+        companyId,
+        todoAppId: TodoAppId.BACKLOG,
+      };
+      logger.error("No todo app implemented", logMeta);
     }
   }
 
@@ -73,19 +81,16 @@ export default class BacklogClient {
     try {
       return await func();
     } catch (error) {
-      logger.warn(error.message, error);
       if (++retry >= RETRY_LIMIT) {
-        if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
-          const logMeta = {
-            company: this.companyId,
-            host: this.host,
-          };
-          logger.error(`Failed in Backlog token refreshment: company ${ this.companyId }`, logMeta);
-        }
+        logger.error(error.message, error);
         throw new HttpException("Retry limit exceeded", StatusCodes.INTERNAL_SERVER_ERROR);
       } else {
-        await this.refresh();
-        return this.retryOnError(func, retry);
+        logger.warn(error.message, error);
+        await setTimeout(RETRY_INTERVAL);
+        if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
+          await this.refresh();
+        }
+        return await this.retryOnError(func, retry);
       }
     }
   }

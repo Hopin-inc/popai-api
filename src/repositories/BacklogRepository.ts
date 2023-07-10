@@ -9,7 +9,14 @@ import {
   MultiIssuesPayload,
   SingleIssuePayload,
 } from "@/types/backlog";
-import { HistoryAction, ProjectRule, TodoAppId, TodoHistoryProperty, UsageType } from "@/consts/common";
+import {
+  HistoryAction,
+  ProjectHistoryProperty,
+  ProjectRule,
+  TodoAppId,
+  TodoHistoryProperty,
+  UsageType,
+} from "@/consts/common";
 import Todo from "@/entities/transactions/Todo";
 import Board from "@/entities/settings/Board";
 import TodoAppUser from "@/entities/settings/TodoAppUser";
@@ -161,6 +168,7 @@ export default class BacklogRepository {
           : null;
         const args = await setHistoriesForExistingProject(
           project,
+          changesInProject.name ?? project.name,
           [],
           startDate,
           deadline,
@@ -168,6 +176,13 @@ export default class BacklogRepository {
           project.isClosed,
           isDelayed,
         );
+        const propertiesAsUnchanged: number[] = [
+          ProjectHistoryProperty.IS_DELAYED,
+          ProjectHistoryProperty.IS_RECOVERED,
+        ];
+        if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+          return null;
+        }
         const updatedProject: Project = <Project>{ ...project, ...changesInProject, startDate, deadline };
         await Promise.all([
           ProjectRepository.upsert(updatedProject, []),
@@ -402,6 +417,7 @@ export default class BacklogRepository {
           if (existingProject) {
             const args = await setHistoriesForExistingProject(
               existingProject,
+              issue.summary,
               users,
               startDate,
               deadline,
@@ -409,6 +425,13 @@ export default class BacklogRepository {
               isClosed,
               isDelayed,
             );
+            const propertiesAsUnchanged: number[] = [
+              ProjectHistoryProperty.IS_DELAYED,
+              ProjectHistoryProperty.IS_RECOVERED,
+            ];
+            if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+              return null;
+            }
             Object.assign(existingProject, <Partial<Project>>{
               name: issue.summary,
               companyId,
@@ -467,6 +490,7 @@ export default class BacklogRepository {
           if (existingTodo) {
             const args = await setHistoriesForExistingTodo(
               existingTodo,
+              issue.summary,
               users,
               projects,
               startDate,
@@ -475,6 +499,13 @@ export default class BacklogRepository {
               isClosed,
               isDelayed,
             );
+            const propertiesAsUnchanged: number[] = [
+              TodoHistoryProperty.IS_DELAYED,
+              TodoHistoryProperty.IS_RECOVERED,
+            ];
+            if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+              return null;
+            }
             Object.assign(existingTodo, <Partial<Todo>>{
               name: issue.summary,
               companyId,

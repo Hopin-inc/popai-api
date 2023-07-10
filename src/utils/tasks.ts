@@ -17,7 +17,7 @@ export const filterProspectTargetItems = <T extends Todo | Project>(todos: T[], 
 };
 
 const matchedFrom = <T extends Todo | Project>(
-  items: T,
+  item: T,
   from: ValueOf<typeof ProspectTargetFrom>,
   daysBefore: number | undefined,
   beginOfWeek: number | undefined,
@@ -25,9 +25,9 @@ const matchedFrom = <T extends Todo | Project>(
   const today = toJapanDateTime(new Date());
   switch (from) {
     case ProspectTargetFrom.BEGIN_OF_DURATION:
-      return dayjs(items.startDate).isSameOrBefore(today, "day");
+      return dayjs(item.startDate).isSameOrBefore(today, "day");
     case ProspectTargetFrom.DAYS_BEFORE_DDL:
-      const startOfDuration: Dayjs = dayjs(items.deadline).subtract(daysBefore);
+      const startOfDuration: Dayjs = dayjs(item.deadline).subtract(daysBefore);
       return startOfDuration.isSameOrBefore(today, "day");
     case ProspectTargetFrom.START_OF_WEEK:
       const startOfWeek: Dayjs = dayjs(today);
@@ -47,19 +47,20 @@ const matchedFrom = <T extends Todo | Project>(
 };
 
 const matchedTo = <T extends Todo | Project>(
-  _items: T,
+  item: T,
   to: ValueOf<typeof ProspectTargetTo>,
 ): boolean => {
+  const endOfToday = dayjs().endOf("day");
   switch (to) {
     case ProspectTargetTo.DDL:
-      return true;
+      return item.deadline ? endOfToday.isSameOrBefore(item.deadline, "day") : false;
     default:
       return false;
   }
 };
 
 const matchedFrequency = <T extends Todo | Project>(
-  items: T,
+  item: T,
   frequency: ValueOf<typeof ProspectTargetFrequency>,
   daysBefore: number[] | undefined,
 ): boolean => {
@@ -68,11 +69,11 @@ const matchedFrequency = <T extends Todo | Project>(
     case ProspectTargetFrequency.EVERYDAY:
       return true;
     case ProspectTargetFrequency.MID_DATE:
-      const daysDiff = dayjs(today).diff(items.startDate, "day");
+      const daysDiff = dayjs(today).diff(item.startDate, "day");
       const midDate: Dayjs = dayjs(today).subtract(Math.ceil(daysDiff / 2), "day");
       return midDate.isSame(today, "day");
     case ProspectTargetFrequency.DAYS_BEFORE_DDL:
-      return daysBefore.some(n => dayjs(items.deadline).subtract(n, "day").isSame(today, "day"));
+      return daysBefore.some(n => dayjs(item.deadline).subtract(n, "day").isSame(today, "day"));
     default:
       return false;
   }
