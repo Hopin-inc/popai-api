@@ -23,7 +23,14 @@ import {
   ITodoUserUpdate,
 } from "@/types";
 import { INotionPropertyInfo } from "@/types/notion";
-import { HistoryAction, ProjectRule, TodoAppId, TodoHistoryProperty, UsageType } from "@/consts/common";
+import {
+  HistoryAction,
+  ProjectHistoryProperty,
+  ProjectRule,
+  TodoAppId,
+  TodoHistoryProperty,
+  UsageType,
+} from "@/consts/common";
 import NotionClient from "@/integrations/NotionClient";
 import PropertyUsage from "@/entities/settings/PropertyUsage";
 import Board from "@/entities/settings/Board";
@@ -90,17 +97,21 @@ export default class NotionRepository {
       });
       hasMore = response?.has_more;
       startCursor = response?.next_cursor;
-      const pageIds: string[] = response?.results.map(page => page.id);
       await runInOrder(
-        pageIds,
-        async pageIdsChunk => this.syncTodosByPageIdsAndType(pageIdsChunk, company, board, generateType),
+        response?.results ?? [],
+        async pagesChunk => this.syncTodosByPageIdsAndType(
+          pagesChunk as PageObjectResponse[],
+          company,
+          board,
+          generateType,
+        ),
         ParallelChunkUnit.GENERATE_TODO,
       );
     }
   }
 
   private async syncTodosByPageIdsAndType(
-    pageIds: string[],
+    pages: PageObjectResponse[],
     company: Company,
     board: Board,
     generateType?: GenerateType,
@@ -113,9 +124,9 @@ export default class NotionRepository {
       const todoUserUpdates: ITodoUserUpdate[] = [];
       const todoProjectUpdates: ITodoProjectUpdate[] = [];
       const todoHistoryOptions: ITodoHistoryOption[] = [];
-      await Promise.all(pageIds.map(async pageId => {
+      await Promise.all(pages.map(async pageInfo => {
         try {
-          const projectOrTodoInfo = await this.generateTodoFromApi(pageId, company, board);
+          const projectOrTodoInfo = await this.generateTodoFromApi(pageInfo, company, board);
           if (!projectOrTodoInfo) {
             return;
           } else if (
@@ -181,7 +192,7 @@ export default class NotionRepository {
   }
 
   private async generateTodoFromApi(
-    pageId: string,
+    pageInfo: PageObjectResponse,
     company: Company,
     board: Board,
   ): Promise<{
@@ -201,9 +212,6 @@ export default class NotionRepository {
   } | null> {
     const propertyUsages = board.propertyUsages;
     try {
-      const pageInfo = await this.notionClient.retrievePage({
-        page_id: pageId,
-      }) as PageObjectResponse;
       if (!pageInfo?.properties) {
         return null;
       }
@@ -227,8 +235,8 @@ export default class NotionRepository {
       }
       const [startDate, deadline] = this.getDeadline(pageProperties, properties.deadline);
       let [project, todo] = await Promise.all([
-        ProjectRepository.findOneByAppProjectId(TODO_APP_ID, pageId, company.id),
-        TodoRepository.findOneByAppTodoId(TODO_APP_ID, pageId, company.id),
+        ProjectRepository.findOneByAppProjectId(TODO_APP_ID, pageInfo.id, company.id),
+        TodoRepository.findOneByAppTodoId(TODO_APP_ID, pageInfo.id, company.id),
       ]);
       const appUrl = this.getDefaultStr(pageInfo, "url");
       const appCreatedAt = this.getDefaultDate(pageInfo, "created_time");
@@ -255,7 +263,23 @@ export default class NotionRepository {
           ? project.users.map(p => p?.id).filter(id => id)
           : [];
         if (project) {
-          args = await setHistoriesForExistingProject(project, users, startDate, deadline, isDone, isClosed, isDelayed);
+          args = await setHistoriesForExistingProject(
+            project,
+            name,
+            users,
+            startDate,
+            deadline,
+            isDone,
+            isClosed,
+            isDelayed,
+          );
+          const propertiesAsUnchanged: number[] = [
+            ProjectHistoryProperty.IS_DELAYED,
+            ProjectHistoryProperty.IS_RECOVERED,
+          ];
+          if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+            return null;
+          }
           Object.assign(project, <Partial<Project>>{
             ...project,
             name,
@@ -266,7 +290,6 @@ export default class NotionRepository {
             deadline,
             isDone,
             isClosed,
-            updatedAt: toJapanDateTime(new Date()),
           });
         } else {
           args = setHistoriesForNewProject(users, startDate, deadline, isDone, isClosed, isDelayed);
@@ -274,7 +297,7 @@ export default class NotionRepository {
             name,
             todoAppId: TODO_APP_ID,
             company,
-            appProjectId: pageId,
+            appProjectId: pageInfo.id,
             appUrl,
             appCreatedAt,
             appCreatedBy,
@@ -301,7 +324,24 @@ export default class NotionRepository {
           ? todo.projects.map(p => p?.id).filter(id => id)
           : [];
         if (todo) {
-          args = await setHistoriesForExistingTodo(todo, users, projects, startDate, deadline, isDone, isClosed, isDelayed);
+          args = await setHistoriesForExistingTodo(
+            todo,
+            name,
+            users,
+            projects,
+            startDate,
+            deadline,
+            isDone,
+            isClosed,
+            isDelayed,
+          );
+          const propertiesAsUnchanged: number[] = [
+            TodoHistoryProperty.IS_DELAYED,
+            TodoHistoryProperty.IS_RECOVERED,
+          ];
+          if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+            return null;
+          }
           Object.assign(todo, <Partial<Todo>>{
             ...todo,
             name,
@@ -313,7 +353,6 @@ export default class NotionRepository {
             isDone,
             isClosed,
             appParentIds,
-            updatedAt: toJapanDateTime(new Date()),
           });
         } else {
           args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);
@@ -321,7 +360,7 @@ export default class NotionRepository {
             name,
             todoAppId: TODO_APP_ID,
             company,
-            appTodoId: pageId,
+            appTodoId: pageInfo.id,
             appUrl,
             appCreatedAt,
             appCreatedBy,

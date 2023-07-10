@@ -15,7 +15,7 @@ export const ProjectRepository = dataSource.getRepository(Project).extend({
   ): Promise<Project> {
     return this.findOne({
       where: { todoAppId, appProjectId, companyId },
-      relations: ["projectUsers"],
+      relations: ["projectUsers.user"],
     });
   },
   async findByAppIds(
