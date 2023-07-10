@@ -1,7 +1,10 @@
 cron:
-  - description: "Fetch data"
+  - description: "Fetch data from todo apps"
     url: /api/schedulers/update
     schedule: every 15 minutes from 00:05 to 23:50
-  - description: "Ask prospects"
+  - description: "Send prospect messages"
     url: /api/schedulers/prospect
+    schedule: every 15 minutes synchronized
+  - description: "Send reminder messages"
+    url: /api/schedulers/remind
     schedule: every 15 minutes synchronized
