@@ -197,7 +197,7 @@ export default class SlackRepository {
   ) {
     const slackBot = await SlackClient.init(user.companyId);
     const prospect = await this.getProjectOrTodoFromProspect(appChannelId, appThreadId);
-    const { project, todo } = prospect;
+    const { project, todo } = prospect ?? {};
     const item = project ?? todo;
     if (item) {
       const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(item, prospectValue);
