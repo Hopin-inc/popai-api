@@ -157,6 +157,8 @@ export default class SlackMessageBuilder {
         "ひと言コメントをお願いします。",
         "入力する",
         SlackActionLabel.OPEN_RELIEF_COMMENT_MODAL,
+        SlackActionLabel.OPEN_RELIEF_COMMENT_MODAL,
+        item.companyId,
       ),
       this.divider,
     ];
@@ -313,7 +315,9 @@ export default class SlackMessageBuilder {
   private static getAskOpenModalBlock(
     questionText: string,
     buttonText: string,
-    actionId: string,
+    identifier: string,
+    value: string,
+    companyId: string,
   ): KnownBlock {
     return {
       type: "section",
@@ -321,7 +325,7 @@ export default class SlackMessageBuilder {
       accessory: {
         type: "button",
         text: { type: "plain_text", emoji: true, text: buttonText },
-        action_id: actionId,
+        action_id: identifier + SEPARATOR + value + SEPARATOR + companyId,
       },
     };
   }
@@ -395,7 +399,7 @@ export default class SlackMessageBuilder {
     ];
   }
 
-  public static createAskPlansMessageOnTodos(mode: number) {
+  public static createAskPlansMessageOnTodos(mode: number, companyId: string) {
     const questionText: string | null = mode === AskMode.FORWARD
       ? "お疲れ様です:raised_hands:\n今日やる予定のタスクについて教えてください。"
       : mode === AskMode.BACKWARD
@@ -405,7 +409,9 @@ export default class SlackMessageBuilder {
       this.getAskOpenModalBlock(
         questionText,
         "選択する",
-        SlackActionLabel.OPEN_ASK_MODAL + SEPARATOR + mode.toString(),
+        SlackActionLabel.OPEN_ASK_MODAL,
+        mode.toString(),
+        companyId,
       ),
     ] : [];
     return { blocks };

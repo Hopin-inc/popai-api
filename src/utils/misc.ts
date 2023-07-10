@@ -86,6 +86,7 @@ export const setHistoriesForNewTodo = (
 
 export const setHistoriesForExistingTodo = async (
   oldTodo: Todo,
+  name: string,
   assignees: User[],
   projects: Project[],
   startDate: Date,
@@ -102,6 +103,12 @@ export const setHistoriesForExistingTodo = async (
   const daysDiff = oldTodo.deadline && deadline
     ? diffDays(toJapanDateTime(oldTodo.deadline), toJapanDateTime(deadline))
     : null;
+  if (oldTodo.name !== name) {
+    args.push({
+      property: Property.NAME,
+      action: Action.MODIFIED,
+    });
+  }
   if ((oldTodo.deadline || deadline) && daysDiff !== 0) {  // On deadline changed
     args.push({
       property: Property.DEADLINE,
@@ -231,6 +238,7 @@ export const setHistoriesForNewProject = (
 
 export const setHistoriesForExistingProject = async (
   oldProject: Project,
+  name: string,
   assignees: User[],
   startDate: Date,
   deadline: Date,
@@ -246,6 +254,12 @@ export const setHistoriesForExistingProject = async (
   const daysDiff = oldProject.deadline && deadline
     ? diffDays(toJapanDateTime(oldProject.deadline), toJapanDateTime(deadline))
     : null;
+  if (oldProject.name !== name) {
+    args.push({
+      property: Property.NAME,
+      action: Action.MODIFIED,
+    });
+  }
   if ((oldProject.deadline || deadline) && daysDiff !== 0) {  // On deadline changed
     args.push({
       property: Property.DEADLINE,
