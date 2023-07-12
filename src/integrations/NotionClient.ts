@@ -48,7 +48,18 @@ export default class NotionClient {
       return await func();
     } catch (error) {
       if (++retry >= RETRY_LIMIT) {
-        logger.error(error.message, { ...error, companyId: this.companyId });
+        const logMeta = {
+          ...error,
+          companyId: this.companyId,
+        };
+        const normalStatuses: number[] = [
+          StatusCodes.NOT_FOUND,
+        ];
+        if (normalStatuses.includes(error.status)) {
+          logger.warn(error.message, logMeta);
+        } else {
+          logger.error(error.message, logMeta);
+        }
         throw new HttpException("Notion API call failed", StatusCodes.INTERNAL_SERVER_ERROR);
       } else {
         logger.warn(error.message, { ...error, companyId: this.companyId });
