@@ -82,10 +82,14 @@ export default class BacklogClient {
       return await func();
     } catch (error) {
       if (++retry >= RETRY_LIMIT) {
-        logger.error(error.message, error);
+        const logMeta = {
+          ...error,
+          companyId: this.companyId,
+        };
+        logger.error(error.message, logMeta);
         throw new HttpException("Retry limit exceeded", StatusCodes.INTERNAL_SERVER_ERROR);
       } else {
-        logger.warn(error.message, error);
+        logger.warn(error.message, { ...error, companyId: this.companyId });
         await setTimeout(RETRY_INTERVAL);
         if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
           await this.refresh();

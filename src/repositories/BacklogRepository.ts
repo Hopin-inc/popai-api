@@ -180,14 +180,23 @@ export default class BacklogRepository {
           ProjectHistoryProperty.IS_DELAYED,
           ProjectHistoryProperty.IS_RECOVERED,
         ];
-        if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+        if (!args.length) {
           return null;
         }
-        const updatedProject: Project = <Project>{ ...project, ...changesInProject, startDate, deadline };
-        await Promise.all([
-          ProjectRepository.upsert(updatedProject, []),
+        const promises: Promise<any>[] = [
           ProjectHistoryRepository.saveHistories(args.map(a => ({ ...a, id: project.id }))),
-        ]);
+        ];
+        if (args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+          const updatedProject: Project = <Project>{
+            ...project,
+            ...changesInProject,
+            startDate,
+            deadline,
+            updatedAt: toJapanDateTime(new Date()),
+          };
+          promises.push(ProjectRepository.upsert(updatedProject, []));
+        }
+        await Promise.all(promises);
       }));
     } else {
       await this.createProjectByMilestoneId(companyId, projectId, milestoneId);
@@ -429,24 +438,25 @@ export default class BacklogRepository {
               ProjectHistoryProperty.IS_DELAYED,
               ProjectHistoryProperty.IS_RECOVERED,
             ];
-            if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+            if (!args.length) {
               return null;
+            } else if (args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+              Object.assign(existingProject, <Partial<Project>>{
+                name: issue.summary,
+                companyId,
+                startDate,
+                deadline,
+                isDone,
+                isClosed,
+                updatedAt: toJapanDateTime(new Date()),
+              });
+              updatedProjects.push(existingProject);
+              projectUserUpdates.push({
+                projectId: existingProject.id,
+                users,
+                currentUserIds: existingProject.todoUsers?.map(tu => tu.userId) ?? [],
+              });
             }
-            Object.assign(existingProject, <Partial<Project>>{
-              name: issue.summary,
-              companyId,
-              startDate,
-              deadline,
-              isDone,
-              isClosed,
-              updatedAt: toJapanDateTime(new Date()),
-            });
-            updatedProjects.push(existingProject);
-            projectUserUpdates.push({
-              projectId: existingProject.id,
-              users,
-              currentUserIds: existingProject.todoUsers?.map(tu => tu.userId) ?? [],
-            });
             projectHistoryArgs.push(...args.map(a => (<IProjectHistoryOption>{
               ...a,
               id: existingProject.id,
@@ -503,30 +513,31 @@ export default class BacklogRepository {
               TodoHistoryProperty.IS_DELAYED,
               TodoHistoryProperty.IS_RECOVERED,
             ];
-            if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+            if (!args.length) {
               return null;
+            } else if (args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+              Object.assign(existingTodo, <Partial<Todo>>{
+                name: issue.summary,
+                companyId,
+                appParentIds,
+                startDate,
+                deadline,
+                isDone,
+                isClosed,
+                updatedAt: toJapanDateTime(new Date()),
+              });
+              updatedTodos.push(existingTodo);
+              todoUserUpdates.push({
+                todoId: existingTodo.id,
+                users,
+                currentUserIds: existingTodo.todoUsers?.map(tu => tu.userId) ?? [],
+              });
+              todoProjectUpdates.push({
+                todoId: existingTodo.id,
+                projects,
+                currentProjectIds: existingTodo.todoProjects?.map(tp => tp.projectId) ?? [],
+              });
             }
-            Object.assign(existingTodo, <Partial<Todo>>{
-              name: issue.summary,
-              companyId,
-              appParentIds,
-              startDate,
-              deadline,
-              isDone,
-              isClosed,
-              updatedAt: toJapanDateTime(new Date()),
-            });
-            updatedTodos.push(existingTodo);
-            todoUserUpdates.push({
-              todoId: existingTodo.id,
-              users,
-              currentUserIds: existingTodo.todoUsers?.map(tu => tu.userId) ?? [],
-            });
-            todoProjectUpdates.push({
-              todoId: existingTodo.id,
-              projects,
-              currentProjectIds: existingTodo.todoProjects?.map(tp => tp.projectId) ?? [],
-            });
             todoHistoryArgs.push(...args.map(a => (<ITodoHistoryOption>{
               ...a,
               id: existingTodo.id,

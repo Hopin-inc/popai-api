@@ -277,20 +277,22 @@ export default class NotionRepository {
             ProjectHistoryProperty.IS_DELAYED,
             ProjectHistoryProperty.IS_RECOVERED,
           ];
-          if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+          if (!args.length) {
             return null;
+          } else if (args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+            Object.assign(project, <Partial<Project>>{
+              ...project,
+              name,
+              appUrl,
+              appCreatedAt,
+              appCreatedBy,
+              startDate,
+              deadline,
+              isDone,
+              isClosed,
+              updatedAt: toJapanDateTime(new Date()),
+            });
           }
-          Object.assign(project, <Partial<Project>>{
-            ...project,
-            name,
-            appUrl,
-            appCreatedAt,
-            appCreatedBy,
-            startDate,
-            deadline,
-            isDone,
-            isClosed,
-          });
         } else {
           args = setHistoriesForNewProject(users, startDate, deadline, isDone, isClosed, isDelayed);
           project = new Project({
@@ -339,21 +341,23 @@ export default class NotionRepository {
             TodoHistoryProperty.IS_DELAYED,
             TodoHistoryProperty.IS_RECOVERED,
           ];
-          if (!args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+          if (!args.length) {
             return null;
+          } else if (args.filter(a => !propertiesAsUnchanged.includes(a.property)).length) {
+            Object.assign(todo, <Partial<Todo>>{
+              ...todo,
+              name,
+              appUrl,
+              appCreatedAt,
+              appCreatedBy,
+              startDate,
+              deadline,
+              isDone,
+              isClosed,
+              appParentIds,
+              updatedAt: toJapanDateTime(new Date()),
+            });
           }
-          Object.assign(todo, <Partial<Todo>>{
-            ...todo,
-            name,
-            appUrl,
-            appCreatedAt,
-            appCreatedBy,
-            startDate,
-            deadline,
-            isDone,
-            isClosed,
-            appParentIds,
-          });
         } else {
           args = setHistoriesForNewTodo(users, projects, startDate, deadline, isDone, isClosed, isDelayed);
           todo = new Todo({

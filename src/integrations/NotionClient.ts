@@ -20,6 +20,7 @@ const RETRY_INTERVAL = 60_000;
 
 @Service()
 export default class NotionClient {
+  private companyId: string;
   private client: Client;
 
   public static async init(companyId: string): Promise<NotionClient> {
@@ -30,6 +31,7 @@ export default class NotionClient {
     });
     if (ita) {
       const service = new NotionClient();
+      service.companyId = companyId;
       service.client = new Client({ auth: ita.accessToken });
       return service;
     } else {
@@ -46,10 +48,21 @@ export default class NotionClient {
       return await func();
     } catch (error) {
       if (++retry >= RETRY_LIMIT) {
-        logger.error(error.message, error);
+        const logMeta = {
+          ...error,
+          companyId: this.companyId,
+        };
+        const normalStatuses: number[] = [
+          StatusCodes.NOT_FOUND,
+        ];
+        if (normalStatuses.includes(error.status)) {
+          logger.warn(error.message, logMeta);
+        } else {
+          logger.error(error.message, logMeta);
+        }
         throw new HttpException("Notion API call failed", StatusCodes.INTERNAL_SERVER_ERROR);
       } else {
-        logger.warn(error.message, error);
+        logger.warn(error.message, { ...error, companyId: this.companyId });
         await setTimeout(RETRY_INTERVAL);
         return await this.retryOnError(func, retry);
       }

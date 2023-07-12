@@ -16,6 +16,7 @@ import { IsNull, Not } from "typeorm";
 
 @Service()
 export default class SlackClient {
+  private companyId: string;
   private client: WebClient;
 
   public static async init(companyId: string): Promise<SlackClient> {
@@ -27,6 +28,7 @@ export default class SlackClient {
     const accessToken = slackInfo?.accessToken;
     const service = new SlackClient();
     service.client = new WebClient(accessToken);
+    service.companyId = companyId;
     return service;
   }
 
