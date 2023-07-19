@@ -53,7 +53,7 @@ const matchedTo = <T extends Todo | Project>(
   const endOfToday = dayjs().endOf("day");
   switch (to) {
     case ProspectTargetTo.DDL:
-      return item.deadline ? endOfToday.isSameOrBefore(item.deadline, "day") : false;
+      return item.deadline ? endOfToday.isBefore(item.deadline, "day") : false;
     default:
       return false;
   }
