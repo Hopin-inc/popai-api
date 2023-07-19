@@ -76,6 +76,7 @@ export default class BacklogClient {
       refreshToken: accessToken.refresh_token,
       installation: accessToken,
     });
+    logger.info(`Backlog token refreshed: company ${ this.companyId }`);
   }
 
   private async retryOnError<T>(func: (...args: any[]) => Promise<T>, retry: number = 0): Promise<T> {
@@ -92,7 +93,7 @@ export default class BacklogClient {
       } else {
         logger.warn(error.message, { ...error, companyId: this.companyId });
         await setTimeout(RETRY_INTERVAL);
-        if ((error as BacklogError).name === "BacklogAuthError") {
+        if ((error as BacklogError).status === StatusCodes.UNAUTHORIZED) {
           await this.refresh();
         }
         return await this.retryOnError(func, retry);
