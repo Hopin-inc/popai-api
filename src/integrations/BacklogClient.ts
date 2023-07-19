@@ -93,9 +93,7 @@ export default class BacklogClient {
       } else {
         logger.warn(error.message, { ...error, companyId: this.companyId });
         await setTimeout(RETRY_INTERVAL);
-        if ((error as BacklogError).status === StatusCodes.UNAUTHORIZED) {
-          await this.refresh();
-        }
+        await this.refresh();
         return await this.retryOnError(func, retry);
       }
     }
