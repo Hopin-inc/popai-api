@@ -59,8 +59,8 @@ export default class NotionClient {
           logger.warn(error.message, logMeta);
         } else {
           logger.error(error.message, logMeta);
+          throw new HttpException("Notion API call failed", StatusCodes.INTERNAL_SERVER_ERROR);
         }
-        throw new HttpException("Notion API call failed", StatusCodes.INTERNAL_SERVER_ERROR);
       } else {
         logger.warn(error.message, { ...error, companyId: this.companyId });
         await setTimeout(RETRY_INTERVAL);

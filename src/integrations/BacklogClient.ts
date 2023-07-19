@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import { FindOptionsWhere, IsNull, Not } from "typeorm";
-import { Backlog, Error as BacklogErrorModule } from "backlog-js";
+import { Backlog } from "backlog-js";
+import { BacklogError } from "backlog-js/dist/types/error";
 import "isomorphic-fetch";
 import "isomorphic-form-data";
 import { setTimeout } from "node:timers/promises";
@@ -91,7 +92,7 @@ export default class BacklogClient {
       } else {
         logger.warn(error.message, { ...error, companyId: this.companyId });
         await setTimeout(RETRY_INTERVAL);
-        if (error instanceof BacklogErrorModule.BacklogError && error.name === "BacklogAuthError") {
+        if ((error as BacklogError).name === "BacklogAuthError") {
           await this.refresh();
         }
         return await this.retryOnError(func, retry);
