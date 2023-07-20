@@ -22,12 +22,14 @@ const matchedFrom = <T extends Todo | Project>(
   daysBefore: number | undefined,
   beginOfWeek: number | undefined,
 ) => {
-  const today = toJapanDateTime(new Date());
+  const today = dayjs().startOf("day");
   switch (from) {
     case ProspectTargetFrom.BEGIN_OF_DURATION:
       return dayjs(item.startDate).isSameOrBefore(today, "day");
     case ProspectTargetFrom.DAYS_BEFORE_DDL:
-      const startOfDuration: Dayjs = dayjs(item.deadline).subtract(daysBefore);
+      const startOfDuration: Dayjs = dayjs(item.deadline)
+        .startOf("day")
+        .subtract(daysBefore, "day");
       return startOfDuration.isSameOrBefore(today, "day");
     case ProspectTargetFrom.START_OF_WEEK:
       const startOfWeek: Dayjs = dayjs(today);
@@ -64,7 +66,7 @@ const matchedFrequency = <T extends Todo | Project>(
   frequency: ValueOf<typeof ProspectTargetFrequency>,
   daysBefore: number[] | undefined,
 ): boolean => {
-  const today = toJapanDateTime(new Date());
+  const today = dayjs().startOf("day");
   switch (frequency) {
     case ProspectTargetFrequency.EVERYDAY:
       return true;
