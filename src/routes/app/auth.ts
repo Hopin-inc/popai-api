@@ -59,6 +59,17 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+router.post("/signup/email", async (req, res) => {
+  try {
+    const controller = new AuthController();
+    await controller.signUpWithEmail(req.body);
+    ApiResponse.successRes(res, null);
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 router.get("/login", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -91,6 +102,36 @@ router.get("/login", async (req, res) => {
           );
         }
         ApiResponse.successRes(res, null);
+      }
+    } else {
+      ApiResponse.errRes(res, AccountErrors.InvalidAuthToken, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
+router.get("/login/email", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const controller = new AuthController();
+      const [company, idToken] = await controller.loginWithEmail(authHeader);
+      const { uid } = idToken;
+      if (company && uid) {
+        const { name } = company;
+        const isRegistered = true; // TODO
+        req.session.uid = uid;
+        req.session.company = company;
+        req.session.registered = isRegistered;
+        const response: AccountInfo = {
+          name,
+          isRegistered,
+        };
+        ApiResponse.successRes(res, response);
+      } else {
+        ApiResponse.errRes(res, AccountErrors.NoMatchedAccount, StatusCodes.BAD_REQUEST);
       }
     } else {
       ApiResponse.errRes(res, AccountErrors.InvalidAuthToken, StatusCodes.BAD_REQUEST);

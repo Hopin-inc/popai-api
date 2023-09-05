@@ -16,6 +16,14 @@ export default class AuthService {
     return await CompanyRepository.findOneBy({ id: uid });
   }
 
+  public async registerEmail(uid: string, name: string): Promise<Company> {
+    await Promise.all([
+      CompanyRepository.save(new Company(uid, name)),
+      auth.updateUser(uid, { displayName: name }),
+    ]);
+    return await CompanyRepository.findOneBy({ id: uid });
+  }
+
   public async verifyIdToken(authHeader: string): Promise<DecodedIdToken> {
     const chunkedAuthHeader = authHeader.split(" ");
     if (chunkedAuthHeader[0] === "Bearer" && chunkedAuthHeader.length >= 2) {
@@ -28,6 +36,12 @@ export default class AuthService {
     return await CompanyRepository.findOne({
       where: { id },
       relations: ["implementedChatTool"],
+    });
+  }
+
+  public async getCompany(id: string): Promise<Company> {
+    return await CompanyRepository.findOne({
+      where: { id },
     });
   }
 }
