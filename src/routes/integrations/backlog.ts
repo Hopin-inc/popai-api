@@ -36,9 +36,9 @@ router.get("/oauth_redirect", async (req, res) => {
   try {
     const controller = new BacklogController();
     await controller.handleCallback(req);
-    res.redirect(`${ process.env.CLIENT_BASE_URL }/link/todo-app`);
+    res.redirect(`${ process.env.CLIENT_BASE_URL }/link`);
   } catch (_err) {
-    res.redirect(`${ process.env.CLIENT_BASE_URL }/link/todo-app`);
+    res.redirect(`${ process.env.CLIENT_BASE_URL }/link`);
   }
 });
 
