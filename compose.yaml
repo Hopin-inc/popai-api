@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    tty: true
+    volumes:
+      - ./:/app
+      - api-data:/usr/app/node_modules
+    environment:
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    working_dir: "/app"
+    command: sh -c "yarn install && yarn dev:https"
+  db:
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: angel-local
+      # TODO my.cnfにうつす
+      TZ: "Asia/Tokyo"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./my.cnf:/etc/my.cnf
+    # TODO my.cnfにうつす
+    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
+volumes:
+  api-data:
+  db-data:
