@@ -22,9 +22,10 @@ router.get("/me", async (req, res) => {
       const company = await controller.fetchLoginState(uid);
       if (company) {
         const { name, implementedChatTool } = company;
+        const isRegistered = implementedChatTool?.accessToken ? true : false;
         const response: AccountInfo = {
           name,
-          isRegistered: !!implementedChatTool.accessToken,
+          isRegistered,
         };
         ApiResponse.successRes(res, response);
       } else {
