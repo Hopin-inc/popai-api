@@ -1,6 +1,6 @@
 services:
   api:
-    build: .
+    image: node:16.15.0-alpine
     tty: true
     volumes:
       - ./:/app
@@ -11,6 +11,7 @@ services:
       - "3000:3000"
     working_dir: "/app"
     command: sh -c "yarn install && yarn dev:https"
+
   db:
     image: mysql:8.0
     restart: always
@@ -19,13 +20,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: angel-local
-      # TODO my.cnfにうつす
-      TZ: "Asia/Tokyo"
     volumes:
       - db-data:/var/lib/mysql
-      - ./my.cnf:/etc/my.cnf
-    # TODO my.cnfにうつす
-    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
+      - ./docker/db/my.cnf:/etc/my.cnf
+    command: mysqld
+
 volumes:
   api-data:
   db-data:
