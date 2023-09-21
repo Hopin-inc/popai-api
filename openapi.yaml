@@ -1,0 +1,352 @@
+openapi: 3.0.3
+info:
+  title: POPAI API
+  version: 1.0.0
+servers:
+  - url: https://localhost:3000/api
+tags:
+  - name: auth
+  # - name: users
+  - name: shcedulers
+  # - name: backlog
+  # - name: slack
+  - name: line-works
+  # - name: notion
+  # - name: google
+  # - name: plans
+  # - name: subscriptions
+  - name: chat-tool
+  - name: todo-app
+  # - name: config
+paths:
+  /auth/me:
+    get:
+      tags:
+        - auth
+      summary: Get information about yourself.
+      # description: 
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "P7aUcmHjohOnoXTFxcOnrW40oa72"
+      # security:
+
+  /auth/login:
+    get:
+      tags:
+        - auth
+      summary: Login with chattool account.
+      # description: 
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInfo'
+  /auth/login/email:
+    get:
+      tags:
+        - auth
+      summary: Login with chattool account.
+      # description: 
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInfo'
+  /auth/signup:
+    post:
+      tags:
+        - auth
+      summary: Signup with chattool account.
+      description: Specification details are under construction...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+  /auth/signup/email:
+    post:
+      tags:
+        - auth
+      summary: Signup with chattool account.
+      description: Specification details are under construction...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+  /auth/logout:
+    get:
+      tags:
+        - auth
+      summary: Signup with chattool account.
+      description: Specification details are under construction...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /schedulers/update:
+    get:
+      tags:
+        - shcedulers
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /schedulers/prospect:
+    get:
+      tags:
+        - shcedulers
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /schedulers/remind:
+    get:
+      tags:
+        - shcedulers
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /line-works/webhook/{companyId}:
+    parameters:
+      - in: path
+        name: companyId
+        schema:
+          type: string
+        required: true
+    post:
+      tags:
+        - line-works
+      summary: TODO
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: proceed.
+
+  /chat-tool/{chatToolId}/accounts:
+    get:
+      tags:
+        - chat-tool
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /chat-tool/{chatToolId}/channels:
+    get:
+      tags:
+        - chat-tool
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /chat-tool/{chatToolId}/users/{userId}:
+    patch:
+      tags:
+        - chat-tool
+      summary: TODO
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: edit ok
+
+  /todo-app/{todoAppId}/accounts:
+    get:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /todo-app/{todoAppId}/boards:
+    get:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /todo-app/{todoAppId}/boards/{boardId}/properties:
+    get:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /todo-app/{todoAppId}/users/{userId}:
+    patch:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: edit ok
+
+components:
+  schemas:
+    AccountInfo:
+      type: object
+      properties:
+        isRegistered:
+          type: boolean
+          example: true
+        name:
+          type: string
+          example: '株式会社和平開発チーム'
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://petstore3.swagger.io/oauth/authorize
+          scopes:
+            write:pets: modify pets in your account
+            read:pets: read your pets
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
