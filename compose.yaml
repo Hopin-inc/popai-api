@@ -25,6 +25,17 @@ services:
       - ./docker/db/my.cnf:/etc/my.cnf
     command: mysqld
 
+  swagger:
+    image: swaggerapi/swagger-ui
+    container_name: "swagger"
+    ports:
+      - "8001:8080"
+    volumes:
+      - ./docker/swagger/openapi.yaml:/openapi.yaml
+    environment:
+      API_URL: openapi.yaml
+      SWAGGER_JSON: /openapi.yaml
+
 volumes:
   api-data:
   db-data:
