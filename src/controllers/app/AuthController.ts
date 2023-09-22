@@ -3,7 +3,7 @@ import AuthService from "@/services/AuthService";
 import { Container } from "typedi";
 import { DecodedIdToken } from "firebase-admin/lib/auth";
 import Company from "@/entities/settings/Company";
-import { AccountInfo } from "@/types/auth";
+import { AccountInfo, EmailSignUpInfo } from "@/types/auth";
 
 export default class AuthController extends Controller {
   private readonly authService: AuthService;
@@ -17,9 +17,18 @@ export default class AuthController extends Controller {
     return await this.authService.register(uid, info);
   }
 
+  public async signUpWithEmail(info: EmailSignUpInfo): Promise<Company> {
+    return await this.authService.registerEmail(info.uid, info.company);
+  }
+
   public async login(authHeader: string): Promise<[Company, DecodedIdToken]> {
     const idToken = await this.authService.verifyIdToken(authHeader);
     return [await this.authService.getAccount(idToken.uid), idToken];
+  }
+
+  public async loginWithEmail(authHeader: string): Promise<[Company, DecodedIdToken]> {
+    const idToken = await this.authService.verifyIdToken(authHeader);
+    return [await this.authService.getCompany(idToken.uid), idToken];
   }
 
   public async fetchLoginState(uid: string): Promise<Company> {
