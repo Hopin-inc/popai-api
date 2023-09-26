@@ -1,0 +1,454 @@
+openapi: 3.0.3
+info:
+  title: POPAI API
+  version: 1.0.0
+servers:
+  - url: https://localhost:3000/api
+tags:
+  # - name: auth
+  # - name: users
+  - name: shcedulers
+  # - name: backlog
+  # - name: slack
+  - name: line-works
+  # - name: notion
+  # - name: google
+  # - name: plans
+  # - name: subscriptions
+  - name: chat-tool
+  - name: todo-app
+  # - name: config
+
+paths:
+  # /auth/me:
+  #   get:
+  #     tags:
+  #       - auth
+  #     summary: Get information about yourself.
+  #     # description: 
+  #     responses:
+  #       '200':
+  #         description: Successful operation
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 id:
+  #                   type: string
+  #                   example: "P7aUcmHjohOnoXTFxcOnrW40oa72"
+  #     # security:
+
+  # /auth/login:
+  #   get:
+  #     tags:
+  #       - auth
+  #     summary: Login with chattool account.
+  #     # description: 
+  #     responses:
+  #       '200':
+  #         description: successful operation
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/AccountInfo'
+
+  # /auth/login/email:
+  #   get:
+  #     tags:
+  #       - auth
+  #     summary: Login with chattool account.
+  #     # description: 
+  #     responses:
+  #       '200':
+  #         description: successful operation
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/AccountInfo'
+
+  # /auth/signup:
+  #   post:
+  #     tags:
+  #       - auth
+  #     summary: Signup with chattool account.
+  #     description: Specification details are under construction...
+  #     responses:
+  #       '200':
+  #         description: successful operation
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 TODO:
+  #                   type: string
+  #                   example: "TODO"
+
+  # /auth/signup/email:
+  #   post:
+  #     tags:
+  #       - auth
+  #     summary: Signup with chattool account.
+  #     description: Specification details are under construction...
+  #     responses:
+  #       '200':
+  #         description: successful operation
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 TODO:
+  #                   type: string
+  #                   example: "TODO"
+
+  # /auth/logout:
+  #   get:
+  #     tags:
+  #       - auth
+  #     summary: Signup with chattool account.
+  #     description: Specification details are under construction...
+  #     responses:
+  #       '200':
+  #         description: successful operation
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 TODO:
+  #                   type: string
+  #                   example: "TODO"
+
+  /schedulers/update:
+    get:
+      tags:
+        - shcedulers
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /schedulers/prospect:
+    get:
+      tags:
+        - shcedulers
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /schedulers/remind:
+    get:
+      tags:
+        - shcedulers
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /line-works/webhook/{companyId}:
+    parameters:
+      - $ref: '#/components/parameters/companyId'
+    post:
+      tags:
+        - line-works
+      summary: TODO
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: proceed.
+
+  /chat-tool/{chatToolId}/accounts:
+    parameters:
+      - $ref: '#/components/parameters/chatToolId'
+    get:
+      tags:
+        - chat-tool
+      summary: チャットツールのアカウント一覧を取得
+      description: 指定したチャットツールのアカウント一覧を取得する。
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatToolAccount'
+                  message:
+                    type: string
+                    example: ""
+
+  /chat-tool/{chatToolId}/channels:
+    parameters:
+      - $ref: '#/components/parameters/chatToolId'
+    get:
+      tags:
+        - chat-tool
+      summary: チャットツールのチャンネル一覧を取得
+      description: 指定したチャットツールのチャンネル一覧を取得する。
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatToolChannel'
+                  message:
+                    type: string
+                    example: ""
+
+  /chat-tool/{chatToolId}/users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/chatToolId'
+      - $ref: '#/components/parameters/userId'
+    patch:
+      tags:
+        - chat-tool
+      summary: POPAIとチャットツールのユーザ紐付け
+      description: POPAIのユーザIDとチャットツールのユーザIDを紐付ける。
+      requestBody:
+        description: チャットツールのユーザIDを指定する。
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "U05Q99VUE13"
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: ""
+
+  /todo-app/{todoAppId}/accounts:
+    parameters:
+      - $ref: '#/components/parameters/todoAppId'
+    get:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatToolAccount'
+                  message:
+                    type: string
+                    example: ""
+
+  /todo-app/{todoAppId}/boards:
+    parameters:
+      - $ref: '#/components/parameters/todoAppId'
+    get:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /todo-app/{todoAppId}/boards/{boardId}/properties:
+    parameters:
+      - $ref: '#/components/parameters/todoAppId'
+      - $ref: '#/components/parameters/boardId'
+    get:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: "TODO"
+
+  /todo-app/{todoAppId}/users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/todoAppId'
+      - $ref: '#/components/parameters/userId'
+    patch:
+      tags:
+        - todo-app
+      summary: TODO
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: edit ok
+
+components:
+  parameters:
+    companyId:
+      name: companyId
+      in: path
+      required: true
+      schema:
+        type: string
+
+    chatToolId:
+      name: chatToolId
+      in: path
+      description: |
+        チャットツールのID  
+        LINE WORKS: 1  
+        Slack: 2
+      required: true
+      schema:
+        type: number
+        example: 2
+        
+    todoAppId:
+      name: todoAppId
+      in: path
+      description: ID of the todo app
+      required: true
+      schema:
+        type: number
+
+    userId:
+      name: userId
+      in: path
+      description: POPAI上で管理しているユーザID
+      required: true
+      schema:
+        type: string
+        example: 9a7bbd68-509b-4e93-bd7d-0a68b412b8b4
+        
+    boardId:
+      name: boardId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    ChatToolAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "U05Q99VUE13"
+        name:
+          type: string
+          example: "山田太郎"
+
+    ChatToolChannel:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "C05QC7KP1JN"
+        name:
+          type: string
+          example: "# general"
+
+    AccountInfo:
+      type: object
+      properties:
+        isRegistered:
+          type: boolean
+          example: true
+        name:
+          type: string
+          example: '株式会社和平開発チーム'
