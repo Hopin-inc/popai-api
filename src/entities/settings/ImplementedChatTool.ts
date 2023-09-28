@@ -10,8 +10,13 @@ export default class ImplementedChatTool extends BaseEntity {
   constructor(
     company: Company | string,
     chatToolId: number,
-    installation?: Installation,
+    installation?: Installation | any,
     appInstallUserId?: string,
+    clientId?: string,
+    clientSecret?: string,
+    serviceAccount?: string,
+    secretKey?: string,
+    botSecret?: string,
   ) {
     super();
     if (company) {
@@ -25,6 +30,18 @@ export default class ImplementedChatTool extends BaseEntity {
             this.installation = installation;
           } else if (appInstallUserId) {
             this.appInstallUserId = appInstallUserId;
+          }
+          break;
+        case ChatToolId.LINEWORK:
+          if (installation) {
+            this.installation = installation;
+            this.accessToken = installation.access_token;
+            this.refreshToken = installation.refresh_token;
+            this.clientId = clientId;
+            this.clientSecret = clientSecret;
+            this.serviceAccount = serviceAccount;
+            this.secretKey = secretKey;
+            this.botSecret = botSecret;
           }
           break;
         default:
@@ -45,17 +62,34 @@ export default class ImplementedChatTool extends BaseEntity {
   @Column({ name: "app_install_user_id", type: "varchar", length: 12, nullable: true })
   appInstallUserId?: string;
 
-  @Column({ name: "access_token", type: "varchar", length: 255, nullable: true })
+  @Column({ name: "access_token", type: "text", nullable: true })
   accessToken?: string;
 
   @Column({ name: "installation", type: "json", nullable: true })
   installation?: Installation;
 
-  @OneToOne(
-    () => Company,
-    company => company.implementedChatTool,
-    { onDelete: "CASCADE", onUpdate: "RESTRICT" },
-  )
+  @Column({ name: "refresh_token", type: "text", nullable: true })
+  refreshToken?: string;
+
+  @Column({ name: "client_id", type: "varchar", length: 50, nullable: true })
+  clientId?: string;
+
+  @Column({ name: "client_secret", type: "varchar", length: 50, nullable: true })
+  clientSecret?: string;
+
+  @Column({ name: "service_account", type: "varchar", length: 50, nullable: true })
+  serviceAccount?: string;
+
+  @Column({ name: "secret_key", type: "text", nullable: true })
+  secretKey?: string;
+
+  @Column({ name: "bot_secret", type: "text", nullable: true })
+  botSecret?: string;
+
+  @OneToOne(() => Company, (company) => company.implementedChatTool, {
+    onDelete: "CASCADE",
+    onUpdate: "RESTRICT",
+  })
   @JoinColumn({ name: "company_id" })
   company: Company;
 }
