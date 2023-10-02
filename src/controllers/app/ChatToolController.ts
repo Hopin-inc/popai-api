@@ -7,9 +7,11 @@ import SlackClient from "@/integrations/SlackClient";
 import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepository";
 import ChatToolUser from "@/entities/settings/ChatToolUser";
 import { UserRepository } from "@/repositories/settings/UserRepository";
+import LineWorksClient from "@/integrations/LineWorksClient";
 
 export default class ChatToolController extends Controller {
   private slackService: SlackClient;
+  private lineworksService: LineWorksClient;
 
   public async get(companyId: string): Promise<IChatToolInfo | null> {
     const implementedChatTool = await ImplementedChatToolRepository.findOne({
@@ -28,6 +30,9 @@ export default class ChatToolController extends Controller {
       case ChatToolId.SLACK:
         this.slackService = await SlackClient.init(companyId);
         return this.slackService.getUsers();
+      case ChatToolId.LINEWORKS:
+        this.lineworksService = await LineWorksClient.init(companyId);
+        return this.lineworksService.getUsers();
       default:
         return [];
     }
@@ -50,6 +55,9 @@ export default class ChatToolController extends Controller {
       case ChatToolId.SLACK:
         this.slackService = await SlackClient.init(companyId);
         return this.slackService.getChannels();
+      case ChatToolId.LINEWORKS:
+        this.lineworksService = await LineWorksClient.init(companyId);
+        return this.lineworksService.getChannels();
       default:
         return [];
     }

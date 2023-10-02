@@ -23,7 +23,7 @@ export default class LineWorksRepository {
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      scope: "bot user.read",
+      scope: "bot user.read group.read",
     });
 
     axios.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded;";
