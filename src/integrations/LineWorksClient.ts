@@ -58,7 +58,7 @@ export default class LineWorksClient {
       .filter(member => !member.isDeleted && !member.isSuspended && !member.isPending)
       .map(member => ({
         id: member.userId,
-        name: member.nickName ?? member.userName.firstName + ' ' + member.userName.lastName ?? "",
+        name: (member.userName.firstName + member.userName.lastName) || member.nickName || "",
       }));
   }
 
