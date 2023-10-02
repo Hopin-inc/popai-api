@@ -1,15 +1,4 @@
 import { Service } from "typedi";
-import {
-  Block,
-  ChatPostMessageArguments,
-  ChatUpdateArguments,
-  ConversationsJoinArguments, ConversationsListResponse,
-  KnownBlock, UsersListResponse,
-  UsersProfileGetArguments,
-  ViewsOpenArguments,
-  WebClient,
-} from "@slack/web-api";
-import Line from "@line/bot-sdk";
 import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
 import { ChatToolId } from "@/consts/common";
 import { ISelectItem } from "@/types/app";
@@ -20,7 +9,6 @@ import { GroupsResponse, UsersResponse } from "@/types/lineworks";
 @Service()
 export default class LineWorksClient {
   private companyId: string;
-  // private client: WebClient;
   private accessToken?: string;
 
   public static async init(companyId: string): Promise<LineWorksClient> {
