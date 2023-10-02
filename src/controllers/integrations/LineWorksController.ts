@@ -29,7 +29,7 @@ export default class LineWorksController extends Controller {
     return await ImplementedChatToolRepository.save(
       new ImplementedChatTool(
         company,
-        ChatToolId.LINEWORK,
+        ChatToolId.LINEWORKS,
         installation,
         null,
         client_id,
