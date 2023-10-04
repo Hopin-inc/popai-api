@@ -27,7 +27,7 @@ export default class LineWorksClient {
     return fetchApi<UsersResponse>(
       "https://www.worksapis.com/v1.0/users",
       "GET",
-      {count, cursor},
+      { count, cursor },
       false,
       this.accessToken,
       null,
@@ -38,7 +38,7 @@ export default class LineWorksClient {
     return fetchApi<GroupsResponse>(
       "https://www.worksapis.com/v1.0/groups",
       "GET",
-      {count, cursor},
+      { count, cursor },
       false,
       this.accessToken,
       null,
@@ -48,7 +48,7 @@ export default class LineWorksClient {
   public async getUsers(): Promise<ISelectItem<string>[]> {
     const users: UsersResponse["users"] = [];
     const limit = 100;
-    let cursor: string = '';
+    let cursor: string = "";
     do {
       const response = await this.callUsersApi(limit, cursor);
       users.push(...response.users);
@@ -58,14 +58,14 @@ export default class LineWorksClient {
       .filter(member => !member.isDeleted && !member.isSuspended && !member.isPending)
       .map(member => ({
         id: member.userId,
-        name: (member.userName.lastName + ' ' + member.userName.firstName).trim() || member.nickName || "",
+        name: (member.userName.lastName + " " + member.userName.firstName).trim() || member.nickName || "",
       }));
   }
 
   public async getChannels(): Promise<ISelectItem<string>[]> {
     const channels: GroupsResponse["groups"] = [];
     const limit = 100;
-    let cursor: string = '';
+    let cursor: string = "";
     do {
       const response = await this.callGroupsApi(limit, cursor);
       channels.push(...response.groups);
