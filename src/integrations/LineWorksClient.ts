@@ -79,37 +79,4 @@ export default class LineWorksClient {
       }));
   }
 
-  // public async postDirectMessage(
-  //   users: string,
-  //   blocks: (KnownBlock | Block)[],
-  //   text: string = "お知らせ",
-  // ) {
-  //   const response = await this.openDirectMessage(users);
-  //   const channel = response?.channel?.id;
-  //   return this.postMessage({ channel, text, blocks });
-  // }
-
-  // public async openDirectMessage(users: string) {
-  //   return this.client.conversations.open({ users });
-  // }
-
-  // public async postMessage(options: ChatPostMessageArguments) {
-  //   return this.client.chat.postMessage(options);
-  // }
-
-  // public async updateMessage(options: ChatUpdateArguments) {
-  //   return this.client.chat.update(options);
-  // }
-
-  // public async openView(options: ViewsOpenArguments) {
-  //   return this.client.views.open(options);
-  // }
-
-  // public async getProfile(options: UsersProfileGetArguments) {
-  //   return this.client.users.profile.get(options);
-  // }
-
-  // public async joinChannel(options: ConversationsJoinArguments) {
-  //   return this.client.conversations.join(options);
-  // }
 }
