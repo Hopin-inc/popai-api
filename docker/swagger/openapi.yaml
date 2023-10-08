@@ -5,44 +5,46 @@ info:
 servers:
   - url: https://localhost:3000/api
 tags:
-  # - name: auth
-  # - name: users
-  - name: shcedulers
-  # - name: backlog
-  # - name: slack
-  - name: line-works
-  # - name: notion
-  # - name: google
-  # - name: plans
-  # - name: subscriptions
+  - name: auth
+  - name: config
+  - name: users
   - name: chat-tool
   - name: todo-app
-  # - name: config
+  - name: shcedulers
+  - name: backlog
+  - name: slack
+  - name: line-works
+  - name: notion
+  - name: google
+  - name: plans
+  - name: subscriptions
 
 paths:
-  # /auth/me:
-  #   get:
-  #     tags:
-  #       - auth
-  #     summary: Get information about yourself.
-  #     # description: 
-  #     responses:
-  #       '200':
-  #         description: Successful operation
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 id:
-  #                   type: string
-  #                   example: "P7aUcmHjohOnoXTFxcOnrW40oa72"
-  #     # security:
+  /auth/me:
+    get:
+      tags:
+        - auth
+      description: Get information about yourself.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    nullable: true
+                    example: null
+                  isRegistered:
+                    type: boolean
+                    example: true
 
-  # /auth/login:
-  #   get:
-  #     tags:
-  #       - auth
+  /auth/login:
+    get:
+      tags:
+        - auth
   #     summary: Login with chattool account.
   #     # description: 
   #     responses:
@@ -53,60 +55,116 @@ paths:
   #             schema:
   #               $ref: '#/components/schemas/AccountInfo'
 
-  # /auth/login/email:
-  #   get:
-  #     tags:
-  #       - auth
-  #     summary: Login with chattool account.
-  #     # description: 
-  #     responses:
-  #       '200':
-  #         description: successful operation
-  #         content:
-  #           application/json:
-  #             schema:
-  #               $ref: '#/components/schemas/AccountInfo'
+  /auth/login/email:
+    get:
+      tags:
+        - auth
+      description: メールアドレスでログイン
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInfo'
 
-  # /auth/signup:
-  #   post:
-  #     tags:
-  #       - auth
-  #     summary: Signup with chattool account.
-  #     description: Specification details are under construction...
-  #     responses:
-  #       '200':
-  #         description: successful operation
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 TODO:
-  #                   type: string
-  #                   example: "TODO"
+  /auth/signup:
+    post:
+      tags:
+        - auth
+      description: Signup with chattool account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "株式会社テスト"
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cookie:
+                    type: object
+                    properties:
+                      originalMaxAge:
+                        type: integer
+                        example: 1800000
+                      expires:
+                        type: string
+                        example: "2023-10-08T16:31:05.647Z"
+                      secure:
+                        type: boolean
+                        example: true
+                      httpOnly:
+                        type: boolean
+                        example: true
+                      path:
+                        type: string
+                        example: "/"
+                      sameSite:
+                        type: boolean
+                        example: true
+                  uid:
+                    type: string
+                    example: "jj2BZVWDKiSUvMmOOZdJ9hlzPVk1"
+                  company:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "jj2BZVWDKiSUvMmOOZdJ9hlzPVk1"
+                      createdAt:
+                        type: string
+                        example: "2023-10-09T01:00:22.246Z"
+                      updatedAt:
+                        type: string
+                        example: "2023-10-09T01:02:53.000Z"
+                      deletedAt:
+                        type: string
+                        nullable: true
+                        example: null
+                      name:
+                        type: string
+                        example: "test会社"
+                  registered:
+                    type: boolean
+                    example: true
 
-  # /auth/signup/email:
-  #   post:
-  #     tags:
-  #       - auth
-  #     summary: Signup with chattool account.
-  #     description: Specification details are under construction...
-  #     responses:
-  #       '200':
-  #         description: successful operation
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 TODO:
-  #                   type: string
-  #                   example: "TODO"
+  /auth/signup/email:
+    post:
+      tags:
+        - auth
+      description: メールアドレスで新規登録
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    example: null
+                  message:
+                    type: string
+                    example: ""
 
-  # /auth/logout:
-  #   get:
-  #     tags:
-  #       - auth
+  /auth/logout:
+    get:
+      tags:
+        - auth
   #     summary: Signup with chattool account.
   #     description: Specification details are under construction...
   #     responses:
@@ -125,7 +183,6 @@ paths:
     get:
       tags:
         - shcedulers
-      summary: TODO
       description: TODO
       responses:
         '200':
@@ -143,7 +200,6 @@ paths:
     get:
       tags:
         - shcedulers
-      summary: TODO
       description: TODO
       responses:
         '200':
@@ -161,7 +217,6 @@ paths:
     get:
       tags:
         - shcedulers
-      summary: TODO
       description: TODO
       responses:
         '200':
@@ -175,13 +230,93 @@ paths:
                     type: string
                     example: "TODO"
 
+  /backlog/install:
+    get:
+      tags:
+        - backlog
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /backlog/oauth_redirect:
+    get:
+      tags:
+        - backlog
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /backlog/webhook/{companyId}:
+    post:
+      tags:
+        - backlog
+
+  /slack/install:
+    get:
+      tags:
+        - slack
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /slack/oauth_redirect:
+    get:
+      tags:
+        - slack
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /slack/webhook:
+    post:
+      tags:
+        - slack
+
+  /line-works/install:
+    post:
+      tags:
+        - line-works
+
+    patch:
+      tags:
+        - line-works
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: edit ok
+
   /line-works/webhook/{companyId}:
     parameters:
       - $ref: '#/components/parameters/companyId'
     post:
       tags:
         - line-works
-      summary: TODO
       description: TODO
       requestBody:
         required: true
@@ -197,14 +332,215 @@ paths:
         '204':
           description: proceed.
 
+  /notion/install:
+    get:
+      tags:
+        - notion
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /notion/oauth_redirect:
+    get:
+      tags:
+        - notion
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /google/install:
+    get:
+      tags:
+        - google
+      summary: ※※※未実装※※※
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /google/oauth_redirect:
+    get:
+      tags:
+        - google
+      summary: ※※※未実装※※※
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /plans:
+    get:
+      tags:
+        - plans
+      summary: ※※※未実装※※※
+
+  /subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: ※※※未実装※※※
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+    post:
+      tags:
+        - subscriptions
+      summary: ※※※未実装※※※
+
+  /users:
+    patch:
+      tags:
+        - users
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: edit ok
+    
+  /users/{userId}:
+    delete:
+      tags:
+        - users
+  
+  /users/configs:
+    get:
+      tags:
+        - users
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+                        name:
+                          type: string
+                          example: "山田太郎"
+                    chatToolUserId:
+                      type: string
+                      example: "U01UA44GSMP"
+                    todoAppUserId:
+                      type: string
+                      example: "1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48"
+
+  /users/reporting-lines:
+    get:
+      tags:
+        - users
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+                        name:
+                          type: string
+                          example: "山田太郎"
+                    superiorUsers:
+                      type: array
+                      items:
+                        type: string
+                        example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+
+  /users/reporting-lines/{userId}:
+    patch:
+      tags:
+        - users
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+      responses:
+        '204':
+          description: edit ok
+
+  /chat-tool:
+    get:
+      tags:
+        - chat-tool
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatToolId:
+                    type: integer
+                    example: 2
+                  teamId:
+                    type: string
+                    example: "T012B4YCASJ"
+
+    delete:
+      tags:
+        - chat-tool
+      summary: ※※※未実装※※※
+
   /chat-tool/{chatToolId}/accounts:
     parameters:
       - $ref: '#/components/parameters/chatToolId'
     get:
       tags:
         - chat-tool
-      summary: チャットツールのアカウント一覧を取得
-      description: 指定したチャットツールのアカウント一覧を取得する。
+      description: チャットツールのアカウント一覧を取得
       responses:
         '200':
           description: successful operation
@@ -230,8 +566,7 @@ paths:
     get:
       tags:
         - chat-tool
-      summary: チャットツールのチャンネル一覧を取得
-      description: 指定したチャットツールのチャンネル一覧を取得する。
+      description: チャットツールのチャンネル一覧を取得
       responses:
         '200':
           description: successful operation
@@ -258,8 +593,7 @@ paths:
     patch:
       tags:
         - chat-tool
-      summary: POPAIとチャットツールのユーザ紐付け
-      description: POPAIのユーザIDとチャットツールのユーザIDを紐付ける。
+      description: POPAIのユーザIDとチャットツールのユーザIDを紐付ける
       requestBody:
         description: チャットツールのユーザIDを指定する。
         required: true
@@ -286,14 +620,11 @@ paths:
                     type: string
                     example: ""
 
-  /todo-app/{todoAppId}/accounts:
-    parameters:
-      - $ref: '#/components/parameters/todoAppId'
+  /todo-app:
     get:
       tags:
         - todo-app
-      summary: TODO
-      description: TODO
+      description: ...
       responses:
         '200':
           description: successful operation
@@ -302,16 +633,48 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
+                  todoAppId:
                     type: integer
-                    example: 200
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ChatToolAccount'
-                  message:
+                    example: 3
+                  workspaceId:
                     type: string
-                    example: ""
+                    example: "25092ec8-384d-41f4-94ad-f423bd7b947f"
+
+    delete:
+      tags:
+        - todo-app
+      summary: ※※※未実装※※※
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+  /todo-app/{todoAppId}/accounts:
+    parameters:
+      - $ref: '#/components/parameters/todoAppId'
+    get:
+      tags:
+        - todo-app
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48"
+                    name:
+                      type: string
+                      example: "山田太郎"
 
   /todo-app/{todoAppId}/boards:
     parameters:
@@ -319,7 +682,6 @@ paths:
     get:
       tags:
         - todo-app
-      summary: TODO
       description: TODO
       responses:
         '200':
@@ -327,11 +689,16 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  TODO:
-                    type: string
-                    example: "TODO"
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "00bbebe6-7aae-4b34-ac9c-84f5af874d50"
+                    name:
+                      type: string
+                      example: "プロジェクト"
 
   /todo-app/{todoAppId}/boards/{boardId}/properties:
     parameters:
@@ -340,8 +707,154 @@ paths:
     get:
       tags:
         - todo-app
-      summary: TODO
       description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "notion%3A%2F%2Ftasks%2Ftags_property"
+                    name:
+                      type: string
+                      example: "ステータス"
+                    type:
+                      type: integer
+                      example: 4
+                    availableOptions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: "not-started"
+                          name:
+                            type: string
+                            example: "未着手"
+                          color:
+                            type: string
+                            example: "default"
+
+  /todo-app/{todoAppId}/boards/{boardId}/usages:
+    get:
+      tags:
+        - todo-app
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    property:
+                      type: string
+                      example: "title"
+                    usage:
+                      type: integer
+                      example: 1
+                    type:
+                      type: integer
+                      example: 1
+                    options:
+                      type: array
+                      items:
+                        type: string
+                      example: ["done"]
+                    isChecked:
+                      type: boolean
+                      example: null
+                example:
+                  - id: 1
+                    property: "title"
+                    usage: 1
+                    type: 1
+                    options: null
+                    isChecked: null
+                  - id: 2
+                    property: "notion%3A%2F%2Ftasks%2Fassign_property"
+                    usage: 3
+                    type: 7
+                    options: null
+                    isChecked: null
+                  - id: 3
+                    property: "notion%3A%2F%2Ftasks%2Fdue_date_property"
+                    usage: 4
+                    type: 8
+                    options: null
+                    isChecked: null
+                  - id: 4
+                    property: "notion%3A%2F%2Ftasks%2Fparent_task_relation"
+                    usage: 7
+                    type: 15
+                    options: null
+                    isChecked: null
+                  - id: 5
+                    property: "notion%3A%2F%2Ftasks%2Fstatus_property"
+                    usage: 5
+                    type: 6
+                    options: ["done"]
+                    isChecked: null
+                  - id: 6
+                    property: "notion%3A%2F%2Ftasks%2Fstatus_property"
+                    usage: 6
+                    type: 6
+                    options: ["archived"]
+                    isChecked: null
+
+    patch:
+      tags:
+        - todo-app
+      description: TODOアプリのデータ設定でカラムを更新するたび呼び出す
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                property:
+                  type: string
+                  example: "title"
+                usage:
+                  type: integer
+                  example: 1
+                type:
+                  type: integer
+                  example: 1
+                options:
+                  type: array
+                  items:
+                    type: string
+                    example: "archived"
+                isChecked:
+                  type: boolean
+                  example: null
+      responses:
+        '204':
+          description: edit ok
+
+  /todo-app/{todoAppId}/board:
+    get:
+      tags:
+        - todo-app
+      description: ...
       responses:
         '200':
           description: successful operation
@@ -350,9 +863,48 @@ paths:
               schema:
                 type: object
                 properties:
-                  TODO:
+                  boardId:
                     type: string
-                    example: "TODO"
+                    example: "00bbebe6-7aae-4b34-ac9c-84f5af874d50"
+                  projectRule:
+                    type: string
+                    example: null
+
+    post:
+      tags:
+        - todo-app
+      description: リクエストの中身は空
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+      responses:
+        '200':
+          description: successful operation
+
+    patch:
+      tags:
+        - todo-app
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                boardId:
+                  type: string
+                  example: "00bbebe6-7aae-4b34-ac9c-84f5af874d50"
+                projectRule:
+                  type: integer
+                  example: 1
+      responses:
+        '204':
+          description: edit ok
 
   /todo-app/{todoAppId}/users/{userId}:
     parameters:
@@ -361,7 +913,231 @@ paths:
     patch:
       tags:
         - todo-app
-      summary: TODO
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48"
+      responses:
+        '204':
+          description: edit ok
+
+  /config:
+    get:
+      tags:
+        - config
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: boolean
+                    example: false
+                  todoApp:
+                    type: boolean
+                    example: true
+                  projects:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        example: false
+                      isValid:
+                        type: boolean
+                        example: false
+                  todos:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        example: false
+                      isValid:
+                        type: boolean
+                        example: false
+      
+
+  /config/common:
+    get:
+      tags:
+        - config
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+    patch:
+      tags:
+        - config
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                TODO:
+                  type: string
+                  example: "TODO"
+      responses:
+        '204':
+          description: edit ok
+
+  /config/features:
+    get:
+      tags:
+        - config
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: boolean
+                    example: false
+                  todos:
+                    type: boolean
+                    example: false
+
+  /config/prospect:
+    get:
+      tags:
+        - config
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: integer
+                    example: 2
+                  enabled:
+                    type: boolean
+                    example: true
+                  chatToolId:
+                    type: 'null'
+                    example: null
+                  channel:
+                    type: 'null'
+                    example: null
+                  from:
+                    type: 'null'
+                    example: null
+                  fromDaysBefore:
+                    type: 'null'
+                    example: null
+                  beginOfWeek:
+                    type: 'null'
+                    example: null
+                  to:
+                    type: 'null'
+                    example: null
+                  frequency:
+                    type: 'null'
+                    example: null
+                  frequencyDaysBefore:
+                    type: 'null'
+                    example: null
+                  timings:
+                    type: array
+                    items: {}
+                    example: []
+
+    patch:
+      tags:
+        - config
+      description: TODO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  example: true
+                type:
+                  type: integer
+                  example: 2
+                channel:
+                  type: string
+                  example: "C01TRR9B9GE"
+                chatToolId:
+                  type: integer
+                  example: 2
+                beginOfWeek:
+                  type: integer
+                  example: 1
+                from:
+                  type: integer
+                  example: 1
+                fromDaysBefore:
+                  type: integer
+                  example: 0
+                to:
+                  type: integer
+                  example: 1
+                frequency:
+                  type: integer
+                  example: 1
+                frequencyDaysBefore:
+                  type: array
+                  items:
+                    type: integer
+                timings:
+                  type: object
+                  properties:
+                    time:
+                      type: string
+                      example: "09:00:00"
+                    type:
+                      type: integer
+                      example: 2
+                    mode:
+                      type: integer
+                      example: 1
+      responses:
+        '204':
+          description: edit ok
+
+  /config/remind:
+    get:
+      tags:
+        - config
+      description: ...
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+
+    patch:
+      tags:
+        - config
       description: TODO
       requestBody:
         required: true
