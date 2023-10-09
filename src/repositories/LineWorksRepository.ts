@@ -1,12 +1,37 @@
-import logger from "@/libs/logger";
 import axios from "axios";
 import { Request } from "express";
 import jwt from "jsonwebtoken";
 import { Service } from "typedi";
 
+import LineWorksMessageBuilder from "@/common/LineWorksMessageBuilder";
+import { ChatToolId, RemindType } from "@/consts/common";
+import Company from "@/entities/settings/Company";
+import RemindConfig from "@/entities/settings/RemindConfig";
+import RemindTiming from "@/entities/settings/RemindTiming";
+import User from "@/entities/settings/User";
+import Project from "@/entities/transactions/Project";
+import Todo from "@/entities/transactions/Todo";
+import LineWorksClient from "@/integrations/LineWorksClient";
+import logger from "@/libs/logger";
+
+import { ProjectRepository } from "./transactions/ProjectRepository";
+import { TodoRepository } from "./transactions/TodoRepository";
+
 @Service()
 export default class LineWorksRepository {
   static getInstallation: any;
+
+  private async sendDirectMessage(user: User, message: any) {
+    if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
+      const lineWorksBot = await LineWorksClient.init(user.companyId);
+      return lineWorksBot.postDirectMessage(user.chatToolUser.appUserId, message.content);
+    }
+  }
+
+  private async pushLineWorksMessage(companyId: string, sharedMessage: any, channelId: string) {
+    const lineWorksBot = await LineWorksClient.init(companyId);
+    return lineWorksBot.postMessage(companyId, sharedMessage, channelId);
+  }
 
   public async getInstallation(req: Request) {
     const CLIENT_ID = req.body.client_id;
@@ -23,7 +48,7 @@ export default class LineWorksRepository {
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      scope: "bot user.read group.read",
+      scope: "bot user.read group.read bot.message bot.read",
     });
 
     axios.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded;";
@@ -68,5 +93,25 @@ export default class LineWorksRepository {
     );
 
     return jws;
+  }
+
+  public async remind(company: Company, timing: RemindTiming, config: RemindConfig) {
+    const items: (Todo | Project)[] =
+      config.type === RemindType.PROJECTS
+        ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
+        : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
+    if (items.length) {
+      const sharedMessage = LineWorksMessageBuilder.createPublicRemind(items);
+      await Promise.all([
+        ...company.users.map(async (user) => {
+          const assignedItems = items.filter((i) => i.users.map((u) => u.id).includes(user.id));
+          if (assignedItems.length) {
+            const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
+            await this.sendDirectMessage(user, message);
+          }
+        }),
+        this.pushLineWorksMessage(company.id, sharedMessage, config.channel),
+      ]);
+    }
   }
 }

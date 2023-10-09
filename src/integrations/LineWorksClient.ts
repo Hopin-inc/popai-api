@@ -90,4 +90,34 @@ export default class LineWorksClient {
       }));
   }
 
+  public async postDirectMessage(user: string, content: any) {
+    // TODO: this
+    const botUser = 1421074;
+
+    await fetchApi<GroupsResponse>(
+      `https://www.worksapis.com/v1.0/bots/${ botUser }/users/${ user }/messages`,
+      "POST",
+      { content },
+      false,
+      this.accessToken,
+      null,
+    );
+    return;
+  }
+
+  public async postMessage(companyId: string, content: any, channelId: string) {
+    // TODO: this
+    const botChannel = 1420959;
+
+    await fetchApi<GroupsResponse>(
+      `https://www.worksapis.com/v1.0/bots/${ botChannel }/channels/${ channelId }/messages`,
+      "POST",
+      content,
+      false,
+      this.accessToken,
+      null,
+    );
+
+    return;
+  }
 }
