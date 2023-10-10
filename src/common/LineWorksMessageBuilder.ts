@@ -7,6 +7,7 @@ import Todo from "@/entities/transactions/Todo";
 import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
 import { relativeRemindDays } from "@/utils/string";
 import User from "@/entities/settings/User";
+import { LineWorksContent } from "@/types/lineworks";
 
 dayjs.locale("ja");
 
@@ -34,7 +35,7 @@ export default class LineWorksMessageBuilder {
     return { content };
   }
 
-  private static remindMessage(contents: any) {
+  private static remindMessage(contents: LineWorksContent[]): LineWorksContent {
     return {
       type: "flex",
       altText: "次のタスクが期限切れになっています。",
@@ -73,7 +74,7 @@ export default class LineWorksMessageBuilder {
     };
   }
 
-  private static getContentPublicRemind<T extends Todo | Project>(items: T[]): any {
+  private static getContentPublicRemind<T extends Todo | Project>(items: T[]): LineWorksContent[] {
     const contentPublic = [];
     items.map((item) => {
       contentPublic.push(this.separatorContent(contentPublic.length == 0));
@@ -82,7 +83,7 @@ export default class LineWorksMessageBuilder {
     return contentPublic;
   }
 
-  private static getContentPersonalRemind<T extends Todo | Project>(items: T[]): any {
+  private static getContentPersonalRemind<T extends Todo | Project>(items: T[]): LineWorksContent[] {
     const contentPersonal = [];
     items.map((item) => {
       contentPersonal.push(this.separatorContent(contentPersonal.length == 0));
@@ -91,7 +92,7 @@ export default class LineWorksMessageBuilder {
     return contentPersonal;
   }
 
-  private static getPublicRemind<T extends Todo | Project>(item: T): any {
+  private static getPublicRemind<T extends Todo | Project>(item: T): LineWorksContent {
     const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
     
     return {
@@ -115,7 +116,7 @@ export default class LineWorksMessageBuilder {
               type: "box",
               contents: [
                 {
-                  url: "https://api-private.atlassian.com/users/8503d03a5475ea62f006ea0d1f605b92/avatar",
+                  url: "https://api-private.atlassian.com/users/8503d03a5475ea62f006ea0d1f605b92/avatar", // TODO: Avoid hard coding.
                   type: "icon",
                   size: "md",
                 },
@@ -173,7 +174,7 @@ export default class LineWorksMessageBuilder {
     };
   }
 
-  private static getPersonalRemind<T extends Todo | Project>(item: T): any {
+  private static getPersonalRemind<T extends Todo | Project>(item: T): LineWorksContent {
     const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
 
     return {

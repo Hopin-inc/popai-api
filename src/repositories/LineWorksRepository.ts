@@ -16,21 +16,20 @@ import logger from "@/libs/logger";
 
 import { ProjectRepository } from "./transactions/ProjectRepository";
 import { TodoRepository } from "./transactions/TodoRepository";
+import { LineWorksMessage } from "@/types/lineworks";
 
 @Service()
 export default class LineWorksRepository {
-  static getInstallation: any;
-
-  private async sendDirectMessage(user: User, message: any) {
+  private async sendUserMessage(user: User, message: LineWorksMessage) {
     if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
       const lineWorksBot = await LineWorksClient.init(user.companyId);
-      return lineWorksBot.postDirectMessage(user.chatToolUser.appUserId, message.content);
+      return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message.content);
     }
   }
 
-  private async pushLineWorksMessage(companyId: string, sharedMessage: any, channelId: string) {
+  private async sendChannelMessage(companyId: string, sharedMessage: LineWorksMessage, channelId: string) {
     const lineWorksBot = await LineWorksClient.init(companyId);
-    return lineWorksBot.postMessage(companyId, sharedMessage, channelId);
+    return lineWorksBot.postChannelMessage(channelId, sharedMessage.content);
   }
 
   public async getInstallation(req: Request) {
@@ -107,10 +106,10 @@ export default class LineWorksRepository {
           const assignedItems = items.filter((i) => i.users.map((u) => u.id).includes(user.id));
           if (assignedItems.length) {
             const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
-            await this.sendDirectMessage(user, message);
+            await this.sendUserMessage(user, message);
           }
         }),
-        this.pushLineWorksMessage(company.id, sharedMessage, config.channel),
+        this.sendChannelMessage(company.id, sharedMessage, config.channel),
       ]);
     }
   }

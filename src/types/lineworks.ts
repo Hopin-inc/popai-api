@@ -161,3 +161,31 @@ export interface MembersAllowedToUseGroupEmailAsSender {
 export interface ResponseMetaData {
   nextCursor: string;
 }
+
+export interface LineWorksMessage {
+  content: any;
+}
+
+export interface LineWorksContent {
+  type: string;
+  layout?: "horizontal" | "vertical" | "baseline";
+  contents?: LineWorksContent[] | LineWorksContent;
+  text?: string;
+  size?: string;
+  color?: string;
+  weight?: string;
+  wrap?: boolean;
+  paddingTop?: string;
+  paddingBottom?: string;
+  flex?: number;
+  gravity?: string;
+  action?: {
+    type: "uri" | "message" | "text" | "postback";
+    uri?: string;
+  };
+  altText?: string;
+  body?: LineWorksContent;
+  url?: string;
+  offsetTop?: string;
+  spacing?: string;
+}

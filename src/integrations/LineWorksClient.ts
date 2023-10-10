@@ -1,26 +1,18 @@
 import { Service } from "typedi";
-import {
-  Block,
-  ChatPostMessageArguments,
-  ChatUpdateArguments,
-  ConversationsJoinArguments, ConversationsListResponse,
-  KnownBlock, UsersListResponse,
-  UsersProfileGetArguments,
-  ViewsOpenArguments,
-  WebClient,
-} from "@slack/web-api";
-import Line from "@line/bot-sdk";
+
 import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
 import { ChatToolId } from "@/consts/common";
 import { ISelectItem } from "@/types/app";
 import { IsNull, Not } from "typeorm";
 import { fetchApi } from "@/libs/request";
-import { GroupsResponse, UsersResponse } from "@/types/lineworks";
+import { GroupsResponse, LineWorksContent, UsersResponse } from "@/types/lineworks";
 
 @Service()
 export default class LineWorksClient {
   private companyId: string;
   private accessToken?: string;
+  private userBotId?: string;
+  private channelBotId?: string;
 
   public static async init(companyId: string): Promise<LineWorksClient> {
     const lineWorksInfo = await ImplementedChatToolRepository.findOneBy({
@@ -31,6 +23,8 @@ export default class LineWorksClient {
     const service = new LineWorksClient();
     service.accessToken = lineWorksInfo?.accessToken;
     service.companyId = companyId;
+    service.userBotId = lineWorksInfo?.userBotId;
+    service.channelBotId = lineWorksInfo?.channelBotId;
     return service;
   }
 
@@ -90,34 +84,25 @@ export default class LineWorksClient {
       }));
   }
 
-  public async postDirectMessage(user: string, content: any) {
-    // TODO: this
-    const botUser = 1421074;
-
-    await fetchApi<GroupsResponse>(
-      `https://www.worksapis.com/v1.0/bots/${ botUser }/users/${ user }/messages`,
+  public async postUserMessage(user: string, content: LineWorksContent) {
+    return await fetchApi<GroupsResponse>(
+      `https://www.worksapis.com/v1.0/bots/${ this.userBotId }/users/${ user }/messages`,
       "POST",
       { content },
       false,
       this.accessToken,
       null,
     );
-    return;
   }
 
-  public async postMessage(companyId: string, content: any, channelId: string) {
-    // TODO: this
-    const botChannel = 1420959;
-
-    await fetchApi<GroupsResponse>(
-      `https://www.worksapis.com/v1.0/bots/${ botChannel }/channels/${ channelId }/messages`,
+  public async postChannelMessage(channelId: string, content: LineWorksContent) {
+    return await fetchApi<GroupsResponse>(
+      `https://www.worksapis.com/v1.0/bots/${ this.channelBotId }/channels/${ channelId }/messages`,
       "POST",
-      content,
+      { content },
       false,
       this.accessToken,
       null,
     );
-
-    return;
   }
 }
