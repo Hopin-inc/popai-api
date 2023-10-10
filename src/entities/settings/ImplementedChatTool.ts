@@ -17,7 +17,10 @@ export default class ImplementedChatTool extends BaseEntity {
     clientSecret?: string,
     serviceAccount?: string,
     secretKey?: string,
-    botSecret?: string,
+    userBotId?: string,
+    userBotSecret?: string,
+    channelBotId?: string,
+    channelBotSecret?: string,
   ) {
     super();
     if (company) {
@@ -42,7 +45,10 @@ export default class ImplementedChatTool extends BaseEntity {
             this.clientSecret = clientSecret;
             this.serviceAccount = serviceAccount;
             this.secretKey = secretKey;
-            this.botSecret = botSecret;
+            this.userBotId = userBotId;
+            this.userBotSecret = userBotSecret;
+            this.channelBotId = channelBotId;
+            this.channelBotSecret = channelBotSecret;
           }
           break;
         default:
@@ -84,8 +90,17 @@ export default class ImplementedChatTool extends BaseEntity {
   @Column({ name: "secret_key", type: "text", nullable: true })
   secretKey?: string;
 
-  @Column({ name: "bot_secret", type: "text", nullable: true })
-  botSecret?: string;
+  @Column({ name: "user_bot_id", type: "varchar", nullable: true })
+  userBotId?: string;
+
+  @Column({ name: "user_bot_secret", type: "text", nullable: true })
+  userBotSecret?: string;
+  
+  @Column({ name: "channel_bot_id", type: "varchar", nullable: true })
+  channelBotId?: string;
+
+  @Column({ name: "channel_bot_secret", type: "text", nullable: true })
+  channelBotSecret?: string;
 
   @OneToOne(() => Company, (company) => company.implementedChatTool, {
     onDelete: "CASCADE",
