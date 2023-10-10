@@ -4,13 +4,14 @@ import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import { Installation } from "@slack/oauth";
 import { ChatToolId } from "../../consts/common";
+import { InstallationLineWorks } from "@/types/lineworks";
 
 @Entity("s_implemented_chat_tools")
 export default class ImplementedChatTool extends BaseEntity {
   constructor(
     company: Company | string,
     chatToolId: number,
-    installation?: Installation | any,
+    installation?: Installation & InstallationLineWorks,
     appInstallUserId?: string,
     clientId?: string,
     clientSecret?: string,
