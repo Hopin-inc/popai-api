@@ -11,7 +11,7 @@ export default class ImplementedChatTool extends BaseEntity {
   constructor(
     company: Company | string,
     chatToolId: number,
-    installation?: Installation & InstallationLineWorks,
+    installation?: Installation | InstallationLineWorks,
     appInstallUserId?: string,
     clientId?: string,
     clientSecret?: string,
@@ -26,18 +26,18 @@ export default class ImplementedChatTool extends BaseEntity {
       switch (this.chatToolId) {
         case ChatToolId.SLACK:
           if (installation) {
-            this.appTeamId = installation.team.id;
-            this.accessToken = installation.bot.token;
-            this.installation = installation;
+            this.installation = installation as Installation;
+            this.appTeamId = this.installation.team.id;
+            this.accessToken = this.installation.bot.token;
           } else if (appInstallUserId) {
             this.appInstallUserId = appInstallUserId;
           }
           break;
         case ChatToolId.LINEWORK:
           if (installation) {
-            this.installation = installation;
-            this.accessToken = installation.access_token;
-            this.refreshToken = installation.refresh_token;
+            this.installation = installation as InstallationLineWorks;
+            this.accessToken = this.installation.access_token;
+            this.refreshToken = this.installation.refresh_token;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
             this.serviceAccount = serviceAccount;
@@ -67,7 +67,7 @@ export default class ImplementedChatTool extends BaseEntity {
   accessToken?: string;
 
   @Column({ name: "installation", type: "json", nullable: true })
-  installation?: Installation;
+  installation?: Installation | InstallationLineWorks;
 
   @Column({ name: "refresh_token", type: "text", nullable: true })
   refreshToken?: string;

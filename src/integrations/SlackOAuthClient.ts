@@ -1,5 +1,5 @@
 import { Service } from "typedi";
-import { InstallProvider, InstallProviderOptions } from "@slack/oauth";
+import { InstallProvider, InstallProviderOptions, Installation } from "@slack/oauth";
 import { Request, Response } from "express";
 import { SessionRepository } from "@/repositories/transactions/SessionRepository";
 import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
@@ -57,13 +57,14 @@ export default class SlackOAuthClient {
           const { teamId } = query;
           const implementedChatTool = await ImplementedChatToolRepository.findOneBy({ appTeamId: teamId });
           if (implementedChatTool) {
+            const installation = implementedChatTool.installation as Installation;
             return {
               authVersion: "v2",
               enterprise: undefined,
               team: { id: teamId },
               user: {
-                id: implementedChatTool.installation.user.id,
-                scopes: implementedChatTool.installation.bot.scopes,
+                id: installation.user.id,
+                scopes: installation.bot.scopes,
                 token: implementedChatTool.accessToken,
               },
             };
