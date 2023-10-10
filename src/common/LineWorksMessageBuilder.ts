@@ -8,6 +8,7 @@ import { diffDays, formatDatetime, toJapanDateTime } from "@/utils/datetime";
 import { relativeRemindDays } from "@/utils/string";
 import User from "@/entities/settings/User";
 import { LineWorksContent } from "@/types/lineworks";
+import { ITodoDoneUpdate } from "@/types";
 
 dayjs.locale("ja");
 
@@ -33,6 +34,91 @@ export default class LineWorksMessageBuilder {
       ...this.getContentPersonalRemind(items),
     ]);
     return { content };
+  }
+
+  public static createTodoDoneUpdated<T extends ITodoDoneUpdate>(item: T) {
+    const content = {
+      "content": {
+        "type": "flex",
+        "altText": "次のタスクが期限切れになっています。",
+        "contents": {
+          "type": "bubble",
+          "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "layout": "baseline",
+                "type": "box",
+                "contents": [
+                  {
+                    "url": "https://api-private.atlassian.com/users/8503d03a5475ea62f006ea0d1f605b92/avatar",
+                    "type": "icon",
+                    "size": "lg",
+                  },
+                  {
+                    "type": "text",
+                    "size": "md",
+                    "contents": [
+                      {
+                        "text": `${ item.users.map(user => user.name).join(" ") }`,
+                        "type": "span",
+                        "weight": "bold",
+                      },
+                      {
+                        "text": "さんが",
+                        "type": "span",
+                      },
+                    ],
+                    "color": "#424242",
+                  },
+                ],
+                "spacing": "sm",
+              },
+              {
+                "text": `${ item.todo.name }`,
+                "type": "text",
+                "weight": "bold",
+                "size": "lg",
+                "color": "#424242",
+              },
+              {
+                "text": "を完了しました！",
+                "type": "text",
+                "size": "md",
+                "color": "#424242",
+              },
+              {
+                "layout": "baseline",
+                "action": {
+                  "type": "uri",
+                  "label": "内容を確認する",
+                  "uri": `${item.todo.appUrl}`,
+                },
+                "type": "box",
+                "cornerRadius": "sm",
+                "contents": [
+                  {
+                    "text": "内容を確認する",
+                    "type": "text",
+                    "flex": 1,
+                    "size": "sm",
+                    "align": "center",
+                    "color": "#9E9E9E",
+                  },
+                ],
+                "borderColor": "#9E9E9E",
+                "borderWidth": "normal",
+                "margin": "md",
+                "flex": 0,
+                "width": "112px",
+              },
+            ],
+          },
+        },
+      },
+    };
+    return content;
   }
 
   private static remindMessage(contents: LineWorksContent[]): LineWorksContent {
@@ -67,7 +153,7 @@ export default class LineWorksMessageBuilder {
     },
   ];
 
-  private static separatorContent(title: boolean ) {
+  private static separatorContent(title: boolean) {
     return {
       type: "separator",
       margin: title ? "xl" : undefined,
@@ -94,7 +180,7 @@ export default class LineWorksMessageBuilder {
 
   private static getPublicRemind<T extends Todo | Project>(item: T): LineWorksContent {
     const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
-    
+
     return {
       layout: "horizontal",
       type: "box",
@@ -165,9 +251,9 @@ export default class LineWorksMessageBuilder {
           contents: [],
           action: item.appUrl
             ? {
-                type: "uri",
-                uri: item.appUrl,
-              }
+              type: "uri",
+              uri: item.appUrl,
+            }
             : undefined,
         },
       ],
@@ -226,9 +312,9 @@ export default class LineWorksMessageBuilder {
           contents: [],
           action: item.appUrl
             ? {
-                type: "uri",
-                uri: item.appUrl,
-              }
+              type: "uri",
+              uri: item.appUrl,
+            }
             : undefined,
         },
       ],

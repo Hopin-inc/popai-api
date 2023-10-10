@@ -48,6 +48,9 @@ export default class RemindConfig extends BaseEntity {
   @Column({ name: "limit", nullable: true })
   limit?: number;
 
+  @Column({ name: "report_after_recovery", default: false })
+  reportAfterRecovery?: boolean;
+
   @ManyToOne(
     () => Company,
     company => company.remindConfigs,

@@ -6,6 +6,7 @@ import { ISelectItem } from "@/types/app";
 import { IsNull, Not } from "typeorm";
 import { fetchApi } from "@/libs/request";
 import { GroupsResponse, LineWorksContent, UsersResponse } from "@/types/lineworks";
+import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 
 @Service()
 export default class LineWorksClient {
@@ -13,6 +14,15 @@ export default class LineWorksClient {
   private accessToken?: string;
   private userBotId?: string;
   private channelBotId?: string;
+
+  public static async initFromInfo(lineWorksInfo: ImplementedChatTool): Promise<LineWorksClient> {
+    const service = new LineWorksClient();
+    service.accessToken = lineWorksInfo?.accessToken;
+    service.companyId = lineWorksInfo.companyId;
+    service.userBotId = lineWorksInfo?.userBotId;
+    service.channelBotId = lineWorksInfo?.channelBotId;
+    return service;
+  }
 
   public static async init(companyId: string): Promise<LineWorksClient> {
     const lineWorksInfo = await ImplementedChatToolRepository.findOneBy({

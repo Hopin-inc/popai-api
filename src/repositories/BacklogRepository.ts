@@ -36,6 +36,7 @@ import BacklogClient from "@/integrations/BacklogClient";
 import {
   IProjectHistoryOption,
   IProjectUserUpdate,
+  ITodoDoneUpdate,
   ITodoHistoryOption,
   ITodoProjectUpdate,
   ITodoUserUpdate,
@@ -404,6 +405,7 @@ export default class BacklogRepository {
     const projectUserUpdates: IProjectUserUpdate[] = [];
     const projectHistoryArgs: IProjectHistoryOption[] = [];
     const todoUserUpdates: ITodoUserUpdate[] = [];
+    const todoDoneUpdates: ITodoDoneUpdate[] = [];
     const todoProjectUpdates: ITodoProjectUpdate[] = [];
     const todoHistoryArgs: ITodoHistoryOption[] = [];
     await Promise.all(issues.map(async issue => {
@@ -416,6 +418,7 @@ export default class BacklogRepository {
         const existingTodo = existingTodos.find(t => t.appTodoId === issue.id?.toString());
         const users = this.getAssignees(todoAppUsers, issue.assignee?.id);
         const projects = this.getProjects(companyProjects, board, issue.parentIssueId, issue.milestone);
+        const updateDone = existingTodo && !existingTodo.isDone && existingTodo.latestRemind && isDone;
         const isDelayed = deadline
           ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
           : null;
@@ -542,6 +545,9 @@ export default class BacklogRepository {
               ...a,
               id: existingTodo.id,
             })));
+            if(updateDone) {
+              todoDoneUpdates.push({ todo: existingTodo, users });
+            }
           } else {
             if (existingProject) {
               deletedProjects.push(existingProject);
@@ -576,7 +582,12 @@ export default class BacklogRepository {
               ...a,
               id: savedTodo.id,
             })));
+
+            if(updateDone) {
+              todoDoneUpdates.push({ todo, users });
+            }
           }
+
         }
       } catch (error) {
         logger.error(error.message, error);

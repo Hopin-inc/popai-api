@@ -17,6 +17,9 @@ import logger from "@/libs/logger";
 import { ProjectRepository } from "./transactions/ProjectRepository";
 import { TodoRepository } from "./transactions/TodoRepository";
 import { LineWorksMessage } from "@/types/lineworks";
+import { ITodoDoneUpdate } from "@/types";
+import { ImplementedChatToolRepository } from "./settings/ImplementedChatToolRepository";
+import { IsNull, Not } from "typeorm";
 
 @Service()
 export default class LineWorksRepository {
@@ -30,6 +33,16 @@ export default class LineWorksRepository {
   private async sendChannelMessage(companyId: string, sharedMessage: LineWorksMessage, channelId: string) {
     const lineWorksBot = await LineWorksClient.init(companyId);
     return lineWorksBot.postChannelMessage(channelId, sharedMessage.content);
+  }
+
+  private async sendDirectMessageTo(lineWorksBot: LineWorksClient, user: User, message: any) {
+    if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
+      return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message.content);
+    }
+  }
+
+  private async pushLineWorksMessageToChannel(lineWorksBot: LineWorksClient, channelId: string, sharedMessage: any) {
+    return lineWorksBot.postChannelMessage(channelId, sharedMessage);
   }
 
   public async getInstallation(req: Request) {
@@ -56,6 +69,7 @@ export default class LineWorksRepository {
     return await axios
       .post(uri, params)
       .then((response) => {
+        // logger.info(`res state: ${uri} ${ JSON.stringify(response.data) }`);
         return response.data;
       })
       .catch((error) => {
@@ -95,6 +109,13 @@ export default class LineWorksRepository {
   }
 
   public async remind(company: Company, timing: RemindTiming, config: RemindConfig) {
+    const chatTool = await ImplementedChatToolRepository.findOne({
+      where: { companyId: company.id, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull())},
+      relations: ["company.remindConfigs"],
+    });
+
+    const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);
+    
     const items: (Todo | Project)[] =
       config.type === RemindType.PROJECTS
         ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
@@ -112,5 +133,20 @@ export default class LineWorksRepository {
         this.sendChannelMessage(company.id, sharedMessage, config.channel),
       ]);
     }
+  }
+
+  public async doneTodoUpdated(companyId: string, todoDoneUpdates: ITodoDoneUpdate[]) {
+    const chatTool = await ImplementedChatToolRepository.findOne({
+      where: { companyId, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull())},
+      relations: ["company.remindConfigs"],
+    });
+    const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);
+    await Promise.all(chatTool.company.remindConfigs.map(async config => {
+      if (config.type === RemindType.PROJECTS || !config.reportAfterRecovery) return;
+      await Promise.all(todoDoneUpdates.map(async todoUpdate => {
+        const sharedMessage = LineWorksMessageBuilder.createTodoDoneUpdated(todoUpdate);
+        return await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage);
+      }));
+    }));
   }
 }
