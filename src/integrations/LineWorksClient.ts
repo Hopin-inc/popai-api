@@ -94,9 +94,9 @@ export default class LineWorksClient {
       }));
   }
 
-  public async postUserMessage(user: string, content: LineWorksContent) {
+  public async postUserMessage(userId: string, content: LineWorksContent) {
     return await fetchApi<GroupsResponse>(
-      `https://www.worksapis.com/v1.0/bots/${ this.userBotId }/users/${ user }/messages`,
+      `https://www.worksapis.com/v1.0/bots/${ this.userBotId }/users/${ userId }/messages`,
       "POST",
       { content },
       false,

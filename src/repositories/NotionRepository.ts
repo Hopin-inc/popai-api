@@ -268,7 +268,7 @@ export default class NotionRepository {
         ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
         : null;
 
-      updatedDone = (!todo || !todo.isDone) && isDone && (todo.latestRemind !== null);
+      updatedDone = isDone && todo && todo.latestRemind && !todo.isDone;
       if (registerProject) {
         if (todo) {
           await this.deleteTodosByRecord([todo]);

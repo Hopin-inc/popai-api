@@ -23,17 +23,17 @@ import { IsNull, Not } from "typeorm";
 
 @Service()
 export default class LineWorksRepository {
-  private async sendUserMessage(user: User, message: LineWorksMessage) {
-    if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
-      const lineWorksBot = await LineWorksClient.init(user.companyId);
-      return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message.content);
-    }
-  }
+  // private async sendUserMessage(user: User, message: LineWorksMessage) {
+  //   if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
+  //     const lineWorksBot = await LineWorksClient.init(user.companyId);
+  //     return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message.content);
+  //   }
+  // }
 
-  private async sendChannelMessage(companyId: string, sharedMessage: LineWorksMessage, channelId: string) {
-    const lineWorksBot = await LineWorksClient.init(companyId);
-    return lineWorksBot.postChannelMessage(channelId, sharedMessage.content);
-  }
+  // private async sendChannelMessage(companyId: string, sharedMessage: LineWorksMessage, channelId: string) {
+  //   const lineWorksBot = await LineWorksClient.init(companyId);
+  //   return lineWorksBot.postChannelMessage(channelId, sharedMessage.content);
+  // }
 
   private async sendDirectMessageTo(lineWorksBot: LineWorksClient, user: User, message: any) {
     if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
@@ -127,10 +127,10 @@ export default class LineWorksRepository {
           const assignedItems = items.filter((i) => i.users.map((u) => u.id).includes(user.id));
           if (assignedItems.length) {
             const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
-            await this.sendUserMessage(user, message);
+            return await this.sendDirectMessageTo(lineWorksBot, user, message);
           }
         }),
-        this.sendChannelMessage(company.id, sharedMessage, config.channel),
+        await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage),
       ]);
     }
   }
