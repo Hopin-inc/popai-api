@@ -86,7 +86,7 @@ export default class SlackOAuthClient {
   public async handleCallback(req: Request, res: Response) {
     await this.slackInstaller.handleCallback(req, res, {
       success() {
-        res.redirect(`${ process.env.CLIENT_BASE_URL }/create-account`);
+        res.redirect(`${ process.env.CLIENT_BASE_URL }/link`);
       },
       failure(error) {
         logger.error(error.message, error);
