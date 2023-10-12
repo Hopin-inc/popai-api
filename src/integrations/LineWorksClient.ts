@@ -98,7 +98,7 @@ export default class LineWorksClient {
     return await fetchApi<GroupsResponse>(
       `https://www.worksapis.com/v1.0/bots/${ this.userBotId }/users/${ userId }/messages`,
       "POST",
-      { content },
+      content,
       false,
       this.accessToken,
       null,
@@ -109,7 +109,7 @@ export default class LineWorksClient {
     return await fetchApi<GroupsResponse>(
       `https://www.worksapis.com/v1.0/bots/${ this.channelBotId }/channels/${ channelId }/messages`,
       "POST",
-      { content },
+      content,
       false,
       this.accessToken,
       null,

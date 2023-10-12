@@ -265,7 +265,7 @@ export interface LineWorksMessage {
 
 export interface LineWorksContent {
   type: string;
-  layout?: "horizontal" | "vertical" | "baseline";
+  layout?: "horizontal" | "vertical" | "baseline" | string;
   contents?: LineWorksContent[] | LineWorksContent;
   text?: string;
   size?: string;
@@ -277,7 +277,7 @@ export interface LineWorksContent {
   flex?: number;
   gravity?: string;
   action?: {
-    type: "uri" | "message" | "text" | "postback";
+    type: "uri" | "message" | "text" | "postback" | string;
     uri?: string;
   };
   altText?: string;

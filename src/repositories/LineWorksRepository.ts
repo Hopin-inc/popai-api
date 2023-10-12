@@ -16,7 +16,6 @@ import logger from "@/libs/logger";
 
 import { ProjectRepository } from "./transactions/ProjectRepository";
 import { TodoRepository } from "./transactions/TodoRepository";
-import { LineWorksMessage } from "@/types/lineworks";
 import { ITodoDoneUpdate } from "@/types";
 import { ImplementedChatToolRepository } from "./settings/ImplementedChatToolRepository";
 import { IsNull, Not } from "typeorm";
@@ -110,14 +109,13 @@ export default class LineWorksRepository {
 
   public async remind(company: Company, timing: RemindTiming, config: RemindConfig) {
     const chatTool = await ImplementedChatToolRepository.findOne({
-      where: { companyId: company.id, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull())},
+      where: { companyId: company.id, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull()) },
       relations: ["company.remindConfigs"],
     });
 
     const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);
-    
     const items: (Todo | Project)[] =
-      config.type === RemindType.PROJECTS
+      config.type === RemindType.TODOS
         ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
         : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
     if (items.length) {
@@ -137,7 +135,7 @@ export default class LineWorksRepository {
 
   public async doneTodoUpdated(companyId: string, todoDoneUpdates: ITodoDoneUpdate[]) {
     const chatTool = await ImplementedChatToolRepository.findOne({
-      where: { companyId, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull())},
+      where: { companyId, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull()) },
       relations: ["company.remindConfigs"],
     });
     const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);

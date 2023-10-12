@@ -1,4 +1,4 @@
-import { Service } from "typedi";
+import Container, { Service } from "typedi";
 import {
   BacklogIssueWithDetail,
   BacklogMilestone,
@@ -49,6 +49,7 @@ import { ProjectRepository } from "@/repositories/transactions/ProjectRepository
 import { ProjectHistoryRepository } from "@/repositories/transactions/ProjectHistoryRepository";
 import { ProjectUserRepository } from "@/repositories/transactions/ProjectUserRepository";
 import { ParentChild } from "@/consts/backlog";
+import LineWorksRepository from "./LineWorksRepository";
 
 type DateSet = {
   startDate: string | "",
@@ -57,6 +58,7 @@ type DateSet = {
 
 @Service()
 export default class BacklogRepository {
+  private lineWorksRepository = Container.get(LineWorksRepository);
   public async deleteTodoByIssuePayload(
     companyId: string,
     payload: BacklogWebhookPayload<SingleIssuePayload>,
@@ -593,6 +595,7 @@ export default class BacklogRepository {
         logger.error(error.message, error);
       }
     }));
+    await this.lineWorksRepository.doneTodoUpdated(companyId, todoDoneUpdates);
     await Promise.all([
       ProjectRepository.upsert(updatedProjects, []),
       ProjectUserRepository.saveProjectUsers(projectUserUpdates),

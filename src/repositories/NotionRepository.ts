@@ -25,7 +25,6 @@ import {
 } from "@/types";
 import { INotionPropertyInfo } from "@/types/notion";
 import {
-  ChatToolId,
   HistoryAction,
   ProjectHistoryProperty,
   ProjectRule,
