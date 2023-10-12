@@ -76,7 +76,7 @@ export default class LineWorksMessageBuilder {
                 spacing: "sm",
               },
               {
-                text: `${ item.todo.name }`,
+                text: `${ item.todo?.name || item.project?.name }`,
                 type: "text",
                 weight: "bold",
                 size: "lg",
@@ -93,7 +93,7 @@ export default class LineWorksMessageBuilder {
                 action: {
                   type: "uri",
                   label: "内容を確認する",
-                  uri: `${ item.todo.appUrl }`,
+                  uri: `${ item.todo?.appUrl || item.project?.appUrl }`,
                 },
                 type: "box",
                 cornerRadius: "sm",
@@ -197,7 +197,7 @@ export default class LineWorksMessageBuilder {
               wrap: true,
               weight: "bold",
             },
-            {
+            ...(item.users.length ? [{
               layout: "baseline",
               type: "box",
               contents: [
@@ -217,7 +217,7 @@ export default class LineWorksMessageBuilder {
               ],
               spacing: "sm",
               offsetTop: "2px",
-            },
+            }] : []),
             {
               type: "text",
               size: "sm",
@@ -322,7 +322,7 @@ export default class LineWorksMessageBuilder {
   }
 
   private static getUserName(users: User[]): string {
-    const userName = `${ users.map(user => user.name || user.id).join("、") } さん`;
-    return userName;
+    if (!users.length) return "";
+    return `${ users.map(user => user.name || user.id).join("、") } さん`;
   }
 }
