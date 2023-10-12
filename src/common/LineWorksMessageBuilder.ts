@@ -17,7 +17,7 @@ export default class LineWorksMessageBuilder {
     const remindDays = deadline
       ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date()))
       : null;
-    return deadline ? `${relativeRemindDays(remindDays)} (${formatDatetime(deadline)})` : "未設定";
+    return deadline ? `${ relativeRemindDays(remindDays) } (${ formatDatetime(deadline) })` : "未設定";
   }
 
   public static createPublicRemind<T extends Project | Todo>(items: T[]) {
@@ -61,7 +61,7 @@ export default class LineWorksMessageBuilder {
                     size: "md",
                     contents: [
                       {
-                        text: `${item.users.map(user => user.name).join("、")}`,
+                        text: `${ item.users.map(user => user.name).join("、") }`,
                         type: "span",
                         weight: "bold",
                       },
@@ -76,7 +76,7 @@ export default class LineWorksMessageBuilder {
                 spacing: "sm",
               },
               {
-                text: `${item.todo.name}`,
+                text: `${ item.todo.name }`,
                 type: "text",
                 weight: "bold",
                 size: "lg",
@@ -93,7 +93,7 @@ export default class LineWorksMessageBuilder {
                 action: {
                   type: "uri",
                   label: "内容を確認する",
-                  uri: `${item.todo.appUrl}`,
+                  uri: `${ item.todo.appUrl }`,
                 },
                 type: "box",
                 cornerRadius: "sm",
@@ -116,7 +116,7 @@ export default class LineWorksMessageBuilder {
             ],
           },
         },
-      }
+      },
     };
     return content;
   }
@@ -322,7 +322,7 @@ export default class LineWorksMessageBuilder {
   }
 
   private static getUserName(users: User[]): string {
-    let userName = `${users.map(user => user.name || user.id).join('、')} さん`;
+    const userName = `${ users.map(user => user.name || user.id).join("、") } さん`;
     return userName;
   }
 }
