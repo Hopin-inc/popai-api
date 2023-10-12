@@ -19,6 +19,8 @@ import { TodoRepository } from "./transactions/TodoRepository";
 import { ITodoDoneUpdate } from "@/types";
 import { ImplementedChatToolRepository } from "./settings/ImplementedChatToolRepository";
 import { IsNull, Not } from "typeorm";
+import { RemindRepository } from "./transactions/RemindRepository";
+import Remind from "@/entities/transactions/Remind";
 
 @Service()
 export default class LineWorksRepository {
@@ -36,7 +38,7 @@ export default class LineWorksRepository {
 
   private async sendDirectMessageTo(lineWorksBot: LineWorksClient, user: User, message: any) {
     if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
-      return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message.content);
+      return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message);
     }
   }
 
@@ -130,6 +132,11 @@ export default class LineWorksRepository {
         }),
         await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage),
       ]);
+
+      const reminds = items.map(item => item.users.map(user => config.type === RemindType.TODOS
+        ? new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, appChannelId: config.channel, todo: item as Todo })
+        : new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, appChannelId: config.channel, project: item as Project }))).flat();
+      await RemindRepository.upsert(reminds, []);
     }
   }
 
