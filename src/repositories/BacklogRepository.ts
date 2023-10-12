@@ -58,7 +58,7 @@ type DateSet = {
 
 @Service()
 export default class BacklogRepository {
-  private lineWorksRepository = Container.get(LineWorksRepository);
+  private lineWorksRepository: LineWorksRepository;
   public async deleteTodoByIssuePayload(
     companyId: string,
     payload: BacklogWebhookPayload<SingleIssuePayload>,
@@ -400,6 +400,7 @@ export default class BacklogRepository {
       TodoRepository.findByAppIds(TodoAppId.BACKLOG, issues.map(i => i.id.toString()), companyId),
     ]);
 
+    this.lineWorksRepository = Container.get(LineWorksRepository);
     const updatedProjects: Project[] = [];
     const deletedProjects: Project[] = [];
     const updatedTodos: Todo[] = [];
@@ -420,7 +421,8 @@ export default class BacklogRepository {
         const existingTodo = existingTodos.find(t => t.appTodoId === issue.id?.toString());
         const users = this.getAssignees(todoAppUsers, issue.assignee?.id);
         const projects = this.getProjects(companyProjects, board, issue.parentIssueId, issue.milestone);
-        const updateDone = existingTodo && !existingTodo.isDone && existingTodo.latestRemind && isDone;
+        const updateDoneTodo = existingTodo && !existingTodo.isDone && existingTodo.latestRemind && isDone;
+        const updateDoneProject = existingProject && !existingProject.isDone && existingProject.latestRemind && isDone;
         const isDelayed = deadline
           ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
           : null;
@@ -461,6 +463,9 @@ export default class BacklogRepository {
                 users,
                 currentUserIds: existingProject.todoUsers?.map(tu => tu.userId) ?? [],
               });
+              if(updateDoneProject) {
+                todoDoneUpdates.push({ project: existingProject, users });
+              }
             }
             projectHistoryArgs.push(...args.map(a => (<IProjectHistoryOption>{
               ...a,
@@ -497,6 +502,9 @@ export default class BacklogRepository {
               ...a,
               id: savedProject.id,
             })));
+            if(updateDoneProject || updateDoneTodo) {
+              todoDoneUpdates.push({ project: savedProject, users });
+            }
           }
         } else if (registerAsTodo) {
           const appParentIds = board.projectRule === ProjectRule.PARENT_TODO && issue.parentIssueId
@@ -547,7 +555,7 @@ export default class BacklogRepository {
               ...a,
               id: existingTodo.id,
             })));
-            if(updateDone) {
+            if(updateDoneTodo) {
               todoDoneUpdates.push({ todo: existingTodo, users });
             }
           } else {
@@ -585,7 +593,7 @@ export default class BacklogRepository {
               id: savedTodo.id,
             })));
 
-            if(updateDone) {
+            if(updateDoneTodo || updateDoneProject) {
               todoDoneUpdates.push({ todo, users });
             }
           }

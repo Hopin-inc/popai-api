@@ -141,13 +141,14 @@ export default class LineWorksRepository {
   }
 
   public async doneTodoUpdated(companyId: string, todoDoneUpdates: ITodoDoneUpdate[]) {
+    if (todoDoneUpdates.length === 0) return;
     const chatTool = await ImplementedChatToolRepository.findOne({
       where: { companyId, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull()) },
       relations: ["company.remindConfigs"],
     });
     const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);
     await Promise.all(chatTool.company.remindConfigs.map(async config => {
-      if (config.type === RemindType.PROJECTS || !config.reportAfterRecovery) return;
+      if (!config.reportAfterRecovery) return;
       await Promise.all(todoDoneUpdates.map(async todoUpdate => {
         const sharedMessage = LineWorksMessageBuilder.createTodoDoneUpdated(todoUpdate);
         return await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage);

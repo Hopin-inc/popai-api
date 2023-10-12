@@ -58,10 +58,12 @@ const TODO_APP_ID = TodoAppId.NOTION;
 @Service()
 export default class NotionRepository {
   private notionClient: NotionClient;
+  private lineWorksRepository: LineWorksRepository;
 
   public async syncTodos(company: Company, force: boolean = false): Promise<void> {
     try {
       this.notionClient = await NotionClient.init(company.id);
+      this.lineWorksRepository = Container.get(LineWorksRepository);
       const [notionClient, board, lastUpdatedDate] = await Promise.all([
         NotionClient.init(company.id),
         BoardRepository.findOneByConfig(company.id),
@@ -140,15 +142,18 @@ export default class NotionRepository {
               project,
               users,
               currentUserIds,
+              updatedDone,
               args,
             } = projectOrTodoInfo;
             let projectId: string;
             if (project?.id) {
               projects.push(project);
               projectId = project.id;
+              if(updatedDone) todoDoneUpdates.push({ project, users });
             } else {
               const savedProject = await ProjectRepository.save(project);
               projectId = savedProject.id;
+              if(updatedDone) todoDoneUpdates.push({ project: savedProject, users });
             }
             projectUserUpdates.push({ projectId, users, currentUserIds });
             projectHistoryOptions.push(...args.map(a => ({ ...a, id: projectId })));
@@ -187,8 +192,7 @@ export default class NotionRepository {
       }));
       await ProjectRepository.upsert(projects, []);
       await TodoRepository.upsert(todos, []);
-      const lineWorksRepository = Container.get(LineWorksRepository);
-      await lineWorksRepository.doneTodoUpdated(company.id, todoDoneUpdates);
+      await this.lineWorksRepository.doneTodoUpdated(company.id, todoDoneUpdates);
       await Promise.all([
         ProjectUserRepository.saveProjectUsers(projectUserUpdates),
         ProjectHistoryRepository.saveHistories(projectHistoryOptions),
@@ -219,10 +223,12 @@ export default class NotionRepository {
     project: Project,
     users: User[],
     currentUserIds: string[],
+    updatedDone: boolean,
     args: Omit<IProjectHistoryOption, "id">[],
   } | null> {
     const propertyUsages = board.propertyUsages;
-    let updatedDone = false;
+    let updatedDoneTodo = false;
+    let updatedDoneProject = false;
     try {
       if (!pageInfo?.properties) {
         return null;
@@ -267,7 +273,8 @@ export default class NotionRepository {
         ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
         : null;
 
-      updatedDone = isDone && todo && todo.latestRemind && !todo.isDone;
+      updatedDoneTodo = isDone && todo && todo.latestRemind && !todo.isDone;
+      updatedDoneProject = isDone && project && project.latestRemind && !project.isDone;
       if (registerProject) {
         if (todo) {
           await this.deleteTodosByRecord([todo]);
@@ -322,7 +329,7 @@ export default class NotionRepository {
             isClosed,
           });
         }
-        return { type: "project", project, users, currentUserIds, args };
+        return { type: "project", project, users, currentUserIds, updatedDone: updatedDoneProject, args };
       } else {
         if (project) {
           await this.deleteProjectsByRecord([project]);
@@ -388,7 +395,7 @@ export default class NotionRepository {
             appParentIds,
           });
         }
-        return { type: "todo", todo, projects, currentProjectIds, users, currentUserIds, updatedDone, args };
+        return { type: "todo", todo, projects, currentProjectIds, users, currentUserIds, updatedDone: updatedDoneTodo, args };
       }
     } catch(error) {
       logger.error(error.message, error);

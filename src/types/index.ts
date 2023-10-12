@@ -30,7 +30,8 @@ export type ITodoProjectUpdate = {
 };
 
 export type ITodoDoneUpdate = {
-  todo: Todo;
+  todo?: Todo;
+  project?: Project;
   users: User[];
 };
 
