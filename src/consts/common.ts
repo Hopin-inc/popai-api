@@ -1,6 +1,7 @@
 export const ChatToolId = {
   // LINE: 1,
   SLACK: 2,
+  LINEWORKS: 3,
 } as const;
 
 export const TodoAppId = {
