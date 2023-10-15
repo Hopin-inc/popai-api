@@ -36,7 +36,7 @@ export default class ImplementedChatTool extends BaseEntity {
             this.appInstallUserId = appInstallUserId;
           }
           break;
-        case ChatToolId.LINEWORK:
+        case ChatToolId.LINEWORKS:
           if (installation) {
             this.installation = installation as InstallationLineWorks;
             this.accessToken = this.installation.access_token;
