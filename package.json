@@ -16,6 +16,7 @@
     "db:create-migration": "export DB_HOST='127.0.0.1' && ts-node node_modules/.bin/typeorm migration:create ./src/database/migrations/${npm_config_name} --",
     "db:generate-migration": "export DB_HOST='127.0.0.1' && ts-node node_modules/.bin/typeorm -d ./src/config/data-source.ts migration:generate ./src/migrations/${npm_config_name} --",
     "db:migrate": "export DB_HOST='127.0.0.1' && ts-node node_modules/.bin/typeorm -d ./src/config/data-source.ts migration:run",
+    "db:migrate:stg": "ts-node node_modules/.bin/typeorm -d ./src/config/data-source.ts migration:run",
     "db:rollback": "export DB_HOST='127.0.0.1' && ts-node node_modules/.bin/typeorm -d ./src/config/data-source.ts migration:revert",
     "lint": "eslint . --ext .ts",
     "lintfix": "eslint . --fix --ext .ts"
