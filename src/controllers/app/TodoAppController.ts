@@ -273,4 +273,37 @@ export default class TodoAppController extends Controller {
       };
     }
   }
+
+  public async disconnect(companyId: string): Promise<any> {
+    const implementedTodoApp = await ImplementedTodoAppRepository.findOne({
+      where: { companyId: companyId, accessToken: Not(IsNull()) },
+      order: { id: "desc" },
+    });
+   
+    if (implementedTodoApp) {
+      const { todoAppId, appWorkspaceId } = implementedTodoApp;
+      const board = await BoardRepository.findOneByConfig(companyId);
+      if (board) {
+        await Promise.all([
+          (async () => {
+            const todos = await TodoRepository.find({
+              where: { companyId, todoAppId },
+            });
+            await TodoRepository.softRemove(todos);
+          })(),
+          (async () => {
+            const projects = await ProjectRepository.find({
+              where: { companyId, todoAppId },
+            });
+            await ProjectRepository.softRemove(projects);
+          })(),
+          (async () => await BoardRepository.softRemove(board))(),
+        ]);
+      }
+      await ImplementedTodoAppRepository.softRemove(implementedTodoApp);
+      return { todoAppId, workspaceId: appWorkspaceId };
+    } else {
+      return null;
+    }
+  }
 }

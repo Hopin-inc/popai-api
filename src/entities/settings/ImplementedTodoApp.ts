@@ -1,4 +1,4 @@
-import { Entity, Column, JoinColumn, PrimaryColumn, OneToOne } from "typeorm";
+import { Entity, Column, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { OAuth2 as OAuth2Entity } from "backlog-js/dist/types/entity";
 
 import BaseEntity from "../BaseEntity";
@@ -33,6 +33,7 @@ export default class ImplementedTodoApp extends BaseEntity {
             this.accessToken = installation.access_token;
             this.refreshToken = installation.refresh_token;
             this.appWorkspaceId = appWorkspaceId;
+            this.installation = installation;
           }
           break;
         default:
@@ -41,7 +42,10 @@ export default class ImplementedTodoApp extends BaseEntity {
     }
   }
 
-  @PrimaryColumn({ name: "company_id" })
+  @PrimaryGeneratedColumn()
+  readonly id: number;
+
+  @Column({ name: "company_id" })
   companyId: string;
 
   @Column({ name: "todo_app_id" })

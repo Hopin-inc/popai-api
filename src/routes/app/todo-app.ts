@@ -23,6 +23,22 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.delete("/", async (req, res) => {
+  try {
+    const controller = new TodoAppController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.disconnect(company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 router.get("/:todoAppId/accounts", async (req, res) => {
   try {
     const todoAppId: number = parseInt(req.params.todoAppId);
