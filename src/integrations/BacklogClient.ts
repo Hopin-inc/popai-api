@@ -76,6 +76,11 @@ export default class BacklogClient {
       refreshToken: accessToken.refresh_token,
       installation: accessToken,
     });
+
+    // Reflect token of current client
+    this.refreshToken = accessToken.refresh_token;
+    this.client = new Backlog({ accessToken: accessToken.access_token, host: this.host });
+
     logger.info(`Backlog token refreshed: company ${ this.companyId }`);
   }
 
