@@ -1,5 +1,6 @@
 import { Controller } from "tsoa";
 import { IConfigCommon, IConfigFeatures, IConfigProspect, IConfigStatus } from "@/types/app";
+import { IConfigSetup, ISetupFeatureId } from "@/types/setup";
 import { TimingRepository } from "@/repositories/settings/TimingRepository";
 import { TimingExceptionRepository } from "@/repositories/settings/TimingExceptionRepository";
 import { In, MoreThanOrEqual } from "typeorm";
@@ -12,9 +13,12 @@ import TimingException from "@/entities/settings/TimingException";
 import { ProspectTimingRepository } from "@/repositories/settings/ProspectTimingRepository";
 import ProspectConfig from "@/entities/settings/ProspectConfig";
 import ProspectTiming from "@/entities/settings/ProspectTiming";
+import SetupFeature from "@/entities/settings/SetupFeature";
 import { AskType, ChatToolId } from "@/consts/common";
 import SlackClient from "@/integrations/SlackClient";
 import { CompanyRepository } from "@/repositories/settings/CompanyRepository";
+import { SetupConfigRepository } from "@/repositories/settings/SetupConfigRepository";
+import { SetupFeatureRepository } from "@/repositories/settings/SetupFeatureRepository";
 import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRepository";
 import { TodoAppConfigViewRepository } from "@/repositories/views/TodoAppConfigViewRepository";
 import { ProspectConfigViewRepository } from "@/repositories/views/ProspectConfigViewRepository";
@@ -233,6 +237,58 @@ export default class ConfigController extends Controller {
         }
       default:
         return;
+    }
+  }
+
+  public async getSetupConfig(companyId: string): Promise<IConfigSetup> {
+    const setupConfig = await SetupConfigRepository.findOne({
+      where: { companyId: companyId },
+      relations: ["features"],
+    });
+    return {
+      currentStep: setupConfig.currentStep,
+      setupTodoAppId: setupConfig.setupTodoAppId,
+      setupChatToolId: setupConfig.setupChatToolId,
+      setupFeatures: setupConfig.features.map(f => f.feature as ISetupFeatureId),
+    };
+  }
+
+  public async updateSetupConfig(
+    data: IConfigSetup,
+    companyId: string,
+  ): Promise<any> {
+    const setupConfig = await SetupConfigRepository.findOne({
+      where: { companyId: companyId },
+      relations: ["features"],
+    });
+    if (setupConfig) {
+      await SetupConfigRepository.update(
+        setupConfig.id, 
+        {
+          currentStep: data.currentStep,
+          setupTodoAppId: data.setupTodoAppId,
+          setupChatToolId: data.setupChatToolId,
+        },
+      );
+      const oldFeature = await SetupFeatureRepository.findBy({ configId: setupConfig.id });
+      await SetupFeatureRepository.remove(oldFeature);
+      
+      await Promise.all(
+        data.setupFeatures.map(f => { 
+          return SetupFeatureRepository.save(
+            new SetupFeature({
+              config: setupConfig.id, 
+              feature: f,
+            }),
+          );
+        }),
+      );
+    }
+    else {
+      await SetupConfigRepository.save({
+        companyId,
+        ...data,
+      });
     }
   }
 }
