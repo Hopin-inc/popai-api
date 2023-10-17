@@ -1,24 +1,9 @@
 openapi: 3.0.3
 info:
-  title: POPAI API
   version: 1.0.0
+  title: POPAI API
 servers:
-  - url: https://localhost:3000/api
-tags:
-  - name: auth
-  - name: config
-  - name: users
-  - name: chat-tool
-  - name: todo-app
-  - name: shcedulers
-  - name: backlog
-  - name: slack
-  - name: line-works
-  - name: notion
-  - name: google
-  - name: plans
-  - name: subscriptions
-
+  - url: 'https://localhost:3000/api'
 paths:
   /auth/me:
     get:
@@ -40,21 +25,17 @@ paths:
                   isRegistered:
                     type: boolean
                     example: true
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /auth/login:
     get:
       tags:
         - auth
-  #     summary: Login with chattool account.
-  #     # description: 
-  #     responses:
-  #       '200':
-  #         description: successful operation
-  #         content:
-  #           application/json:
-  #             schema:
-  #               $ref: '#/components/schemas/AccountInfo'
-
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /auth/login/email:
     get:
       tags:
@@ -67,7 +48,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountInfo'
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /auth/signup:
     post:
       tags:
@@ -82,7 +64,7 @@ paths:
               properties:
                 name:
                   type: string
-                  example: "株式会社テスト"
+                  example: 株式会社テスト
       responses:
         '200':
           description: successful operation
@@ -99,7 +81,7 @@ paths:
                         example: 1800000
                       expires:
                         type: string
-                        example: "2023-10-08T16:31:05.647Z"
+                        example: '2023-10-08T16:31:05.647Z'
                       secure:
                         type: boolean
                         example: true
@@ -108,36 +90,37 @@ paths:
                         example: true
                       path:
                         type: string
-                        example: "/"
+                        example: /
                       sameSite:
                         type: boolean
                         example: true
                   uid:
                     type: string
-                    example: "jj2BZVWDKiSUvMmOOZdJ9hlzPVk1"
+                    example: jj2BZVWDKiSUvMmOOZdJ9hlzPVk1
                   company:
                     type: object
                     properties:
                       id:
                         type: string
-                        example: "jj2BZVWDKiSUvMmOOZdJ9hlzPVk1"
+                        example: jj2BZVWDKiSUvMmOOZdJ9hlzPVk1
                       createdAt:
                         type: string
-                        example: "2023-10-09T01:00:22.246Z"
+                        example: '2023-10-09T01:00:22.246Z'
                       updatedAt:
                         type: string
-                        example: "2023-10-09T01:02:53.000Z"
+                        example: '2023-10-09T01:02:53.000Z'
                       deletedAt:
                         type: string
                         nullable: true
                         example: null
                       name:
                         type: string
-                        example: "test会社"
+                        example: test会社
                   registered:
                     type: boolean
                     example: true
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /auth/signup/email:
     post:
       tags:
@@ -159,26 +142,18 @@ paths:
                     example: null
                   message:
                     type: string
-                    example: ""
-
+                    example: ''
+      servers:
+        - url: 'https://localhost:3000/api'
   /auth/logout:
     get:
       tags:
         - auth
-  #     summary: Signup with chattool account.
-  #     description: Specification details are under construction...
-  #     responses:
-  #       '200':
-  #         description: successful operation
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 TODO:
-  #                   type: string
-  #                   example: "TODO"
-
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /schedulers/update:
     get:
       tags:
@@ -194,8 +169,9 @@ paths:
                 properties:
                   TODO:
                     type: string
-                    example: "TODO"
-
+                    example: TODO
+      servers:
+        - url: 'https://localhost:3000/api'
   /schedulers/prospect:
     get:
       tags:
@@ -211,8 +187,9 @@ paths:
                 properties:
                   TODO:
                     type: string
-                    example: "TODO"
-
+                    example: TODO
+      servers:
+        - url: 'https://localhost:3000/api'
   /schedulers/remind:
     get:
       tags:
@@ -228,8 +205,9 @@ paths:
                 properties:
                   TODO:
                     type: string
-                    example: "TODO"
-
+                    example: TODO
+      servers:
+        - url: 'https://localhost:3000/api'
   /backlog/install:
     get:
       tags:
@@ -239,9 +217,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /backlog/oauth_redirect:
     get:
       tags:
@@ -251,14 +229,18 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
-  /backlog/webhook/{companyId}:
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/backlog/webhook/{companyId}':
     post:
       tags:
         - backlog
-
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /slack/install:
     get:
       tags:
@@ -268,9 +250,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /slack/oauth_redirect:
     get:
       tags:
@@ -280,19 +262,179 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /slack/webhook:
     post:
       tags:
         - slack
-
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /line-works/install:
     post:
       tags:
         - line-works
-
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                service_account:
+                  type: string
+                secret_key:
+                  type: string
+              required:
+                - client_id
+                - client_secret
+                - service_account
+                - secret_key
+              x-examples:
+                Example 1:
+                  client_id: 1234abcd1234abcd1234abcd
+                  client_secret: 1234abcd
+                  service_account: hoge.serviceaccount@hugahuga
+                  secret_key: |-
+                    -----BEGIN PRIVATE KEY-----
+                    hogehogehoge...
+                    -----END PRIVATE KEY-----
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      companyId:
+                        type: string
+                      chatToolId:
+                        type: integer
+                      installation:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          refresh_token:
+                            type: string
+                          scope:
+                            type: string
+                          token_type:
+                            type: string
+                          expires_in:
+                            type: string
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+                      clientId:
+                        type: string
+                      clientSecret:
+                        type: string
+                      serviceAccount:
+                        type: string
+                      secretKey:
+                        type: string
+                      userBotId:
+                        nullable: true
+                      userBotSecret:
+                        nullable: true
+                      channelBotId:
+                        nullable: true
+                      channelBotSecret:
+                        nullable: true
+                      updatedAt:
+                        nullable: true
+                      deletedAt:
+                        nullable: true
+                      appTeamId:
+                        nullable: true
+                      appInstallUserId:
+                        nullable: true
+                  message:
+                    type: string
+                x-examples:
+                  Example 1:
+                    status: 200
+                    data:
+                      companyId: GanqoGQbsrWo4s3PJbCV4YnnMjf1
+                      chatToolId: 3
+                      installation:
+                        access_token: jp1AAABRiMf01HFJjAzBTaJm2+yiG9g4iATNdgOrwv3ghV1Sbb3I0vn/0BbSAjEoc/8E4UFFH3zNweZdfxiVG4PufIa6khigOEaBO4Jp8Tf+aY8KsSzQtA2v4IYqllkS7eXPObKduHXGkquq8uYfKFnCa8KtadUkoQeFYOVo55wT1bBo9xXJyhwuP6hCwdrmBceLlMi6/olbt4bxzBMFEYC8iTytENXsn9EpJI4sXLiq+F6wFm8TYoUetvZR62AEV/PF5O3H2jmM8c0cPXAJvT9hEDxaXQS8us3+W2Bf71gidkS8y+FSYLAUbuLG0naJJBI1boYAK4I5kbknYm5Xum4iL86yYMTs/S2ma6OG63LvRVw9a3Felj/nHSzqFhwn9EJZPOK58gkowu63s9AhThSmeOK5EKwg8Zak84ZZwFgljaTCLkewFbexJNKo6/qdaBy//g/IA==.kwiu9yNovfcs8Rumz2QSOg
+                        refresh_token: jp1AAAAhdcxpxhq8IEJOuZlEl7y7c499aeR/OMZWtglG5J0OTGGXqThP1JOufnff9i4odGgUr3ZnNg+M9dsp9yrL1nOqr0c14F6oiPL3tt1LdKrF8ZKQdEs3wmQJefETq7KZPQ3aqq2Dzb/mN3zbgq3tV3TOkfH2B8wNFIKf/+IFSZaiYpXga+329hRNKQqR/VPHH/rxQ==.kwiu9yNovfcs8Rumz2QSOg
+                        scope: bot user.read group.read
+                        token_type: Bearer
+                        expires_in: '86400'
+                      accessToken: jp1AAABRiMf01HFJjAzBTaJm2+yiG9g4iATNdgOrwv3ghV1Sbb3I0vn/0BbSAjEoc/8E4UFFH3zNweZdfxiVG4PufIa6khigOEaBO4Jp8Tf+aY8KsSzQtA2v4IYqllkS7eXPObKduHXGkquq8uYfKFnCa8KtadUkoQeFYOVo55wT1bBo9xXJyhwuP6hCwdrmBceLlMi6/olbt4bxzBMFEYC8iTytENXsn9EpJI4sXLiq+F6wFm8TYoUetvZR62AEV/PF5O3H2jmM8c0cPXAJvT9hEDxaXQS8us3+W2Bf71gidkS8y+FSYLAUbuLG0naJJBI1boYAK4I5kbknYm5Xum4iL86yYMTs/S2ma6OG63LvRVw9a3Felj/nHSzqFhwn9EJZPOK58gkowu63s9AhThSmeOK5EKwg8Zak84ZZwFgljaTCLkewFbexJNKo6/qdaBy//g/IA==.kwiu9yNovfcs8Rumz2QSOg
+                      refreshToken: jp1AAAAhdcxpxhq8IEJOuZlEl7y7c499aeR/OMZWtglG5J0OTGGXqThP1JOufnff9i4odGgUr3ZnNg+M9dsp9yrL1nOqr0c14F6oiPL3tt1LdKrF8ZKQdEs3wmQJefETq7KZPQ3aqq2Dzb/mN3zbgq3tV3TOkfH2B8wNFIKf/+IFSZaiYpXga+329hRNKQqR/VPHH/rxQ==.kwiu9yNovfcs8Rumz2QSOg
+                      clientId: Jxu4EyFVbENwDLe_BHjs
+                      clientSecret: 9yEFsYmIE6
+                      serviceAccount: bwtci.serviceaccount@yamaguchitest1com
+                      secretKey: |-
+                        -----BEGIN PRIVATE KEY-----
+                        RsRfxjdufQ0tQA3b1v6TG1iS+UxNrsBL7Z0v49pU
+                        oFzXEXBuS3IiMLdok5xBuD09eWgXacAayzOZEN92HydotgkbKM63Raudry4Z97q9
+                        IaVErH6nmyc2OknN8ZU1HHFt0/qGxxlJ/i/A4ixYDXS4ivzvAgP6nJh20I0Vwzq4
+                        tx3bq3IYwUsWobJkIGN5Gfuj
+                        -----END PRIVATE KEY-----
+                      userBotId: null
+                      userBotSecret: null
+                      channelBotId: null
+                      channelBotSecret: null
+                      updatedAt: null
+                      deletedAt: null
+                      appTeamId: null
+                      appInstallUserId: null
+                    message: ''
+              examples:
+                Example 1:
+                  value:
+                    status: 200
+                    data:
+                      companyId: GanqoGQbsrWo4s3PJbCV4YnnMjf1
+                      chatToolId: 3
+                      installation:
+                        access_token: jp1AAABRiMf01HFJjAzBTaJm2+yiG9g4iATNdgOrwv3ghV1Sbb3I0vn/0BbSAjEoc/8E4UFFH3zNweZdfxiVG4PufIa6khigOEaBO4Jp8Tf+aY8KsSzQtA2v4IYqllkS7eXPObKduHXGkquq8uYfKFnCa8KtadUkoQeFYOVo55wT1bBo9xXJyhwuP6hCwdrmBceLlMi6/olbt4bxzBMFEYC8iTytENXsn9EpJI4sXLiq+F6wFm8TYoUetvZR62AEV/PF5O3H2jmM8c0cPXAJvT9hEDxaXQS8us3+W2Bf71gidkS8y+FSYLAUbuLG0naJJBI1boYAK4I5kbknYm5Xum4iL86yYMTs/S2ma6OG63LvRVw9a3Felj/nHSzqFhwn9EJZPOK58gkowu63s9AhThSmeOK5EKwg8Zak84ZZwFgljaTCLkewFbexJNKo6/qdaBy//g/IA==.kwiu9yNovfcs8Rumz2QSOg
+                        refresh_token: jp1AAAAhdcxpxhq8IEJOuZlEl7y7c499aeR/OMZWtglG5J0OTGGXqThP1JOufnff9i4odGgUr3ZnNg+M9dsp9yrL1nOqr0c14F6oiPL3tt1LdKrF8ZKQdEs3wmQJefETq7KZPQ3aqq2Dzb/mN3zbgq3tV3TOkfH2B8wNFIKf/+IFSZaiYpXga+329hRNKQqR/VPHH/rxQ==.kwiu9yNovfcs8Rumz2QSOg
+                        scope: bot user.read group.read
+                        token_type: Bearer
+                        expires_in: '86400'
+                      accessToken: jp1AAABRiMf01HFJjAzBTaJm2+yiG9g4iATNdgOrwv3ghV1Sbb3I0vn/0BbSAjEoc/8E4UFFH3zNweZdfxiVG4PufIa6khigOEaBO4Jp8Tf+aY8KsSzQtA2v4IYqllkS7eXPObKduHXGkquq8uYfKFnCa8KtadUkoQeFYOVo55wT1bBo9xXJyhwuP6hCwdrmBceLlMi6/olbt4bxzBMFEYC8iTytENXsn9EpJI4sXLiq+F6wFm8TYoUetvZR62AEV/PF5O3H2jmM8c0cPXAJvT9hEDxaXQS8us3+W2Bf71gidkS8y+FSYLAUbuLG0naJJBI1boYAK4I5kbknYm5Xum4iL86yYMTs/S2ma6OG63LvRVw9a3Felj/nHSzqFhwn9EJZPOK58gkowu63s9AhThSmeOK5EKwg8Zak84ZZwFgljaTCLkewFbexJNKo6/qdaBy//g/IA==.kwiu9yNovfcs8Rumz2QSOg
+                      refreshToken: jp1AAAAhdcxpxhq8IEJOuZlEl7y7c499aeR/OMZWtglG5J0OTGGXqThP1JOufnff9i4odGgUr3ZnNg+M9dsp9yrL1nOqr0c14F6oiPL3tt1LdKrF8ZKQdEs3wmQJefETq7KZPQ3aqq2Dzb/mN3zbgq3tV3TOkfH2B8wNFIKf/+IFSZaiYpXga+329hRNKQqR/VPHH/rxQ==.kwiu9yNovfcs8Rumz2QSOg
+                      clientId: Jxu4EyFVbENwDLe_BHjs
+                      clientSecret: XXXYYYYZZZ
+                      serviceAccount: bwtci.serviceaccount@hogehoge
+                      secretKey: |-
+                        -----BEGIN PRIVATE KEY-----
+                        RsRfxjdufQ0tQA3b1v6TG1iS+UxNrsBL7Z0v49pU
+                        oFzXEXBuS3IiMLdok5xBuD09eWgXacAayzOZEN92HydotgkbKM63Raudry4Z97q9
+                        IaVErH6nmyc2OknN8ZU1HHFt0/qGxxlJ/i/A4ixYDXS4ivzvAgP6nJh20I0Vwzq4
+                        tx3bq3IYwUsWobJkIGN5Gfuj
+                        -----END PRIVATE KEY-----
+                      userBotId: null
+                      userBotSecret: null
+                      channelBotId: null
+                      channelBotSecret: null
+                      updatedAt: null
+                      deletedAt: null
+                      appTeamId: null
+                      appInstallUserId: null
+                    message: ''
+      servers:
+        - url: 'https://localhost:3000/api'
     patch:
       tags:
         - line-works
@@ -304,20 +446,20 @@ paths:
             schema:
               type: object
               properties:
-                TODO:
+                bot_secret:
                   type: string
-                  example: "TODO"
       responses:
         '204':
           description: edit ok
-
-  /line-works/webhook/{companyId}:
-    parameters:
-      - $ref: '#/components/parameters/companyId'
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/line-works/webhook/{companyId}':
     post:
       tags:
         - line-works
       description: TODO
+      parameters:
+        - $ref: '#/components/parameters/companyId'
       requestBody:
         required: true
         content:
@@ -327,11 +469,12 @@ paths:
               properties:
                 TODO:
                   type: string
-                  example: "TODO"
+                  example: TODO
       responses:
         '204':
           description: proceed.
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /notion/install:
     get:
       tags:
@@ -341,9 +484,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /notion/oauth_redirect:
     get:
       tags:
@@ -353,9 +496,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /google/install:
     get:
       tags:
@@ -366,9 +509,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /google/oauth_redirect:
     get:
       tags:
@@ -379,15 +522,19 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
   /plans:
     get:
       tags:
         - plans
       summary: ※※※未実装※※※
-
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /subscriptions:
     get:
       tags:
@@ -398,14 +545,18 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
     post:
       tags:
         - subscriptions
       summary: ※※※未実装※※※
-
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /users:
     patch:
       tags:
@@ -420,16 +571,21 @@ paths:
               properties:
                 TODO:
                   type: string
-                  example: "TODO"
+                  example: TODO
       responses:
         '204':
           description: edit ok
-    
-  /users/{userId}:
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/users/{userId}':
     delete:
       tags:
         - users
-  
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
   /users/configs:
     get:
       tags:
@@ -450,17 +606,18 @@ paths:
                       properties:
                         id:
                           type: string
-                          example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+                          example: 099dc433-2b96-4f63-aa46-5a5250fe92ec
                         name:
                           type: string
-                          example: "山田太郎"
+                          example: 山田太郎
                     chatToolUserId:
                       type: string
-                      example: "U01UA44GSMP"
+                      example: U01UA44GSMP
                     todoAppUserId:
                       type: string
-                      example: "1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48"
-
+                      example: 1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48
+      servers:
+        - url: 'https://localhost:3000/api'
   /users/reporting-lines:
     get:
       tags:
@@ -481,17 +638,18 @@ paths:
                       properties:
                         id:
                           type: string
-                          example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+                          example: 099dc433-2b96-4f63-aa46-5a5250fe92ec
                         name:
                           type: string
-                          example: "山田太郎"
+                          example: 山田太郎
                     superiorUsers:
                       type: array
                       items:
                         type: string
-                        example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
-
-  /users/reporting-lines/{userId}:
+                        example: 099dc433-2b96-4f63-aa46-5a5250fe92ec
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/users/reporting-lines/{userId}':
     patch:
       tags:
         - users
@@ -504,11 +662,12 @@ paths:
               type: array
               items:
                 type: string
-                example: "099dc433-2b96-4f63-aa46-5a5250fe92ec"
+                example: 099dc433-2b96-4f63-aa46-5a5250fe92ec
       responses:
         '204':
           description: edit ok
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /chat-tool:
     get:
       tags:
@@ -527,20 +686,25 @@ paths:
                     example: 2
                   teamId:
                     type: string
-                    example: "T012B4YCASJ"
-
+                    example: T012B4YCASJ
+      servers:
+        - url: 'https://localhost:3000/api'
     delete:
       tags:
         - chat-tool
       summary: ※※※未実装※※※
-
-  /chat-tool/{chatToolId}/accounts:
-    parameters:
-      - $ref: '#/components/parameters/chatToolId'
+      responses:
+        '200':
+          description: successful operation
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/chat-tool/{chatToolId}/accounts':
     get:
       tags:
         - chat-tool
       description: チャットツールのアカウント一覧を取得
+      parameters:
+        - $ref: '#/components/parameters/chatToolId'
       responses:
         '200':
           description: successful operation
@@ -558,15 +722,16 @@ paths:
                       $ref: '#/components/schemas/ChatToolAccount'
                   message:
                     type: string
-                    example: ""
-
-  /chat-tool/{chatToolId}/channels:
-    parameters:
-      - $ref: '#/components/parameters/chatToolId'
+                    example: ''
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/chat-tool/{chatToolId}/channels':
     get:
       tags:
         - chat-tool
       description: チャットツールのチャンネル一覧を取得
+      parameters:
+        - $ref: '#/components/parameters/chatToolId'
       responses:
         '200':
           description: successful operation
@@ -584,16 +749,17 @@ paths:
                       $ref: '#/components/schemas/ChatToolChannel'
                   message:
                     type: string
-                    example: ""
-
-  /chat-tool/{chatToolId}/users/{userId}:
-    parameters:
-      - $ref: '#/components/parameters/chatToolId'
-      - $ref: '#/components/parameters/userId'
+                    example: ''
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/chat-tool/{chatToolId}/users/{userId}':
     patch:
       tags:
         - chat-tool
       description: POPAIのユーザIDとチャットツールのユーザIDを紐付ける
+      parameters:
+        - $ref: '#/components/parameters/chatToolId'
+        - $ref: '#/components/parameters/userId'
       requestBody:
         description: チャットツールのユーザIDを指定する。
         required: true
@@ -604,7 +770,7 @@ paths:
               properties:
                 id:
                   type: string
-                  example: "U05Q99VUE13"
+                  example: U05Q99VUE13
       responses:
         '200':
           description: successful operation
@@ -618,8 +784,9 @@ paths:
                     example: 200
                   message:
                     type: string
-                    example: ""
-
+                    example: ''
+      servers:
+        - url: 'https://localhost:3000/api'
   /todo-app:
     get:
       tags:
@@ -638,8 +805,9 @@ paths:
                     example: 3
                   workspaceId:
                     type: string
-                    example: "25092ec8-384d-41f4-94ad-f423bd7b947f"
-
+                    example: 25092ec8-384d-41f4-94ad-f423bd7b947f
+      servers:
+        - url: 'https://localhost:3000/api'
     delete:
       tags:
         - todo-app
@@ -649,16 +817,16 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
-  /todo-app/{todoAppId}/accounts:
-    parameters:
-      - $ref: '#/components/parameters/todoAppId'
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo-app/{todoAppId}/accounts':
     get:
       tags:
         - todo-app
       description: TODO
+      parameters:
+        - $ref: '#/components/parameters/todoAppId'
       responses:
         '200':
           description: successful operation
@@ -671,18 +839,19 @@ paths:
                   properties:
                     id:
                       type: string
-                      example: "1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48"
+                      example: 1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48
                     name:
                       type: string
-                      example: "山田太郎"
-
-  /todo-app/{todoAppId}/boards:
-    parameters:
-      - $ref: '#/components/parameters/todoAppId'
+                      example: 山田太郎
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo-app/{todoAppId}/boards':
     get:
       tags:
         - todo-app
       description: TODO
+      parameters:
+        - $ref: '#/components/parameters/todoAppId'
       responses:
         '200':
           description: successful operation
@@ -695,19 +864,20 @@ paths:
                   properties:
                     id:
                       type: string
-                      example: "00bbebe6-7aae-4b34-ac9c-84f5af874d50"
+                      example: 00bbebe6-7aae-4b34-ac9c-84f5af874d50
                     name:
                       type: string
-                      example: "プロジェクト"
-
-  /todo-app/{todoAppId}/boards/{boardId}/properties:
-    parameters:
-      - $ref: '#/components/parameters/todoAppId'
-      - $ref: '#/components/parameters/boardId'
+                      example: プロジェクト
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo-app/{todoAppId}/boards/{boardId}/properties':
     get:
       tags:
         - todo-app
       description: TODO
+      parameters:
+        - $ref: '#/components/parameters/todoAppId'
+        - $ref: '#/components/parameters/boardId'
       responses:
         '200':
           description: successful operation
@@ -720,10 +890,10 @@ paths:
                   properties:
                     id:
                       type: string
-                      example: "notion%3A%2F%2Ftasks%2Ftags_property"
+                      example: notion%3A%2F%2Ftasks%2Ftags_property
                     name:
                       type: string
-                      example: "ステータス"
+                      example: ステータス
                     type:
                       type: integer
                       example: 4
@@ -734,15 +904,16 @@ paths:
                         properties:
                           id:
                             type: string
-                            example: "not-started"
+                            example: not-started
                           name:
                             type: string
-                            example: "未着手"
+                            example: 未着手
                           color:
                             type: string
-                            example: "default"
-
-  /todo-app/{todoAppId}/boards/{boardId}/usages:
+                            example: default
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo-app/{todoAppId}/boards/{boardId}/usages':
     get:
       tags:
         - todo-app
@@ -762,7 +933,7 @@ paths:
                       example: 1
                     property:
                       type: string
-                      example: "title"
+                      example: title
                     usage:
                       type: integer
                       example: 1
@@ -773,48 +944,93 @@ paths:
                       type: array
                       items:
                         type: string
-                      example: ["done"]
+                      example:
+                        - done
                     isChecked:
                       type: boolean
                       example: null
                 example:
                   - id: 1
-                    property: "title"
+                    property: title
                     usage: 1
                     type: 1
                     options: null
                     isChecked: null
                   - id: 2
-                    property: "notion%3A%2F%2Ftasks%2Fassign_property"
+                    property: notion%3A%2F%2Ftasks%2Fassign_property
                     usage: 3
                     type: 7
                     options: null
                     isChecked: null
                   - id: 3
-                    property: "notion%3A%2F%2Ftasks%2Fdue_date_property"
+                    property: notion%3A%2F%2Ftasks%2Fdue_date_property
                     usage: 4
                     type: 8
                     options: null
                     isChecked: null
                   - id: 4
-                    property: "notion%3A%2F%2Ftasks%2Fparent_task_relation"
+                    property: notion%3A%2F%2Ftasks%2Fparent_task_relation
                     usage: 7
                     type: 15
                     options: null
                     isChecked: null
                   - id: 5
-                    property: "notion%3A%2F%2Ftasks%2Fstatus_property"
+                    property: notion%3A%2F%2Ftasks%2Fstatus_property
                     usage: 5
                     type: 6
-                    options: ["done"]
+                    options:
+                      - done
                     isChecked: null
                   - id: 6
-                    property: "notion%3A%2F%2Ftasks%2Fstatus_property"
+                    property: notion%3A%2F%2Ftasks%2Fstatus_property
                     usage: 6
                     type: 6
-                    options: ["archived"]
+                    options:
+                      - archived
                     isChecked: null
-
+              examples:
+                default:
+                  value:
+                    - id: 1
+                      property: title
+                      usage: 1
+                      type: 1
+                      options: null
+                      isChecked: null
+                    - id: 2
+                      property: notion%3A%2F%2Ftasks%2Fassign_property
+                      usage: 3
+                      type: 7
+                      options: null
+                      isChecked: null
+                    - id: 3
+                      property: notion%3A%2F%2Ftasks%2Fdue_date_property
+                      usage: 4
+                      type: 8
+                      options: null
+                      isChecked: null
+                    - id: 4
+                      property: notion%3A%2F%2Ftasks%2Fparent_task_relation
+                      usage: 7
+                      type: 15
+                      options: null
+                      isChecked: null
+                    - id: 5
+                      property: notion%3A%2F%2Ftasks%2Fstatus_property
+                      usage: 5
+                      type: 6
+                      options:
+                        - done
+                      isChecked: null
+                    - id: 6
+                      property: notion%3A%2F%2Ftasks%2Fstatus_property
+                      usage: 6
+                      type: 6
+                      options:
+                        - archived
+                      isChecked: null
+      servers:
+        - url: 'https://localhost:3000/api'
     patch:
       tags:
         - todo-app
@@ -831,7 +1047,7 @@ paths:
                   example: 1
                 property:
                   type: string
-                  example: "title"
+                  example: title
                 usage:
                   type: integer
                   example: 1
@@ -842,15 +1058,16 @@ paths:
                   type: array
                   items:
                     type: string
-                    example: "archived"
+                    example: archived
                 isChecked:
                   type: boolean
                   example: null
       responses:
         '204':
           description: edit ok
-
-  /todo-app/{todoAppId}/board:
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo-app/{todoAppId}/board':
     get:
       tags:
         - todo-app
@@ -865,11 +1082,12 @@ paths:
                 properties:
                   boardId:
                     type: string
-                    example: "00bbebe6-7aae-4b34-ac9c-84f5af874d50"
+                    example: 00bbebe6-7aae-4b34-ac9c-84f5af874d50
                   projectRule:
                     type: string
                     example: null
-
+      servers:
+        - url: 'https://localhost:3000/api'
     post:
       tags:
         - todo-app
@@ -880,11 +1098,11 @@ paths:
           application/json:
             schema:
               type: object
-              properties:
       responses:
         '200':
           description: successful operation
-
+      servers:
+        - url: 'https://localhost:3000/api'
     patch:
       tags:
         - todo-app
@@ -898,22 +1116,23 @@ paths:
               properties:
                 boardId:
                   type: string
-                  example: "00bbebe6-7aae-4b34-ac9c-84f5af874d50"
+                  example: 00bbebe6-7aae-4b34-ac9c-84f5af874d50
                 projectRule:
                   type: integer
                   example: 1
       responses:
         '204':
           description: edit ok
-
-  /todo-app/{todoAppId}/users/{userId}:
-    parameters:
-      - $ref: '#/components/parameters/todoAppId'
-      - $ref: '#/components/parameters/userId'
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo-app/{todoAppId}/users/{userId}':
     patch:
       tags:
         - todo-app
       description: TODO
+      parameters:
+        - $ref: '#/components/parameters/todoAppId'
+        - $ref: '#/components/parameters/userId'
       requestBody:
         required: true
         content:
@@ -923,11 +1142,12 @@ paths:
               properties:
                 id:
                   type: string
-                  example: "1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48"
+                  example: 1a41faa9-d599-4b2a-b0c1-4cbfee2ccc48
       responses:
         '204':
           description: edit ok
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /config:
     get:
       tags:
@@ -965,8 +1185,8 @@ paths:
                       isValid:
                         type: boolean
                         example: false
-      
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /config/common:
     get:
       tags:
@@ -976,9 +1196,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
     patch:
       tags:
         - config
@@ -992,11 +1212,12 @@ paths:
               properties:
                 TODO:
                   type: string
-                  example: "TODO"
+                  example: TODO
       responses:
         '204':
           description: edit ok
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /config/features:
     get:
       tags:
@@ -1016,7 +1237,8 @@ paths:
                   todos:
                     type: boolean
                     example: false
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /config/prospect:
     get:
       tags:
@@ -1037,34 +1259,34 @@ paths:
                     type: boolean
                     example: true
                   chatToolId:
-                    type: 'null'
+                    nullable: true
                     example: null
                   channel:
-                    type: 'null'
+                    nullable: true
                     example: null
                   from:
-                    type: 'null'
+                    nullable: true
                     example: null
                   fromDaysBefore:
-                    type: 'null'
+                    nullable: true
                     example: null
                   beginOfWeek:
-                    type: 'null'
+                    nullable: true
                     example: null
                   to:
-                    type: 'null'
+                    nullable: true
                     example: null
                   frequency:
-                    type: 'null'
+                    nullable: true
                     example: null
                   frequencyDaysBefore:
-                    type: 'null'
+                    nullable: true
                     example: null
                   timings:
                     type: array
-                    items: {}
                     example: []
-
+      servers:
+        - url: 'https://localhost:3000/api'
     patch:
       tags:
         - config
@@ -1084,7 +1306,7 @@ paths:
                   example: 2
                 channel:
                   type: string
-                  example: "C01TRR9B9GE"
+                  example: C01TRR9B9GE
                 chatToolId:
                   type: integer
                   example: 2
@@ -1112,7 +1334,7 @@ paths:
                   properties:
                     time:
                       type: string
-                      example: "09:00:00"
+                      example: '09:00:00'
                     type:
                       type: integer
                       example: 2
@@ -1122,7 +1344,8 @@ paths:
       responses:
         '204':
           description: edit ok
-
+      servers:
+        - url: 'https://localhost:3000/api'
   /config/remind:
     get:
       tags:
@@ -1132,9 +1355,9 @@ paths:
         '200':
           description: successful operation
           content:
-            application/json:
-              schema:
-
+            application/json: {}
+      servers:
+        - url: 'https://localhost:3000/api'
     patch:
       tags:
         - config
@@ -1148,11 +1371,26 @@ paths:
               properties:
                 TODO:
                   type: string
-                  example: "TODO"
+                  example: TODO
       responses:
         '204':
           description: edit ok
-
+      servers:
+        - url: 'https://localhost:3000/api'
+tags:
+  - name: auth
+  - name: config
+  - name: users
+  - name: chat-tool
+  - name: todo-app
+  - name: shcedulers
+  - name: backlog
+  - name: slack
+  - name: line-works
+  - name: notion
+  - name: google
+  - name: plans
+  - name: subscriptions
 components:
   parameters:
     companyId:
@@ -1161,7 +1399,6 @@ components:
       required: true
       schema:
         type: string
-
     chatToolId:
       name: chatToolId
       in: path
@@ -1173,7 +1410,6 @@ components:
       schema:
         type: number
         example: 2
-        
     todoAppId:
       name: todoAppId
       in: path
@@ -1181,7 +1417,6 @@ components:
       required: true
       schema:
         type: number
-
     userId:
       name: userId
       in: path
@@ -1190,35 +1425,13 @@ components:
       schema:
         type: string
         example: 9a7bbd68-509b-4e93-bd7d-0a68b412b8b4
-        
     boardId:
       name: boardId
       in: path
       required: true
       schema:
         type: string
-
   schemas:
-    ChatToolAccount:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "U05Q99VUE13"
-        name:
-          type: string
-          example: "山田太郎"
-
-    ChatToolChannel:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "C05QC7KP1JN"
-        name:
-          type: string
-          example: "# general"
-
     AccountInfo:
       type: object
       properties:
@@ -1227,4 +1440,22 @@ components:
           example: true
         name:
           type: string
-          example: '株式会社和平開発チーム'
+          example: 株式会社和平開発チーム
+    ChatToolAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          example: U05Q99VUE13
+        name:
+          type: string
+          example: 山田太郎
+    ChatToolChannel:
+      type: object
+      properties:
+        id:
+          type: string
+          example: C05QC7KP1JN
+        name:
+          type: string
+          example: '# general'
