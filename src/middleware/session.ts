@@ -23,7 +23,7 @@ export const session: RequestHandler = expressSession({
     path: "/",
     secure: process.env.ENV !== "LOCAL" || process.env.NODE_HTTPS === "true",
     httpOnly: true,
-    maxAge: 1000 * 60 * 30, // 30 minutes
+    maxAge: 1000 * 60 * 120, // 120 minutes
     sameSite: true,
   },
 });
