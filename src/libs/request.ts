@@ -49,6 +49,10 @@ export async function fetchApi<Res, IsFormData extends boolean = boolean>(
   try {
     const response = await fetch(url, options);
     if (response.ok) {
+      // Case: fetch successful with status code 201 and body empty
+      if (response.status === 201){
+        return null;
+      }
       return await response.json() as Res;
     } else {
       throw new Error(JSON.stringify(await response.json()));

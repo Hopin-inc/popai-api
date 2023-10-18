@@ -4,19 +4,23 @@ import BaseEntity from "../BaseEntity";
 import Company from "./Company";
 import { Installation } from "@slack/oauth";
 import { ChatToolId } from "../../consts/common";
+import { InstallationLineWorks } from "@/types/lineworks";
 
 @Entity("s_implemented_chat_tools")
 export default class ImplementedChatTool extends BaseEntity {
   constructor(
     company: Company | string,
     chatToolId: number,
-    installation?: Installation | any,
+    installation?: Installation | InstallationLineWorks,
     appInstallUserId?: string,
     clientId?: string,
     clientSecret?: string,
     serviceAccount?: string,
     secretKey?: string,
-    botSecret?: string,
+    userBotId?: string,
+    userBotSecret?: string,
+    channelBotId?: string,
+    channelBotSecret?: string,
   ) {
     super();
     if (company) {
@@ -25,23 +29,26 @@ export default class ImplementedChatTool extends BaseEntity {
       switch (this.chatToolId) {
         case ChatToolId.SLACK:
           if (installation) {
-            this.appTeamId = installation.team.id;
-            this.accessToken = installation.bot.token;
-            this.installation = installation;
+            this.installation = installation as Installation;
+            this.appTeamId = this.installation.team.id;
+            this.accessToken = this.installation.bot.token;
           } else if (appInstallUserId) {
             this.appInstallUserId = appInstallUserId;
           }
           break;
         case ChatToolId.LINEWORKS:
           if (installation) {
-            this.installation = installation;
-            this.accessToken = installation.access_token;
-            this.refreshToken = installation.refresh_token;
+            this.installation = installation as InstallationLineWorks;
+            this.accessToken = this.installation.access_token;
+            this.refreshToken = this.installation.refresh_token;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
             this.serviceAccount = serviceAccount;
             this.secretKey = secretKey;
-            this.botSecret = botSecret;
+            this.userBotId = userBotId;
+            this.userBotSecret = userBotSecret;
+            this.channelBotId = channelBotId;
+            this.channelBotSecret = channelBotSecret;
           }
           break;
         default:
@@ -66,7 +73,7 @@ export default class ImplementedChatTool extends BaseEntity {
   accessToken?: string;
 
   @Column({ name: "installation", type: "json", nullable: true })
-  installation?: Installation;
+  installation?: Installation | InstallationLineWorks;
 
   @Column({ name: "refresh_token", type: "text", nullable: true })
   refreshToken?: string;
@@ -83,8 +90,17 @@ export default class ImplementedChatTool extends BaseEntity {
   @Column({ name: "secret_key", type: "text", nullable: true })
   secretKey?: string;
 
-  @Column({ name: "bot_secret", type: "text", nullable: true })
-  botSecret?: string;
+  @Column({ name: "user_bot_id", type: "varchar", nullable: true })
+  userBotId?: string;
+
+  @Column({ name: "user_bot_secret", type: "text", nullable: true })
+  userBotSecret?: string;
+  
+  @Column({ name: "channel_bot_id", type: "varchar", nullable: true })
+  channelBotId?: string;
+
+  @Column({ name: "channel_bot_secret", type: "text", nullable: true })
+  channelBotSecret?: string;
 
   @OneToOne(() => Company, (company) => company.implementedChatTool, {
     onDelete: "CASCADE",
