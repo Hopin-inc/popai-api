@@ -1,4 +1,4 @@
-import { Service } from "typedi";
+import Container, { Service } from "typedi";
 import {
   BacklogIssueWithDetail,
   BacklogMilestone,
@@ -36,6 +36,7 @@ import BacklogClient from "@/integrations/BacklogClient";
 import {
   IProjectHistoryOption,
   IProjectUserUpdate,
+  ITodoDoneUpdate,
   ITodoHistoryOption,
   ITodoProjectUpdate,
   ITodoUserUpdate,
@@ -48,6 +49,7 @@ import { ProjectRepository } from "@/repositories/transactions/ProjectRepository
 import { ProjectHistoryRepository } from "@/repositories/transactions/ProjectHistoryRepository";
 import { ProjectUserRepository } from "@/repositories/transactions/ProjectUserRepository";
 import { ParentChild } from "@/consts/backlog";
+import LineWorksRepository from "./LineWorksRepository";
 
 type DateSet = {
   startDate: string | "",
@@ -56,6 +58,7 @@ type DateSet = {
 
 @Service()
 export default class BacklogRepository {
+  private lineWorksRepository: LineWorksRepository;
   public async deleteTodoByIssuePayload(
     companyId: string,
     payload: BacklogWebhookPayload<SingleIssuePayload>,
@@ -397,6 +400,7 @@ export default class BacklogRepository {
       TodoRepository.findByAppIds(TodoAppId.BACKLOG, issues.map(i => i.id.toString()), companyId),
     ]);
 
+    this.lineWorksRepository = Container.get(LineWorksRepository);
     const updatedProjects: Project[] = [];
     const deletedProjects: Project[] = [];
     const updatedTodos: Todo[] = [];
@@ -404,6 +408,7 @@ export default class BacklogRepository {
     const projectUserUpdates: IProjectUserUpdate[] = [];
     const projectHistoryArgs: IProjectHistoryOption[] = [];
     const todoUserUpdates: ITodoUserUpdate[] = [];
+    const todoDoneUpdates: ITodoDoneUpdate[] = [];
     const todoProjectUpdates: ITodoProjectUpdate[] = [];
     const todoHistoryArgs: ITodoHistoryOption[] = [];
     await Promise.all(issues.map(async issue => {
@@ -416,6 +421,8 @@ export default class BacklogRepository {
         const existingTodo = existingTodos.find(t => t.appTodoId === issue.id?.toString());
         const users = this.getAssignees(todoAppUsers, issue.assignee?.id);
         const projects = this.getProjects(companyProjects, board, issue.parentIssueId, issue.milestone);
+        const updateDoneTodo = existingTodo && !existingTodo.isDone && existingTodo.latestRemind && isDone;
+        const updateDoneProject = existingProject && !existingProject.isDone && existingProject.latestRemind && isDone;
         const isDelayed = deadline
           ? diffDays(toJapanDateTime(deadline), toJapanDateTime(new Date())) > 0
           : null;
@@ -456,6 +463,9 @@ export default class BacklogRepository {
                 users,
                 currentUserIds: existingProject.todoUsers?.map(tu => tu.userId) ?? [],
               });
+              if(updateDoneProject) {
+                todoDoneUpdates.push({ project: existingProject, users });
+              }
             }
             projectHistoryArgs.push(...args.map(a => (<IProjectHistoryOption>{
               ...a,
@@ -492,6 +502,9 @@ export default class BacklogRepository {
               ...a,
               id: savedProject.id,
             })));
+            if(updateDoneProject || updateDoneTodo) {
+              todoDoneUpdates.push({ project: savedProject, users });
+            }
           }
         } else if (registerAsTodo) {
           const appParentIds = board.projectRule === ProjectRule.PARENT_TODO && issue.parentIssueId
@@ -542,6 +555,9 @@ export default class BacklogRepository {
               ...a,
               id: existingTodo.id,
             })));
+            if(updateDoneTodo) {
+              todoDoneUpdates.push({ todo: existingTodo, users });
+            }
           } else {
             if (existingProject) {
               deletedProjects.push(existingProject);
@@ -576,12 +592,18 @@ export default class BacklogRepository {
               ...a,
               id: savedTodo.id,
             })));
+
+            if(updateDoneTodo || updateDoneProject) {
+              todoDoneUpdates.push({ todo, users });
+            }
           }
+
         }
       } catch (error) {
         logger.error(error.message, error);
       }
     }));
+    await this.lineWorksRepository.doneTodoUpdated(companyId, todoDoneUpdates);
     await Promise.all([
       ProjectRepository.upsert(updatedProjects, []),
       ProjectUserRepository.saveProjectUsers(projectUserUpdates),

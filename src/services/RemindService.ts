@@ -9,13 +9,16 @@ import { findMatchedTiming } from "@/utils/misc";
 import { REMIND_BATCH_INTERVAL } from "@/consts/scheduler";
 import { includesDayOfToday, isHolidayToday, toJapanDateTime } from "@/utils/datetime";
 import { ChatToolId, RemindType } from "@/consts/common";
+import LineWorksRepository from "@/repositories/LineWorksRepository";
 
 @Service()
 export default class RemindService {
   private slackRepository: SlackRepository;
+  private lineWorksRepository: LineWorksRepository;
 
   constructor() {
     this.slackRepository = Container.get(SlackRepository);
+    this.lineWorksRepository = Container.get(LineWorksRepository);
   }
 
   public async send(): Promise<any> {
@@ -43,6 +46,9 @@ export default class RemindService {
           switch (chatToolId) {
             case ChatToolId.SLACK:
               await this.slackRepository.remind(company, matchedTiming, remindConfig);
+              break;
+            case ChatToolId.LINEWORKS:
+              await this.lineWorksRepository.remind(company, matchedTiming, remindConfig);
               break;
             default:
               break;

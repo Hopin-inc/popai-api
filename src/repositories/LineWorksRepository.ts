@@ -1,12 +1,50 @@
-import logger from "@/libs/logger";
 import axios from "axios";
 import { Request } from "express";
 import jwt from "jsonwebtoken";
 import { Service } from "typedi";
 
+import LineWorksMessageBuilder from "@/common/LineWorksMessageBuilder";
+import { ChatToolId, RemindType } from "@/consts/common";
+import Company from "@/entities/settings/Company";
+import RemindConfig from "@/entities/settings/RemindConfig";
+import RemindTiming from "@/entities/settings/RemindTiming";
+import User from "@/entities/settings/User";
+import Project from "@/entities/transactions/Project";
+import Todo from "@/entities/transactions/Todo";
+import LineWorksClient from "@/integrations/LineWorksClient";
+import logger from "@/libs/logger";
+
+import { ProjectRepository } from "./transactions/ProjectRepository";
+import { TodoRepository } from "./transactions/TodoRepository";
+import { ITodoDoneUpdate } from "@/types";
+import { ImplementedChatToolRepository } from "./settings/ImplementedChatToolRepository";
+import { IsNull, Not } from "typeorm";
+import { RemindRepository } from "./transactions/RemindRepository";
+import Remind from "@/entities/transactions/Remind";
+
 @Service()
 export default class LineWorksRepository {
-  static getInstallation: any;
+  // private async sendUserMessage(user: User, message: LineWorksMessage) {
+  //   if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
+  //     const lineWorksBot = await LineWorksClient.init(user.companyId);
+  //     return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message.content);
+  //   }
+  // }
+
+  // private async sendChannelMessage(companyId: string, sharedMessage: LineWorksMessage, channelId: string) {
+  //   const lineWorksBot = await LineWorksClient.init(companyId);
+  //   return lineWorksBot.postChannelMessage(channelId, sharedMessage.content);
+  // }
+
+  private async sendDirectMessageTo(lineWorksBot: LineWorksClient, user: User, message: any) {
+    if (user && user.chatToolUser?.chatToolId === ChatToolId.LINEWORKS && user.chatToolUser?.appUserId) {
+      return lineWorksBot.postUserMessage(user.chatToolUser.appUserId, message);
+    }
+  }
+
+  private async pushLineWorksMessageToChannel(lineWorksBot: LineWorksClient, channelId: string, sharedMessage: any) {
+    return lineWorksBot.postChannelMessage(channelId, sharedMessage);
+  }
 
   public async getInstallation(req: Request) {
     const CLIENT_ID = req.body.client_id;
@@ -23,7 +61,7 @@ export default class LineWorksRepository {
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      scope: "bot user.read group.read",
+      scope: "bot user.read group.read bot.message bot.read",
     });
 
     axios.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded;";
@@ -32,6 +70,7 @@ export default class LineWorksRepository {
     return await axios
       .post(uri, params)
       .then((response) => {
+        // logger.info(`res state: ${uri} ${ JSON.stringify(response.data) }`);
         return response.data;
       })
       .catch((error) => {
@@ -68,5 +107,52 @@ export default class LineWorksRepository {
     );
 
     return jws;
+  }
+
+  public async remind(company: Company, timing: RemindTiming, config: RemindConfig) {
+    const chatTool = await ImplementedChatToolRepository.findOne({
+      where: { companyId: company.id, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull()) },
+      relations: ["company.remindConfigs"],
+    });
+
+    const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);
+    const items: (Todo | Project)[] =
+      config.type === RemindType.TODOS
+        ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
+        : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
+    if (items.length) {
+      const sharedMessage = LineWorksMessageBuilder.createPublicRemind(items);
+      await Promise.all([
+        ...company.users.map(async (user) => {
+          const assignedItems = items.filter((i) => i.users.map((u) => u.id).includes(user.id));
+          if (assignedItems.length) {
+            const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
+            return await this.sendDirectMessageTo(lineWorksBot, user, message);
+          }
+        }),
+        await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage),
+      ]);
+
+      const reminds = items.map(item => item.users.map(user => config.type === RemindType.TODOS
+        ? new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, appChannelId: config.channel, todo: item as Todo })
+        : new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, appChannelId: config.channel, project: item as Project }))).flat();
+      await RemindRepository.upsert(reminds, []);
+    }
+  }
+
+  public async doneTodoUpdated(companyId: string, todoDoneUpdates: ITodoDoneUpdate[]) {
+    if (todoDoneUpdates.length === 0) return;
+    const chatTool = await ImplementedChatToolRepository.findOne({
+      where: { companyId, chatToolId: ChatToolId.LINEWORKS, accessToken: Not(IsNull()) },
+      relations: ["company.remindConfigs"],
+    });
+    const lineWorksBot = await LineWorksClient.initFromInfo(chatTool);
+    await Promise.all(chatTool.company.remindConfigs.map(async config => {
+      if (!config.reportAfterRecovery) return;
+      await Promise.all(todoDoneUpdates.map(async todoUpdate => {
+        const sharedMessage = LineWorksMessageBuilder.createTodoDoneUpdated(todoUpdate);
+        return await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage);
+      }));
+    }));
   }
 }

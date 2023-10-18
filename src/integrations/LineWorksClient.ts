@@ -1,15 +1,28 @@
 import { Service } from "typedi";
+
 import { ImplementedChatToolRepository } from "@/repositories/settings/ImplementedChatToolRepository";
 import { ChatToolId } from "@/consts/common";
 import { ISelectItem } from "@/types/app";
 import { IsNull, Not } from "typeorm";
 import { fetchApi } from "@/libs/request";
-import { GroupsResponse, UsersResponse } from "@/types/lineworks";
+import { GroupsResponse, LineWorksContent, UsersResponse } from "@/types/lineworks";
+import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 
 @Service()
 export default class LineWorksClient {
   private companyId: string;
   private accessToken?: string;
+  private userBotId?: string;
+  private channelBotId?: string;
+
+  public static async initFromInfo(lineWorksInfo: ImplementedChatTool): Promise<LineWorksClient> {
+    const service = new LineWorksClient();
+    service.accessToken = lineWorksInfo?.accessToken;
+    service.companyId = lineWorksInfo.companyId;
+    service.userBotId = lineWorksInfo?.userBotId;
+    service.channelBotId = lineWorksInfo?.channelBotId;
+    return service;
+  }
 
   public static async init(companyId: string): Promise<LineWorksClient> {
     const lineWorksInfo = await ImplementedChatToolRepository.findOneBy({
@@ -20,6 +33,8 @@ export default class LineWorksClient {
     const service = new LineWorksClient();
     service.accessToken = lineWorksInfo?.accessToken;
     service.companyId = companyId;
+    service.userBotId = lineWorksInfo?.userBotId;
+    service.channelBotId = lineWorksInfo?.channelBotId;
     return service;
   }
 
@@ -70,7 +85,7 @@ export default class LineWorksClient {
       const response = await this.callGroupsApi(limit, cursor);
       channels.push(...response.groups);
       cursor = response.responseMetaData.nextCursor;
-      
+
     } while (cursor);
     return channels
       .map(channel => ({
@@ -79,4 +94,25 @@ export default class LineWorksClient {
       }));
   }
 
+  public async postUserMessage(userId: string, content: LineWorksContent) {
+    return await fetchApi<GroupsResponse>(
+      `https://www.worksapis.com/v1.0/bots/${ this.userBotId }/users/${ userId }/messages`,
+      "POST",
+      content,
+      false,
+      this.accessToken,
+      null,
+    );
+  }
+
+  public async postChannelMessage(channelId: string, content: LineWorksContent) {
+    return await fetchApi<GroupsResponse>(
+      `https://www.worksapis.com/v1.0/bots/${ this.channelBotId }/channels/${ channelId }/messages`,
+      "POST",
+      content,
+      false,
+      this.accessToken,
+      null,
+    );
+  }
 }

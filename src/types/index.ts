@@ -1,6 +1,7 @@
 import User from "@/entities/settings/User";
 import { HistoryAction as Action, TodoHistoryProperty as Property } from "@/consts/common";
 import Project from "@/entities/transactions/Project";
+import Todo from "@/entities/transactions/Todo";
 
 export type ValueOf<T> = T[keyof T];
 export type IdOptional<T extends { id: any }> = Omit<T, "id"> & { id?: T["id"] };
@@ -26,6 +27,12 @@ export type ITodoProjectUpdate = {
   todoId: string;
   currentProjectIds: string[];
   projects: Project[];
+};
+
+export type ITodoDoneUpdate = {
+  todo?: Todo;
+  project?: Project;
+  users: User[];
 };
 
 export type ITodoHistoryOption = {

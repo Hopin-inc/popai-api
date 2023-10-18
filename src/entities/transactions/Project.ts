@@ -116,7 +116,7 @@ export default class Project extends BaseEntity {
 
   @OneToMany(
     () => Remind,
-    remind => remind.todo,
+    remind => remind.project,
     { cascade: false },
   )
   reminds: Remind[];
