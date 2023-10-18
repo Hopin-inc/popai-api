@@ -453,28 +453,6 @@ paths:
           description: edit ok
       servers:
         - url: 'https://localhost:3000/api'
-  '/line-works/webhook/{companyId}':
-    post:
-      tags:
-        - line-works
-      description: TODO
-      parameters:
-        - $ref: '#/components/parameters/companyId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                TODO:
-                  type: string
-                  example: TODO
-      responses:
-        '204':
-          description: proceed.
-      servers:
-        - url: 'https://localhost:3000/api'
   /notion/install:
     get:
       tags:

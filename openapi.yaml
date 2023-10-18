@@ -170,7 +170,7 @@ paths:
                     type: string
                     example: "TODO"
 
-  /line-works/webhook/{companyId}:
+  /line-works/install:
     parameters:
       - in: path
         name: companyId
