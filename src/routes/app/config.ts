@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
 
 router.get("/common", async (req, res) => {
   try {
-    const controller = new ConfigController();
+    const controller = new ConfigController(); 
     const { company } = req.session;
     if (company) {
       const response = await controller.getCommonConfig(company.id);
@@ -97,6 +97,39 @@ router.patch("/prospect", async (req, res) => {
     const data = req.body;
     if (company) {
       const response = await controller.updateProspectConfig(data, company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
+router.get("/setup", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.getSetupConfig(company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
+router.patch("/setup", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    const data = req.body;
+    if (company) {
+      const response = await controller.updateSetupConfig(data, company.id);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
