@@ -6,6 +6,7 @@ import { SessionRepository } from "@/repositories/transactions/SessionRepository
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import { TodoAppId } from "@/consts/common";
+import { IsNull } from "typeorm";
 
 export default class NotionController extends Controller {
   private readonly notionOAuthService: NotionOAuthClient;
@@ -31,7 +32,18 @@ export default class NotionController extends Controller {
     ]);
     if (session) {
       const implementedTodoApp = new ImplementedTodoApp(session.company, TodoAppId.NOTION, notionResponse);
-      await ImplementedTodoAppRepository.upsert(implementedTodoApp, []);
+      const companyId = typeof session.company === "string" ? session.company : session.company.id;
+      const todoApp = await ImplementedTodoAppRepository.findOne({
+        where: {
+          companyId,
+          deletedAt: IsNull(),
+        },
+      });
+      if (!todoApp) {
+        await ImplementedTodoAppRepository.insert(implementedTodoApp);
+      } else {
+        await ImplementedTodoAppRepository.update(todoApp.id, implementedTodoApp);
+      }
     }
   }
 

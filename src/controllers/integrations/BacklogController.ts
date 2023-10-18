@@ -13,6 +13,7 @@ import BacklogRepository from "@/repositories/BacklogRepository";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
 import logger from "@/libs/logger";
+import { IsNull } from "typeorm";
 
 export default class BacklogController extends Controller {
   private readonly backlogOAuthService: BacklogOAuthClient;
@@ -119,7 +120,18 @@ export default class BacklogController extends Controller {
     ]);
     if (session) {
       const implementedTodoApp = new ImplementedTodoApp(session.company, TodoAppId.BACKLOG, accessToken, host);
-      await ImplementedTodoAppRepository.upsert(implementedTodoApp, []);
+      const companyId = typeof session.company === "string" ? session.company : session.company.id;
+      const todoApp = await ImplementedTodoAppRepository.findOne({
+        where: {
+          companyId,
+          deletedAt: IsNull(),
+        },
+      });
+      if (!todoApp) {
+        await ImplementedTodoAppRepository.insert(implementedTodoApp);
+      } else {
+        await ImplementedTodoAppRepository.update(todoApp.id, implementedTodoApp);
+      }
     }
   }
 
