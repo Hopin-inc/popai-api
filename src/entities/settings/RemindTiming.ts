@@ -5,7 +5,7 @@ import RemindConfig from "./RemindConfig";
 type ConstructorOptions = {
   config: RemindConfig | number,
   time: string,
-  mode: number;
+  mode?: number;
 };
 
 @Entity("s_remind_timings")

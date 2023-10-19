@@ -89,3 +89,18 @@ export type IBoardConfig = {
   boardId?: string;
   projectRule?: number;
 };
+
+export type IConfigRemind = {
+  type: number;
+  enabled: boolean;
+  chatToolId: number;
+  channel: string;
+  frequency: number;
+  limit: number;
+  reportAfterRecovery: boolean;
+  timings: IConfigRemindTiming[];
+};
+
+export type IConfigRemindTiming = {
+  time: string;
+};
