@@ -14,15 +14,13 @@ import LineWorksRepository from "@/repositories/LineWorksRepository";
 export default class LineWorksClient {
   private companyId: string;
   private accessToken?: string;
-  private userBotId?: string;
-  private channelBotId?: string;
+  private botId?: string;
 
   public static async initFromInfo(lineWorksInfo: ImplementedChatTool): Promise<LineWorksClient> {
     const service = new LineWorksClient();
     service.accessToken = lineWorksInfo?.accessToken;
     service.companyId = lineWorksInfo.companyId;
-    service.userBotId = lineWorksInfo?.userBotId;
-    service.channelBotId = lineWorksInfo?.channelBotId;
+    service.botId = lineWorksInfo?.botId;
     return service;
   }
 
@@ -35,8 +33,7 @@ export default class LineWorksClient {
     const service = new LineWorksClient();
     service.accessToken = lineWorksInfo?.accessToken;
     service.companyId = companyId;
-    service.userBotId = lineWorksInfo?.userBotId;
-    service.channelBotId = lineWorksInfo?.channelBotId;
+    service.botId = lineWorksInfo?.botId;
     return service;
   }
 
@@ -236,7 +233,7 @@ export default class LineWorksClient {
   public async postUserMessage(userId: string, content: LineWorksContent) {
     return await this.callApiWithRetryAuth(async () => {
       return await fetchApi<GroupsResponse>(
-        `https://www.worksapis.com/v1.0/bots/${this.userBotId}/users/${userId}/messages`,
+        `https://www.worksapis.com/v1.0/bots/${this.botId}/users/${userId}/messages`,
         "POST",
         content,
         false,
@@ -249,7 +246,7 @@ export default class LineWorksClient {
   public async postChannelMessage(channelId: string, content: LineWorksContent) {
     return await this.callApiWithRetryAuth(async () => {
       return await fetchApi<GroupsResponse>(
-        `https://www.worksapis.com/v1.0/bots/${this.channelBotId}/channels/${channelId}/messages`,
+        `https://www.worksapis.com/v1.0/bots/${this.botId}/channels/${channelId}/messages`,
         "POST",
         content,
         false,

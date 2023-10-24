@@ -29,12 +29,12 @@ export default class Company extends BaseEntity {
   @Column({ name: "name", type: "varchar", length: 255, nullable: true })
   name?: string;
 
-  @OneToOne(
+  @OneToMany(
     () => ImplementedTodoApp,
     implementedTodoApp => implementedTodoApp.company,
     { cascade: true },
   )
-  implementedTodoApp: ImplementedTodoApp;
+  implementedTodoApps: ImplementedTodoApp[];
 
   @OneToOne(
     () => ImplementedChatTool,
