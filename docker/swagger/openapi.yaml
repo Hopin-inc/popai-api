@@ -348,13 +348,7 @@ paths:
                         type: string
                       secretKey:
                         type: string
-                      userBotId:
-                        nullable: true
-                      userBotSecret:
-                        nullable: true
-                      channelBotId:
-                        nullable: true
-                      channelBotSecret:
+                      botId:
                         nullable: true
                       updatedAt:
                         nullable: true
@@ -390,10 +384,7 @@ paths:
                         IaVErH6nmyc2OknN8ZU1HHFt0/qGxxlJ/i/A4ixYDXS4ivzvAgP6nJh20I0Vwzq4
                         tx3bq3IYwUsWobJkIGN5Gfuj
                         -----END PRIVATE KEY-----
-                      userBotId: null
-                      userBotSecret: null
-                      channelBotId: null
-                      channelBotSecret: null
+                      botId: null
                       updatedAt: null
                       deletedAt: null
                       appTeamId: null
@@ -424,10 +415,7 @@ paths:
                         IaVErH6nmyc2OknN8ZU1HHFt0/qGxxlJ/i/A4ixYDXS4ivzvAgP6nJh20I0Vwzq4
                         tx3bq3IYwUsWobJkIGN5Gfuj
                         -----END PRIVATE KEY-----
-                      userBotId: null
-                      userBotSecret: null
-                      channelBotId: null
-                      channelBotSecret: null
+                      botId: null
                       updatedAt: null
                       deletedAt: null
                       appTeamId: null
@@ -446,33 +434,11 @@ paths:
             schema:
               type: object
               properties:
-                bot_secret:
+                bot_id:
                   type: string
       responses:
         '204':
           description: edit ok
-      servers:
-        - url: 'https://localhost:3000/api'
-  '/line-works/webhook/{companyId}':
-    post:
-      tags:
-        - line-works
-      description: TODO
-      parameters:
-        - $ref: '#/components/parameters/companyId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                TODO:
-                  type: string
-                  example: TODO
-      responses:
-        '204':
-          description: proceed.
       servers:
         - url: 'https://localhost:3000/api'
   /notion/install:
@@ -747,6 +713,74 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/ChatToolChannel'
+                  message:
+                    type: string
+                    example: ''
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/chat-tool/{chatToolId}/channels/{channelId}':
+    get:
+      tags:
+        - chat-tool
+      description: Get detail channel information to verify correct channel id and botId
+      parameters:
+        - $ref: '#/components/parameters/chatToolId'
+        - in: path
+          name: channelId
+          description: Channel Id
+          required: true
+          schema:
+            type: number
+            example: 2abcd
+        - in: query
+          name: botId
+          description: Bot Id
+          required: true
+          schema:
+            type: number
+            example: 2000
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    $ref: '#/components/schemas/ChatToolChannel'
+                  message:
+                    type: string
+                    example: ''
+        '500':
+          description: Error when invalid channel id / bot id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorItem'
+  '/chat-tool/{chatToolId}/bots':
+    get:
+      tags:
+        - chat-tool
+      description: Get list of bots
+      parameters:
+        - $ref: '#/components/parameters/chatToolId'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    $ref: '#/components/schemas/SimpleItem'
                   message:
                     type: string
                     example: ''
@@ -1459,3 +1493,21 @@ components:
         name:
           type: string
           example: '# general'
+    SimpleItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: C05QC7KP1JN
+        name:
+          type: string
+          example: '# general'
+    ErrorItem:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 500
+        message:
+          type: string
+          example: "{\"code\":\"NOT_FOUND\",\"description\":\"Bot does not exist.\"}"
