@@ -8,6 +8,7 @@ import { ChatToolUserRepository } from "@/repositories/settings/ChatToolUserRepo
 import ChatToolUser from "@/entities/settings/ChatToolUser";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import LineWorksClient from "@/integrations/LineWorksClient";
+import { ChannelResponse } from "@/types/lineworks";
 
 export default class ChatToolController extends Controller {
   private slackService: SlackClient;
@@ -58,6 +59,30 @@ export default class ChatToolController extends Controller {
       case ChatToolId.LINEWORKS:
         this.lineworksService = await LineWorksClient.init(companyId);
         return this.lineworksService.getChannels();
+      default:
+        return [];
+    }
+  }
+
+  public async getChannelInfo(botId: string, channelId: string, chatToolId: number, companyId: string): Promise<ChannelResponse> {
+    switch (chatToolId) {
+      case ChatToolId.SLACK:
+        return {};
+      case ChatToolId.LINEWORKS:
+        this.lineworksService = await LineWorksClient.init(companyId);
+        return this.lineworksService.getChannelInfo(botId, channelId);
+      default:
+        return {};
+    }
+  }
+
+  public async getBots(botType: string, chatToolId: number, companyId: string): Promise<ISelectItem<string>[]> {
+    switch (chatToolId) {
+      case ChatToolId.SLACK:
+        return [];
+      case ChatToolId.LINEWORKS:
+        this.lineworksService = await LineWorksClient.init(companyId);
+        return this.lineworksService.getBots(botType);
       default:
         return [];
     }

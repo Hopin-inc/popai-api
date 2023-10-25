@@ -5,7 +5,7 @@ import { ChatToolId } from "@/consts/common";
 import { ISelectItem } from "@/types/app";
 import { IsNull, Not } from "typeorm";
 import { fetchApi } from "@/libs/request";
-import { AuthLineWorksResponse, GroupsResponse, InstallationLineWorks, LineWorksContent, UsersResponse } from "@/types/lineworks";
+import { AuthLineWorksResponse, BotResponse, BotsResponse, ChannelResponse, GroupsResponse, InstallationLineWorks, LineWorksContent, UsersResponse } from "@/types/lineworks";
 import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 import logger from "@/libs/logger";
 import LineWorksRepository from "@/repositories/LineWorksRepository";
@@ -56,6 +56,78 @@ export default class LineWorksClient {
       try {
         return await fetchApi<GroupsResponse>(
           "https://www.worksapis.com/v1.0/groups",
+          "GET",
+          { count, cursor },
+          false,
+          this.accessToken,
+          null,
+        );
+      } catch (error) {
+        throw error;
+      }
+
+    }, 3);
+  }
+
+  private async callBotsApi(count: number, cursor: string): Promise<BotsResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      try {
+        return await fetchApi<BotsResponse>(
+          "https://www.worksapis.com/v1.0/bots",
+          "GET",
+          { count, cursor },
+          false,
+          this.accessToken,
+          null,
+        );
+      } catch (error) {
+        throw error;
+      }
+
+    }, 3);
+  }
+
+  private async callBotApi(botId: string): Promise<BotResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      try {
+        return await fetchApi<BotResponse>(
+          `https://www.worksapis.com/v1.0/bots/${botId}`,
+          "GET",
+          { },
+          false,
+          this.accessToken,
+          null,
+        );
+      } catch (error) {
+        throw error;
+      }
+
+    }, 3);
+  }
+
+  private async callChannelApi(botId: string, channelId: string): Promise<ChannelResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      try {
+        return await fetchApi<ChannelResponse>(
+          `https://www.worksapis.com/v1.0/bots/${botId}/channels/${channelId}`,
+          "GET",
+          {},
+          false,
+          this.accessToken,
+          null,
+        );
+      } catch (error) {
+        throw error;
+      }
+
+    }, 3);
+  }
+
+  private async callChannelMembersApi(botId: string, channelId: string, count: number, cursor: string): Promise<ChannelResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      try {
+        return await fetchApi<ChannelResponse>(
+          `https://www.worksapis.com/v1.0/bots/${botId}/channels/${channelId}/members`,
           "GET",
           { count, cursor },
           false,
@@ -149,13 +221,13 @@ export default class LineWorksClient {
         }
       }
       else {
-        if(execeedRetryCallback) {
+        if (execeedRetryCallback) {
           return await execeedRetryCallback();
         }
       }
     } catch (error) {
       if (tryRemain <= 1) {
-        if(execeedRetryCallback) {
+        if (execeedRetryCallback) {
           return await execeedRetryCallback();
         }
         throw error;
@@ -228,6 +300,40 @@ export default class LineWorksClient {
         id: channel.groupId,
         name: `${!channel.visible ? "🔒" : "#"} ${channel.groupName}`,
       }));
+  }
+
+  public async getBots(botType: string): Promise<ISelectItem<string>[]> {
+    const bots: BotResponse[] = [];
+    const limit = 100;
+    let cursor: string = "";
+    do {
+      const response = await this.callBotsApi(limit, cursor);
+      const extraBots = await Promise.all(response.bots.map(async (bot) => {
+        return await this.callBotApi(bot.botId);
+      }));
+      bots.push(...extraBots);
+      cursor = response.responseMetaData.nextCursor;
+    } while (cursor);
+
+
+
+    return bots.filter(bot => botType === 'group' ? bot.enableGroupJoin : !bot.enableGroupJoin)
+      .map(bot => ({
+        id: bot.botId,
+        name: bot.botName || 'N/A',
+      }));
+  }
+
+  public async getChannelInfo(botId: string, channelId: string): Promise<ChannelResponse> {
+    const limit = 100;
+    let cursor: string = "";
+
+    try {
+      return await this.callChannelApi(botId, channelId);
+    } catch (error) {
+      logger.error(error.message);
+      return await this.callChannelMembersApi(botId, channelId, limit, cursor);
+    }
   }
 
   public async postUserMessage(userId: string, content: LineWorksContent) {
