@@ -52,7 +52,7 @@ export default class LineWorksRepository {
     const SERVICE_ACCOUNT = req.body.service_account;
     const PRIVATE_KEY = req.body.secret_key;
 
-    const assertion = await LineWorksRepository.getJWT(CLIENT_ID, SERVICE_ACCOUNT, PRIVATE_KEY);
+    const assertion = await this.getJWT(CLIENT_ID, SERVICE_ACCOUNT, PRIVATE_KEY);
 
     const uri = "https://auth.worksmobile.com/oauth2/v2.0/token";
 
@@ -93,7 +93,7 @@ export default class LineWorksRepository {
    * JWT の形式
    * {Header BASE64 エンコード}.{JSON Claims Set BASE64 エンコード}.{signature BASE64 エンコード}
    */
-  public static getJWT(clientId: string, serviceAccount: string, privateKey: string) {
+  private async getJWT(clientId: string, serviceAccount: string, privateKey: string) {
     const current_time = Date.now() / 1000;
     const jws = jwt.sign(
       {
