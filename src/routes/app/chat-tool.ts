@@ -101,7 +101,7 @@ router.get("/:chatToolId/bots", async (req, res) => {
     const controller = new ChatToolController();
     const { company } = req.session;
     if (company) {
-      const response = await controller.getBots('group', chatToolId, company.id);
+      const response = await controller.getBots("group", chatToolId, company.id);
       ApiResponse.successRes(res, response);
     } else {
       ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
