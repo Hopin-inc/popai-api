@@ -436,6 +436,8 @@ paths:
               properties:
                 bot_id:
                   type: string
+                bot_secret:
+                  type: string
       responses:
         '204':
           description: edit ok
