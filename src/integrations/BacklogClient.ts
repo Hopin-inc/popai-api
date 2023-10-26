@@ -1,7 +1,6 @@
 import { Service } from "typedi";
 import { FindOptionsWhere, IsNull, Not } from "typeorm";
 import { Backlog } from "backlog-js";
-import { BacklogError } from "backlog-js/dist/types/error";
 import "isomorphic-fetch";
 import "isomorphic-form-data";
 import { setTimeout } from "node:timers/promises";
