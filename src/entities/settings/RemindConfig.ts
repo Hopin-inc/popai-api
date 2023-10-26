@@ -11,6 +11,7 @@ type ConstructorOption = {
   chatToolId: number;
   channel?: string;
   frequency?: number;
+  limit?: number;
 };
 
 @Entity("s_remind_configs")

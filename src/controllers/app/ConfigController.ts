@@ -1,6 +1,6 @@
 import { Controller } from "tsoa";
-import { IConfigCommon, IConfigFeatures, IConfigProspect, IConfigStatus } from "@/types/app";
 import { IConfigSetup, ISetupFeatureId } from "@/types/setup";
+import { IConfigCommon, IConfigFeatures, IConfigProspect, IConfigRemind, IConfigStatus } from "@/types/app";
 import { TimingRepository } from "@/repositories/settings/TimingRepository";
 import { TimingExceptionRepository } from "@/repositories/settings/TimingExceptionRepository";
 import { In, MoreThanOrEqual } from "typeorm";
@@ -22,6 +22,10 @@ import { SetupFeatureRepository } from "@/repositories/settings/SetupFeatureRepo
 import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRepository";
 import { TodoAppConfigViewRepository } from "@/repositories/views/TodoAppConfigViewRepository";
 import { ProspectConfigViewRepository } from "@/repositories/views/ProspectConfigViewRepository";
+import { RemindConfigRepository } from "@/repositories/settings/RemindConfigRepository";
+import RemindConfig from "@/entities/settings/RemindConfig";
+import RemindTiming from "@/entities/settings/RemindTiming";
+import { RemindTimingRepository } from "@/repositories/settings/RemindTimingRepository";
 
 export default class ConfigController extends Controller {
   public async getConfigStatus(companyId: string): Promise<IConfigStatus> {
@@ -289,6 +293,96 @@ export default class ConfigController extends Controller {
         companyId,
         ...data,
       });
+    }
+  }
+
+  public async getRemindConfig(companyId: string, type: number): Promise<IConfigRemind> {
+    const config = await RemindConfigRepository.findOne({
+      where: { companyId, type },
+      relations: ["timings"],
+    });
+    if (config) {
+      const timings = config.timings?.filter(t => !t.deletedAt);
+      return {
+        type: config.type,
+        enabled: config.enabled,
+        chatToolId: config.chatToolId,
+        channel: config.channel,
+        frequency: config.frequency,
+        limit: config.limit,
+        reportAfterRecovery: config.reportAfterRecovery,
+        timings: timings?.map(timing => ({
+          time: timing.time,
+        })).sort((a, b) => a.time > b.time ? 1 : -1) ?? [],
+      };
+    }
+  }
+
+  public async updateRemindConfig(
+    data: Partial<IConfigRemind>,
+    companyId: string,
+  ): Promise<any> {
+    const type = data.type;
+    const { timings: sentTimings, ...sentConfig } = data;
+    const config = await RemindConfigRepository.findOneBy({ companyId, type });    
+    if (config) {
+      const operations: Promise<any>[] = [];
+      const updatedConfig: RemindConfig = { ...config, ...sentConfig };
+      operations.push(RemindConfigRepository.upsert(updatedConfig, []));
+      // TODO: Add BOT to Channel
+      // if (sentConfig.channel) {
+      //   operations.push(this.joinChannel(companyId, sentConfig.chatToolId ?? config.chatToolId, sentConfig.channel));
+      // }
+      if (sentTimings) {
+        const timings = await RemindTimingRepository.findBy({ configId: config.id });
+        if (timings.length) {
+          const storedTimes = timings.map(t => t.time);
+          const [addedTimes, deletedTimes] = extractArrayDifferences(sentTimings?.map(t => t.time) ?? [], storedTimes);
+          const addedTimings: RemindTiming[] = addedTimes.map(time => {
+            return new RemindTiming({
+              config,
+              time,
+            });
+          });
+          const deletedTimings: RemindTiming[] = timings.filter(t => deletedTimes.includes(t.time));
+          const modifiedTimings: RemindTiming[] = timings
+            .filter(t => ![...addedTimes, ...deletedTimes].includes(t.time))
+            .map(timing => ({
+              ...timing,
+              ...sentTimings.find(t => t.time === timing.time),
+            }));
+          operations.push(
+            RemindTimingRepository.upsert([...addedTimings, ...modifiedTimings], []),
+            deletedTimings.length ? RemindTimingRepository.softDelete(deletedTimings.map(e => e.id)) : null,
+          );
+        } else {
+          operations.push(RemindTimingRepository.save(sentTimings.map(t => {
+            return new RemindTiming({
+              config,
+              time: t.time,
+            });
+          })));
+        }
+      }
+      await Promise.all(operations);
+    } else {
+      const config = new RemindConfig({
+        company: companyId,
+        type: data.type,
+        enabled: data.enabled,
+        chatToolId: data.chatToolId,
+        channel: data.channel,
+        frequency: data.frequency,
+        limit: data.limit,
+      });
+      const savedConfig = await RemindConfigRepository.save(config);
+      const timings = sentTimings?.map(t => {
+        return new RemindTiming({
+          config: savedConfig,
+          time: t.time,
+        });
+      }) ?? [];
+      await RemindTimingRepository.upsert(timings, []);
     }
   }
 }

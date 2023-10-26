@@ -140,4 +140,38 @@ router.patch("/setup", async (req, res) => {
   }
 });
 
+router.get("/remind", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    const type = req.query.type ? parseInt(req.query.type as string) : AskType.TODOS;
+    if (company) {
+      const response = await controller.getRemindConfig(company.id, type);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
+router.patch("/remind", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    const data = req.body;
+    if (company) {
+      const response = await controller.updateRemindConfig(data, company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 export default router;
