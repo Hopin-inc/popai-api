@@ -87,6 +87,9 @@ export default class ImplementedChatTool extends BaseEntity {
   @Column({ name: "bot_id", type: "varchar", length: 50, nullable: true })
   botId?: string;
 
+  @Column({ name: "bot_secret", type: "text", nullable: true })
+  botSecret?: string;
+
   @OneToOne(() => Company, (company) => company.implementedChatTool, {
     onDelete: "CASCADE",
     onUpdate: "RESTRICT",

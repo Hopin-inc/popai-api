@@ -41,10 +41,11 @@ export default class LineWorksController extends Controller {
   }
 
   public async updateInstall(req: Request, company: Company) {
-    const { bot_id } = req.body;
+    const { bot_id, bot_secret } = req.body;
     const companyId = typeof company === "string" ? company : company.id;
     return await ImplementedChatToolRepository.update(companyId, {
       botId: bot_id,
+      botSecret: bot_secret,
     });
   }
 }
