@@ -249,44 +249,63 @@ export default class ConfigController extends Controller {
       where: { companyId: companyId },
       relations: ["features"],
     });
-    return {
-      currentStep: setupConfig.currentStep,
-      setupTodoAppId: setupConfig.setupTodoAppId,
-      setupChatToolId: setupConfig.setupChatToolId,
-      setupFeatures: setupConfig.features.map(f => f.feature as ISetupFeatureId),
-    };
+    if (!setupConfig) {
+      const newConfig = await SetupConfigRepository.save({
+        companyId,
+        currentStep: null,
+        setupTodoAppId: null,
+        setupChatToolId: null,
+        features: [],
+      });
+      return {
+        currentStep: newConfig.currentStep,
+        setupTodoAppId: newConfig.setupTodoAppId,
+        setupChatToolId: newConfig.setupChatToolId,
+        setupFeatures: newConfig.features.map(f => f.feature as ISetupFeatureId),
+      };
+    } else {
+      return {
+        currentStep: setupConfig.currentStep,
+        setupTodoAppId: setupConfig.setupTodoAppId,
+        setupChatToolId: setupConfig.setupChatToolId,
+        setupFeatures: setupConfig.features.map(f => f.feature as ISetupFeatureId),
+      };
+    }
   }
 
   public async updateSetupConfig(
-    data: IConfigSetup,
+    data: Partial<IConfigSetup>,
     companyId: string,
   ): Promise<any> {
+    const { setupFeatures, ...restData } = data;
     const setupConfig = await SetupConfigRepository.findOne({
       where: { companyId: companyId },
       relations: ["features"],
     });
     if (setupConfig) {
-      await SetupConfigRepository.update(
-        setupConfig.id, 
-        {
-          currentStep: data.currentStep,
-          setupTodoAppId: data.setupTodoAppId,
-          setupChatToolId: data.setupChatToolId,
-        },
-      );
-      const oldFeature = await SetupFeatureRepository.findBy({ configId: setupConfig.id });
-      await SetupFeatureRepository.remove(oldFeature);
-      
-      await Promise.all(
-        data.setupFeatures.map(f => { 
-          return SetupFeatureRepository.save(
-            new SetupFeature({
-              config: setupConfig.id, 
-              feature: f,
-            }),
-          );
-        }),
-      );
+      if(Object.keys(restData).length !== 0) {
+        await SetupConfigRepository.update(
+          setupConfig.id, 
+          {
+            ...restData,
+          },
+        );
+      }
+
+      if (setupFeatures !== undefined) {
+        const oldFeature = await SetupFeatureRepository.findBy({ configId: setupConfig.id });
+        await SetupFeatureRepository.remove(oldFeature);
+        await Promise.all(
+          setupFeatures.map(f => { 
+            return SetupFeatureRepository.save(
+              new SetupFeature({
+                config: setupConfig.id, 
+                feature: f,
+              }),
+            );
+          }),
+        );
+      }
     }
     else {
       await SetupConfigRepository.save({
