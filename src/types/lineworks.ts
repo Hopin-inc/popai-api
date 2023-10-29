@@ -1,17 +1,17 @@
 export interface InstallationLineWorks {
-  access_token: string
-  refresh_token: string
-  scope: string
-  token_type: string
-  expires_in: string
+  access_token: string;
+  refresh_token: string;
+  scope: string;
+  token_type: string;
+  expires_in: string;
 }
 
 export interface AuthLineWorksResponse {
-  access_token: string
-  refresh_token?: string
-  scope: string
-  token_type: string
-  expires_in: string
+  access_token: string;
+  refresh_token?: string;
+  scope: string;
+  token_type: string;
+  expires_in: string;
 }
 
 export interface UsersResponse {
@@ -294,4 +294,62 @@ export interface LineWorksContent {
   url?: string;
   offsetTop?: string;
   spacing?: string;
+}
+
+// api/channel response
+export type ChannelResponse = {
+  domainID?:    number;
+  channelID?:   string;
+  title?:       string;
+  channelType?: ChannelType;
+  code?:        string;
+  description?: string;
+}
+
+export type ChannelType = {
+  type?:    string;
+  groupID?: string;
+}
+
+export type ChannelMembersResponse = {
+  members:          string[];
+  responseMetaData: ResponseMetaData;
+  code?:        string;
+  description?: string;
+}
+
+
+//api/bots response
+export type BotsResponse = {
+  bots:             Bot[];
+  responseMetaData: ResponseMetaData;
+}
+
+export type Bot = {
+  botId:         string;
+  botName:       string;
+  photoURL:      string;
+  i18NBotNames:  any[];
+  i18NPhotoUrls: any[];
+}
+
+// api/bot detail response
+export type BotResponse = {
+  botId:             string;
+  botName:           string;
+  photoURL:          string;
+  enableCallback:    boolean;
+  callbackURL:       string;
+  callbackEvents:    any[];
+  createdTime:       Date;
+  modifiedTime:      Date;
+  description:       string;
+  administrators:    string[];
+  subadministrators: any[];
+  enableGroupJoin:   boolean;
+  allowDomains:      number[];
+  i18NBotNames:      any[];
+  i18NPhotoUrls:     any[];
+  i18NDescriptions:  any[];
+  defaultRichmenuID: null;
 }

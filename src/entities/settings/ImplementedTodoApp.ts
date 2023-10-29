@@ -1,4 +1,4 @@
-import { Entity, Column, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, JoinColumn, PrimaryGeneratedColumn, ManyToOne, Index } from "typeorm";
 import { OAuth2 as OAuth2Entity } from "backlog-js/dist/types/entity";
 
 import BaseEntity from "../BaseEntity";
@@ -42,6 +42,8 @@ export default class ImplementedTodoApp extends BaseEntity {
     }
   }
 
+  @Index("TODO_APP_UNI", { synchronize: false })
+
   @PrimaryGeneratedColumn()
   readonly id: number;
 
@@ -63,9 +65,9 @@ export default class ImplementedTodoApp extends BaseEntity {
   @Column({ name: "installation", type: "json", nullable: true })
   installation?: INotionOAuthToken | OAuth2Entity.AccessToken;
 
-  @OneToOne(
+  @ManyToOne(
     () => Company,
-    company => company.implementedTodoApp,
+    company => company.implementedTodoApps,
     { onDelete: "CASCADE", onUpdate: "RESTRICT" },
   )
   @JoinColumn({ name: "company_id" })

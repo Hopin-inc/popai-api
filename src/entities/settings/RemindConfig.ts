@@ -49,7 +49,7 @@ export default class RemindConfig extends BaseEntity {
   @Column({ name: "limit", nullable: true })
   limit?: number;
 
-  @Column({ name: "report_after_recovery", default: false })
+  @Column({ name: "report_after_recovery", type: "tinyint", nullable: true, default: false })
   reportAfterRecovery?: boolean;
 
   @ManyToOne(

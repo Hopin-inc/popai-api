@@ -55,15 +55,15 @@ export default class TaskService {
         }),
         async companiesChunk => {
           await Promise.all(companiesChunk.map(async company => {
-            const { implementedTodoApp } = company;
-            if (implementedTodoApp) {
+            const { implementedTodoApps } = company;
+            if (implementedTodoApps.length > 0) {
               const logMeta = {
                 company: company.id,
-                todoApp: company.implementedTodoApp.todoAppId,
+                todoApp: implementedTodoApps[0].todoAppId,
               };
               logger.info(`Updating todos for company ${ company.id }`, logMeta);
               try {
-                switch (implementedTodoApp.todoAppId) {
+                switch (implementedTodoApps[0].todoAppId) {
                   case TodoAppId.NOTION:
                     await this.notionRepository.syncTodos(company, force);
                     break;

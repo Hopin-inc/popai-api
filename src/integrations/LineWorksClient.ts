@@ -5,7 +5,7 @@ import { ChatToolId } from "@/consts/common";
 import { ISelectItem } from "@/types/app";
 import { IsNull, Not } from "typeorm";
 import { fetchApi } from "@/libs/request";
-import { AuthLineWorksResponse, GroupsResponse, InstallationLineWorks, LineWorksContent, UsersResponse } from "@/types/lineworks";
+import { AuthLineWorksResponse, BotResponse, BotsResponse, ChannelResponse, GroupsResponse, InstallationLineWorks, LineWorksContent, UsersResponse } from "@/types/lineworks";
 import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 import logger from "@/libs/logger";
 import LineWorksRepository from "@/repositories/LineWorksRepository";
@@ -14,15 +14,13 @@ import LineWorksRepository from "@/repositories/LineWorksRepository";
 export default class LineWorksClient {
   private companyId: string;
   private accessToken?: string;
-  private userBotId?: string;
-  private channelBotId?: string;
+  private botId?: string;
 
   public static async initFromInfo(lineWorksInfo: ImplementedChatTool): Promise<LineWorksClient> {
     const service = new LineWorksClient();
     service.accessToken = lineWorksInfo?.accessToken;
     service.companyId = lineWorksInfo.companyId;
-    service.userBotId = lineWorksInfo?.userBotId;
-    service.channelBotId = lineWorksInfo?.channelBotId;
+    service.botId = lineWorksInfo?.botId;
     return service;
   }
 
@@ -35,8 +33,7 @@ export default class LineWorksClient {
     const service = new LineWorksClient();
     service.accessToken = lineWorksInfo?.accessToken;
     service.companyId = companyId;
-    service.userBotId = lineWorksInfo?.userBotId;
-    service.channelBotId = lineWorksInfo?.channelBotId;
+    service.botId = lineWorksInfo?.botId;
     return service;
   }
 
@@ -56,19 +53,67 @@ export default class LineWorksClient {
 
   private async callGroupsApi(count: number, cursor: string): Promise<GroupsResponse> {
     return await this.callApiWithRetryAuth(async () => {
-      try {
-        return await fetchApi<GroupsResponse>(
-          "https://www.worksapis.com/v1.0/groups",
-          "GET",
-          { count, cursor },
-          false,
-          this.accessToken,
-          null,
-        );
-      } catch (error) {
-        throw error;
-      }
+      return await fetchApi<GroupsResponse>(
+        "https://www.worksapis.com/v1.0/groups",
+        "GET",
+        { count, cursor },
+        false,
+        this.accessToken,
+        null,
+      );
 
+    }, 3);
+  }
+
+  private async callBotsApi(count: number, cursor: string): Promise<BotsResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      return await fetchApi<BotsResponse>(
+        "https://www.worksapis.com/v1.0/bots",
+        "GET",
+        { count, cursor },
+        false,
+        this.accessToken,
+        null,
+      );
+    }, 3);
+  }
+
+  private async callBotApi(botId: string): Promise<BotResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      return await fetchApi<BotResponse>(
+        `https://www.worksapis.com/v1.0/bots/${ botId }`,
+        "GET",
+        { },
+        false,
+        this.accessToken,
+        null,
+      );
+    }, 3);
+  }
+
+  private async callChannelApi(botId: string, channelId: string): Promise<ChannelResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      return await fetchApi<ChannelResponse>(
+        `https://www.worksapis.com/v1.0/bots/${ botId }/channels/${ channelId }`,
+        "GET",
+        {},
+        false,
+        this.accessToken,
+        null,
+      );
+    }, 3);
+  }
+
+  private async callChannelMembersApi(botId: string, channelId: string, count: number, cursor: string): Promise<ChannelResponse> {
+    return await this.callApiWithRetryAuth(async () => {
+      return await fetchApi<ChannelResponse>(
+        `https://www.worksapis.com/v1.0/bots/${ botId }/channels/${ channelId }/members`,
+        "GET",
+        { count, cursor },
+        false,
+        this.accessToken,
+        null,
+      );
     }, 3);
   }
 
@@ -79,14 +124,14 @@ export default class LineWorksClient {
       const res = JSON.parse(error.message);
       if (res.code === "UNAUTHORIZED") {
         //Retry refresh token
-        logger.warn(`Retrying authentication: ${error.message}`);
+        logger.warn(`Retrying authentication: ${ error.message }`);
         return await this.retryRefreshToken(retryTimes, async () => {
           return await apiCall();
         }, async () => {
           return await this.retryRenewToken(retryTimes, async () => {
             return await apiCall();
           });
-        })
+        });
       }
       throw error;
     }
@@ -94,7 +139,7 @@ export default class LineWorksClient {
 
   private async callReissueTokenApi(lineWorksInfo: ImplementedChatTool): Promise<AuthLineWorksResponse> {
     const formdata = new URLSearchParams({
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
       client_id: lineWorksInfo.clientId,
       client_secret: lineWorksInfo.clientSecret,
       refresh_token: lineWorksInfo.refreshToken,
@@ -134,7 +179,7 @@ export default class LineWorksClient {
   }
 
   public async retryRefreshToken(tryRemain: number, callback: any, execeedRetryCallback: any) {
-    logger.warn('Retry refresh token');
+    logger.warn("Retry refresh token");
     const lineWorksInfo = await ImplementedChatToolRepository.findOneBy({
       companyId: this.companyId,
       chatToolId: ChatToolId.LINEWORKS,
@@ -152,13 +197,13 @@ export default class LineWorksClient {
         }
       }
       else {
-        if(execeedRetryCallback) {
+        if (execeedRetryCallback) {
           return await execeedRetryCallback();
         }
       }
     } catch (error) {
       if (tryRemain <= 1) {
-        if(execeedRetryCallback) {
+        if (execeedRetryCallback) {
           return await execeedRetryCallback();
         }
         throw error;
@@ -170,7 +215,7 @@ export default class LineWorksClient {
   }
 
   public async retryRenewToken(tryRemain: number, callback: any) {
-    logger.warn('Retry renew token');
+    logger.warn("Retry renew token");
     const lineWorksInfo = await ImplementedChatToolRepository.findOneBy({
       companyId: this.companyId,
       chatToolId: ChatToolId.LINEWORKS,
@@ -229,14 +274,48 @@ export default class LineWorksClient {
     return channels
       .map(channel => ({
         id: channel.groupId,
-        name: `${!channel.visible ? "🔒" : "#"} ${channel.groupName}`,
+        name: `${ !channel.visible ? "🔒" : "#" } ${ channel.groupName }`,
       }));
+  }
+
+  public async getBots(botType: string): Promise<ISelectItem<string>[]> {
+    const bots: BotResponse[] = [];
+    const limit = 100;
+    let cursor: string = "";
+    do {
+      const response = await this.callBotsApi(limit, cursor);
+      const extraBots = await Promise.all(response.bots.map(async (bot) => {
+        return await this.callBotApi(bot.botId);
+      }));
+      bots.push(...extraBots);
+      cursor = response.responseMetaData.nextCursor;
+    } while (cursor);
+
+
+
+    return bots.filter(bot => botType === "group" ? bot.enableGroupJoin : !bot.enableGroupJoin)
+      .map(bot => ({
+        id: bot.botId,
+        name: bot.botName || "N/A",
+      }));
+  }
+
+  public async getChannelInfo(botId: string, channelId: string): Promise<ChannelResponse> {
+    const limit = 100;
+    const cursor: string = "";
+
+    try {
+      return await this.callChannelApi(botId, channelId);
+    } catch (error) {
+      logger.error(error.message);
+      return await this.callChannelMembersApi(botId, channelId, limit, cursor);
+    }
   }
 
   public async postUserMessage(userId: string, content: LineWorksContent) {
     return await this.callApiWithRetryAuth(async () => {
       return await fetchApi<GroupsResponse>(
-        `https://www.worksapis.com/v1.0/bots/${this.userBotId}/users/${userId}/messages`,
+        `https://www.worksapis.com/v1.0/bots/${ this.botId }/users/${ userId }/messages`,
         "POST",
         content,
         false,
@@ -249,7 +328,7 @@ export default class LineWorksClient {
   public async postChannelMessage(channelId: string, content: LineWorksContent) {
     return await this.callApiWithRetryAuth(async () => {
       return await fetchApi<GroupsResponse>(
-        `https://www.worksapis.com/v1.0/bots/${this.channelBotId}/channels/${channelId}/messages`,
+        `https://www.worksapis.com/v1.0/bots/${ this.botId }/channels/${ channelId }/messages`,
         "POST",
         content,
         false,

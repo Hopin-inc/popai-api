@@ -41,13 +41,11 @@ export default class LineWorksController extends Controller {
   }
 
   public async updateInstall(req: Request, company: Company) {
-    const { user_bot_id, user_bot_secret, channel_bot_id, channel_bot_secret } = req.body;
+    const { bot_id, bot_secret } = req.body;
     const companyId = typeof company === "string" ? company : company.id;
     return await ImplementedChatToolRepository.update(companyId, {
-      userBotId: user_bot_id,
-      userBotSecret: user_bot_secret,
-      channelBotId: channel_bot_id,
-      channelBotSecret: channel_bot_secret,
+      botId: bot_id,
+      botSecret: bot_secret,
     });
   }
 }
