@@ -34,7 +34,7 @@ export default class TaskService {
         CompanyRepository.find({
           where,
           relations: [
-            "implementedTodoApp",
+            "implementedTodoApps",
             "implementedChatTool",
             "users.todoAppUser",
             "projects",

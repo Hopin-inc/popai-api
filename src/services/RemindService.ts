@@ -66,7 +66,7 @@ export default class RemindService {
         relations: [
           "users.chatToolUser",
           "users.todoAppUser",
-          "implementedTodoApp",
+          "implementedTodoApps",
           "implementedChatTool",
           "timing",
           "timingExceptions",
