@@ -95,7 +95,7 @@ export default class TodoAppController extends Controller {
     if (todoAppId === TodoAppId.NOTION) {
       const company = await CompanyRepository.findOne({
         where: { id: companyId },
-        relations: ["implementedTodoApp", "users.todoAppUser", "projects"],
+        relations: ["implementedTodoApps", "users.todoAppUser", "projects"],
       });
       await this.taskService.syncTodos(company);
     } else if (todoAppId === TodoAppId.BACKLOG) {
@@ -279,7 +279,7 @@ export default class TodoAppController extends Controller {
       where: { companyId: companyId, accessToken: Not(IsNull()) },
       order: { id: "desc" },
     });
-   
+
     if (implementedTodoApp) {
       const { todoAppId, appWorkspaceId } = implementedTodoApp;
       const board = await BoardRepository.findOneByConfig(companyId);
