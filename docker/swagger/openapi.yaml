@@ -410,10 +410,7 @@ paths:
                       serviceAccount: bwtci.serviceaccount@hogehoge
                       secretKey: |-
                         -----BEGIN PRIVATE KEY-----
-                        RsRfxjdufQ0tQA3b1v6TG1iS+UxNrsBL7Z0v49pU
-                        oFzXEXBuS3IiMLdok5xBuD09eWgXacAayzOZEN92HydotgkbKM63Raudry4Z97q9
-                        IaVErH6nmyc2OknN8ZU1HHFt0/qGxxlJ/i/A4ixYDXS4ivzvAgP6nJh20I0Vwzq4
-                        tx3bq3IYwUsWobJkIGN5Gfuj
+                        secretkey...
                         -----END PRIVATE KEY-----
                       botId: null
                       updatedAt: null
