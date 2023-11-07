@@ -241,21 +241,21 @@ export default class LineWorksMessageBuilder {
           paddingBottom: "8px",
           flex: 1,
         },
-        {
-          text: "･･･",
-          type: "text",
-          color: "#9E9E9E",
-          size: "sm",
-          flex: 0,
-          gravity: "center",
-          contents: [],
-          action: item.appUrl
-            ? {
-              type: "uri",
-              uri: item.appUrl,
-            }
-            : undefined,
-        },
+        // {  // TODO: Reactivate this when google-spreadsheets is built on.
+        //   text: "･･･",
+        //   type: "text",
+        //   color: "#9E9E9E",
+        //   size: "sm",
+        //   flex: 0,
+        //   gravity: "center",
+        //   contents: [],
+        //   action: item.appUrl
+        //     ? {
+        //       type: "uri",
+        //       uri: item.appUrl,
+        //     }
+        //     : undefined,
+        // },
       ],
     };
   }
