@@ -322,7 +322,13 @@ export default class LineWorksMessageBuilder {
   }
 
   private static getUserName(users: User[]): string {
-    if (!users.length) return "";
-    return `${ users.map(user => user.name || user.id).join("、") } さん`;
+    if (!users.length) {
+      return "";
+    } else {
+      return users
+        .filter(user => user?.name)
+        .map(user => `${ user?.name }さん`)
+        .join("、");
+    }
   }
 }
