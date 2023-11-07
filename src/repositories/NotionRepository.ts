@@ -566,7 +566,7 @@ export default class NotionRepository {
     editedBy: string,
   ): string {
     const filteredUsers = usersCompany.filter(user => {
-      return user.todoAppUser.todoAppId === todoAppId && user.todoAppUser.appUserId === editedBy;
+      return user?.todoAppUser?.todoAppId === todoAppId && user?.todoAppUser?.appUserId === editedBy;
     });
     return filteredUsers.length ? filteredUsers[0].id : undefined;
   }
