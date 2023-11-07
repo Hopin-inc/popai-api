@@ -124,7 +124,10 @@ export default class LineWorksRepository {
       const sharedMessage = LineWorksMessageBuilder.createPublicRemind(items);
       await Promise.all([
         ...company.users.map(async (user) => {
-          const assignedItems = items.filter((i) => i.users.map((u) => u.id).includes(user.id));
+          const assignedItems = items.filter(i => i.users
+            .filter(u => u?.id)
+            .map(u => u.id)
+            .includes(user.id));
           if (assignedItems.length) {
             const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
             return await this.sendDirectMessageTo(lineWorksBot, user, message);

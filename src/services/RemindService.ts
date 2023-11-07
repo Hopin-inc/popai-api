@@ -42,7 +42,7 @@ export default class RemindService {
             type,
           };
           const target = type === RemindType.TODOS ? "todos" : "projects";
-          logger.info(`Asking prospects of ${ target } for company ${ company.id }`, logMeta);
+          logger.info(`Sending reminders of ${ target } for company ${ company.id }`, logMeta);
           switch (chatToolId) {
             case ChatToolId.SLACK:
               await this.slackRepository.remind(company, matchedTiming, remindConfig);
