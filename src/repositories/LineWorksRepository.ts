@@ -121,6 +121,7 @@ export default class LineWorksRepository {
         ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
         : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
     if (items.length) {
+      const reminds: Remind[] = [];
       const sharedMessage = LineWorksMessageBuilder.createPublicRemind(items);
       await Promise.all([
         ...company.users.map(async (user) => {
@@ -132,8 +133,14 @@ export default class LineWorksRepository {
             const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
             try {
               const result = await this.sendDirectMessageTo(lineWorksBot, user, message);
-              const logMeta = { company, user, lineMessage: message };
+              const logMeta = { company, user, lineMessage: message, result };
               logger.info("Sent direct message reminder.", logMeta);
+              assignedItems.forEach(item => {
+                reminds.push(config.type === RemindType.TODOS
+                  ? new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, todo: item as Todo })
+                  : new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, project: item as Project }),
+                );
+              });
               return result;
             } catch (e) {
               const logMeta = { ...e, company, user, lineMessage: message };
@@ -144,8 +151,34 @@ export default class LineWorksRepository {
         async () => {
           try {
             const result = await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage);
-            const logMeta = { company, lineMessage: sharedMessage };
+            const logMeta = { company, lineMessage: sharedMessage, result };
             logger.info("Sent direct message reminder.", logMeta);
+            items.forEach(item => {
+              const targetRemind = reminds.find(r => config.type === RemindType.TODOS
+                ? r.todo?.id === item.id
+                : r.project?.id === item.id,
+              );
+              if (targetRemind) {
+                targetRemind.appChannelId = config.channel;
+              } else {
+                reminds.push(config.type === RemindType.TODOS
+                  ? new Remind({
+                    user: company.users[0],
+                    company,
+                    chatToolId: ChatToolId.LINEWORKS,
+                    todo: item as Todo,
+                    appChannelId: config.channel,
+                  })
+                  : new Remind({
+                    user: company.users[0],
+                    company,
+                    chatToolId: ChatToolId.LINEWORKS,
+                    project: item as Project,
+                    appChannelId: config.channel,
+                  }),
+                );
+              }
+            });
             return result;
           } catch (e) {
             const logMeta = { ...e, company, lineMessage: sharedMessage };
@@ -153,10 +186,6 @@ export default class LineWorksRepository {
           }
         },
       ]);
-
-      const reminds = items.map(item => item.users.map(user => config.type === RemindType.TODOS
-        ? new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, appChannelId: config.channel, todo: item as Todo })
-        : new Remind({ user, company, chatToolId: ChatToolId.LINEWORKS, appChannelId: config.channel, project: item as Project }))).flat();
       await RemindRepository.upsert(reminds, []);
     }
   }
