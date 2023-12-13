@@ -131,7 +131,10 @@ export default class LineWorksRepository {
           if (assignedItems.length) {
             const message = LineWorksMessageBuilder.createPersonalRemind(assignedItems);
             try {
-              return await this.sendDirectMessageTo(lineWorksBot, user, message);
+              const result = await this.sendDirectMessageTo(lineWorksBot, user, message);
+              const logMeta = { company, user, lineMessage: message };
+              logger.info("Sent direct message reminder.", logMeta);
+              return result;
             } catch (e) {
               const logMeta = { ...e, company, user, lineMessage: message };
               logger.error("Could not send direct message reminder.", logMeta);
@@ -140,7 +143,10 @@ export default class LineWorksRepository {
         }),
         async () => {
           try {
-            await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage);
+            const result = await this.pushLineWorksMessageToChannel(lineWorksBot, config.channel, sharedMessage);
+            const logMeta = { company, lineMessage: sharedMessage };
+            logger.info("Sent direct message reminder.", logMeta);
+            return result;
           } catch (e) {
             const logMeta = { ...e, company, lineMessage: sharedMessage };
             logger.error("Could not send shared message reminder.", logMeta);

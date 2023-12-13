@@ -23,9 +23,10 @@ export default class LineWorksMessageBuilder {
   }
 
   public static createPublicRemind<T extends Project | Todo>(items: T[]) {
+    const truncatedItems = items.slice(0, REMIND_TODOS_LIMIT);
     const messageContents: LineWorksContent[] = [
       ...this.remindContent,
-      ...this.getContentPublicRemind(items),
+      ...this.getContentPublicRemind(truncatedItems),
     ];
     if (items.length > REMIND_TODOS_LIMIT) {
       messageContents.push(...this.insertMore(items.length));
@@ -35,9 +36,10 @@ export default class LineWorksMessageBuilder {
   }
 
   public static createPersonalRemind<T extends Project | Todo>(items: T[]) {
+    const truncatedItems = items.slice(0, REMIND_TODOS_LIMIT);
     const messageContents: LineWorksContent[] = [
       ...this.remindContent,
-      ...this.getContentPersonalRemind(items),
+      ...this.getContentPersonalRemind(truncatedItems),
     ];
     if (items.length > REMIND_TODOS_LIMIT) {
       messageContents.push(...this.insertMore(items.length));
@@ -182,27 +184,19 @@ export default class LineWorksMessageBuilder {
 
   private static getContentPublicRemind<T extends Todo | Project>(items: T[]): LineWorksContent[] {
     const contentPublic = [];
-    items
-      .slice(0, REMIND_TODOS_LIMIT)
-      .map((item) => {
-        contentPublic.push(this.separatorContent(contentPublic.length == 0));
-        contentPublic.push(this.getPublicRemind(item));
-      });
+    items.map((item) => {
+      contentPublic.push(this.separatorContent(contentPublic.length == 0));
+      contentPublic.push(this.getPublicRemind(item));
+    });
     return contentPublic;
   }
 
   private static getContentPersonalRemind<T extends Todo | Project>(items: T[]): LineWorksContent[] {
     const contentPersonal = [];
-    items
-      .slice(0, REMIND_TODOS_LIMIT)
-      .map((item) => {
-        contentPersonal.push(this.separatorContent(contentPersonal.length == 0));
-        contentPersonal.push(this.getPersonalRemind(item));
-      });
-    const remaining = items.length - REMIND_TODOS_LIMIT;
-    if (remaining > 0) {
-      contentPersonal.push();
-    }
+    items.map((item) => {
+      contentPersonal.push(this.separatorContent(contentPersonal.length == 0));
+      contentPersonal.push(this.getPersonalRemind(item));
+    });
     return contentPersonal;
   }
 
