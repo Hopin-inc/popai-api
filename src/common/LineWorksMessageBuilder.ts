@@ -12,6 +12,8 @@ import { ITodoDoneUpdate } from "@/types";
 
 dayjs.locale("ja");
 
+const REMIND_TODOS_LIMIT = 20;
+
 export default class LineWorksMessageBuilder {
   private static getDeadlineText(deadline: Date): string {
     const remindDays = deadline
@@ -21,18 +23,26 @@ export default class LineWorksMessageBuilder {
   }
 
   public static createPublicRemind<T extends Project | Todo>(items: T[]) {
-    const content = this.remindMessage([
+    const messageContents: LineWorksContent[] = [
       ...this.remindContent,
       ...this.getContentPublicRemind(items),
-    ]);
+    ];
+    if (items.length > REMIND_TODOS_LIMIT) {
+      messageContents.push(...this.insertMore(items.length));
+    }
+    const content = this.remindMessage(messageContents);
     return { content };
   }
 
   public static createPersonalRemind<T extends Project | Todo>(items: T[]) {
-    const content = this.remindMessage([
+    const messageContents: LineWorksContent[] = [
       ...this.remindContent,
       ...this.getContentPersonalRemind(items),
-    ]);
+    ];
+    if (items.length > REMIND_TODOS_LIMIT) {
+      messageContents.push(...this.insertMore(items.length));
+    }
+    const content = this.remindMessage(messageContents);
     return { content };
   }
 
@@ -40,7 +50,7 @@ export default class LineWorksMessageBuilder {
     const content = {
       content: {
         type: "flex",
-        altText: "次のタスクが期限切れになっています。",
+        altText: "タスクが完了されました。",
         contents: {
           type: "bubble",
           body: {
@@ -136,6 +146,16 @@ export default class LineWorksMessageBuilder {
     };
   }
 
+  private static insertMore(length: number) {
+    return [{
+      text: `ほか${ length - REMIND_TODOS_LIMIT }件`,
+      type: "text",
+      size: "md",
+      color: "#424242",
+      wrap: true,
+    }];
+  }
+
   private static readonly remindContent = [
     {
       text: "次のタスクが期限切れになっています。",
@@ -162,19 +182,27 @@ export default class LineWorksMessageBuilder {
 
   private static getContentPublicRemind<T extends Todo | Project>(items: T[]): LineWorksContent[] {
     const contentPublic = [];
-    items.map((item) => {
-      contentPublic.push(this.separatorContent(contentPublic.length == 0));
-      contentPublic.push(this.getPublicRemind(item));
-    });
+    items
+      .slice(0, REMIND_TODOS_LIMIT)
+      .map((item) => {
+        contentPublic.push(this.separatorContent(contentPublic.length == 0));
+        contentPublic.push(this.getPublicRemind(item));
+      });
     return contentPublic;
   }
 
   private static getContentPersonalRemind<T extends Todo | Project>(items: T[]): LineWorksContent[] {
     const contentPersonal = [];
-    items.map((item) => {
-      contentPersonal.push(this.separatorContent(contentPersonal.length == 0));
-      contentPersonal.push(this.getPersonalRemind(item));
-    });
+    items
+      .slice(0, REMIND_TODOS_LIMIT)
+      .map((item) => {
+        contentPersonal.push(this.separatorContent(contentPersonal.length == 0));
+        contentPersonal.push(this.getPersonalRemind(item));
+      });
+    const remaining = items.length - REMIND_TODOS_LIMIT;
+    if (remaining > 0) {
+      contentPersonal.push();
+    }
     return contentPersonal;
   }
 
