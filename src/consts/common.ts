@@ -121,3 +121,9 @@ export const ReliefAction = {
   PURPOSE: 4,
   OUTPUT: 5,
 } as const;
+
+export const TodoStatus = {
+  DONE: "done",
+  CLOSED: "closed",
+  INCOMPLETE: "inclomplete",
+} as const;
