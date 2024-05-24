@@ -174,4 +174,37 @@ router.patch("/remind", async (req, res) => {
   }
 });
 
+router.get("/status", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.getStatusConfig(company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
+router.patch("/status", async (req, res) => {
+  try {
+    const controller = new ConfigController();
+    const { company } = req.session;
+    const data = req.body;
+    if (company) {
+      const response = await controller.updateStatusConfig(company.id, data);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status || StatusCodes.INTERNAL_SERVER_ERROR);
+  }
+});
+
 export default router;

@@ -104,3 +104,12 @@ export type IConfigRemind = {
 export type IConfigRemindTiming = {
   time: string;
 };
+
+export type IConfigStatusLevel = {
+    companyId: string;
+    level1: string;
+    level2: string;
+    level3: string;
+    level4: string;
+    level5: string;
+};

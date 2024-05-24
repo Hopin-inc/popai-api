@@ -12,6 +12,7 @@ import { ActivityTypeIds } from "@/consts/backlog";
 import BacklogRepository from "@/repositories/BacklogRepository";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
 import logger from "@/libs/logger";
 import { IsNull } from "typeorm";
 
@@ -131,6 +132,21 @@ export default class BacklogController extends Controller {
         await ImplementedTodoAppRepository.insert(implementedTodoApp);
       } else {
         await ImplementedTodoAppRepository.update(todoApp.id, implementedTodoApp);
+      }
+      try {
+        const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId } });
+        if (!statusConfig) {
+          await StatusFeatureRepository.insert({
+            companyId,
+            level1: "特に問題はない",
+            level2: "未奶未古順調",
+            level3: "どちらとも言えない",
+            level4: "少 不安",
+            level5: "全然夕义",
+          });
+        }
+      } catch (error) {
+        logger.info("Error:", error.message);
       }
     }
   }

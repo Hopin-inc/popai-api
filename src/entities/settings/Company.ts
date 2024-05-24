@@ -12,6 +12,7 @@ import Board from "./Board";
 import Project from "../transactions/Project";
 import RemindConfig from "./RemindConfig";
 import SetupConfig from "./SetupConfig";
+import StatusConfig from "./StatusConfig";
 
 @Entity("s_companies")
 export default class Company extends BaseEntity {
@@ -105,4 +106,11 @@ export default class Company extends BaseEntity {
     { cascade: true },
   )
   boards: Board[];
+
+  @OneToOne(
+    () => StatusConfig,
+    config => config.company,
+    { cascade: true },
+  )
+  StatusConfig: StatusConfig;
 }
