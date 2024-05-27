@@ -407,26 +407,18 @@ export default class ConfigController extends Controller {
   }
 
   public async getStatusConfig(companyId: string): Promise<IConfigStatusLevel> {
-    const setupConfig = await StatusFeatureRepository.findOne({
+    return await StatusFeatureRepository.findOne({
       where: { companyId: companyId },
   });
-  if (setupConfig) {
-    return setupConfig;
-  }  
 }
   
   public async updateStatusConfig(companyId: string, updatedValues: { [key: string]: string }): Promise<void> {
-    try {
-        const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId } });
-
-        if (statusConfig) {
-            const updatedConfig = Object.assign({}, statusConfig, updatedValues);
-            await StatusFeatureRepository.update(statusConfig.id, updatedConfig);
-        } else {
-            throw new Error("Status configuration not found");
-        }
-    } catch (error) {
-        throw new Error(`Error updating status configuration: ${ error.message }`);
+    const statusConfig = await StatusFeatureRepository.findOne({ 
+      where: { companyId },
+  });
+    if (statusConfig) {
+        const updatedConfig = { ...statusConfig, ...updatedValues };
+        await StatusFeatureRepository.update(statusConfig.id, updatedConfig);
     }
   }
 }
