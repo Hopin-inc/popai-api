@@ -9,7 +9,7 @@ export class sStatusConfig1716372362564 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-      await queryRunner.query("ALTER TABLE `s_status_config` DROP FOREIGN KEY `FK_company_id`");
+      await queryRunner.query("ALTER TABLE `s_status_config` DROP FOREIGN KEY `FK_p3M6bR7j8ZOnj4KQMINypMdp4Ih1`");
       await queryRunner.query("DROP TABLE `s_status_config`");
     }
 }
