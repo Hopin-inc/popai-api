@@ -1,11 +1,11 @@
 steps:
   - id: Install packages
-    name: node:16
+    name: node:20
     entrypoint: yarn
     args:
       - install
   - id: Build
-    name: node:16
+    name: node:20
     entrypoint: yarn
     args:
       - run
@@ -19,7 +19,7 @@ steps:
       - -c
       - |-
         cat <<EOF > ./app.yaml
-        runtime: nodejs16
+        runtime: nodejs20
         instance_class: $_GAE_INSTANCE_CLASS
         env_variables:
           HOST: $_HOST
