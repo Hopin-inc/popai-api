@@ -31,7 +31,7 @@ export default class StatusConfig extends BaseEntity {
 
     @OneToOne(
         () => Company,
-        company => company.setupConfig,
+        company => company.statusConfig,
         { onDelete: "CASCADE", onUpdate: "RESTRICT" },
     )
     @JoinColumn({ name: "company_id" })

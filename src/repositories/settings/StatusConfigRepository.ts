@@ -1,6 +1,6 @@
 import dataSource from "@/config/data-source";
 import StatusConfig from "@/entities/settings/StatusConfig";
-import { LevelStatusConfig } from "@/consts/status";
+import { LevelStatusConfig } from "@/consts/setup";
 
 export const StatusFeatureRepository = dataSource.getRepository(StatusConfig).extend({
   async getOrCreateStatusConfig(companyId: string): Promise<void> {

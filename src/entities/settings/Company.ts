@@ -112,5 +112,5 @@ export default class Company extends BaseEntity {
     config => config.company,
     { cascade: true },
   )
-  StatusConfig: StatusConfig;
+  statusConfig: StatusConfig;
 }
