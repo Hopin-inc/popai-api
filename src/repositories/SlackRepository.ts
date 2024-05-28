@@ -102,7 +102,7 @@ export default class SlackRepository {
           projects
             .filter(project => project.users.map(u => u.id).includes(user.id))
             .map(async project => {
-              const message = await SlackMessageBuilder.createAskProspectMessageOnProjects(project, statusConfig);
+              const message = SlackMessageBuilder.createAskProspectMessageOnProjects(project, statusConfig);
               const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
               const prospect = new Prospect({
                 project,
@@ -131,7 +131,7 @@ export default class SlackRepository {
           todos
             .filter(project => project.users.map(u => u.id).includes(user.id))
             .map(async todo => {
-              const message = await SlackMessageBuilder.createAskProspectMessageOnTodos(todo, statusConfig);
+              const message = SlackMessageBuilder.createAskProspectMessageOnTodos(todo, statusConfig);
               const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
               const prospect = new Prospect({
                 todo,
@@ -227,7 +227,7 @@ export default class SlackRepository {
       const appId = item instanceof Project ? item.appProjectId : item.appTodoId;
       const userName = user.todoAppUser?.appUserId ? `@${ user.todoAppUser.appUserId }` : user.name;
       const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: user.companyId } });
-      const prospects = await getProspects(statusConfig);
+      const prospects = getProspects(statusConfig);
       const prospectItem = prospects.find(p => p.value === prospectValue);
       const prospectText = prospectItem.emoji + prospectItem.text;
       const comment = await client.postComment(

@@ -31,8 +31,8 @@ export default class SlackMessageBuilder {
     return deadline ? `${ relativeRemindDays(remindDays) } (${ formatDatetime(deadline) })` : "未設定";
   }
 
-  public static async createAskProspectMessageOnProjects(project: Project, statusConfig: StatusConfig) {
-    const prospects = await getProspects(statusConfig);
+  public static createAskProspectMessageOnProjects(project: Project, statusConfig: StatusConfig) {
+    const prospects = getProspects(statusConfig);
     const blocks: KnownBlock[] = [
       this.getAskProspectQuestion(project),
       {
@@ -50,8 +50,8 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static async createAskProspectMessageOnTodos(todo: Todo, statusConfig: StatusConfig) {
-    const prospects = await getProspects(statusConfig);
+  public static createAskProspectMessageOnTodos(todo: Todo, statusConfig: StatusConfig) {
+    const prospects = getProspects(statusConfig);
     const blocks: KnownBlock[] = [
       this.getAskProspectQuestion(todo),
       {
