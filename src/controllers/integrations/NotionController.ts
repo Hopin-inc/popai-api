@@ -4,9 +4,11 @@ import NotionOAuthClient from "@/integrations/NotionOAuthClient";
 import { Request } from "express";
 import { SessionRepository } from "@/repositories/transactions/SessionRepository";
 import { ImplementedTodoAppRepository } from "@/repositories/settings/ImplementedTodoAppRepository";
+import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
 import ImplementedTodoApp from "@/entities/settings/ImplementedTodoApp";
 import { TodoAppId } from "@/consts/common";
 import { IsNull } from "typeorm";
+import logger from "@/libs/logger";
 
 export default class NotionController extends Controller {
   private readonly notionOAuthService: NotionOAuthClient;
@@ -44,6 +46,7 @@ export default class NotionController extends Controller {
       } else {
         await ImplementedTodoAppRepository.update(todoApp.id, implementedTodoApp);
       }
+      await StatusFeatureRepository.getOrCreateStatusConfig(companyId);
     }
   }
 

@@ -16,7 +16,7 @@ import User from "@/entities/settings/User";
 import { TodoRepository } from "@/repositories/transactions/TodoRepository";
 
 import Prospect from "@/entities/transactions/Prospect";
-import { prospects, reliefActions, SEPARATOR, SlackModalLabel } from "@/consts/slack";
+import { reliefActions, SEPARATOR, SlackModalLabel } from "@/consts/slack";
 import { UserRepository } from "@/repositories/settings/UserRepository";
 import { ProspectRepository } from "@/repositories/transactions/ProspectRepository";
 import { ReportingLineRepository } from "@/repositories/settings/ReportingLineRepository";
@@ -30,6 +30,8 @@ import { ProjectRepository } from "@/repositories/transactions/ProjectRepository
 import BacklogClient from "@/integrations/BacklogClient";
 import RemindTiming from "@/entities/settings/RemindTiming";
 import RemindConfig from "@/entities/settings/RemindConfig";
+import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
+import { getProspects } from "@/utils/slack";
 
 const CHAT_TOOL_ID = ChatToolId.SLACK;
 
@@ -94,12 +96,13 @@ export default class SlackRepository {
       const askedProspects: Prospect[] = [];
       const projects = target ? target.projects : await this.getProspectProjects(company);
       const users = target ? target.users : company.users;
+      const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: company.id } });
       for (const user of users) {
         await Promise.all(
           projects
             .filter(project => project.users.map(u => u.id).includes(user.id))
             .map(async project => {
-              const message = SlackMessageBuilder.createAskProspectMessageOnProjects(project);
+              const message = SlackMessageBuilder.createAskProspectMessageOnProjects(project, statusConfig);
               const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
               const prospect = new Prospect({
                 project,
@@ -122,12 +125,13 @@ export default class SlackRepository {
       const askedProspects: Prospect[] = [];
       const todos = target ? target.todos : await this.getProspectTodos(company);
       const users = target ? target.users : company.users;
+      const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: company.id } });
       for (const user of users) {
         await Promise.all(
           todos
             .filter(project => project.users.map(u => u.id).includes(user.id))
             .map(async todo => {
-              const message = SlackMessageBuilder.createAskProspectMessageOnTodos(todo);
+              const message = SlackMessageBuilder.createAskProspectMessageOnTodos(todo, statusConfig);
               const { ts, channel } = await this.sendDirectMessage(user, message) ?? {};
               const prospect = new Prospect({
                 todo,
@@ -222,6 +226,8 @@ export default class SlackRepository {
       const client = await BacklogClient.init(item.companyId);
       const appId = item instanceof Project ? item.appProjectId : item.appTodoId;
       const userName = user.todoAppUser?.appUserId ? `@${ user.todoAppUser.appUserId }` : user.name;
+      const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: user.companyId } });
+      const prospects = getProspects(statusConfig);
       const prospectItem = prospects.find(p => p.value === prospectValue);
       const prospectText = prospectItem.emoji + prospectItem.text;
       const comment = await client.postComment(
