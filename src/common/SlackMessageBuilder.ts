@@ -19,6 +19,8 @@ import { Sorter } from "@/utils/array";
 import { truncate, relativeRemindDays } from "@/utils/string";
 import { AskMode, ProspectLevel } from "@/consts/common";
 import Project from "@/entities/transactions/Project";
+import { getProspects } from "@/utils/slack";
+import StatusConfig from "@/entities/settings/StatusConfig";
 
 dayjs.locale("ja");
 
@@ -29,7 +31,8 @@ export default class SlackMessageBuilder {
     return deadline ? `${ relativeRemindDays(remindDays) } (${ formatDatetime(deadline) })` : "未設定";
   }
 
-  public static createAskProspectMessageOnProjects(project: Project) {
+  public static async createAskProspectMessageOnProjects(project: Project, statusConfig: StatusConfig) {
+    const prospects = await getProspects(statusConfig);
     const blocks: KnownBlock[] = [
       this.getAskProspectQuestion(project),
       {
@@ -47,7 +50,8 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createAskProspectMessageOnTodos(todo: Todo) {
+  public static async createAskProspectMessageOnTodos(todo: Todo, statusConfig: StatusConfig) {
+    const prospects = await getProspects(statusConfig);
     const blocks: KnownBlock[] = [
       this.getAskProspectQuestion(todo),
       {
