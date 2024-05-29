@@ -31,7 +31,8 @@ import BacklogClient from "@/integrations/BacklogClient";
 import RemindTiming from "@/entities/settings/RemindTiming";
 import RemindConfig from "@/entities/settings/RemindConfig";
 import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
-import { getProspects } from "@/utils/slack";
+import { getProspects, mapTodosUserReport } from "@/utils/slack";
+import ProspectConfig from "@/entities/settings/ProspectConfig";
 
 const CHAT_TOOL_ID = ChatToolId.SLACK;
 
@@ -370,7 +371,7 @@ export default class SlackRepository {
     timing: RemindTiming,
     config: RemindConfig,
   ) {
-    const items: (Todo | Project)[] = config.type === RemindType.PROJECTS
+    const items: (Todo | Project)[] = config.type === RemindType.TODOS
       ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
       : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
     if (items.length) {
@@ -431,5 +432,24 @@ export default class SlackRepository {
     if (ok && view) {
       return view.id;
     }
+  }
+
+  public async report(
+    company: Company,
+    config: ProspectConfig,
+  ) {
+    const todos: Todo [] = await TodoRepository.getReportTodos(company);
+    const items = mapTodosUserReport(company.users, todos);
+    const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: company.id } });
+
+    const sharedMessage = SlackMessageBuilder.createPublicReportTodos(items, statusConfig);
+    await Promise.all([
+      ...company.users.map(async user => {
+        const assignedItems = items.find(i => i.user.id === user.id);
+        const message = SlackMessageBuilder.createPersonalReportTodos(assignedItems, statusConfig);
+        await this.sendDirectMessage(user, message);
+      }),
+      this.pushSlackMessage(company.id, sharedMessage, config.channel),
+    ]);
   }
 }

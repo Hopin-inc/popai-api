@@ -2,7 +2,7 @@ import dataSource from "@/config/data-source";
 import Todo from "@/entities/transactions/Todo";
 import Company from "@/entities/settings/Company";
 import User from "@/entities/settings/User";
-import { And, FindManyOptions, FindOptionsWhere, In, IsNull, LessThan, Not, SelectQueryBuilder } from "typeorm";
+import { And, Between, FindManyOptions, FindOptionsWhere, In, IsNull, LessThan, MoreThanOrEqual, Not, SelectQueryBuilder } from "typeorm";
 import dayjs from "dayjs";
 import { TodoAppId, TodoStatus } from "@/consts/common";
 import { ValueOf } from "@/types";
@@ -49,6 +49,27 @@ export const TodoRepository = dataSource.getRepository(Todo).extend({
       relations: ["todoUsers.user.chatToolUser", "reminds"],
     });
     return todos.filter(todo => !limit || todo.reminds?.length <= limit);
+  },
+  async getReportTodos(company: Company): Promise<Todo[]> {
+    const commonWhere: FindOptionsWhere<Todo> = {
+      companyId: company.id,
+      isDone: false,
+      isClosed: false,
+      todoUsers: { user: Not(IsNull()) },
+    };
+
+    const endOfDay = dayjs().endOf("day");
+    const endDate = endOfDay.toDate();
+    const twoWeeksBeforeEndDate = endOfDay.subtract(2, "weeks").toDate();
+
+    return await this.find(<FindManyOptions<Todo>>{
+      where: [
+        {  ...commonWhere, startDate: And(Not(IsNull()), Between(twoWeeksBeforeEndDate, endDate)) },
+        {  ...commonWhere, startDate: IsNull(), deadline: MoreThanOrEqual(twoWeeksBeforeEndDate) },
+      ],
+      order: { deadline: "asc" },
+      relations: ["todoUsers.user.chatToolUser", "prospects"],
+    });
   },
   async getTodosByIds(
     ids: string[],
