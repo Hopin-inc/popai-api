@@ -5,6 +5,7 @@ import Todo from "@/entities/transactions/Todo";
 import { UserTodosReport } from "@/types/slack";
 import { ProspectLevel } from "@/consts/common";
 import User from "@/entities/settings/User";
+import { Sorter } from "./array";
 
 const extractTextAndEmoji = (input: string) => {
   const [_, emoji = "", text = ""] = input.trim().match(/^(:[^:\s]+:)?\s*(.*)$/) || [];
@@ -51,12 +52,17 @@ export const mapTodosUserReport = (users: User[], todos: Todo[]) => {
           countTodoResponse++;
           totalResponseTime += responseTime;
         }
-        if (
-          todo.latestProspect?.prospectValue != null &&
-          todo.latestProspect.prospectValue <= ProspectLevel.NEUTRAL
-        ) {
+
+        const lastReponseProspect = todo.prospects
+          .sort(Sorter.byDate("createdAt", true))
+          .find(prospect => prospect.prospectValue !== null);
+
+        if ( lastReponseProspect && lastReponseProspect.prospectValue <= ProspectLevel.NEUTRAL ) {
           tmpUserTodo.num_alert_tasks += 1;
-          tmpUserTodo.alert_todos.push(todo);
+          tmpUserTodo.alert_todos.push({
+            prospect_value: lastReponseProspect.prospectValue,
+            todo: todo,
+          });
         }
       }
 

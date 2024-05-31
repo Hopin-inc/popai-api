@@ -23,7 +23,7 @@ import { AskMode, ProspectLevel } from "@/consts/common";
 import Project from "@/entities/transactions/Project";
 import { getProspects } from "@/utils/slack";
 import StatusConfig from "@/entities/settings/StatusConfig";
-import { UserTodosReport } from "@/types/slack";
+import { AlertTodo, UserTodosReport } from "@/types/slack";
 
 dayjs.locale("ja");
 
@@ -513,21 +513,19 @@ export default class SlackMessageBuilder {
       };
     };
 
-    const taskAlertListBlock = (todos: Todo[]) => {
-      return todos.slice(0, REMIND_MAX_ALERT_ITEMS).map(todo => {
-        const prospect = prospects.find(p => p.value === todo.latestProspect?.prospectValue);
+    const taskAlertListBlock = (alertTodos: AlertTodo[]) => {
+      return alertTodos.slice(0, REMIND_MAX_ALERT_ITEMS).map(alertTodo => {
+        const prospect = prospects.find(p => p.value === alertTodo.prospect_value);
+        const emoji = prospect?.emoji.replace(/:/g, "");
 
         return {
           type: "rich_text_section",
           elements: [
-            {
-              type: "emoji",
-              name: `${ prospect.emoji.replace(/:/g, "") }`,
-            },
+            ...(emoji ? [{ type: "emoji", name: emoji }] : []),
             {
               type: "link",
-              url: `${ todo.appUrl }`,
-              text: `${ todo.name }`,
+              url: `${ alertTodo.todo.appUrl }`,
+              text: `${ alertTodo.todo.name }`,
             },
           ],
         };

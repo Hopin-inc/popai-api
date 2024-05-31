@@ -113,10 +113,15 @@ type ResponseUrl = {
   response_url: string;
 };
 
+export type AlertTodo = {
+  prospect_value: number,
+  todo: Todo
+}
+
 export type UserTodosReport = {
   user: User;
   response_time: number;
   num_tasks_doing: number;
   num_alert_tasks: number;
-  alert_todos: Todo[];
+  alert_todos: AlertTodo[];
 }
