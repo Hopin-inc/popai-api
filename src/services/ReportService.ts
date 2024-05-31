@@ -37,7 +37,7 @@ export default class ReportService {
           logger.info(`Sending todos report of todos for company ${ company.id }`, logMeta);
           switch (chatToolId) {
             case ChatToolId.SLACK:
-              await this.slackRepository.report(company, prospectConfig);
+              await this.slackRepository.report(company);
               break;
             default:
               break;
@@ -55,6 +55,7 @@ export default class ReportService {
         relations: [
           "users.chatToolUser",
           "users.todoAppUser",
+          "implementedChatTool",
           "prospectConfigs",
         ],
       }),

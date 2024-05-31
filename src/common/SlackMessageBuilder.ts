@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { Block, Button, ContextBlock, HeaderBlock, KnownBlock, KnownBlockExtended, SectionBlock } from "@slack/web-api";
+import { Block, Button, ContextBlock, HeaderBlock, HomeView, KnownBlock, KnownBlockExtended, SectionBlock } from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
@@ -438,7 +438,7 @@ export default class SlackMessageBuilder {
   public static createPublicReportTodos<T extends UserTodosReport>(
     items: T[],
     statusConfig: StatusConfig,
-  ) {
+  ): HomeView {
     const prospects = getProspects(statusConfig);
     const blocks: KnownBlockExtended[] = [
       this.headerMessage("従業員の状況"),
@@ -455,13 +455,16 @@ export default class SlackMessageBuilder {
       );
     }
 
-    return { blocks };
+    return {
+      type: "home",
+      blocks: blocks,
+    };
   }
 
   public static createPersonalReportTodos<T extends UserTodosReport>(
     item: T,
     statusConfig: StatusConfig,
-  ) {
+  ): HomeView {
     const prospects = getProspects(statusConfig);
     const blocks: KnownBlockExtended[] = [
       this.headerMessage("あなたの状況"),
@@ -470,7 +473,11 @@ export default class SlackMessageBuilder {
 
     const reportMessageBlocks = this.generateReportMessageBlock(item, prospects);
     blocks.push(...reportMessageBlocks);
-    return { blocks };
+
+    return {
+      type: "home",
+      blocks: blocks,
+    };
   }
 
   private static generateReportMessageBlock<T extends UserTodosReport>(
