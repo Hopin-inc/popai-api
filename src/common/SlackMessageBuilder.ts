@@ -435,7 +435,7 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  public static createPublicReportTodos<T extends UserTodosReport>(
+  public static createAdminReportTodos<T extends UserTodosReport>(
     items: T[],
     statusConfig: StatusConfig,
   ): HomeView {
@@ -461,7 +461,7 @@ export default class SlackMessageBuilder {
     };
   }
 
-  public static createPersonalReportTodos<T extends UserTodosReport>(
+  public static createUserReportTodos<T extends UserTodosReport>(
     item: T,
     statusConfig: StatusConfig,
   ): HomeView {
@@ -513,7 +513,7 @@ export default class SlackMessageBuilder {
       };
     };
 
-    const taskAlertListBlock = (alertTodos: AlertTodo[]) => {
+    const generateTodoAlertBlock = (alertTodos: AlertTodo[]) => {
       return alertTodos.slice(0, REMIND_MAX_ALERT_ITEMS).map(alertTodo => {
         const prospect = prospects.find(p => p.value === alertTodo.prospect_value);
         const emoji = prospect?.emoji.replace(/:/g, "");
@@ -521,7 +521,7 @@ export default class SlackMessageBuilder {
         return {
           type: "rich_text_section",
           elements: [
-            ...(emoji ? [{ type: "emoji", name: emoji }] : []),
+            ...(emoji && [{ type: "emoji", name: emoji }]),
             {
               type: "link",
               url: `${ alertTodo.todo.appUrl }`,
@@ -543,7 +543,7 @@ export default class SlackMessageBuilder {
           {
             type: "rich_text_list",
             style: "bullet",
-            elements: [...taskAlertListBlock(item.alert_todos)],
+            elements: [...generateTodoAlertBlock(item.alert_todos)],
           },
         ],
       },

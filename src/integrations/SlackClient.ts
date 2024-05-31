@@ -112,7 +112,7 @@ export default class SlackClient {
     return this.client.conversations.join(options);
   }
 
-  public async postHomeMessage(options: ViewsPublishArguments) {
+  public async publicViewMessage(options: ViewsPublishArguments) {
     return this.client.views.publish(options);
   }
 }

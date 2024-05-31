@@ -435,11 +435,11 @@ export default class SlackRepository {
     }
   }
 
-  private async sendPersionalHomeMessage(user: User, message: HomeView) {
+  private async sendUserHomeMessage(user: User, message: HomeView) {
     if (user && user.chatToolUser?.chatToolId === ChatToolId.SLACK && user.chatToolUser?.appUserId) {
       const slackBot = await SlackClient.init(user.companyId);
 
-      return slackBot.postHomeMessage({
+      return slackBot.publicViewMessage({
         user_id: user.chatToolUser.appUserId,
         view: message,
       });
@@ -450,7 +450,7 @@ export default class SlackRepository {
     if (implementedChatTool && implementedChatTool?.chatToolId === ChatToolId.SLACK && implementedChatTool?.appInstallUserId) {
       const slackBot = await SlackClient.init(implementedChatTool.companyId);
 
-      return slackBot.postHomeMessage({
+      return slackBot.publicViewMessage({
         user_id: implementedChatTool.appInstallUserId,
         view: message,
       });
@@ -464,14 +464,14 @@ export default class SlackRepository {
     const items = mapTodosUserReport(company.users, todos);
     const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: company.id } });
 
-    const sharedMessage = SlackMessageBuilder.createPublicReportTodos(items, statusConfig);
+    const sharedMessage = SlackMessageBuilder.createAdminReportTodos(items, statusConfig);
     await Promise.all([
       ...company.users.map(async user => {
         const assignedItems = items.find(i => i.user.id === user.id);
-        const message = SlackMessageBuilder.createPersonalReportTodos(assignedItems, statusConfig);
+        const message = SlackMessageBuilder.createUserReportTodos(assignedItems, statusConfig);
 
         if(company.implementedChatTool?.appInstallUserId !== user.chatToolUser?.appUserId) {
-          await this.sendPersionalHomeMessage(user, message);
+          await this.sendUserHomeMessage(user, message);
         }
       }),
       this.sendAdminHomeMessage(company.implementedChatTool, sharedMessage),
