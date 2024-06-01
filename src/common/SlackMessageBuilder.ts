@@ -1,16 +1,18 @@
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { Block, Button, ContextBlock, KnownBlock, SectionBlock } from "@slack/web-api";
+import { Block, Button, ContextBlock, HeaderBlock, HomeView, KnownBlock, KnownBlockExtended, SectionBlock } from "@slack/web-api";
 
 import Todo from "@/entities/transactions/Todo";
 import User from "@/entities/settings/User";
 
 import {
+  ActionItemWithEmoji,
   AskPlanModalItems,
   prospects,
   reliefActions,
   ReliefCommentModalItems,
   REMIND_MAX_ITEMS,
+  REMIND_MAX_ALERT_ITEMS,
   SEPARATOR,
   SlackActionLabel,
 } from "@/consts/slack";
@@ -21,6 +23,7 @@ import { AskMode, ProspectLevel } from "@/consts/common";
 import Project from "@/entities/transactions/Project";
 import { getProspects } from "@/utils/slack";
 import StatusConfig from "@/entities/settings/StatusConfig";
+import { AlertTodo, UserTodosReport } from "@/types/slack";
 
 dayjs.locale("ja");
 
@@ -71,7 +74,7 @@ export default class SlackMessageBuilder {
 
   public static createPublicRemind<T extends Project | Todo>(items: T[]) {
     const blocks: KnownBlock[] = [
-      this.remindMessage,
+      this.sectionMessage("遅延しているタスクの期日を再設定しましょう😖"),
       this.remindContext,
       ...items.slice(0, REMIND_MAX_ITEMS).map(item => this.getPublicRemind(item)),
     ];
@@ -89,7 +92,7 @@ export default class SlackMessageBuilder {
 
   public static createPersonalRemind<T extends Project | Todo>(items: T[]) {
     const blocks: KnownBlock[] = [
-      this.remindMessage,
+      this.sectionMessage("遅延しているタスクの期日を再設定しましょう😖"),
       this.remindContext,
       ...items.slice(0, REMIND_MAX_ITEMS).map(item => this.getPersonalRemind(item)),
     ];
@@ -105,12 +108,23 @@ export default class SlackMessageBuilder {
     return { blocks };
   }
 
-  private static readonly remindMessage: SectionBlock = {
-    type: "section",
-    text: {
-      type: "mrkdwn",
-      text: "遅延しているタスクの期日を再設定しましょう😖",
-    },
+  private static readonly headerMessage = (message: string): HeaderBlock => {
+    return {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: message,
+      },
+    };
+  };
+  private static readonly sectionMessage = (message: string): SectionBlock => {
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: message,
+      },
+    };
   };
 
   private static readonly remindContext: ContextBlock = {
@@ -419,5 +433,120 @@ export default class SlackMessageBuilder {
       ),
     ] : [];
     return { blocks };
+  }
+
+  public static createAdminReportTodos<T extends UserTodosReport>(
+    items: T[],
+    statusConfig: StatusConfig,
+  ): HomeView {
+    const prospects = getProspects(statusConfig);
+    const blocks: KnownBlockExtended[] = [
+      this.headerMessage("従業員の状況"),
+      this.sectionMessage("直近2週間の従業員の皆さんの状況をお知らせします。"),
+    ];
+
+    if (items.length) {
+      items.forEach((item, index) => {
+        const reportMessageBlocks = this.generateReportMessageBlock(item, prospects);
+        blocks.push(...reportMessageBlocks);
+
+        if (index < items.length - 1) blocks.push({ type: "divider" });
+      },
+      );
+    }
+
+    return {
+      type: "home",
+      blocks: blocks,
+    };
+  }
+
+  public static createUserReportTodos<T extends UserTodosReport>(
+    item: T,
+    statusConfig: StatusConfig,
+  ): HomeView {
+    const prospects = getProspects(statusConfig);
+    const blocks: KnownBlockExtended[] = [
+      this.headerMessage("あなたの状況"),
+      this.sectionMessage("直近2週間のあなたの状況をお知らせします。"),
+    ];
+
+    const reportMessageBlocks = this.generateReportMessageBlock(item, prospects);
+    blocks.push(...reportMessageBlocks);
+
+    return {
+      type: "home",
+      blocks: blocks,
+    };
+  }
+
+  private static generateReportMessageBlock<T extends UserTodosReport>(
+    item: T,
+    prospects: ActionItemWithEmoji[],
+  ): KnownBlockExtended[] {
+
+    const generateTodoBlock = (
+      item: T,
+      emojiName: string,
+      labelText: string,
+      value: string,
+    ) => {
+      return {
+        type: "rich_text_section",
+        elements: [
+          {
+            type: "emoji",
+            name: emojiName,
+          },
+          {
+            type: "text",
+            text: labelText,
+          },
+          {
+            type: "text",
+            text: value,
+            ...(item.num_alert_tasks && {
+              style: { bold: true, code: true },
+            }),
+          },
+        ],
+      };
+    };
+
+    const generateTodoAlertBlock = (alertTodos: AlertTodo[]) => {
+      return alertTodos.slice(0, REMIND_MAX_ALERT_ITEMS).map(alertTodo => {
+        const prospect = prospects.find(p => p.value === alertTodo.prospect_value);
+        const emoji = prospect?.emoji.replace(/:/g, "");
+
+        return {
+          type: "rich_text_section",
+          elements: [
+            ...(emoji && [{ type: "emoji", name: emoji }]),
+            {
+              type: "link",
+              url: `${ alertTodo.todo.appUrl }`,
+              text: `${ alertTodo.todo.name }`,
+            },
+          ],
+        };
+      });
+    };
+
+    return [
+      this.sectionMessage(`*${ item.user.name }*`),
+      {
+        type: "rich_text",
+        elements: [
+          { ...generateTodoBlock(item, "clock3", "リマインドへの返信時間: ", `${ item.response_time }時間`) },
+          { ...generateTodoBlock(item, "pushpin", "進行中のタスク: ", `${ item.num_tasks_doing }件`) },
+          { ...generateTodoBlock(item, "warning", "アラートをあげたタスク: ", `${ item.num_alert_tasks }件`) },
+          {
+            type: "rich_text_list",
+            style: "bullet",
+            elements: [...generateTodoAlertBlock(item.alert_todos)],
+          },
+        ],
+      },
+    ];
   }
 }

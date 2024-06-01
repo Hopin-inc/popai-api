@@ -4,6 +4,7 @@ import {
   Block,
   ChatPostMessageArguments,
   ChatPostMessageResponse,
+  HomeView,
   KnownBlock,
   MessageAttachment,
 } from "@slack/web-api";
@@ -31,7 +32,8 @@ import BacklogClient from "@/integrations/BacklogClient";
 import RemindTiming from "@/entities/settings/RemindTiming";
 import RemindConfig from "@/entities/settings/RemindConfig";
 import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
-import { getProspects } from "@/utils/slack";
+import { getProspects, mapTodosUserReport } from "@/utils/slack";
+import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
 
 const CHAT_TOOL_ID = ChatToolId.SLACK;
 
@@ -370,7 +372,7 @@ export default class SlackRepository {
     timing: RemindTiming,
     config: RemindConfig,
   ) {
-    const items: (Todo | Project)[] = config.type === RemindType.PROJECTS
+    const items: (Todo | Project)[] = config.type === RemindType.TODOS
       ? await TodoRepository.getRemindTodos(company.id, true, config.limit)
       : await ProjectRepository.getRemindProjects(company.id, true, config.limit);
     if (items.length) {
@@ -431,5 +433,48 @@ export default class SlackRepository {
     if (ok && view) {
       return view.id;
     }
+  }
+
+  private async sendUserHomeMessage(user: User, message: HomeView) {
+    if (user && user.chatToolUser?.chatToolId === ChatToolId.SLACK && user.chatToolUser?.appUserId) {
+      const slackBot = await SlackClient.init(user.companyId);
+
+      return slackBot.publicViewMessage({
+        user_id: user.chatToolUser.appUserId,
+        view: message,
+      });
+    }
+  }
+
+  private async sendAdminHomeMessage(implementedChatTool: ImplementedChatTool, message: HomeView) {
+    if (implementedChatTool && implementedChatTool?.chatToolId === ChatToolId.SLACK && implementedChatTool?.appInstallUserId) {
+      const slackBot = await SlackClient.init(implementedChatTool.companyId);
+
+      return slackBot.publicViewMessage({
+        user_id: implementedChatTool.appInstallUserId,
+        view: message,
+      });
+    }
+  }
+
+  public async report(
+    company: Company,
+  ) {
+    const todos: Todo [] = await TodoRepository.getReportTodos(company);
+    const items = mapTodosUserReport(company.users, todos);
+    const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: company.id } });
+
+    const sharedMessage = SlackMessageBuilder.createAdminReportTodos(items, statusConfig);
+    await Promise.all([
+      ...company.users.map(async user => {
+        const assignedItems = items.find(i => i.user.id === user.id);
+        const message = SlackMessageBuilder.createUserReportTodos(assignedItems, statusConfig);
+
+        if(company.implementedChatTool?.appInstallUserId !== user.chatToolUser?.appUserId) {
+          await this.sendUserHomeMessage(user, message);
+        }
+      }),
+      this.sendAdminHomeMessage(company.implementedChatTool, sharedMessage),
+    ]);
   }
 }

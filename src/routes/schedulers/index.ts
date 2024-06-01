@@ -35,4 +35,14 @@ router.get("/remind", async (req, res) => {
   }
 });
 
+router.get("/report", async (req, res) => {
+  try {
+    const controller = new SchedulerController();
+    const response = await controller.reportTodos();
+    ApiResponse.successRes(res, response);
+  } catch (error) {
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 export default router;

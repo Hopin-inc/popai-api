@@ -1,6 +1,6 @@
 import { ProspectLevel, ReliefAction } from "./common";
 
-type ActionItemWithEmoji = ActionItem & {
+export type ActionItemWithEmoji = ActionItem & {
   emoji: string;
 }
 
@@ -50,3 +50,4 @@ export const AskPlanModalItems = {
 };
 
 export const REMIND_MAX_ITEMS = 3;
+export const REMIND_MAX_ALERT_ITEMS = 10;

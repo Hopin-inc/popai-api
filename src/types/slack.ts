@@ -1,4 +1,15 @@
+import User from "@/entities/settings/User";
+import Todo from "@/entities/transactions/Todo";
 import { Block, InputBlock, KnownBlock } from "@slack/web-api";
+
+declare module "@slack/web-api" {
+  interface RichTextBlock {
+    type: "rich_text";
+    elements: Record<string, unknown>[];
+  }
+
+  export type KnownBlockExtended = KnownBlock | RichTextBlock;
+}
 
 export type SlackInteractionPayload = {
   team: SlackTeam;
@@ -101,3 +112,16 @@ type ResponseUrl = {
   channel_id: string;
   response_url: string;
 };
+
+export type AlertTodo = {
+  prospect_value: number,
+  todo: Todo
+}
+
+export type UserTodosReport = {
+  user: User;
+  response_time: number;
+  num_tasks_doing: number;
+  num_alert_tasks: number;
+  alert_todos: AlertTodo[];
+}
