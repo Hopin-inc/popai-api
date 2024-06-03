@@ -1,20 +1,25 @@
 import { ProspectLevel, ReliefAction } from "./common";
 
-type ActionItemWithEmoji = ActionItem & {
+export type ActionItemWithEmoji = ActionItem & {
   emoji: string;
 }
 
 type ActionItem = {
   text: string;
   value: number;
-};
+  level1?: boolean;
+  level2?: boolean;
+  level3?: boolean;
+  level4?: boolean;
+  level5?: boolean;
+}
 
 export const prospects: ActionItemWithEmoji[] = [
-  { text: "特に問題はない", value: ProspectLevel.VERY_GOOD, emoji: ":sunny:" },
-  { text: "まあまあ順調", value: ProspectLevel.GOOD, emoji: ":mostly_sunny:" },
-  { text: "どちらとも言えない", value: ProspectLevel.NEUTRAL, emoji: ":partly_sunny:" },
-  { text: "少し不安", value: ProspectLevel.BAD, emoji: ":rain_cloud:" },
-  { text: "全然ダメ", value: ProspectLevel.VERY_BAD, emoji: ":umbrella_with_rain_drops:" },
+  { text: "特に問題はない", value: ProspectLevel.VERY_GOOD, emoji: ":sunny:",  level1: true },
+  { text: "まあまあ順調", value: ProspectLevel.GOOD, emoji: ":mostly_sunny:", level2: true },
+  { text: "どちらとも言えない", value: ProspectLevel.NEUTRAL, emoji: ":partly_sunny:", level3: true },
+  { text: "少し不安", value: ProspectLevel.BAD, emoji: ":rain_cloud:", level4: true },
+  { text: "全然ダメ", value: ProspectLevel.VERY_BAD, emoji: ":umbrella_with_rain_drops:", level5: true },
 ];
 
 export const reliefActions: ActionItem[] = [
@@ -45,3 +50,4 @@ export const AskPlanModalItems = {
 };
 
 export const REMIND_MAX_ITEMS = 3;
+export const REMIND_MAX_ALERT_ITEMS = 10;

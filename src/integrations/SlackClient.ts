@@ -4,6 +4,7 @@ import {
   ChatPostMessageArguments,
   ChatUpdateArguments,
   ConversationsJoinArguments, ConversationsListResponse,
+  ViewsPublishArguments,
   KnownBlock, UsersListResponse,
   UsersProfileGetArguments,
   ViewsOpenArguments,
@@ -109,5 +110,9 @@ export default class SlackClient {
 
   public async joinChannel(options: ConversationsJoinArguments) {
     return this.client.conversations.join(options);
+  }
+
+  public async publicViewMessage(options: ViewsPublishArguments) {
+    return this.client.views.publish(options);
   }
 }

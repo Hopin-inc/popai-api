@@ -12,6 +12,7 @@ import { ActivityTypeIds } from "@/consts/backlog";
 import BacklogRepository from "@/repositories/BacklogRepository";
 import { BoardRepository } from "@/repositories/settings/BoardRepository";
 import { ProjectRepository } from "@/repositories/transactions/ProjectRepository";
+import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
 import logger from "@/libs/logger";
 import { IsNull } from "typeorm";
 
@@ -132,6 +133,7 @@ export default class BacklogController extends Controller {
       } else {
         await ImplementedTodoAppRepository.update(todoApp.id, implementedTodoApp);
       }
+      await StatusFeatureRepository.getOrCreateStatusConfig(companyId);
     }
   }
 

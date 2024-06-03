@@ -76,4 +76,17 @@ export default class UserController extends Controller {
       }),
     ]);
   }
+
+  public async getList(companyId: string): Promise<ISelectItem<string>[]> {
+    const users = await UserRepository.find({
+      where: { companyId: companyId },
+      order: { id: "asc" },
+    });
+
+    return users
+      .map(user => ({
+        id: user.id,
+        name: user.name,
+      }));
+  }
 }

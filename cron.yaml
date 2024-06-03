@@ -8,3 +8,6 @@ cron:
   - description: "Send reminder messages"
     url: /api/schedulers/remind
     schedule: every 15 minutes synchronized
+  - description: "Send report home messages"
+    url: /api/schedulers/report
+    schedule: every 15 minutes synchronized

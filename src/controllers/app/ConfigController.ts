@@ -1,6 +1,6 @@
 import { Controller } from "tsoa";
 import { IConfigSetup, ISetupFeatureId } from "@/types/setup";
-import { IConfigCommon, IConfigFeatures, IConfigProspect, IConfigRemind, IConfigStatus } from "@/types/app";
+import { IConfigCommon, IConfigFeatures, IConfigProspect, IConfigRemind, IConfigStatus, IConfigStatusLevel } from "@/types/app";
 import { TimingRepository } from "@/repositories/settings/TimingRepository";
 import { TimingExceptionRepository } from "@/repositories/settings/TimingExceptionRepository";
 import { In, MoreThanOrEqual } from "typeorm";
@@ -23,6 +23,7 @@ import { UserConfigViewRepository } from "@/repositories/views/UserConfigViewRep
 import { TodoAppConfigViewRepository } from "@/repositories/views/TodoAppConfigViewRepository";
 import { ProspectConfigViewRepository } from "@/repositories/views/ProspectConfigViewRepository";
 import { RemindConfigRepository } from "@/repositories/settings/RemindConfigRepository";
+import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
 import RemindConfig from "@/entities/settings/RemindConfig";
 import RemindTiming from "@/entities/settings/RemindTiming";
 import { RemindTimingRepository } from "@/repositories/settings/RemindTimingRepository";
@@ -402,6 +403,22 @@ export default class ConfigController extends Controller {
         });
       }) ?? [];
       await RemindTimingRepository.upsert(timings, []);
+    }
+  }
+
+  public async getStatusConfig(companyId: string): Promise<IConfigStatusLevel> {
+    return await StatusFeatureRepository.findOne({
+      where: { companyId: companyId },
+  });
+}
+  
+  public async updateStatusConfig(companyId: string, updatedValues: { [key: string]: string }): Promise<void> {
+    const statusConfig = await StatusFeatureRepository.findOne({ 
+      where: { companyId },
+  });
+    if (statusConfig) {
+        const updatedConfig = { ...statusConfig, ...updatedValues };
+        await StatusFeatureRepository.update(statusConfig.id, updatedConfig);
     }
   }
 }

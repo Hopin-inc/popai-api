@@ -93,4 +93,20 @@ router.patch("/reporting-lines/:userId", async (req, res) => {
   }
 });
 
+router.get("/list", async (req, res) => {
+  try {
+    const controller = new UserController();
+    const { company } = req.session;
+    if (company) {
+      const response = await controller.getList(company.id);
+      ApiResponse.successRes(res, response);
+    } else {
+      ApiResponse.errRes(res, SessionErrors.InvalidAccount, StatusCodes.BAD_REQUEST);
+    }
+  } catch (error) {
+    logger.error(error.message, error);
+    ApiResponse.errRes(res, error.message, error.status);
+  }
+});
+
 export default router;
