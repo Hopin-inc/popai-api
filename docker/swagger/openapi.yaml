@@ -208,6 +208,24 @@ paths:
                     example: TODO
       servers:
         - url: 'https://localhost:3000/api'
+  /schedulers/report:
+    get:
+      tags:
+        - shcedulers
+      description: TODO
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  TODO:
+                    type: string
+                    example: TODO
+      servers:
+        - url: 'https://localhost:3000/api'
   /backlog/install:
     get:
       tags:
@@ -631,6 +649,35 @@ paths:
       responses:
         '204':
           description: edit ok
+      servers:
+        - url: 'https://localhost:3000/api'
+  /users/list:
+    get:
+      tags:
+        - users
+      description: ...
+      responses:
+        '200':
+          description: A paginated list of todos.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: 099dc433-2b96-4f63-aa46-5a5250fe92ec
+                        name:
+                          type: string
+                          example: 山田太郎
       servers:
         - url: 'https://localhost:3000/api'
   /chat-tool:
@@ -1410,6 +1457,193 @@ paths:
           description: edit ok
       servers:
         - url: 'https://localhost:3000/api'
+  /config/status:
+    get:
+      tags:
+        - config
+      description: ....
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      createdAt:
+                        type: string
+                        format: date-time
+                        example: "2024-05-31T04:29:56.388Z"
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        example: null
+                      deletedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        example: null
+                      id:
+                        type: integer
+                        example: 1
+                      companyId:
+                        type: string
+                        example: "p3M6bR7j8ZOnj4KQMINypMdp4Ih1"
+                      level1:
+                        type: string
+                        example: ":sunny: 特に問題はない"
+                      level2:
+                        type: string
+                        example: ":mostly_sunny: まあまあ順調"
+                      level3:
+                        type: string
+                        example: ":partly_sunny: どちらとも言えない"
+                      level4:
+                        type: string
+                        example: ":rain_cloud: 少し不安"
+                      level5:
+                        type: string
+                        example: ":umbrella_with_rain_drops: 全然ダメ"
+                  message:
+                    type: string
+                    example: ""
+      servers:
+        - url: 'https://localhost:3000/api'
+    patch:
+      tags:
+        - config
+      description: ....
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                level1:
+                  type: string
+                  example: ":sunny: 特に問題はない"
+      responses:
+        '204':
+          description: Edit ok
+      servers:
+        - url: 'https://localhost:3000/api'
+  '/todo/{todoAppId}':
+    get:
+      tags:
+        - todos
+      description: TODO
+      parameters:
+        - $ref: '#/components/parameters/todoAppId'
+      responses:
+        '200':
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            users:
+                              type: array
+                              items: {}
+                              example: []
+                            projects:
+                              type: array
+                              items: {}
+                              example: []
+                            latestProspect:
+                              nullable: true
+                              example: null
+                            latestRemind:
+                              nullable: true
+                              example: null
+                            createdAt:
+                              type: string
+                              example: '2024-05-31T04:30:56.135Z'
+                            updatedAt:
+                              type: string
+                              example: null
+                            deletedAt:
+                              type: string
+                              example: null
+                            id:
+                              type: string
+                              example: 069125eb-7f6b-4888-a8e5-722c17e578ba
+                            name:
+                              type: string
+                              example: Task
+                            todoAppId:
+                              type: number
+                              example: 3
+                            companyId:
+                              type: string
+                              example: p3M6bR7j8ZOnj4KQMINypMdp4Ih1
+                            appTodoId:
+                              type: string
+                              example: b149266c-7abc-46ed-ace2-34993ea0b9b1
+                            appParentIds:
+                              type: string
+                              example: Task
+                            appUrl:
+                              type: string
+                              example: https://www.notion.so/Task-b149266c7abc46edace234993ea0b9b1
+                            appCreatedBy:
+                              type: string
+                              example: d2633225-7fd8-4b2e-8613-2c50e1a0e502
+                            appCreatedAt:
+                              type: string
+                              example: '2024-05-16T07:09:00.000Z'
+                            startDate:
+                              type: string
+                              example: null
+                            deadline:
+                              type: string
+                              example: null
+                            isDone:
+                              type: boolean
+                              example: true
+                            isClosed:
+                              type: boolean
+                              example: true
+                            todoUsers:
+                              type: array
+                              items: {}
+                              example: []
+                  meta:
+                    type: "object"
+                    properties:
+                      page:
+                        type: number
+                        example: 1
+                      perPage:
+                        type: number
+                        example: 10
+                      totalCount:
+                        type: number
+                        example: 1
+                      pageCount:
+                        type: number
+                        example: 1
+      servers:
+        - url: 'https://localhost:3000/api'
 tags:
   - name: auth
   - name: config
@@ -1424,6 +1658,7 @@ tags:
   - name: google
   - name: plans
   - name: subscriptions
+  - name: todos
 components:
   parameters:
     companyId:
