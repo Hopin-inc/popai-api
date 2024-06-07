@@ -34,6 +34,7 @@ import RemindConfig from "@/entities/settings/RemindConfig";
 import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRepository";
 import { getProspects, mapTodosUserReport } from "@/utils/slack";
 import ImplementedChatTool from "@/entities/settings/ImplementedChatTool";
+import { toJapanDateTime } from "@/utils/datetime";
 
 const CHAT_TOOL_ID = ChatToolId.SLACK;
 
@@ -206,12 +207,13 @@ export default class SlackRepository {
     const { project, todo } = prospect ?? {};
     const item = project ?? todo;
     if (item) {
-      const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(item, prospectValue);
+      const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: user.companyId } });
+      const { blocks } = SlackMessageBuilder.createAskActionMessageAfterProspect(item, prospectValue, statusConfig);
       await Promise.all([
         slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: item.name, blocks }),
         ProspectRepository.update(prospect.id, {
           prospectValue,
-          prospectRespondedAt: new Date(),
+          prospectRespondedAt: toJapanDateTime(new Date()),
         }),
         this.storeEvidenceOnProspectResponded(user, item, prospect, prospectValue),
       ]);
@@ -256,7 +258,8 @@ export default class SlackRepository {
         return;
       }
       const { prospectValue } = prospect;
-      const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(item, prospectValue, actionValue);
+      const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: user.companyId } });
+      const { blocks } = SlackMessageBuilder.createAskCommentMessageAfterReliefAction(item, prospectValue, actionValue, statusConfig);
       await Promise.all([
         ProspectRepository.update(prospect.id, { actionValue, actionRespondedAt: new Date() }),
         slackBot.updateMessage({ channel: appChannelId, ts: appThreadId, text: item.name, blocks }),
@@ -347,16 +350,18 @@ export default class SlackRepository {
       appChannelId: channel,
       appThreadId: ts,
     } = prospect;
+    const statusConfig = await StatusFeatureRepository.findOne({ where: { companyId: user.companyId } });
     const { blocks: editedMsg } = SlackMessageBuilder.createThanksForCommentMessage(
       item,
       prospectValue,
       actionValue,
       comment,
+      statusConfig,
     );
     const sharedChannel = prospect.company.prospectConfigs
       .find(c => c.type === (item instanceof Project ? AskType.PROJECTS : AskType.TODOS))
       ?.channel;
-    const shareMsg = SlackMessageBuilder.createShareReliefMessage(item, user, prospectValue, actionValue, comment, iconUrl);
+    const shareMsg = SlackMessageBuilder.createShareReliefMessage(item, user, prospectValue, actionValue, comment, iconUrl, statusConfig);
     const [superiorUsers, pushedMessage] = await Promise.all([
       this.getSuperiorUsers(user.chatToolUser.appUserId, prospect.companyId),
       this.pushSlackMessage(user.companyId, shareMsg, sharedChannel),

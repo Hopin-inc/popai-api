@@ -6,6 +6,7 @@ export const UserRepository = dataSource.getRepository(User).extend({
   async getUserByAppUserId(appUserId: string, companyId: string, relations: string[] = []): Promise<User[]> {
     const where: FindOptionsWhere<User> = {
       chatToolUser: { appUserId },
+      companyId,
     };
     return await this.find({
       where,
