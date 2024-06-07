@@ -27,6 +27,8 @@ import { StatusFeatureRepository } from "@/repositories/settings/StatusConfigRep
 import RemindConfig from "@/entities/settings/RemindConfig";
 import RemindTiming from "@/entities/settings/RemindTiming";
 import { RemindTimingRepository } from "@/repositories/settings/RemindTimingRepository";
+import { LevelStatusConfig } from "@/consts/setup";
+import { validate } from "class-validator";
 
 export default class ConfigController extends Controller {
   public async getConfigStatus(companyId: string): Promise<IConfigStatus> {
@@ -407,18 +409,31 @@ export default class ConfigController extends Controller {
   }
 
   public async getStatusConfig(companyId: string): Promise<IConfigStatusLevel> {
-    return await StatusFeatureRepository.findOne({
+    const statusConfig = await StatusFeatureRepository.findOne({
       where: { companyId: companyId },
   });
+    if (!statusConfig) {
+      const newStatusConfig = await StatusFeatureRepository.save({
+        companyId,
+        ...LevelStatusConfig,
+      });
+      return newStatusConfig;
+    }
+    return statusConfig;
 }
-  
+
   public async updateStatusConfig(companyId: string, updatedValues: { [key: string]: string }): Promise<void> {
     const statusConfig = await StatusFeatureRepository.findOne({ 
       where: { companyId },
   });
-    if (statusConfig) {
-        const updatedConfig = { ...statusConfig, ...updatedValues };
-        await StatusFeatureRepository.update(statusConfig.id, updatedConfig);
+      if (statusConfig) {
+        Object.assign(statusConfig, updatedValues);
+        const errors = await validate(statusConfig);
+        if (errors.length) {
+          throw new Error(errors.toString());
+        }
+
+        await StatusFeatureRepository.save(statusConfig);
     }
   }
 }
