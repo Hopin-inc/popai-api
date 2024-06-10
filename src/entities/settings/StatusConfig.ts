@@ -2,6 +2,7 @@ import { JoinColumn, OneToOne } from "typeorm";
 import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
 import BaseEntity from "../BaseEntity";
 import Company from "./Company";
+import { IsNotEmpty } from "class-validator";
 
 type ConstructorOption = {
     company: Company | string;
@@ -38,17 +39,22 @@ export default class StatusConfig extends BaseEntity {
     company: Company;
 
     @Column({ type: "varchar", length: 255, nullable: true })
+    @IsNotEmpty()
     level1: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
+    @IsNotEmpty()
     level2: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
+    @IsNotEmpty()
     level3: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
+    @IsNotEmpty()
     level4: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
+    @IsNotEmpty()
     level5: string;
 }
