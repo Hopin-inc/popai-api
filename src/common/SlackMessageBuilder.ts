@@ -8,7 +8,6 @@ import User from "@/entities/settings/User";
 import {
   ActionItemWithEmoji,
   AskPlanModalItems,
-  prospects,
   reliefActions,
   ReliefCommentModalItems,
   REMIND_MAX_ITEMS,
@@ -142,8 +141,10 @@ export default class SlackMessageBuilder {
     public static createAskActionMessageAfterProspect<T extends Project | Todo>(
     item: T,
     prospectId: number,
+    statusConfig: StatusConfig,
   ) {
-    const blocks: KnownBlock[] = this.getAnsweredProspectQuestion(item, prospectId);
+    const prospects = getProspects(statusConfig);
+    const blocks: KnownBlock[] = this.getAnsweredProspectQuestion(item, prospectId, prospects);
     if (prospectId <= ProspectLevel.NEUTRAL) {
       blocks.push(
         this.getAskReliefActionQuestion(),
@@ -167,9 +168,11 @@ export default class SlackMessageBuilder {
     item: T,
     prospectId: number,
     actionId: number,
+    statusConfig: StatusConfig,
   ) {
+    const prospects = getProspects(statusConfig);
     const blocks: KnownBlock[] = [
-      ...this.getAnsweredProspectQuestion(item, prospectId),
+      ...this.getAnsweredProspectQuestion(item, prospectId, prospects),
       ...this.getAnsweredReliefActionQuestion(actionId),
       this.getAskOpenModalBlock(
         "ひと言コメントをお願いします。",
@@ -188,9 +191,11 @@ export default class SlackMessageBuilder {
     prospectId: number,
     actionId: number,
     comment: string,
+    statusConfig: StatusConfig,
   ) {
+    const prospects = getProspects(statusConfig);
     const blocks: KnownBlock[] = [
-      ...this.getAnsweredProspectQuestion(item, prospectId),
+      ...this.getAnsweredProspectQuestion(item, prospectId, prospects),
       ...this.getAnsweredReliefActionQuestion(actionId),
       {
         type: "section",
@@ -208,7 +213,9 @@ export default class SlackMessageBuilder {
     actionId: number,
     comment: string,
     iconUrl: string,
+    statusConfig: StatusConfig,
   ) {
+    const prospects = getProspects(statusConfig);
     const prospect = prospects.find(p => p.value === prospectId);
     const action = reliefActions.find(a => a.value === actionId);
     const itemTitle = item.appUrl ? `<${ item.appUrl }|${ item.name }>` : item.name;
@@ -297,6 +304,7 @@ export default class SlackMessageBuilder {
   private static getAnsweredProspectQuestion<T extends Project | Todo>(
     item: T,
     prospectId: number,
+    prospects: ActionItemWithEmoji[],
   ): KnownBlock[] {
     const prospect = prospects.find(p => p.value === prospectId);
     return [

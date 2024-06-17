@@ -138,7 +138,7 @@ export default class Todo extends BaseEntity {
   @AfterLoad()
   setUsers() {
     this.users = this.todoUsers
-      ? this.todoUsers.filter(tu => !tu.deletedAt).map(tu => tu.user)
+      ? this.todoUsers.filter(tu => tu.user && !tu.deletedAt).map(tu => tu.user)
       : [];
   }
 
